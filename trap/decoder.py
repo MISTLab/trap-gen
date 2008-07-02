@@ -160,6 +160,7 @@ class decoderCreator:
         # memPenaltyFactor represent how much the heuristic has to take
         # into account memory consumption: the lower the more memory is
         # consumed by the created decoder.
+        self.memPenaltyFactor = memPenaltyFactor
         self.instrId = {}
         self.instrPattern = []
         # Now, given the frequencies, I compute the probabilities
@@ -186,6 +187,10 @@ class decoderCreator:
         # Creates the representation of the decoder as a C++ class
         pass
 
+    def getCPPTests(self):
+        # Creates the tests for the decoder
+        pass
+
     # Here are some helper methods used in the creation of the decoder; they
     # are called by the constructor
     def computationalCost(self, subtree):
@@ -205,15 +210,6 @@ class decoderCreator:
             sorted(huffmanList, lambda x, y: cmp(x.frequency, y.frequency))
         return huffmanList[0].count
 
-    def memoryCost(self, subtree):
-        # Computes the memory cost of the given subtree; actually,
-        # in case the split was a table, we need to add 2^m. Then
-        # we also have to take the logarithm of everything
-        partialCost = 1
-        for node in NX.out_edges(subtree):
-            partialCost += (len(node.patterns) - 1)
-        return partialCost
-
     def computePatternCost(self, subtree, curMask, newBit, newBitVal):
         # Given the current leaf node, it computes the cost
         # that would derive from using the pattern given
@@ -223,7 +219,31 @@ class decoderCreator:
         # curCost, curLeaves, where the leaves are formed by
         # the subtrees and the respective splitting criteria (pattern
         # equal or not)
-        pass
+        eqPattern = []
+        neqPattern = []
+        for pattern in subtree.patterns:
+            for i in range(0, len(curMask[0])):
+                if pattern[0][curMask[0][i]] != curMask[1][i]:
+                    neqPattern.append(pattern)
+                    break
+            if pattern[0][newBit] != newBitVal:
+                neqPattern.append(pattern)
+            else:
+                eqPattern.append(pattern)
+        # Ok, I have created the two splitted nodes
+        eqSubtree = DecodingNode(eqPattern)
+        neqSubtree = DecodingNode(neqPattern)
+        eqProb = 0
+        neqProb = 0
+        for i in eqPattern:
+            eqProb += i[1]
+        for i in neqPattern:
+            neqProb += i[1]
+        # Check the memory cost, it looks like it is always fixed to 1 ...
+        memoryCost = float(len(eqPattern) + len(neqPattern) - 1)/float(len(subtree.patterns) -1)
+        import math
+        cost = 1 + self.memPenaltyFactor*math.log(memoryCost, 2) + eqProb*self.computationalCost(eqSubtree) + neqProb*self.computationalCost(neqSubtree)
+        return (cost, ((eqSubtree, (1, eqProb)), (neqSubtree, (0, neqProb))))
 
     def computeTableCost(self, subtree, startTable, curTableLen):
         # Given the current leaf node, it computes the cost
@@ -233,7 +253,47 @@ class decoderCreator:
         # curCost, curLeaves where the lieaves are formed by the
         # subtrees and by the value of the table; I also associate
         # the sum of the frequencies in each leaf subtree
-        pass
+        import math
+        importantBits = bitStringValid([i[0] for i in subtree.patterns])
+        tablePattern = []
+        numBitMask = 0
+        for i in importantBits:
+            if i == 1 and numBitMask < bestMask[1] and startTable >= 1:
+                tablePattern.append(1)
+                numBitMask += 1
+            else:
+                tablePattern.append(0)
+        leavesPatterns = {}
+        for pattern in subtree.patterns:
+            curTableVal = 0
+            for i in range(0, len(tablePattern)):
+                if tablePattern[i] == 1:
+                    curTableVal += pattern[0][i]*math.pow(2, i)
+            if leavesPatterns.has_key(curTableVal):
+                leavesPatterns[curTableVal].append(pattern)
+            else:
+                leavesPatterns[curTableVal] = [pattern]
+        # Ok, I have created the splitted nodes
+        cost = 0
+        retTuple = []
+        
+        probs = {}
+        # Check the memory cost, it looks like it is always fixed to 1 ...
+        memoryCost = 1 + math.pow(2, curTableLen)
+        for key, value in leavesPatterns.items():
+            if probs.has_key(key):
+                probs[key] += value[1]
+            else:
+                probs[key] = value[1]
+            memoryCost += len(value[0]) -1
+        memoryCost = memoryCost/(len(subtree.patterns) - 1)
+        import math
+        for key, value in leavesPatterns.items():
+            curNode = DecodingNode(value)
+            cost += probs[key]*self.computationalCost(curNode)
+            retTuple.append((curNode, (key, probs[key])))
+        cost += 1 + self.memPenaltyFactor*math.log(memoryCost, 2)
+        return (cost, retTuple)
 
     def findBestPattern(self, subtree):
         # Given the subtree, it finds the best pattern for
@@ -260,8 +320,8 @@ class decoderCreator:
             for bit in range(0, maxPatternLen):
                 if importantBits[bit]:
                     if not bit in chosenBits:
-                        curCost0, curLeaves0 = self.computePatternCost(subtree, chosenBits, bit, 0)
-                        curCost1, curLeaves1 = self.computePatternCost(subtree, chosenBits, bit, 1)
+                        curCost0, curLeaves0 = self.computePatternCost(subtree, (chosenBits, chosenBitVals), bit, 0)
+                        curCost1, curLeaves1 = self.computePatternCost(subtree, (chosenBits, chosenBitVals), bit, 1)
                         if curCost0 > curCost1:
                             curCost = curCost1
                             curLeaves = curLeaves1

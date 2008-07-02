@@ -162,4 +162,4 @@ abi.setOffset('REGS[15]', -8)
 processor.setABI(abi)
 
 # Finally we can dump the processor on file
-processor.write(models = ['funcLT'])
+processor.write(models = ['funcLT'], dumpDecoderName = 'decoder.dot')

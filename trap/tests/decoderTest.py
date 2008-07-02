@@ -101,10 +101,6 @@ class TestDecoder(unittest.TestCase):
         self.assert_([1, None] in dec.instrPattern)
         self.assert_([0, None] in dec.instrPattern)
 
-    def testMemoryCost(self):
-        # Tests that, given a subtree, the memory cost is correctly computed
-        pass
-
     def testComputeCost(self):
         # Tests that, given a subtree, the computational cost is correctly computed
         pass

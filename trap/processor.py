@@ -536,7 +536,7 @@ class Processor:
         # to access the processor core
         pass
 
-    def write(self, folder = '', models = validModels):
+    def write(self, folder = '', models = validModels, dumpDecoderName = ''):
         # Ok: this method does two things: first of all it performs all
         # the possible checks to ensure that the processor description is
         # coherent. Second it actually calls the write method of the
@@ -554,9 +554,14 @@ class Processor:
         # First of all we have to create the decoder
         import decoder
         dec = decoder.decoderCreator(self.isa.instructions)
-        decClass = dec.getCPPClass(self.name)
+        if dumpDecoderName:
+            dec.printDecoder(dumpDecoderName)
+        decClass = dec.getCPPClass()
+        decTests = dec.getCPPTests()
         implFileDec = writer_code.FileDumper('decoder.cpp', False)
         headFileDec = writer_code.FileDumper('decoder.hpp', True)
+        implFileDec.add_member(decClass)
+        headFileDec.add_member(decClass)
         mainFolder = writer_code.Folder(os.path.join(folder))
         for model in models:
             if not model in validModels:
@@ -593,6 +598,9 @@ class Processor:
             implFileIf.addMember(IfClass)
             headFileIf.addMember(IfClass)
 
+            testFolder = writer_code.Folder('tests')
+            curFolder.addSubFolder(testFolder)
+            testFolder.addCode()
             curFolder.addHeader(implFileInstr)
             curFolder.addCode(headFileInstr)
             curFolder.addHeader(implFileRegs)
@@ -603,7 +611,10 @@ class Processor:
             curFolder.addCode(headFileProc)
             curFolder.addHeader(implFileIf)
             curFolder.addCode(headFileIf)
+            curFolder.addHeader(implFileDec)
+            curFolder.addCode(headFileDec)
             curFolder.create()
+            testFolder.create()
         # We create and print the main folder and also add a configuration
         # part to the wscript
         mainFolder.create(True)
