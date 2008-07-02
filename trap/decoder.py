@@ -55,6 +55,21 @@ def bitStringUnion(bitString, noCare = None):
                 validPattern.append(curPattern[i])
     return validPattern
 
+def bitStringValid(bitString, noCare = None):
+    """Given a list of bitstring it computes
+    which bits are different from don't-case in
+    every bitstring; I associate 1 to that bit"""
+    validPattern = []
+    for curPattern in bitString:
+        for i in range(0, len(curPattern)):
+            if len(validPattern) > i:
+                if validPattern[i] is None or curPattern[i] is None:
+                    validPattern[i] = noCare
+            else:
+                if curPattern[i] != None:
+                    validPattern.append(1)
+    return validPattern
+
 def patternLen(pattern):
     """given a list of patterns (bit strings)
     it determines the maximum length"""
@@ -119,13 +134,18 @@ class DecodingNode:
         # now I compute a summary of the patterns
         # associated with this node and then I
         # add it to the representation
-        validPattern = bitStringUnion(self.patterns, 'x')
+        validPattern = bitStringUnion([i[0] for i in self.patterns], 'x')
         retVal += str(validPattern)
 
     def __str__(self):
         # Returns a representation of the current node
         # in the dot language
         repr(self)
+
+class HuffmanNode:
+    def __init__(self, frequency, count = 1):
+        self.frequency = frequency
+        self.count = count
 
 class decoderCreator:
     """Taking as input the different instructions with the associated
@@ -157,8 +177,8 @@ class decoderCreator:
         # code
         for instr in instructions:
             self.instrId[instr.id] = (instr.bitstring, instr.frequency/self.totalCount)
-            self.instrPattern.append(instr.bitstring)
-        self.decodingTree = NX.DiGraph()
+            self.instrPattern.append((instr.bitstring, instr.frequency/self.totalCount))
+        self.decodingTree = NX.XDiGraph()
         self.computeIllegalBistreams()
         self.computeDecoder()
 
@@ -172,7 +192,18 @@ class decoderCreator:
         # Computes the metric for estimating the computational cost of the decoding subtree.
         # In this version the height of the huffman tree is used as an
         # estimation of this cost
-        pass
+        # First of all I have to create the huffman nodes and order them
+        # in a list
+        huffmanList = []
+        for i in subtree.patterns:
+            huffmanList.append(HuffmanNode(i[1]))
+        sorted(huffmanList, lambda x, y: cmp(x.frequency, y.frequency))
+        while lend(huffmanList) > 1:
+            newElem = HuffmanNode(huffmanList[0].frequency + huffmanList[1].frequency, huffmanList[0].count + huffmanList[1].count)
+            huffmanList = huffmanList[2:]
+            huffmanList.append(newElem)
+            sorted(huffmanList, lambda x, y: cmp(x.frequency, y.frequency))
+        return huffmanList[0].count
 
     def memoryCost(self, subtree):
         # Computes the memory cost of the given subtree; actually,
@@ -188,6 +219,20 @@ class decoderCreator:
         # that would derive from using the pattern given
         # by curMask + [newBit] for the split of the
         # current node.
+        # it also phisically performs the split, returning
+        # curCost, curLeaves, where the leaves are formed by
+        # the subtrees and the respective splitting criteria (pattern
+        # equal or not)
+        pass
+
+    def computeTableCost(self, subtree, startTable, curTableLen):
+        # Given the current leaf node, it computes the cost
+        # that would derive from using the current table function
+        # for the split
+        # it also phisically performs the split, returning
+        # curCost, curLeaves where the lieaves are formed by the
+        # subtrees and by the value of the table; I also associate
+        # the sum of the frequencies in each leaf subtree
         pass
 
     def findBestPattern(self, subtree):
@@ -200,6 +245,9 @@ class decoderCreator:
         # then I take, one by one, the bits and build the pattern
         # with them: I have to evaluate candidate pattern one
         # by one
+        importantBits = bitStringValid([i[0] for i in subtree.patterns])
+        if len(filter(lambda x: x != None, importantBits)) == 0:
+            raise Exception('There are no bits that distinguish the current pattern')
         bestCost = None
         chosenBits = []
         chosenBitVals = []
@@ -210,25 +258,26 @@ class decoderCreator:
         while bestBit != None:
             bestBit = None
             for bit in range(0, maxPatternLen):
-                if not bit in chosenBits:
-                    curCost0, curLeaves0 = self.computePatternCost(subtree, chosenBits, bit, 0)
-                    curCost1, curLeaves1 = self.computePatternCost(subtree, chosenBits, bit, 1)
-                    if curCost0 > curCost1:
-                        curCost = curCost1
-                        curLeaves = curLeaves1
-                        curBitVal = 1
-                    else:
-                        curCost = curCost0
-                        curLeaves = curLeaves0
-                        curBitVal = 0
-                    if bestCost is None or bestCost > curCost:
-                        bestBit = bit
-                        bestBitVal = curBitVal
-                        bestCost = curCost
-                        bestLeaves = curLeaves
-            if bestBit != None:
-                chosenBits.append(bestBit)
-                chosenBitVals.append(bestBitVal)
+                if importantBits[bit]:
+                    if not bit in chosenBits:
+                        curCost0, curLeaves0 = self.computePatternCost(subtree, chosenBits, bit, 0)
+                        curCost1, curLeaves1 = self.computePatternCost(subtree, chosenBits, bit, 1)
+                        if curCost0 > curCost1:
+                            curCost = curCost1
+                            curLeaves = curLeaves1
+                            curBitVal = 1
+                        else:
+                            curCost = curCost0
+                            curLeaves = curLeaves0
+                            curBitVal = 0
+                        if bestCost is None or bestCost > curCost:
+                            bestBit = bit
+                            bestBitVal = curBitVal
+                            bestCost = curCost
+                            bestLeaves = curLeaves
+                if bestBit != None:
+                    chosenBits.append(bestBit)
+                    chosenBitVals.append(bestBitVal)
         # Now we return the tuple bestPattern, leavesPattern, costPattern
         # where bestPattern rappresents the best split function for this
         # subtree, leavesPattern the nodes directly descending from
@@ -250,15 +299,37 @@ class decoderCreator:
         # the split
         # We evaluate all the 2-bit tables, then the 3-bit tables,
         # etc.
-        maxPatternLen = patternLen(subtree.patterns)
+        importantBits = bitStringValid([i[0] for i in subtree.patterns])
+        importantBitLen = len(filter(lambda x: x != None, importantBits))
+        if importantBitLen < 2:
+            raise Exception('There are no bits that distinguish the current pattern')
         # I have to determine the best m-bits candidate,
-        # where 2 < m < len(union)
+        # where 2 < m < len(importantBits == 1)
         bestCost = None
         bestLeaves = None
+        bestMask = ()
         curTableLen = 2
-        for startTable in range(0, maxPatternLen - curTableLen):
-            curCost, curLeaves = self.computeTableCost(subtree, startTable, curTableLen)
-
+        improvement = True
+        while curTableLen <= importantBitLen and improvement:
+            improvement = False
+            for startTable in range(0, importantBitLen - curTableLen):
+                curCost, curLeaves = self.computeTableCost(subtree, startTable, curTableLen)
+                if curCost < bestCost:
+                    bestMask = (startTable, curTableLen)
+                    bestCost = curCost
+                    bestLeaves = curLeaves
+                    improvement = True
+            curTableLen += 1
+        # Ok, found the best table for decoding
+        tablePattern = []
+        numBitMask = 0
+        for i in importantBits:
+            if i == 1 and numBitMask < bestMask[1] and startTable >= 1:
+                tablePattern.append(1)
+                numBitMask += 1
+            else:
+                tablePattern.append(0)
+        return (SplitFunction(table = tablePattern), bestLeaves, bestCost)
 
     def computeIllegalBistreams(self):
         # From all the instructions it computes the illegal patterns as
@@ -266,7 +337,7 @@ class decoderCreator:
         # minimization follows. In order to implement this I can simply
         # perform the union among the patters of the instructions (two
         # different bits yeld don't care) and the complement it
-        validPattern = bitStringUnion(self.instrPattern)
+        validPattern = bitStringUnion([i[0] for i in self.instrPattern])
         self.complementPattern(validPattern, 0)
 
     def complementPattern(self, pattern, bit):
@@ -293,7 +364,7 @@ class decoderCreator:
                 self.instrId[-1][0].append(copy.deepcopy(pattern))
             else:
                 self.instrId[-1] = ([copy.deepcopy(pattern)], (self.minFreq/100)/self.totalCount)
-            self.instrPattern.append(copy.deepcopy(pattern))
+            self.instrPattern.append((copy.deepcopy(pattern), (self.minFreq/100)/self.totalCount))
 
     def computeDecoder(self):
         # Actually computes the decoder; the algorithm is:
@@ -329,7 +400,7 @@ class decoderCreator:
         different = False
         for instr in subtree.patterns:
             for instrId, instrVals in self.instrId:
-                if instrVals[0] == instr:
+                if instrVals[0] == instr[0]:
                     if curClass == None:
                         curClass = instrId
                     elif curClass != instrId:
@@ -349,17 +420,17 @@ class decoderCreator:
             subtree.splitFunction = bestTable
             if(len(leavesTable) > 1):
                 for i in leavesTable:
-                    self.decodingTree.add_node(i)
-                    self.decodingTree.add_edge(subtree, i)
-                    self.computeDecoder(i)
+                    self.decodingTree.add_node(i[0])
+                    self.decodingTree.add_edge(subtree, i[0], i[1])
+                    self.computeDecoder(i[0])
         else:
             # It is better to split on the pattern
             subtree.splitFunction = bestPattern
             if(len(leavesPattern) > 1):
                 for i in leavesPattern:
-                    self.decodingTree.add_node(i)
-                    self.decodingTree.add_edge(subtree, i)
-                    self.computeDecoder(i)
+                    self.decodingTree.add_node(i[0])
+                    self.decodingTree.add_edge(subtree, i[0], i[1])
+                    self.computeDecoder(i[0])
 
     def printDecoder(self, fileName):
         try:

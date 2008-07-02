@@ -109,6 +109,14 @@ class TestDecoder(unittest.TestCase):
         # Tests that, given a subtree, the computational cost is correctly computed
         pass
 
+    def testTableCost(self):
+        # Tests that, given a subtree, the computational cost is correctly computed
+        pass
+
+    def testPatternCost(self):
+        # Tests that, given a subtree, the computational cost is correctly computed
+        pass
+
     def testBestPattern(self):
         # Tests that, given a subtree, the correct best pattern matching
         # function is computed
@@ -117,6 +125,21 @@ class TestDecoder(unittest.TestCase):
     def testBestTable(self):
         # Tests that, given a subtree, the correct best pattern matching
         # function is computed
+        pass
+
+    def testbitStringValid(self):
+        # Tests that the function that returns the valid bits in a set
+        # of bitStrings behaves correctly
+        pass
+
+    def testbitStringValid1(self):
+        # Tests that the function that returns the valid bits in a set
+        # of bitStrings behaves correctly when there are no valid bits
+        pass
+
+    def testbitStringUnion(self):
+        # Tests that the function that returns the union of a set
+        # of bitStrings behaves correctly
         pass
 
     def testNormal(self):
