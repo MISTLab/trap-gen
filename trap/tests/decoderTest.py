@@ -51,8 +51,8 @@ class TestDecoder(unittest.TestCase):
         dec = decoder.decoderCreator([])
         dec.complementPattern([0, 1], 0)
         self.assertEqual(2, len(dec.instrPattern))
-        self.assert_([1, None] in dec.instrPattern)
-        self.assert_([0, 0] in dec.instrPattern)
+        self.assert_([1, None] in [i[0] for i in dec.instrPattern])
+        self.assert_([0, 0] in [i[0] for i in dec.instrPattern])
 
     def testComplement2(self):
         # Test the correct operation of the complementPattern function
@@ -60,7 +60,7 @@ class TestDecoder(unittest.TestCase):
         dec = decoder.decoderCreator([])
         dec.complementPattern([0, None], 0)
         self.assertEqual(1, len(dec.instrPattern))
-        self.assert_([1, None] in dec.instrPattern)
+        self.assert_([1, None] in [i[0] for i in dec.instrPattern])
 
     def testComplementDegen(self):
         # Test the correct operation of the complementPattern function
@@ -73,37 +73,96 @@ class TestDecoder(unittest.TestCase):
         # Tests the computation of the negation of the union of the valid
         # bitstrings
         dec = decoder.decoderCreator([])
-        dec.instrPattern += [[1, 1]]
+        dec.instrPattern += [([1, 1], 0)]
         dec.computeIllegalBistreams()
         self.assertEqual(3, len(dec.instrPattern))
-        self.assert_([1, 1] in dec.instrPattern)
-        self.assert_([0, None] in dec.instrPattern)
-        self.assert_([1, 0] in dec.instrPattern)
+        self.assert_([1, 1] in [i[0] for i in dec.instrPattern])
+        self.assert_([0, None] in [i[0] for i in dec.instrPattern])
+        self.assert_([1, 0] in [i[0] for i in dec.instrPattern])
 
     def testIllegalBitsream2(self):
         # Tests the computation of the negation of the union of the valid
         # bitstrings
         dec = decoder.decoderCreator([])
-        dec.instrPattern += [[1, 1], [1, 0]]
+        dec.instrPattern += [([1, 1], 0), ([1, 0], 0)]
         dec.computeIllegalBistreams()
         self.assertEqual(3, len(dec.instrPattern))
-        self.assert_([0, None] in dec.instrPattern)
-        self.assert_([1, 1] in dec.instrPattern)
-        self.assert_([1, 0] in dec.instrPattern)
+        self.assert_([0, None] in [i[0] for i in dec.instrPattern])
+        self.assert_([1, 1] in [i[0] for i in dec.instrPattern])
+        self.assert_([1, 0] in [i[0] for i in dec.instrPattern])
 
     def testIllegalBitsream3(self):
         # Tests the computation of the negation of the union of the valid
         # bitstrings
         dec = decoder.decoderCreator([])
-        dec.instrPattern += [[1, None]]
+        dec.instrPattern += [([1, None], 0)]
         dec.computeIllegalBistreams()
         self.assertEqual(2, len(dec.instrPattern))
-        self.assert_([1, None] in dec.instrPattern)
-        self.assert_([0, None] in dec.instrPattern)
+        self.assert_([1, None] in [i[0] for i in dec.instrPattern])
+        self.assert_([0, None] in [i[0] for i in dec.instrPattern])
 
-    def testComputeCost(self):
+    def testbitStringValid(self):
+        # Tests that the function that returns the valid bits in a set
+        # of bitStrings behaves correctly
+        result = decoder.bitStringValid(((1, 1), (0, 0)))
+        self.assertEqual([1, 1], result)
+
+    def testbitStringValid0(self):
+        # Tests that the function that returns the valid bits in a set
+        # of bitStrings behaves correctly
+        result = decoder.bitStringValid(((1, 1), (0, None)))
+        self.assertEqual([1, None], result)
+
+    def testbitStringValid1(self):
+        # Tests that the function that returns the valid bits in a set
+        # of bitStrings behaves correctly when there are no valid bits
+        result = decoder.bitStringValid(((None, 1), (0, None)))
+        self.assertEqual([None, None], result)
+
+    def testbitStringUnion(self):
+        # Tests that the function that returns the union of a set
+        # of bitStrings behaves correctly
+        result = decoder.bitStringUnion(((1, 1), (1, 0)))
+        self.assertEqual([1, None], result)
+
+    def testbitStringUnion0(self):
+        # Tests that the function that returns the union of a set
+        # of bitStrings behaves correctly
+        result = decoder.bitStringUnion(((0, 1), (1, 0)))
+        self.assertEqual([None, None], result)
+
+    def testbitStringUnion1(self):
+        # Tests that the function that returns the union of a set
+        # of bitStrings behaves correctly
+        result = decoder.bitStringUnion(((None, None), (None, None)))
+        self.assertEqual([None, None], result)
+
+    def testbitStringUnion2(self):
+        # Tests that the function that returns the union of a set
+        # of bitStrings behaves correctly
+        result = decoder.bitStringUnion(((1, None), (None, 1)))
+        self.assertEqual([None, None], result)
+
+    def testComputeCost1(self):
         # Tests that, given a subtree, the computational cost is correctly computed
-        pass
+        # this means that the corresponding huffman tree is comrrectly computed
+        dec = decoder.decoderCreator([])
+        surSubtree = decoder.DecodingNode((((1, 1), 0.1), ((1, 1), 0.1)))
+        self.assertEqual(2, dec.computationalCost(surSubtree))
+
+    def testComputeCost2(self):
+        # Tests that, given a subtree, the computational cost is correctly computed
+        # this means that the corresponding huffman tree is comrrectly computed
+        dec = decoder.decoderCreator([])
+        surSubtree = decoder.DecodingNode((((1, 1), 0.1), ((1, 1), 0.1), ((1, 1), 0.8), ((1, 1), 0.05)))
+        self.assertEqual(4, dec.computationalCost(surSubtree))
+
+    def testComputeCost3(self):
+        # Tests that, given a subtree, the computational cost is correctly computed
+        # this means that the corresponding huffman tree is comrrectly computed
+        dec = decoder.decoderCreator([])
+        surSubtree = decoder.DecodingNode((((1, 1), 0.1), ((1, 1), 0.1), ((1, 1), 0.1), ((1, 1), 0.1)))
+        self.assertEqual(3, dec.computationalCost(surSubtree))
 
     def testTableCost(self):
         # Tests that, given a subtree, the computational cost is correctly computed
@@ -121,21 +180,6 @@ class TestDecoder(unittest.TestCase):
     def testBestTable(self):
         # Tests that, given a subtree, the correct best pattern matching
         # function is computed
-        pass
-
-    def testbitStringValid(self):
-        # Tests that the function that returns the valid bits in a set
-        # of bitStrings behaves correctly
-        pass
-
-    def testbitStringValid1(self):
-        # Tests that the function that returns the valid bits in a set
-        # of bitStrings behaves correctly when there are no valid bits
-        pass
-
-    def testbitStringUnion(self):
-        # Tests that the function that returns the union of a set
-        # of bitStrings behaves correctly
         pass
 
     def testNormal(self):

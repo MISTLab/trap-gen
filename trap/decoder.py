@@ -33,6 +33,14 @@
 #
 ####################################################################################
 
+#################################################################################
+# TODO: The current version of the decoder does not take into account splitting
+# unlike what described in Automated Synthesis of Efficient Binary Decodes for Retargetable Software Toolkits
+# This means that when determining pattern or table functions we only consider
+# bits that are not don't care in any of the instructions; this also means that
+# an instruction can be found only in one leaf of the decoding tree.
+# In future we might try to change this to really reflect the cited paper
+#################################################################################
 
 try:
     import networkx as NX
@@ -68,6 +76,8 @@ def bitStringValid(bitString, noCare = None):
             else:
                 if curPattern[i] != None:
                     validPattern.append(1)
+                else:
+                    validPattern.append(noCare)
     return validPattern
 
 def patternLen(pattern):
@@ -123,7 +133,7 @@ class DecodingNode:
     def __hash__(self):
         # returns a hash of the object, necessary for the
         # utilization as a graph node
-        return hash(self.patterns)
+        return hash(str(self.patterns))
 
     def __repr__(self):
         retVal = ''
@@ -188,7 +198,8 @@ class decoderCreator:
         pass
 
     def getCPPTests(self):
-        # Creates the tests for the decoder
+        # Creates the tests for the decoder; I normally create the
+        # tests with boost_test_framework.
         pass
 
     # Here are some helper methods used in the creation of the decoder; they
@@ -203,7 +214,7 @@ class decoderCreator:
         for i in subtree.patterns:
             huffmanList.append(HuffmanNode(i[1]))
         sorted(huffmanList, lambda x, y: cmp(x.frequency, y.frequency))
-        while lend(huffmanList) > 1:
+        while len(huffmanList) > 1:
             newElem = HuffmanNode(huffmanList[0].frequency + huffmanList[1].frequency, huffmanList[0].count + huffmanList[1].count)
             huffmanList = huffmanList[2:]
             huffmanList.append(newElem)
@@ -239,7 +250,8 @@ class decoderCreator:
             eqProb += i[1]
         for i in neqPattern:
             neqProb += i[1]
-        # Check the memory cost, it looks like it is always fixed to 1 ...
+        # Note how the memory cost if always fixed to 1 in this implementation since we
+        # do not consider node splitting (as said above)
         memoryCost = float(len(eqPattern) + len(neqPattern) - 1)/float(len(subtree.patterns) -1)
         import math
         cost = 1 + self.memPenaltyFactor*math.log(memoryCost, 2) + eqProb*self.computationalCost(eqSubtree) + neqProb*self.computationalCost(neqSubtree)
@@ -278,7 +290,6 @@ class decoderCreator:
         retTuple = []
         
         probs = {}
-        # Check the memory cost, it looks like it is always fixed to 1 ...
         memoryCost = 1 + math.pow(2, curTableLen)
         for key, value in leavesPatterns.items():
             if probs.has_key(key):

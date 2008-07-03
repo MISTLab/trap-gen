@@ -39,11 +39,10 @@
 
 import unittest
 
-import sys
-sys.path.append('/home/luke/SVN/ReSP/trunk/other')
+import sys, os
+sys.path.append(os.path.abspath('..'))
 
 from tests import decoderTest
-from tests import all
 from tests import coding
 from tests import regs
 

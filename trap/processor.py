@@ -536,6 +536,14 @@ class Processor:
         # to access the processor core
         pass
 
+    def getTestMainCode(self):
+        # Returns the code for the file which contains the main
+        # routine for the execution of the tests.
+        # actually it is nothing but a file which includes
+        # boost/test/auto_unit_test.hpp and defines
+        # BOOST_AUTO_TEST_MAIN and BOOST_TEST_DYN_LINK
+        pass
+
     def write(self, folder = '', models = validModels, dumpDecoderName = ''):
         # Ok: this method does two things: first of all it performs all
         # the possible checks to ensure that the processor description is
@@ -567,6 +575,7 @@ class Processor:
             if not model in validModels:
                 raise Exception(model + ' is not a valid model type')
             ISAClasses = self.isa.getCPPClasses(self.name, model)
+            ISATests = self.isa.getCPPTests(self.name, model)
             RegClasses = self.getCPPRegisters()
             AliasClass = self.getCPPAlias()
             ProcClass = self.getCPPProc()
@@ -600,7 +609,9 @@ class Processor:
 
             testFolder = writer_code.Folder('tests')
             curFolder.addSubFolder(testFolder)
-            testFolder.addCode()
+            testFolder.addCode(decTests)
+            testFolder.addCode(ISATests)
+            testFolder.addCode(self.getTestMainCode())
             curFolder.addHeader(implFileInstr)
             curFolder.addCode(headFileInstr)
             curFolder.addHeader(implFileRegs)
