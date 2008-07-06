@@ -1,15 +1,15 @@
 ####################################################################################
-#                    ___           ___           ___
-#        ___        /  /\         /  /\         /  /\
-#       /  /\      /  /::\       /  /::\       /  /::\
+#         ___        ___           ___           ___
+#        /  /\      /  /\         /  /\         /  /\
+#       /  /:/     /  /::\       /  /::\       /  /::\
 #      /  /:/     /  /:/\:\     /  /:/\:\     /  /:/\:\
 #     /  /:/     /  /:/~/:/    /  /:/~/::\   /  /:/~/:/
 #    /  /::\    /__/:/ /:/___ /__/:/ /:/\:\ /__/:/ /:/
 #   /__/:/\:\   \  \:\/:::::/ \  \:\/:/__\/ \  \:\/:/
 #   \__\/  \:\   \  \::/~~~~   \  \::/       \  \::/
 #        \  \:\   \  \:\        \  \:\        \  \:\
-#         \__\/    \  \:\        \  \:\        \  \:\
-#                   \__\/         \__\/         \__\/
+#         \  \ \   \  \:\        \  \:\        \  \:\
+#          \__\/    \__\/         \__\/         \__\/
 #
 #   This file is part of TRAP.
 #
@@ -42,7 +42,7 @@ try:
     import trap
 except ImportError:
     import sys
-    sys.path.append('/home/luke/SVN/trap-gen/trunk/')
+    sys.path.append('/home/luke/SVN/trap-gen/')
     try:
         import trap
     except ImportError:
@@ -162,4 +162,4 @@ abi.setOffset('REGS[15]', -8)
 processor.setABI(abi)
 
 # Finally we can dump the processor on file
-processor.write(models = ['funcLT'], dumpDecoderName = 'decoder.dot')
+processor.write(folder = 'processor', models = ['funcLT'], dumpDecoderName = 'decoder.dot')

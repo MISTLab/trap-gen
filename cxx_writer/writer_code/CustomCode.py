@@ -1,15 +1,15 @@
 ####################################################################################
-#                    ___           ___           ___
-#        ___        /  /\         /  /\         /  /\
-#       /  /\      /  /::\       /  /::\       /  /::\
+#         ___        ___           ___           ___
+#        /  /\      /  /\         /  /\         /  /\
+#       /  /:/     /  /::\       /  /::\       /  /::\
 #      /  /:/     /  /:/\:\     /  /:/\:\     /  /:/\:\
 #     /  /:/     /  /:/~/:/    /  /:/~/::\   /  /:/~/:/
 #    /  /::\    /__/:/ /:/___ /__/:/ /:/\:\ /__/:/ /:/
 #   /__/:/\:\   \  \:\/:::::/ \  \:\/:/__\/ \  \:\/:/
 #   \__\/  \:\   \  \::/~~~~   \  \::/       \  \::/
 #        \  \:\   \  \:\        \  \:\        \  \:\
-#         \__\/    \  \:\        \  \:\        \  \:\
-#                   \__\/         \__\/         \__\/
+#         \  \ \   \  \:\        \  \:\        \  \:\
+#          \__\/    \__\/         \__\/         \__\/
 #
 #   This file is part of TRAP.
 #
@@ -44,7 +44,7 @@ class Code:
             self.code = '\n'.join(code)
         else:
             self.code = code
-        self.incudes = includes
+        self.includes = includes
         self.variables = []
 
     def addCode(self, code):
@@ -55,9 +55,9 @@ class Code:
 
     def addInclude(self, include):
         if type(include) == type(''):
-            self.incudes.append(include)
+            self.includes.append(include)
         else:
-            self.incudes += include
+            self.includes += include
 
     def addVariable(self, variable):
         self.variables.append(variable)

@@ -1,15 +1,15 @@
 ####################################################################################
-#                    ___           ___           ___
-#        ___        /  /\         /  /\         /  /\
-#       /  /\      /  /::\       /  /::\       /  /::\
+#         ___        ___           ___           ___
+#        /  /\      /  /\         /  /\         /  /\
+#       /  /:/     /  /::\       /  /::\       /  /::\
 #      /  /:/     /  /:/\:\     /  /:/\:\     /  /:/\:\
 #     /  /:/     /  /:/~/:/    /  /:/~/::\   /  /:/~/:/
 #    /  /::\    /__/:/ /:/___ /__/:/ /:/\:\ /__/:/ /:/
 #   /__/:/\:\   \  \:\/:::::/ \  \:\/:/__\/ \  \:\/:/
 #   \__\/  \:\   \  \::/~~~~   \  \::/       \  \::/
 #        \  \:\   \  \:\        \  \:\        \  \:\
-#         \__\/    \  \:\        \  \:\        \  \:\
-#                   \__\/         \__\/         \__\/
+#         \  \ \   \  \:\        \  \:\        \  \:\
+#          \__\/    \__\/         \__\/         \__\/
 #
 #   This file is part of TRAP.
 #
@@ -391,7 +391,7 @@ class Processor:
         # Sets the correspondence between the fetch address
         # and a register inside the processor
         found = False
-        for i in self.alias + self.regs:
+        for i in self.aliasRegs + self.regs:
             if i.name == fetchReg:
                 found = True
                 break
@@ -520,21 +520,21 @@ class Processor:
         # This method creates all the classes necessary for declaring
         # the registers: in particular the register base class
         # and all the classes for the different bitwidths
-        pass
+        return []
 
     def getCPPAlias(self):
         # This method creates the class describing a register
         # alias
-        pass
+        return None
 
     def getCPPProc(self):
         # creates the class describing the processor
-        pass
+        return None
 
     def getCPPIf(self):
         # creates the interface which is used by the tools
         # to access the processor core
-        pass
+        return None
 
     def getTestMainCode(self):
         # Returns the code for the file which contains the main
@@ -542,7 +542,10 @@ class Processor:
         # actually it is nothing but a file which includes
         # boost/test/auto_unit_test.hpp and defines
         # BOOST_AUTO_TEST_MAIN and BOOST_TEST_DYN_LINK
-        pass
+        import cxx_writer
+        code = '#define BOOST_AUTO_TEST_MAIN\n#define BOOST_TEST_DYN_LINK\n#include <boost/test/auto_unit_test.hpp>'
+        mainCode = cxx_writer.writer_code.Code(code)
+        return mainCode
 
     def write(self, folder = '', models = validModels, dumpDecoderName = ''):
         # Ok: this method does two things: first of all it performs all
@@ -550,6 +553,8 @@ class Processor:
         # coherent. Second it actually calls the write method of the
         # processor components (registers, instructions, etc.) to create
         # the code of the simulator
+        print '\tCREATING IMPLEMENTATION FOR PROCESSOR MODEL --> ' + self.name
+        print '\t\tChecking the consistency of the specification'
         self.isa.computeCoding()
         self.isa.checkCoding()
         self.checkAliases()
@@ -560,18 +565,21 @@ class Processor:
         # OK, checks done. Now I can start calling the write methods to
         # actually create the ISS code
         # First of all we have to create the decoder
-        import decoder
+        print '\t\tCreating the decoder'
+        import decoder, os
         dec = decoder.decoderCreator(self.isa.instructions)
         if dumpDecoderName:
             dec.printDecoder(dumpDecoderName)
         decClass = dec.getCPPClass()
         decTests = dec.getCPPTests()
-        implFileDec = writer_code.FileDumper('decoder.cpp', False)
-        headFileDec = writer_code.FileDumper('decoder.hpp', True)
-        implFileDec.add_member(decClass)
-        headFileDec.add_member(decClass)
-        mainFolder = writer_code.Folder(os.path.join(folder))
+        implFileDec = cxx_writer.writer_code.FileDumper('decoder.cpp', False)
+        headFileDec = cxx_writer.writer_code.FileDumper('decoder.hpp', True)
+        implFileDec.addMember(decClass)
+        headFileDec.addMember(decClass)
+        implFileDec.addInclude('decoder.hpp')
+        mainFolder = cxx_writer.writer_code.Folder(os.path.join(folder))
         for model in models:
+            print '\t\tCreating the implementation for model ' + model
             if not model in validModels:
                 raise Exception(model + ' is not a valid model type')
             ISAClasses = self.isa.getCPPClasses(self.name, model)
@@ -582,50 +590,57 @@ class Processor:
             IfClass = self.getCPPIf()
             # Ok, now that we have all the classes it is time to write
             # them to file
-            curFolder = writer_code.Folder(os.path.join(folder, model))
+            curFolder = cxx_writer.writer_code.Folder(os.path.join(folder, model))
             mainFolder.addSubFolder(curFolder)
-            implFileInstr = writer_code.FileDumper('instructions.cpp', False)
-            headFileInstr = writer_code.FileDumper('instructions.hpp', True)
+            implFileInstr = cxx_writer.writer_code.FileDumper('instructions.cpp', False)
+            headFileInstr = cxx_writer.writer_code.FileDumper('instructions.hpp', True)
             for i in ISAClasses:
                 implFileInstr.addMember(i)
                 headFileInstr.addMember(i)
-            implFileRegs = writer_code.FileDumper('registers.cpp', False)
-            headFileRegs = writer_code.FileDumper('registers.hpp', True)
+            implFileRegs = cxx_writer.writer_code.FileDumper('registers.cpp', False)
+            headFileRegs = cxx_writer.writer_code.FileDumper('registers.hpp', True)
             for i in RegClasses:
                 implFileRegs.addMember(i)
                 headFileRegs.addMember(i)
-            implFileAlias = writer_code.FileDumper('alias.cpp', False)
-            headFileAlias = writer_code.FileDumper('alias.hpp', True)
+            implFileAlias = cxx_writer.writer_code.FileDumper('alias.cpp', False)
+            headFileAlias = cxx_writer.writer_code.FileDumper('alias.hpp', True)
             implFileAlias.addMember(AliasClass)
             headFileAlias.addMember(AliasClass)
-            implFileProc = writer_code.FileDumper('processor.cpp', False)
-            headFileProc = writer_code.FileDumper('processor.hpp', True)
+            implFileProc = cxx_writer.writer_code.FileDumper('processor.cpp', False)
+            headFileProc = cxx_writer.writer_code.FileDumper('processor.hpp', True)
             implFileProc.addMember(ProcClass)
             headFileProc.addMember(ProcClass)
-            implFileIf = writer_code.FileDumper('interface.cpp', False)
-            headFileIf = writer_code.FileDumper('interface.hpp', True)
+            implFileIf = cxx_writer.writer_code.FileDumper('interface.cpp', False)
+            headFileIf = cxx_writer.writer_code.FileDumper('interface.hpp', True)
             implFileIf.addMember(IfClass)
             headFileIf.addMember(IfClass)
 
-            testFolder = writer_code.Folder('tests')
+            testFolder = cxx_writer.writer_code.Folder('tests')
             curFolder.addSubFolder(testFolder)
-            testFolder.addCode(decTests)
-            testFolder.addCode(ISATests)
-            testFolder.addCode(self.getTestMainCode())
-            curFolder.addHeader(implFileInstr)
-            curFolder.addCode(headFileInstr)
-            curFolder.addHeader(implFileRegs)
-            curFolder.addCode(headFileRegs)
-            curFolder.addHeader(implFileAlias)
-            curFolder.addCode(headFileAlias)
-            curFolder.addHeader(implFileProc)
-            curFolder.addCode(headFileProc)
-            curFolder.addHeader(implFileIf)
-            curFolder.addCode(headFileIf)
-            curFolder.addHeader(implFileDec)
-            curFolder.addCode(headFileDec)
+            decTestsFile = cxx_writer.writer_code.FileDumper('decoderTests.cpp', False)
+            decTestsFile.addMember(decTests)
+            testFolder.addCode(decTestsFile)
+            ISATestsFile = cxx_writer.writer_code.FileDumper('isaTests.cpp', False)
+            ISATestsFile.addMember(ISATests)
+            testFolder.addCode(ISATestsFile)
+            mainTestFile = cxx_writer.writer_code.FileDumper('main.cpp', False)
+            mainTestFile.addMember(self.getTestMainCode())
+            testFolder.addCode(mainTestFile)
+            curFolder.addHeader(headFileInstr)
+            curFolder.addCode(implFileInstr)
+            curFolder.addHeader(headFileRegs)
+            curFolder.addCode(implFileRegs)
+            curFolder.addHeader(headFileAlias)
+            curFolder.addCode(implFileAlias)
+            curFolder.addHeader(headFileProc)
+            curFolder.addCode(implFileProc)
+            curFolder.addHeader(headFileIf)
+            curFolder.addCode(implFileIf)
+            curFolder.addHeader(headFileDec)
+            curFolder.addCode(implFileDec)
             curFolder.create()
             testFolder.create()
+            print '\t\tCreated'
         # We create and print the main folder and also add a configuration
         # part to the wscript
         mainFolder.create(True)

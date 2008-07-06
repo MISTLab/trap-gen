@@ -1,12 +1,77 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Tasks SYSTEM "Tasks-4.1.dtd">
 <!-- eric4 tasks file for project TRAP -->
-<!-- Saved: 2008-07-03, 03:53:17 -->
+<!-- Saved: 2008-07-06, 04:00:15 -->
 <Tasks version="4.1">
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: add the possibility of defining templated methods as done for</Summary>
+    <Description></Description>
+    <Created>2008-07-05, 20:18:49</Created>
+    <Resource>
+      <Filename>
+        <Dir>cxx_writer</Dir>
+        <Dir>writer_code</Dir>
+        <Name>ClassDecls.py</Name>
+      </Filename>
+      <Linenumber>49</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: see this category, maybe we can express it in a more general way</Summary>
+    <Description></Description>
+    <Created>2008-07-05, 20:21:04</Created>
+    <Resource>
+      <Filename>
+        <Dir>processors</Dir>
+        <Dir>ARM7TDMI</Dir>
+        <Name>ARMCoding.py</Name>
+      </Filename>
+      <Linenumber>62</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: complete this part</Summary>
+    <Description></Description>
+    <Created>2008-07-05, 20:21:04</Created>
+    <Resource>
+      <Filename>
+        <Dir>processors</Dir>
+        <Dir>ARM7TDMI</Dir>
+        <Name>ARMCoding.py</Name>
+      </Filename>
+      <Linenumber>82</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: I do not like this way: I would like to make it more automatic</Summary>
+    <Description></Description>
+    <Created>2008-07-05, 20:21:29</Created>
+    <Resource>
+      <Filename>
+        <Dir>processors</Dir>
+        <Dir>ARM7TDMI</Dir>
+        <Name>ARMMethods.py</Name>
+      </Filename>
+      <Linenumber>46</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: check carry and overflow operations; in particular, are they valid for</Summary>
+    <Description></Description>
+    <Created>2008-07-05, 20:21:29</Created>
+    <Resource>
+      <Filename>
+        <Dir>processors</Dir>
+        <Dir>ARM7TDMI</Dir>
+        <Name>ARMMethods.py</Name>
+      </Filename>
+      <Linenumber>523</Linenumber>
+    </Resource>
+  </Task>
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: I do not like it too much ... any better ideas?; is there</Summary>
     <Description></Description>
-    <Created>2008-07-02, 03:17:44</Created>
+    <Created>2008-07-05, 23:17:35</Created>
     <Resource>
       <Filename>
         <Dir>processors</Dir>
@@ -17,9 +82,21 @@
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: The current version of the decoder does not take into account splitting</Summary>
+    <Description></Description>
+    <Created>2008-07-06, 03:25:20</Created>
+    <Resource>
+      <Filename>
+        <Dir>trap</Dir>
+        <Name>decoder.py</Name>
+      </Filename>
+      <Linenumber>37</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: do we need to access the fields of the instructions? if so</Summary>
     <Description></Description>
-    <Created>2008-07-03, 13:08:28</Created>
+    <Created>2008-07-06, 03:46:07</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
@@ -31,7 +108,7 @@
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: as for the begin op, do we need to access any</Summary>
     <Description></Description>
-    <Created>2008-07-03, 13:08:28</Created>
+    <Created>2008-07-06, 03:46:07</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
@@ -43,37 +120,25 @@
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: think about how to do the mnemonic</Summary>
     <Description></Description>
-    <Created>2008-07-03, 13:08:28</Created>
+    <Created>2008-07-06, 03:46:07</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
         <Name>isa.py</Name>
       </Filename>
-      <Linenumber>301</Linenumber>
+      <Linenumber>289</Linenumber>
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: an accurate interface is also needed. This means that</Summary>
     <Description></Description>
-    <Created>2008-07-03, 13:23:57</Created>
+    <Created>2008-07-06, 03:47:43</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
         <Name>processor.py</Name>
       </Filename>
-      <Linenumber>671</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: The current version of the decoder does not take into account splitting</Summary>
-    <Description></Description>
-    <Created>2008-07-03, 03:48:34</Created>
-    <Resource>
-      <Filename>
-        <Dir>trap</Dir>
-        <Name>decoder.py</Name>
-      </Filename>
-      <Linenumber>37</Linenumber>
+      <Linenumber>686</Linenumber>
     </Resource>
   </Task>
 </Tasks>

@@ -1,15 +1,15 @@
 ####################################################################################
-#                    ___           ___           ___
-#        ___        /  /\         /  /\         /  /\
-#       /  /\      /  /::\       /  /::\       /  /::\
+#         ___        ___           ___           ___
+#        /  /\      /  /\         /  /\         /  /\
+#       /  /:/     /  /::\       /  /::\       /  /::\
 #      /  /:/     /  /:/\:\     /  /:/\:\     /  /:/\:\
 #     /  /:/     /  /:/~/:/    /  /:/~/::\   /  /:/~/:/
 #    /  /::\    /__/:/ /:/___ /__/:/ /:/\:\ /__/:/ /:/
 #   /__/:/\:\   \  \:\/:::::/ \  \:\/:/__\/ \  \:\/:/
 #   \__\/  \:\   \  \::/~~~~   \  \::/       \  \::/
 #        \  \:\   \  \:\        \  \:\        \  \:\
-#         \__\/    \  \:\        \  \:\        \  \:\
-#                   \__\/         \__\/         \__\/
+#         \  \ \   \  \:\        \  \:\        \  \:\
+#          \__\/    \__\/         \__\/         \__\/
 #
 #   This file is part of TRAP.
 #
@@ -105,7 +105,7 @@ adc_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
 adc_shift_reg_Instr.addVariable(('result', 'BIT<64>'))
 isa.addInstruction(adc_shift_reg_Instr)
 adc_imm_Instr = trap.Instruction('ADC_i', True)
-adc_imm_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [0, 1, 0, 1]}, 'TODO')
+adc_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [0, 1, 0, 1]}, 'TODO')
 adc_imm_Instr.setCode(opCode, 'execute')
 adc_imm_Instr.addBehavior(condCheckOp, 'execute')
 adc_imm_Instr.addBehavior(DPI_imm_Op, 'execute')

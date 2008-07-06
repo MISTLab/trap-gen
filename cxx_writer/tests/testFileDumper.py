@@ -1,15 +1,15 @@
 ####################################################################################
-#                    ___           ___           ___
-#        ___        /  /\         /  /\         /  /\
-#       /  /\      /  /::\       /  /::\       /  /::\
+#         ___        ___           ___           ___
+#        /  /\      /  /\         /  /\         /  /\
+#       /  /:/     /  /::\       /  /::\       /  /::\
 #      /  /:/     /  /:/\:\     /  /:/\:\     /  /:/\:\
 #     /  /:/     /  /:/~/:/    /  /:/~/::\   /  /:/~/:/
 #    /  /::\    /__/:/ /:/___ /__/:/ /:/\:\ /__/:/ /:/
 #   /__/:/\:\   \  \:\/:::::/ \  \:\/:/__\/ \  \:\/:/
 #   \__\/  \:\   \  \::/~~~~   \  \::/       \  \::/
 #        \  \:\   \  \:\        \  \:\        \  \:\
-#         \__\/    \  \:\        \  \:\        \  \:\
-#                   \__\/         \__\/         \__\/
+#         \  \ \   \  \:\        \  \:\        \  \:\
+#          \__\/    \__\/         \__\/         \__\/
 #
 #   This file is part of TRAP.
 #
@@ -51,9 +51,9 @@ class TestFileDumper(unittest.TestCase):
         testFile.close()
         os.remove('prova.cpp')
         self.assertEqual(len(lines), 3 + len(writer_code.banner.split('\n')) + len(writer_code.license.split('\n')) + len(writer_code.copyright.split('\n')) + 12)
-        self.assertEqual(lines[40], '#include <map>\n')
-        self.assertEqual(lines[41], '#include <string>\n')
-        self.assertEqual(lines[43], 'std::map< int, std::string > pippo;\n')
+        self.assertEqual(lines[43], '#include <map>\n')
+        self.assertEqual(lines[44], '#include <string>\n')
+        self.assertEqual(lines[46], 'std::map< int, std::string > pippo;\n')
 
     def testDumpVariablesHeader(self):
         tempType = writer_code.TemplateType('std::map', [writer_code.intType, writer_code.stringType], 'map')
@@ -66,9 +66,9 @@ class TestFileDumper(unittest.TestCase):
         testFile.close()
         os.remove('prova.cpp')
         self.assertEqual(len(lines), 3 + len(writer_code.banner.split('\n')) + len(writer_code.license.split('\n')) + len(writer_code.copyright.split('\n')) + 16)
-        self.assertEqual(lines[42], '#include <map>\n')
-        self.assertEqual(lines[43], '#include <string>\n')
-        self.assertEqual(lines[45], 'std::map< int, std::string > pippo;\n')
+        self.assertEqual(lines[45], '#include <map>\n')
+        self.assertEqual(lines[46], '#include <string>\n')
+        self.assertEqual(lines[48], 'std::map< int, std::string > pippo;\n')
 
     def testDumpFunctionsHeader(self):
         tempType = writer_code.TemplateType('std::map', [writer_code.intType, writer_code.stringType], 'map')
@@ -81,9 +81,9 @@ class TestFileDumper(unittest.TestCase):
         testFile.close()
         os.remove('prova.cpp')
         self.assertEqual(len(lines), 3 + len(writer_code.banner.split('\n')) + len(writer_code.license.split('\n')) + len(writer_code.copyright.split('\n')) + 16)
-        self.assertEqual(lines[42], '#include <map>\n')
-        self.assertEqual(lines[43], '#include <string>\n')
-        self.assertEqual(lines[45], 'std::map< int, std::string > pippo();\n')
+        self.assertEqual(lines[45], '#include <map>\n')
+        self.assertEqual(lines[46], '#include <string>\n')
+        self.assertEqual(lines[48], 'std::map< int, std::string > pippo();\n')
 
     def testDumpFunctionsImpl(self):
         tempType = writer_code.TemplateType('std::map', [writer_code.intType, writer_code.stringType], 'map')
@@ -96,13 +96,13 @@ class TestFileDumper(unittest.TestCase):
         testFile.close()
         os.remove('prova.cpp')
         self.assertEqual(len(lines), 7 + len(writer_code.banner.split('\n')) + len(writer_code.license.split('\n')) + len(writer_code.copyright.split('\n')) + 12)
-        self.assertEqual(lines[40], '#include <map>\n')
-        self.assertEqual(lines[41], '#include <string>\n')
-        self.assertEqual(lines[43], 'std::map< int, std::string > pippo(){\n')
-        self.assertEqual(lines[44], '    std::map<int, std::string> myMap;\n')
-        self.assertEqual(lines[45], '    myMap[5] = \"ccc\";\n')
-        self.assertEqual(lines[46], '    return myMap;\n')
-        self.assertEqual(lines[47], '}\n')
+        self.assertEqual(lines[43], '#include <map>\n')
+        self.assertEqual(lines[44], '#include <string>\n')
+        self.assertEqual(lines[46], 'std::map< int, std::string > pippo(){\n')
+        self.assertEqual(lines[47], '    std::map<int, std::string> myMap;\n')
+        self.assertEqual(lines[48], '    myMap[5] = \"ccc\";\n')
+        self.assertEqual(lines[49], '    return myMap;\n')
+        self.assertEqual(lines[50], '}\n')
 
     def testTemplateFunctionsHeader(self):
         tempType = writer_code.TemplateType('std::map', [writer_code.intType, writer_code.stringType], 'map')
@@ -115,13 +115,13 @@ class TestFileDumper(unittest.TestCase):
         testFile.close()
         os.remove('prova.cpp')
         self.assertEqual(len(lines), 7 + len(writer_code.banner.split('\n')) + len(writer_code.license.split('\n')) + len(writer_code.copyright.split('\n')) + 16)
-        self.assertEqual(lines[42], '#include <map>\n')
-        self.assertEqual(lines[43], '#include <string>\n')
-        self.assertEqual(lines[45], 'template < typename T > std::map< int, std::string > pippo(){\n')
-        self.assertEqual(lines[46], '    std::map<int, std::string> myMap;\n')
-        self.assertEqual(lines[47], '    myMap[5] = \"ccc\";\n')
-        self.assertEqual(lines[48], '    return myMap;\n')
-        self.assertEqual(lines[49], '}\n')
+        self.assertEqual(lines[45], '#include <map>\n')
+        self.assertEqual(lines[46], '#include <string>\n')
+        self.assertEqual(lines[48], 'template < typename T > std::map< int, std::string > pippo(){\n')
+        self.assertEqual(lines[49], '    std::map<int, std::string> myMap;\n')
+        self.assertEqual(lines[50], '    myMap[5] = \"ccc\";\n')
+        self.assertEqual(lines[51], '    return myMap;\n')
+        self.assertEqual(lines[52], '}\n')
 
     def testTemplateFunctionsImpl(self):
         tempType = writer_code.TemplateType('std::map', [writer_code.intType, writer_code.stringType], 'map')
@@ -134,8 +134,8 @@ class TestFileDumper(unittest.TestCase):
         testFile.close()
         os.remove('prova.cpp')
         self.assertEqual(len(lines), 2 + len(writer_code.banner.split('\n')) + len(writer_code.license.split('\n')) + len(writer_code.copyright.split('\n')) + 12)
-        self.assertEqual(lines[40], '#include <map>\n')
-        self.assertEqual(lines[41], '#include <string>\n')
+        self.assertEqual(lines[43], '#include <map>\n')
+        self.assertEqual(lines[44], '#include <string>\n')
 
     def testDumpClassHeader(self):
         intDecl = writer_code.intType
@@ -152,13 +152,13 @@ class TestFileDumper(unittest.TestCase):
         testFile.close()
         os.remove('prova.cpp')
         self.assertEqual(len(lines), 7 + len(writer_code.banner.split('\n')) + len(writer_code.license.split('\n')) + len(writer_code.copyright.split('\n')) + 16)
-        self.assertEqual(lines[43], 'class MyClass{\n')
-        self.assertEqual(lines[44], '    private:\n')
-        self.assertEqual(lines[45], '    int pippo;\n')
-        self.assertEqual(lines[46], '\n')
-        self.assertEqual(lines[47], '    public:\n')
-        self.assertEqual(lines[48], '    MyClass();\n')
-        self.assertEqual(lines[49], '};\n')
+        self.assertEqual(lines[46], 'class MyClass{\n')
+        self.assertEqual(lines[47], '    private:\n')
+        self.assertEqual(lines[48], '    int pippo;\n')
+        self.assertEqual(lines[49], '\n')
+        self.assertEqual(lines[50], '    public:\n')
+        self.assertEqual(lines[51], '    MyClass();\n')
+        self.assertEqual(lines[52], '};\n')
 
 
     def testDumpClassImpl(self):
@@ -176,8 +176,8 @@ class TestFileDumper(unittest.TestCase):
         testFile.close()
         os.remove('prova.cpp')
         self.assertEqual(len(lines), 2 + len(writer_code.banner.split('\n')) + len(writer_code.license.split('\n')) + len(writer_code.copyright.split('\n')) + 12)
-        self.assertEqual(lines[41], 'MyClass::MyClass(){\n')
-        self.assertEqual(lines[42], '}\n')
+        self.assertEqual(lines[44], 'MyClass::MyClass(){\n')
+        self.assertEqual(lines[45], '}\n')
 
 
     def testDumpTemplateClassHeader(self):
@@ -196,14 +196,14 @@ class TestFileDumper(unittest.TestCase):
         testFile.close()
         os.remove('prova.cpp')
         self.assertEqual(len(lines), 8 + len(writer_code.banner.split('\n')) + len(writer_code.license.split('\n')) + len(writer_code.copyright.split('\n')) + 17)
-        self.assertEqual(lines[44], 'template < typename T > class MyClass : public std::string{\n')
-        self.assertEqual(lines[45], '    private:\n')
-        self.assertEqual(lines[46], '    int pippo;\n')
-        self.assertEqual(lines[47], '\n')
-        self.assertEqual(lines[48], '    public:\n')
-        self.assertEqual(lines[49], '    MyClass() : std::string() {\n')
-        self.assertEqual(lines[50], '    }\n')
-        self.assertEqual(lines[51], '};\n')
+        self.assertEqual(lines[47], 'template < typename T > class MyClass : public std::string{\n')
+        self.assertEqual(lines[48], '    private:\n')
+        self.assertEqual(lines[49], '    int pippo;\n')
+        self.assertEqual(lines[50], '\n')
+        self.assertEqual(lines[51], '    public:\n')
+        self.assertEqual(lines[52], '    MyClass() : std::string() {\n')
+        self.assertEqual(lines[53], '    }\n')
+        self.assertEqual(lines[54], '};\n')
 
     def testDumpTemplateClassImpl(self):
         intDecl = writer_code.intType
@@ -255,20 +255,20 @@ class TestFileDumper(unittest.TestCase):
         testImplFile.close()
         os.remove('temp/prova.cpp')
         self.assertEqual(len(lines), 2 + len(writer_code.banner.split('\n')) + len(writer_code.license.split('\n')) + len(writer_code.copyright.split('\n')) + 12)
-        self.assertEqual(lines[41], 'MyClass::MyClass(){\n')
-        self.assertEqual(lines[42], '}\n')
+        self.assertEqual(lines[44], 'MyClass::MyClass(){\n')
+        self.assertEqual(lines[45], '}\n')
         testHeadFile = open('temp/prova.hpp', 'rt')
         lines = testHeadFile.readlines()
         testHeadFile.close()
         os.remove('temp/prova.hpp')
         self.assertEqual(len(lines), 7 + len(writer_code.banner.split('\n')) + len(writer_code.license.split('\n')) + len(writer_code.copyright.split('\n')) + 16)
-        self.assertEqual(lines[43], 'class MyClass{\n')
-        self.assertEqual(lines[44], '    private:\n')
-        self.assertEqual(lines[45], '    int pippo;\n')
-        self.assertEqual(lines[46], '\n')
-        self.assertEqual(lines[47], '    public:\n')
-        self.assertEqual(lines[48], '    MyClass();\n')
-        self.assertEqual(lines[49], '};\n')
+        self.assertEqual(lines[46], 'class MyClass{\n')
+        self.assertEqual(lines[47], '    private:\n')
+        self.assertEqual(lines[48], '    int pippo;\n')
+        self.assertEqual(lines[49], '\n')
+        self.assertEqual(lines[50], '    public:\n')
+        self.assertEqual(lines[51], '    MyClass();\n')
+        self.assertEqual(lines[52], '};\n')
         testWscriptFile = open('temp/wscript', 'rt')
         lines = testWscriptFile.readlines()
         testWscriptFile.close()

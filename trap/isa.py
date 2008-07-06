@@ -1,15 +1,15 @@
 ####################################################################################
-#                    ___           ___           ___
-#        ___        /  /\         /  /\         /  /\
-#       /  /\      /  /::\       /  /::\       /  /::\
+#         ___        ___           ___           ___
+#        /  /\      /  /\         /  /\         /  /\
+#       /  /:/     /  /::\       /  /::\       /  /::\
 #      /  /:/     /  /:/\:\     /  /:/\:\     /  /:/\:\
 #     /  /:/     /  /:/~/:/    /  /:/~/::\   /  /:/~/:/
 #    /  /::\    /__/:/ /:/___ /__/:/ /:/\:\ /__/:/ /:/
 #   /__/:/\:\   \  \:\/:::::/ \  \:\/:/__\/ \  \:\/:/
 #   \__\/  \:\   \  \::/~~~~   \  \::/       \  \::/
 #        \  \:\   \  \:\        \  \:\        \  \:\
-#         \__\/    \  \:\        \  \:\        \  \:\
-#                   \__\/         \__\/         \__\/
+#         \  \ \   \  \:\        \  \:\        \  \:\
+#          \__\/    \__\/         \__\/         \__\/
 #
 #   This file is part of TRAP.
 #
@@ -146,36 +146,18 @@ class ISA:
                         curPos += 1
 
     def checkCoding(self):
-        # Checks that the instruction coding of the different instructions
-        # does not lead to ambiguities; in order to do this we examine
-        # bit per bit, dividing the instructions among two groupd depending
-        # on the value of the examined bit. if there are no more bits but
-        # more than one instruction in the remaining group, there are mbiguities
-        # in the instruction coding
-        bit0Instr = []
-        bit1Instr = []
         for i in self.instructions.values():
-            if i.bitstring[0] == 0 or i.bitstring[0] == None:
-                bit0Instr.append(i)
-            if i.bitstring[0] == 1 or i.bitstring[0] == None:
-                bit1Instr.append(i)
-        self.checkCodingRecursive(bit0Instr, 1)
-        self.checkCodingRecursive(bit1Instr, 1)
-
-    def checkCodingRecursive(self, instructions, bit):
-        if len(instructions) <= 1:
-            return
-        bit0Instr = []
-        bit1Instr = []
-        for i in instructions:
-            if len(i.bitstring) == bit:
-                raise Exception('Encoding of instructions ' + str(instructions) + ' is ambiguous')
-            if i.bitstring[bit] == 0 or i.bitstring[bit] == None:
-                bit0Instr.append(i)
-            if i.bitstring[bit] == 1 or i.bitstring[bit] == None:
-                bit1Instr.append(i)
-        self.checkCodingRecursive(bit0Instr, bit + 1)
-        self.checkCodingRecursive(bit1Instr, bit + 1)
+            for j in self.instructions.values():
+                if i != j:
+                    minLen = min(len(i.bitstring), len(j.bitstring))
+                    equal = True
+                    for bit in range(0, minLen):
+                        if i.bitstring[bit] != None and j.bitstring[bit] != None:
+                            if i.bitstring[bit] != j.bitstring[bit]:
+                                equal = False
+                                break
+                    if equal:
+                        raise Exception('Coding of instructions ' + str(i) + ' and ' + str(j) + ' is ambiguous')
 
     def checkRegisters(self, indexExtractor, checkerMethod):
         # Checks that all the registers used in the instruction encoding are
@@ -211,6 +193,12 @@ class ISA:
                 # Single register or alias: I check that it exists
                 if not checkerMethod(reg):
                     raise Exception('Register ' + reg + ' used in the MachineCode description does not exists')
+
+    def getCPPClasses(self, procName, modelType):
+        return []
+
+    def getCPPTests(self, procName, modelType):
+        return []
 
 class Instruction:
     """Represents an instruction of the processor. The instruction
@@ -507,7 +495,7 @@ class MachineCode:
     # switch. Note that the index access may also have offsets
     def __init__(self, bitFields, mode = ''):
         self.mode = mode
-        self.bitFields = bitFields
+        self.bitFields = []
         self.bitValue = {}
         self.bitPos = {}
         self.instrLen = 0
@@ -518,6 +506,7 @@ class MachineCode:
                     key = key + '_d'
             if self.bitPos.has_key(key):
                 raise Exception('Machine code cannot contain duplicate fields (a part from zero and one fields.). ' + key + ' is duplicatede')
+            self.bitFields.append((key, fieldLen))
             self.bitPos[key] = curPosition
             curPosition += fieldLen
             self.instrLen += fieldLen

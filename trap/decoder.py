@@ -1,15 +1,15 @@
 ####################################################################################
-#                    ___           ___           ___
-#        ___        /  /\         /  /\         /  /\
-#       /  /\      /  /::\       /  /::\       /  /::\
+#         ___        ___           ___           ___
+#        /  /\      /  /\         /  /\         /  /\
+#       /  /:/     /  /::\       /  /::\       /  /::\
 #      /  /:/     /  /:/\:\     /  /:/\:\     /  /:/\:\
 #     /  /:/     /  /:/~/:/    /  /:/~/::\   /  /:/~/:/
 #    /  /::\    /__/:/ /:/___ /__/:/ /:/\:\ /__/:/ /:/
 #   /__/:/\:\   \  \:\/:::::/ \  \:\/:/__\/ \  \:\/:/
 #   \__\/  \:\   \  \::/~~~~   \  \::/       \  \::/
 #        \  \:\   \  \:\        \  \:\        \  \:\
-#         \__\/    \  \:\        \  \:\        \  \:\
-#                   \__\/         \__\/         \__\/
+#         \  \ \   \  \:\        \  \:\        \  \:\
+#          \__\/    \__\/         \__\/         \__\/
 #
 #   This file is part of TRAP.
 #
@@ -53,8 +53,18 @@ def bitStringUnion(bitString, noCare = None):
     """Given a list of bitstring it computes
     their union using, as an answer, another bitstring
     expressed with three state logic"""
-    validPattern = []
+    maxLen = 0
     for curPattern in bitString:
+        if len(curPattern) > maxLen:
+            maxLen = len(curPattern)
+    paddedbitString = []
+    for curPattern in bitString:
+        if len(curPattern) < maxLen:
+            paddedbitString.append(list(curPattern) + [None for i in range(len(curPattern), maxLen)])
+        else:
+            paddedbitString.append(curPattern)
+    validPattern = []
+    for curPattern in paddedbitString:
         for i in range(0, len(curPattern)):
             if len(validPattern) > i:
                 if validPattern[i] != curPattern[i]:
@@ -96,11 +106,42 @@ class SplitFunction:
         self.pattern = pattern
         self.table = table
 
-    def __repr__(self):
+    def toCode(self):
+        mask = 'b'
+        value = 'b'
         if self.pattern:
-            return str(self.pattern)
+            for i in self.pattern:
+                if i !=  None:
+                    value += str(i)
+                    mask += '1'
+                else:
+                    value += '0'
+                    mask += '0'
+            return (mask, value)
         if self.table:
-            return str(self.table)
+            for i in self.table:
+                if i !=  None:
+                    mask += '1'
+                else:
+                    mask += '0'
+            return mask
+
+    def __repr__(self):
+        retVal = ''
+        if self.pattern:
+            for i in self.pattern:
+                if i !=  None:
+                    retVal += str(i)
+                else:
+                    retVal += '-'
+            return retVal
+        if self.table:
+            for i in self.table:
+                if i !=  None:
+                    retVal += str(i)
+                else:
+                    retVal += '-'
+            return retVal
 
     def __str__(self):
         return repr(self)
@@ -114,7 +155,7 @@ class DecodingNode:
     def __cmp__(self, other):
         # returns the outcome of the comparison between an
         # instance of the current object and of another one
-        if self.patterns == other.patterns and self.splitFunction == other.splitFunction and self.instrId == other.instrId:
+        if list(self.patterns) == list(other.patterns) and self.splitFunction == other.splitFunction and self.instrId == other.instrId:
             return 0
         if len(self.patterns) < len(other.patterns):
             return -1
@@ -123,11 +164,15 @@ class DecodingNode:
     def __eq__(self, other):
         # returns the outcome of the comparison between an
         # instance of the current object and of another one
-        return self.patterns == other.patterns and self.splitFunction == other.splitFunction and self.instrId == other.instrId
+        if not isinstance(other, type(self)):
+            return False
+        return list(self.patterns) == list(other.patterns) and self.splitFunction == other.splitFunction and self.instrId == other.instrId
 
     def __ne__(self, other):
         # returns the outcome of the comparison between an
         # instance of the current object and of another one
+        if not isinstance(other, type(self)):
+            return True
         return not self == other
 
     def __hash__(self):
@@ -137,25 +182,34 @@ class DecodingNode:
 
     def __repr__(self):
         retVal = ''
-        if self.instrId:
-            retVal += str(self.instrId) + ' -- '
+        if self.instrId != None:
+            retVal += 'id=' + str(self.instrId) + ' ** '
         if self.splitFunction:
-            retVal += str(self.splitFunction) + ' -- '
+            retVal += str(self.splitFunction) + ' ** '
         # now I compute a summary of the patterns
         # associated with this node and then I
         # add it to the representation
         validPattern = bitStringUnion([i[0] for i in self.patterns], 'x')
-        retVal += str(validPattern)
+        for i in validPattern:
+            if i !=  None:
+                retVal += str(i)
+            else:
+                retVal += '-'
+        return retVal + ''
 
     def __str__(self):
         # Returns a representation of the current node
         # in the dot language
-        repr(self)
+        return repr(self)
 
 class HuffmanNode:
     def __init__(self, frequency, count = 1):
         self.frequency = frequency
         self.count = count
+    def __repr__(self):
+        return str(self.frequency) + ' -- ' + str(self.count)
+    def __str__(self):
+        return repr(self)
 
 class decoderCreator:
     """Taking as input the different instructions with the associated
@@ -166,7 +220,7 @@ class decoderCreator:
     Automated Synthesis of Efficient Binary Decodes for Retargetable Software Toolkits
     """
 
-    def __init__(self, instructions, memPenaltyFactor = 0.5):
+    def __init__(self, instructions, memPenaltyFactor = 0.25):
         # memPenaltyFactor represent how much the heuristic has to take
         # into account memory consumption: the lower the more memory is
         # consumed by the created decoder.
@@ -178,29 +232,147 @@ class decoderCreator:
         self.minFreq = 0
         self.totalCount = 1
         if instructions:
-            self.minFreq = instructions[0].frequency
+            self.minFreq = instructions.values()[0].frequency
             self.totalCount = 0
-        for instr in instructions:
+        for instr in instructions.values():
             self.totalCount += instr.frequency
             if instr.frequency < self.minFreq:
                 self.minFreq = instr.frequency
         # for each instruction I get the ID and the machine
         # code
-        for instr in instructions:
-            self.instrId[instr.id] = (instr.bitstring, instr.frequency/self.totalCount)
-            self.instrPattern.append((instr.bitstring, instr.frequency/self.totalCount))
+        self.instrNum = len(instructions)
+        for instr in instructions.values():
+            self.instrId[instr.id] = (instr.bitstring, float(instr.frequency)/float(self.totalCount))
+            self.instrPattern.append((instr.bitstring, float(instr.frequency)/float(self.totalCount)))
         self.decodingTree = NX.XDiGraph()
         self.computeIllegalBistreams()
         self.computeDecoder()
 
+    def createPatternDecoder(self, subtree):
+        if subtree.instrId:
+            if subtree.instrId != -1:
+                return 'return ' + str(subtree.instrId) + ';\n'
+            else:
+                return '// Non-valid pattern\nreturn ' + str(self.instrNum) + ';\n'
+        if self.decodingTree.out_degree(subtree) != 2:
+            raise Exception('subtree ' + str(subtree) + ' should have two out edges, while it has ' + str(self.decodingTree.out_degree(subtree)))
+        outEdges = self.decodingTree.out_edges(subtree)
+        (mask, value) = subtree.splitFunction.toCode()
+        if outEdges[0][-1][-1] > outEdges[1][-1][-1]:
+            nodeIf = outEdges[0][1]
+            nodeElse = outEdges[1][1]
+            if outEdges[0][-1][0] == 1:
+                compareFun = '=='
+            else:
+                compareFun = '!='
+        else:
+            nodeIf = outEdges[1][1]
+            nodeElse = outEdges[0][1]
+            if outEdges[1][-1][0] == 1:
+                compareFun = '=='
+            else:
+                compareFun = '!='
+        code = 'if((instrCode & ' + mask + ') ' + compareFun + ' ' + value + '){\n'
+        if nodeIf.instrId != None:
+            if nodeIf.instrId != -1:
+                code += 'return ' + str(nodeIf.instrId) + ';\n'
+            else:
+                code += '// Non-valid pattern\nreturn ' + str(self.instrNum) + ';\n'
+        elif nodeIf.splitFunction.pattern:
+            code += self.createPatternDecoder(nodeIf)
+        else:
+            code += self.createTableDecoder(nodeIf)
+        code += '}\n'
+        code += 'else{\n'
+        if nodeElse.instrId != None:
+            if nodeElse.instrId != -1:
+                code += 'return ' + str(nodeElse.instrId) + ';\n'
+            else:
+                code += '// Non-valid pattern\nreturn ' + str(self.instrNum) + ';\n'
+        elif nodeElse.splitFunction.pattern:
+            code += self.createPatternDecoder(nodeElse)
+        else:
+            code += self.createTableDecoder(nodeElse)
+        code += '}\n'
+        return code
+
+    def createTableDecoder(self, subtree):
+        if subtree.instrId:
+            if subtree.instrId != -1:
+                return 'return ' + str(subtree.instrId) + ';\n'
+            else:
+                return '// Non-valid pattern\nreturn ' + str(self.instrNum) + ';\n'
+        if self.decodingTree.out_degree(subtree) < 3:
+            raise Exception('subtree ' + str(subtree) + ' should have three out edges, while it has ' + str(self.decodingTree.out_degree(subtree)))
+        outEdges = self.decodingTree.out_edges(subtree)
+        mask = subtree.splitFunction.toCode()
+        outEdges = sorted(outEdges, lambda x, y: cmq(y[-1][-1], x[-1][-1]))
+        code = 'switch((instrCode & ' + mask + '){\n'
+        for edge in outEdges:
+            code += 'case ' + edge[-1][0] + ':\n'
+            if edge[1].instrId != None:
+                if edge[1].instrId != -1:
+                    code += 'return ' + str(edge[1].instrId) + ';\n'
+                else:
+                    code += '// Non-valid pattern\nreturn ' + str(self.instrNum) + ';\n'
+            elif edge[1].splitFunction.pattern:
+                code += self.createPatternDecoder(edge[1])
+            else:
+                code += self.createTableDecoder(edge[1])
+            code += 'break;'
+        code += 'default:\nTHROW_EXCEPTION(\"Pattern \" << instrCode << \" not recognized\");\n'
+        code += '}\n'
+        return code
+
     def getCPPClass(self):
         # Creates the representation of the decoder as a C++ class
-        pass
+        import cxx_writer
+        # OK: now I simply have to go over the decoding tree
+        if self.rootNote.splitFunction.pattern:
+            codeString = self.createPatternDecoder(self.rootNote)
+        else:
+            codeString = self.createTableDecoder(self.rootNote)
+        code = cxx_writer.writer_code.Code(codeString)
+        parameters = [cxx_writer.writer_code.Parameter('instrCode', cxx_writer.writer_code.intType)]
+        decodeMethod = cxx_writer.writer_code.Method('decode', code, cxx_writer.writer_code.intType, 'pu', parameters)
+        decodeClass = cxx_writer.writer_code.ClassDeclaration('Decoder', [decodeMethod])
+        return decodeClass
 
     def getCPPTests(self):
         # Creates the tests for the decoder; I normally create the
         # tests with boost_test_framework.
-        pass
+        # What I have to do is feeding all the instruction patterns
+        # (including all the non valid ones) to the decoder and check
+        # that they are correctly decoded. I choose random values
+        # for the non-care bits
+        import cxx_writer
+        import random, math
+        ranGen = random.SystemRandom()
+        allTests = []
+        testCount = 0
+        for instrId, instruction in self.instrId.items():
+            code = 'BOOST_AUTO_TEST_CASE( test' + str(testCount) + ' ){\n'
+            code += 'Decoder dec;\n'
+            pattern = instruction[0]
+            try:
+                pattern[0][0]
+                pattern = pattern[0]
+            except:
+                pass
+            for i in range(0, len(pattern)):
+                if pattern[i] == None:
+                    if ranGen.random() > 0.5:
+                        pattern[i] = str(1)
+                    else:
+                        pattern[i] = str(0)
+                else:
+                    pattern[i] = str(pattern[i])
+            code += 'BOOST_CHECK_EQUAL(dec.decode( b' + ''.join(pattern) + ' ), ' + str(instrId) + ');\n'
+            code += '}\n\n'
+            curTest = cxx_writer.writer_code.Code(code, ['boost/test/auto_unit_test.hpp', 'boost/test/test_tools.hpp', 'decoder.hpp'])
+            allTests.append(curTest)
+            testCount += 1
+        return allTests
 
     # Here are some helper methods used in the creation of the decoder; they
     # are called by the constructor
@@ -210,15 +382,17 @@ class decoderCreator:
         # estimation of this cost
         # First of all I have to create the huffman nodes and order them
         # in a list
+        if not subtree.patterns:
+            return 0
         huffmanList = []
         for i in subtree.patterns:
             huffmanList.append(HuffmanNode(i[1]))
-        sorted(huffmanList, lambda x, y: cmp(x.frequency, y.frequency))
+        huffmanList = sorted(huffmanList, lambda x, y: cmp(x.frequency, y.frequency))
         while len(huffmanList) > 1:
-            newElem = HuffmanNode(huffmanList[0].frequency + huffmanList[1].frequency, huffmanList[0].count + huffmanList[1].count)
+            newElem = HuffmanNode(huffmanList[0].frequency + huffmanList[1].frequency, max(huffmanList[0].count, huffmanList[1].count) + 1)
             huffmanList = huffmanList[2:]
             huffmanList.append(newElem)
-            sorted(huffmanList, lambda x, y: cmp(x.frequency, y.frequency))
+            huffmanList = sorted(huffmanList, lambda x, y: cmp(x.frequency, y.frequency))
         return huffmanList[0].count
 
     def computePatternCost(self, subtree, curMask, newBit, newBitVal):
@@ -230,17 +404,22 @@ class decoderCreator:
         # curCost, curLeaves, where the leaves are formed by
         # the subtrees and the respective splitting criteria (pattern
         # equal or not)
+        if newBit in curMask[0]:
+            raise Exception('Bit ' + newBit + ' is specified both by the current mask and as new bit')
         eqPattern = []
         neqPattern = []
         for pattern in subtree.patterns:
+            added = False
             for i in range(0, len(curMask[0])):
                 if pattern[0][curMask[0][i]] != curMask[1][i]:
                     neqPattern.append(pattern)
+                    added = True
                     break
-            if pattern[0][newBit] != newBitVal:
-                neqPattern.append(pattern)
-            else:
-                eqPattern.append(pattern)
+            if not added:
+                if pattern[0][newBit] != newBitVal:
+                    neqPattern.append(pattern)
+                else:
+                    eqPattern.append(pattern)
         # Ok, I have created the two splitted nodes
         eqSubtree = DecodingNode(eqPattern)
         neqSubtree = DecodingNode(neqPattern)
@@ -255,6 +434,8 @@ class decoderCreator:
         memoryCost = float(len(eqPattern) + len(neqPattern) - 1)/float(len(subtree.patterns) -1)
         import math
         cost = 1 + self.memPenaltyFactor*math.log(memoryCost, 2) + eqProb*self.computationalCost(eqSubtree) + neqProb*self.computationalCost(neqSubtree)
+        if len(eqPattern) == 0 or len(neqPattern) == 0:
+            return (None, None)
         return (cost, ((eqSubtree, (1, eqProb)), (neqSubtree, (0, neqProb))))
 
     def computeTableCost(self, subtree, startTable, curTableLen):
@@ -270,7 +451,7 @@ class decoderCreator:
         tablePattern = []
         numBitMask = 0
         for i in importantBits:
-            if i == 1 and numBitMask < bestMask[1] and startTable >= 1:
+            if i == 1 and numBitMask < curTableLen and startTable <= i:
                 tablePattern.append(1)
                 numBitMask += 1
             else:
@@ -280,7 +461,7 @@ class decoderCreator:
             curTableVal = 0
             for i in range(0, len(tablePattern)):
                 if tablePattern[i] == 1:
-                    curTableVal += pattern[0][i]*math.pow(2, i)
+                    curTableVal += int(pattern[0][i]*math.pow(2, i))
             if leavesPatterns.has_key(curTableVal):
                 leavesPatterns[curTableVal].append(pattern)
             else:
@@ -292,11 +473,12 @@ class decoderCreator:
         probs = {}
         memoryCost = 1 + math.pow(2, curTableLen)
         for key, value in leavesPatterns.items():
-            if probs.has_key(key):
-                probs[key] += value[1]
-            else:
-                probs[key] = value[1]
-            memoryCost += len(value[0]) -1
+            for i in value:
+                if probs.has_key(key):
+                    probs[key] += i[1]
+                else:
+                    probs[key] = i[1]
+                memoryCost += len(i[0]) -1
         memoryCost = memoryCost/(len(subtree.patterns) - 1)
         import math
         for key, value in leavesPatterns.items():
@@ -318,11 +500,12 @@ class decoderCreator:
         # by one
         importantBits = bitStringValid([i[0] for i in subtree.patterns])
         if len(filter(lambda x: x != None, importantBits)) == 0:
-            raise Exception('There are no bits that distinguish the current pattern')
+            raise Exception('There are no bits that distinguish the current pattern --> ' + str([i[0] for i in subtree.patterns]))
         bestCost = None
+        tabuBits = []
         chosenBits = []
         chosenBitVals = []
-        maxPatternLen = patternLen(subtree.patterns)
+        maxPatternLen = patternLen([i[0] for i in subtree.patterns])
         bestBit = 0
         bestBitVal = 0
         bestLeaves = None
@@ -330,9 +513,13 @@ class decoderCreator:
             bestBit = None
             for bit in range(0, maxPatternLen):
                 if importantBits[bit]:
-                    if not bit in chosenBits:
+                    if not bit in chosenBits and not bit in tabuBits:
                         curCost0, curLeaves0 = self.computePatternCost(subtree, (chosenBits, chosenBitVals), bit, 0)
                         curCost1, curLeaves1 = self.computePatternCost(subtree, (chosenBits, chosenBitVals), bit, 1)
+                        if not curLeaves0 or not curLeaves1:
+                            if not chosenBits:
+                                tabuBits.append(bit)
+                            continue
                         if curCost0 > curCost1:
                             curCost = curCost1
                             curLeaves = curLeaves1
@@ -346,9 +533,9 @@ class decoderCreator:
                             bestBitVal = curBitVal
                             bestCost = curCost
                             bestLeaves = curLeaves
-                if bestBit != None:
-                    chosenBits.append(bestBit)
-                    chosenBitVals.append(bestBitVal)
+            if bestBit != None:
+                chosenBits.append(bestBit)
+                chosenBitVals.append(bestBitVal)
         # Now we return the tuple bestPattern, leavesPattern, costPattern
         # where bestPattern rappresents the best split function for this
         # subtree, leavesPattern the nodes directly descending from
@@ -357,9 +544,11 @@ class decoderCreator:
         matchPattern = []
         for i in range(0, maxPatternLen):
             if i in chosenBits:
-                matchPattern.append(chosenBitVals[i])
+                matchPattern.append(chosenBitVals.pop(0))
             else:
                 matchPattern.append(None)
+        if bestCost == None:
+            return(None, None, None)
         return (SplitFunction(pattern = matchPattern), bestLeaves, bestCost)
 
     def findBestTable(self, subtree):
@@ -373,7 +562,10 @@ class decoderCreator:
         importantBits = bitStringValid([i[0] for i in subtree.patterns])
         importantBitLen = len(filter(lambda x: x != None, importantBits))
         if importantBitLen < 2:
-            raise Exception('There are no bits that distinguish the current pattern')
+            # I have only one bit that distinguish the current pattern;
+            # this means that decoding with the table does not make
+            # sense
+            return (None, None, None)
         # I have to determine the best m-bits candidate,
         # where 2 < m < len(importantBits == 1)
         bestCost = None
@@ -383,9 +575,9 @@ class decoderCreator:
         improvement = True
         while curTableLen <= importantBitLen and improvement:
             improvement = False
-            for startTable in range(0, importantBitLen - curTableLen):
+            for startTable in range(0, importantBitLen - curTableLen + 1):
                 curCost, curLeaves = self.computeTableCost(subtree, startTable, curTableLen)
-                if curCost < bestCost:
+                if bestCost is None or curCost < bestCost:
                     bestMask = (startTable, curTableLen)
                     bestCost = curCost
                     bestLeaves = curLeaves
@@ -395,11 +587,13 @@ class decoderCreator:
         tablePattern = []
         numBitMask = 0
         for i in importantBits:
-            if i == 1 and numBitMask < bestMask[1] and startTable >= 1:
+            if i == 1 and numBitMask < bestMask[1] and bestMask[0] <= i:
                 tablePattern.append(1)
                 numBitMask += 1
             else:
                 tablePattern.append(0)
+        if not numBitMask:
+            return (None, None, None)
         return (SplitFunction(table = tablePattern), bestLeaves, bestCost)
 
     def computeIllegalBistreams(self):
@@ -434,8 +628,8 @@ class decoderCreator:
             if self.instrId.has_key(-1):
                 self.instrId[-1][0].append(copy.deepcopy(pattern))
             else:
-                self.instrId[-1] = ([copy.deepcopy(pattern)], (self.minFreq/100)/self.totalCount)
-            self.instrPattern.append((copy.deepcopy(pattern), (self.minFreq/100)/self.totalCount))
+                self.instrId[-1] = ([copy.deepcopy(pattern)], (float(self.minFreq)/float(100))/float(self.totalCount))
+            self.instrPattern.append((copy.deepcopy(pattern), (float(self.minFreq)/float(100))/float(self.totalCount)))
 
     def computeDecoder(self):
         # Actually computes the decoder; the algorithm is:
@@ -451,9 +645,9 @@ class decoderCreator:
         # Note how the algorithm is implemented in a recursive way
         # Now I have to compute the starting node of the decoding tree;
         # it will contain all the instructions
-        rootNote = DecodingNode(self.instrPattern)
-        self.decodingTree.add_node(rootNote)
-        self.computeDecoderRec(rootNote)
+        self.rootNote = DecodingNode(self.instrPattern)
+        self.decodingTree.add_node(self.rootNote)
+        self.computeDecoderRec(self.rootNote)
 
     def computeDecoderRec(self, subtree):
         # Given the subtree recursively computes the decodes for
@@ -470,7 +664,7 @@ class decoderCreator:
         curClass = None
         different = False
         for instr in subtree.patterns:
-            for instrId, instrVals in self.instrId:
+            for instrId, instrVals in self.instrId.items():
                 if instrVals[0] == instr[0]:
                     if curClass == None:
                         curClass = instrId
@@ -481,19 +675,23 @@ class decoderCreator:
                 break
         if not different:
             # I simply have to tag this subtree with the instruction ids
-            subtree.instrId = curClass
+            if curClass is None:
+                subtree.instrId = -1
+            else:
+                subtree.instrId = curClass
             return
         # If I'm here it means that I still have to split the node
         bestPattern, leavesPattern, costPattern = self.findBestPattern(subtree)
         bestTable, leavesTable, costTable = self.findBestTable(subtree)
-        if costPattern > costTable:
+        if not bestTable and not bestPattern:
+            raise Exception('Error, more than one instruction in the current decoder but no table or patter found')
+        if bestTable and costPattern > costTable and len(leavesTable) > 1:
             # It is better to split on the table
             subtree.splitFunction = bestTable
-            if(len(leavesTable) > 1):
-                for i in leavesTable:
-                    self.decodingTree.add_node(i[0])
-                    self.decodingTree.add_edge(subtree, i[0], i[1])
-                    self.computeDecoder(i[0])
+            for i in leavesTable:
+                self.decodingTree.add_node(i[0])
+                self.decodingTree.add_edge(subtree, i[0], i[1])
+                self.computeDecoderRec(i[0])
         else:
             # It is better to split on the pattern
             subtree.splitFunction = bestPattern
@@ -501,7 +699,7 @@ class decoderCreator:
                 for i in leavesPattern:
                     self.decodingTree.add_node(i[0])
                     self.decodingTree.add_edge(subtree, i[0], i[1])
-                    self.computeDecoder(i[0])
+                    self.computeDecoderRec(i[0])
 
     def printDecoder(self, fileName):
         try:

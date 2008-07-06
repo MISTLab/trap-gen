@@ -1,15 +1,15 @@
 ####################################################################################
-#                    ___           ___           ___
-#        ___        /  /\         /  /\         /  /\
-#       /  /\      /  /::\       /  /::\       /  /::\
+#         ___        ___           ___           ___
+#        /  /\      /  /\         /  /\         /  /\
+#       /  /:/     /  /::\       /  /::\       /  /::\
 #      /  /:/     /  /:/\:\     /  /:/\:\     /  /:/\:\
 #     /  /:/     /  /:/~/:/    /  /:/~/::\   /  /:/~/:/
 #    /  /::\    /__/:/ /:/___ /__/:/ /:/\:\ /__/:/ /:/
 #   /__/:/\:\   \  \:\/:::::/ \  \:\/:/__\/ \  \:\/:/
 #   \__\/  \:\   \  \::/~~~~   \  \::/       \  \::/
 #        \  \:\   \  \:\        \  \:\        \  \:\
-#         \__\/    \  \:\        \  \:\        \  \:\
-#                   \__\/         \__\/         \__\/
+#         \  \ \   \  \:\        \  \:\        \  \:\
+#          \__\/    \__\/         \__\/         \__\/
 #
 #   This file is part of TRAP.
 #
@@ -35,34 +35,37 @@
 
 
 banner = r"""
-                 ___           ___           ___
-     ___        /  /\         /  /\         /  /\
-    /  /\      /  /::\       /  /::\       /  /::\
-   /  /:/     /  /:/\:\     /  /:/\:\     /  /:/\:\
-  /  /:/     /  /:/~/:/    /  /:/~/::\   /  /:/~/:/
- /  /::\    /__/:/ /:/___ /__/:/ /:/\:\ /__/:/ /:/
-/__/:/\:\   \  \:\/:::::/ \  \:\/:/__\/ \  \:\/:/
-\__\/  \:\   \  \::/~~~~   \  \::/       \  \::/
-     \  \:\   \  \:\        \  \:\        \  \:\
-      \__\/    \  \:\        \  \:\        \  \:\
-                \__\/         \__\/         \__\/
+         ___        ___           ___           ___
+        /  /\      /  /\         /  /\         /  /\
+       /  /:/     /  /::\       /  /::\       /  /::\
+      /  /:/     /  /:/\:\     /  /:/\:\     /  /:/\:\
+     /  /:/     /  /:/~/:/    /  /:/~/::\   /  /:/~/:/
+    /  /::\    /__/:/ /:/___ /__/:/ /:/\:\ /__/:/ /:/
+   /__/:/\:\   \  \:\/:::::/ \  \:\/:/__\/ \  \:\/:/
+   \__\/  \:\   \  \::/~~~~   \  \::/       \  \::/
+        \  \:\   \  \:\        \  \:\        \  \:\
+         \  \ \   \  \:\        \  \:\        \  \:\
+          \__\/    \__\/         \__\/         \__\/
 """
 
 license = r"""
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
+This file is part of TRAP.
+
+TRAP is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
 the Free Software Foundation; either version 2 of the License, or
 (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+GNU Lesser General Public License for more details.
 
-You should have received a copy of the GNU General Public License
+You should have received a copy of the GNU Lesser General Public License
 along with this program; if not, write to the
 Free Software Foundation, Inc.,
-51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
+51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+or see <http://www.gnu.org/licenses/>.
 """
 
 copyright = """(c) Luca Fossati, fossati@elet.polimi.it"""
@@ -77,9 +80,17 @@ class FileDumper:
         self.name = name
         self.members = []
         self.isHeader = isHeader
+        self.includes = []
 
     def addMember(self, member):
-        self.members.append(member)
+        try:
+            self.members += list(member)
+        except TypeError:
+            self.members.append(member)
+    
+    def addInclude(self, include):
+        if not include in self.includes:
+            self.includes.append(include)
 
     def write(self):
         #First I write the license, comments etc..
@@ -107,15 +118,14 @@ class FileDumper:
             writer.write('#ifndef ' + self.name.replace('.','_').upper() + '\n')
             writer.write('#define ' + self.name.replace('.','_').upper() + '\n')
         # as a first thing I compute the includes and print them
-        includes = []
         for member in self.members:
             try:
                 for include in member.getIncludes():
-                    if include and not include in includes:
-                        includes.append(include)
+                    if include and not include in self.includes:
+                        self.includes.append(include)
             except AttributeError:
                 pass
-        for include in includes:
+        for include in self.includes:
             writer.write('#include <' + include + '>\n')
         writer.write('\n')
         # Now I simply have to print in order all the members
@@ -201,7 +211,7 @@ class Folder:
                 for codeFile in self.codeFiles:
                     print >> wscriptFile, '        ' + codeFile.name
                 print >> wscriptFile, '    \"\"\"'
-                print >> wscriptFile, '    obj.uselib = \'BOOST\''
+                print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK\''
                 print >> wscriptFile, '    obj.name = \'' + self.path[-1] + '\''
                 print >> wscriptFile, '    obj.target = \'' + self.path[-1] + '\'\n'
         # Ok, here I need to insert the configure script if needed

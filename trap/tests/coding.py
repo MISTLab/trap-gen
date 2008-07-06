@@ -1,15 +1,15 @@
 ####################################################################################
-#                    ___           ___           ___
-#        ___        /  /\         /  /\         /  /\
-#       /  /\      /  /::\       /  /::\       /  /::\
+#         ___        ___           ___           ___
+#        /  /\      /  /\         /  /\         /  /\
+#       /  /:/     /  /::\       /  /::\       /  /::\
 #      /  /:/     /  /:/\:\     /  /:/\:\     /  /:/\:\
 #     /  /:/     /  /:/~/:/    /  /:/~/::\   /  /:/~/:/
 #    /  /::\    /__/:/ /:/___ /__/:/ /:/\:\ /__/:/ /:/
 #   /__/:/\:\   \  \:\/:::::/ \  \:\/:/__\/ \  \:\/:/
 #   \__\/  \:\   \  \::/~~~~   \  \::/       \  \::/
 #        \  \:\   \  \:\        \  \:\        \  \:\
-#         \__\/    \  \:\        \  \:\        \  \:\
-#                   \__\/         \__\/         \__\/
+#         \  \ \   \  \:\        \  \:\        \  \:\
+#          \__\/    \__\/         \__\/         \__\/
 #
 #   This file is part of TRAP.
 #
@@ -46,6 +46,35 @@ class TestCoding(unittest.TestCase):
 
     def tearDown(self):
         pass
+
+    def testComputeCoding1(self):
+        # Checks that everything is ok if no ambiguity exists in the instruction encoding
+        isaVar = isa.ISA()
+        dataProc_imm_shift = isa.MachineCode([('cond', 4), ('zero', 3), ('opcode', 4), ('s', 1), ('rn', 4), ('rd', 4), ('shift_amm', 5), ('shift_op', 2), ('zero', 1), ('rm', 4)])
+        dataProc_reg_shift = isa.MachineCode([('cond', 4), ('zero', 3), ('opcode', 4), ('s', 1), ('rn', 4), ('rd', 4), ('rs', 4), ('zero', 1), ('shift_op', 2), ('one', 1), ('rm', 4)])
+        adc_shift_imm_Instr = isa.Instruction('ADC_si', True)
+        adc_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [0, 1, 0, 1]}, 'TODO')
+        adc_shift_reg_Instr = isa.Instruction('ADC_sr', True)
+        adc_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [0, 1, 0, 1]}, 'TODO')
+        isaVar.addInstruction(adc_shift_imm_Instr)
+        isaVar.addInstruction(adc_shift_reg_Instr)
+
+        # Now we can compute the checks
+        isaVar.computeCoding()
+        self.assertEqual([None for i in range(0, 4)] + [0, 0, 0, 0, 1, 0, 1] + [None for i in range(0, 16)] + [0] + [None for i in range(0, 4)], adc_shift_imm_Instr.bitstring)
+        self.assertEqual([None for i in range(0, 4)] + [0, 0, 0, 0, 1, 0, 1] + [None for i in range(0, 13)] + [0] + [None,  None] + [1] + [None for i in range(0, 4)], adc_shift_reg_Instr.bitstring)
+
+    def testComputeCoding2(self):
+        # Checks that everything is ok if no ambiguity exists in the instruction encoding
+        isaVar = isa.ISA()
+        dataProc_imm_shift = isa.MachineCode([('cond', 4), ('one', 3), ('opcode', 4), ('s', 1), ('rn', 4), ('rd', 4), ('shift_amm', 5), ('shift_op', 2), ('one', 1), ('rm', 4)])
+        adc_shift_imm_Instr = isa.Instruction('ADC_si', True)
+        adc_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [0, 1, 0, 1]}, 'TODO')
+        isaVar.addInstruction(adc_shift_imm_Instr)
+
+        # Now we can compute the checks
+        isaVar.computeCoding()
+        self.assertEqual([None for i in range(0, 4)] + [1, 1, 1, 0, 1, 0, 1] + [None for i in range(0, 16)] + [1] + [None for i in range(0, 4)], adc_shift_imm_Instr.bitstring)
 
     def testOk(self):
         # Checks that everything is ok if no ambiguity exists in the instruction encoding
