@@ -110,7 +110,7 @@ class SplitFunction:
         mask = 'b'
         value = 'b'
         if self.pattern:
-            for i in self.pattern:
+            for i in reversed(self.pattern):
                 if i !=  None:
                     value += str(i)
                     mask += '1'
@@ -119,7 +119,7 @@ class SplitFunction:
                     mask += '0'
             return (mask, value)
         if self.table:
-            for i in self.table:
+            for i in reversed(self.table):
                 if i !=  None:
                     mask += '1'
                 else:
@@ -129,14 +129,14 @@ class SplitFunction:
     def __repr__(self):
         retVal = ''
         if self.pattern:
-            for i in self.pattern:
+            for i in reversed(self.pattern):
                 if i !=  None:
                     retVal += str(i)
                 else:
                     retVal += '-'
             return retVal
         if self.table:
-            for i in self.table:
+            for i in reversed(self.table):
                 if i !=  None:
                     retVal += str(i)
                 else:
@@ -189,7 +189,7 @@ class DecodingNode:
         # now I compute a summary of the patterns
         # associated with this node and then I
         # add it to the representation
-        validPattern = bitStringUnion([i[0] for i in self.patterns], 'x')
+        validPattern = bitStringUnion([i[0] for i in reversed(self.patterns)], 'x')
         for i in validPattern:
             if i !=  None:
                 retVal += str(i)
@@ -226,6 +226,7 @@ class decoderCreator:
         # consumed by the created decoder.
         self.memPenaltyFactor = memPenaltyFactor
         self.instrId = {}
+        self.instrName = {}
         self.instrPattern = []
         # Now, given the frequencies, I compute the probabilities
         # for each instruction
@@ -241,9 +242,18 @@ class decoderCreator:
         # for each instruction I get the ID and the machine
         # code
         self.instrNum = len(instructions)
-        for instr in instructions.values():
-            self.instrId[instr.id] = (instr.bitstring, float(instr.frequency)/float(self.totalCount))
-            self.instrPattern.append((instr.bitstring, float(instr.frequency)/float(self.totalCount)))
+        # Note how the most significant bit of the bitstring is
+        # the first one of instr.bitstring. So, in order to correctly
+        # perform the computation I reverse the bistring and perform
+        # the calculation. At the end, when it is time to print the
+        # the decoder into C++ code, I reverse again the patterns so
+        # that the decoder is correctly printed
+        for name, instr in instructions.items():
+            revBitstring = list(instr.bitstring)
+            revBitstring.reverse()
+            self.instrName[instr.id] = name
+            self.instrId[instr.id] = (revBitstring, float(instr.frequency)/float(self.totalCount))
+            self.instrPattern.append((revBitstring, float(instr.frequency)/float(self.totalCount)))
         self.decodingTree = NX.XDiGraph()
         self.computeIllegalBistreams()
         self.computeDecoder()
@@ -251,7 +261,7 @@ class decoderCreator:
     def createPatternDecoder(self, subtree):
         if subtree.instrId:
             if subtree.instrId != -1:
-                return 'return ' + str(subtree.instrId) + ';\n'
+                return '// Instruction ' + self.instrName[subtree.instrId] + '\nreturn ' + str(subtree.instrId) + ';\n'
             else:
                 return '// Non-valid pattern\nreturn ' + str(self.instrNum) + ';\n'
         if self.decodingTree.out_degree(subtree) != 2:
@@ -275,7 +285,7 @@ class decoderCreator:
         code = 'if((instrCode & ' + mask + ') ' + compareFun + ' ' + value + '){\n'
         if nodeIf.instrId != None:
             if nodeIf.instrId != -1:
-                code += 'return ' + str(nodeIf.instrId) + ';\n'
+                code += '// Instruction ' + self.instrName[nodeIf.instrId] + '\nreturn ' + str(nodeIf.instrId) + ';\n'
             else:
                 code += '// Non-valid pattern\nreturn ' + str(self.instrNum) + ';\n'
         elif nodeIf.splitFunction.pattern:
@@ -286,7 +296,7 @@ class decoderCreator:
         code += 'else{\n'
         if nodeElse.instrId != None:
             if nodeElse.instrId != -1:
-                code += 'return ' + str(nodeElse.instrId) + ';\n'
+                code += '// Instruction ' + self.instrName[nodeElse.instrId] + '\nreturn ' + str(nodeElse.instrId) + ';\n'
             else:
                 code += '// Non-valid pattern\nreturn ' + str(self.instrNum) + ';\n'
         elif nodeElse.splitFunction.pattern:
@@ -299,7 +309,7 @@ class decoderCreator:
     def createTableDecoder(self, subtree):
         if subtree.instrId:
             if subtree.instrId != -1:
-                return 'return ' + str(subtree.instrId) + ';\n'
+                return '// Instruction ' + self.instrName[subtree.instrId] + '\nreturn ' + str(subtree.instrId) + ';\n'
             else:
                 return '// Non-valid pattern\nreturn ' + str(self.instrNum) + ';\n'
         if self.decodingTree.out_degree(subtree) < 3:
@@ -312,7 +322,7 @@ class decoderCreator:
             code += 'case ' + edge[-1][0] + ':\n'
             if edge[1].instrId != None:
                 if edge[1].instrId != -1:
-                    code += 'return ' + str(edge[1].instrId) + ';\n'
+                    code += '// Instruction ' + self.instrName[edge[1].instrId] + '\nreturn ' + str(edge[1].instrId) + ';\n'
                 else:
                     code += '// Non-valid pattern\nreturn ' + str(self.instrNum) + ';\n'
             elif edge[1].splitFunction.pattern:
@@ -367,7 +377,15 @@ class decoderCreator:
                         pattern[i] = str(0)
                 else:
                     pattern[i] = str(pattern[i])
-            code += 'BOOST_CHECK_EQUAL(dec.decode( b' + ''.join(pattern) + ' ), ' + str(instrId) + ');\n'
+            if instrId == -1:
+                expectedId = self.instrNum
+            else:
+                expectedId = instrId
+            if instrId != -1:
+                code += '// Checking Instruction ' + self.instrName[instrId] + '\n'
+            else:
+                code += '// Checking Invalid Instruction\n'
+            code += 'BOOST_CHECK_EQUAL(dec.decode( b' + ''.join(pattern) + ' ), ' + str(expectedId) + ');\n'
             code += '}\n\n'
             curTest = cxx_writer.writer_code.Code(code, ['boost/test/auto_unit_test.hpp', 'boost/test/test_tools.hpp', 'decoder.hpp'])
             allTests.append(curTest)
@@ -425,7 +443,7 @@ class decoderCreator:
         neqSubtree = DecodingNode(neqPattern)
         eqProb = 0
         neqProb = 0
-        for i in eqPattern:
+        for i in eqPattern: 
             eqProb += i[1]
         for i in neqPattern:
             neqProb += i[1]
@@ -450,18 +468,21 @@ class decoderCreator:
         importantBits = bitStringValid([i[0] for i in subtree.patterns])
         tablePattern = []
         numBitMask = 0
+        encounteredImportant = 0
         for i in importantBits:
-            if i == 1 and numBitMask < curTableLen and startTable <= i:
+            if i == 1 and numBitMask < curTableLen and startTable <= encounteredImportant:
                 tablePattern.append(1)
                 numBitMask += 1
             else:
                 tablePattern.append(0)
+            if i == 1:
+                encounteredImportant += 1
         leavesPatterns = {}
         for pattern in subtree.patterns:
             curTableVal = 0
             for i in range(0, len(tablePattern)):
                 if tablePattern[i] == 1:
-                    curTableVal += int(pattern[0][i]*math.pow(2, i))
+                    curTableVal += int(pattern[0][i]*math.pow(2, len(tablePattern)-1-i))
             if leavesPatterns.has_key(curTableVal):
                 leavesPatterns[curTableVal].append(pattern)
             else:
@@ -586,12 +607,15 @@ class decoderCreator:
         # Ok, found the best table for decoding
         tablePattern = []
         numBitMask = 0
+        encounteredImportant = 0
         for i in importantBits:
-            if i == 1 and numBitMask < bestMask[1] and bestMask[0] <= i:
+            if i == 1 and numBitMask < bestMask[1] and bestMask[0] <= encounteredImportant:
                 tablePattern.append(1)
                 numBitMask += 1
             else:
                 tablePattern.append(0)
+            if i == 1:
+                encounteredImportant += 1
         if not numBitMask:
             return (None, None, None)
         return (SplitFunction(table = tablePattern), bestLeaves, bestCost)

@@ -174,8 +174,8 @@ class TestDecoder(unittest.TestCase):
         self.assertEqual((2, 0.1), subTree[2][1])
         self.assertEqual((3, 0.1), subTree[3][1])
         self.assertEqual(decoder.DecodingNode((((0, 0), 0.1), )), subTree[0][0])
-        self.assertEqual(decoder.DecodingNode((((1, 0), 0.1), )), subTree[1][0])
-        self.assertEqual(decoder.DecodingNode((((0, 1), 0.1), )), subTree[2][0])
+        self.assertEqual(decoder.DecodingNode((((0, 1), 0.1), )), subTree[1][0])
+        self.assertEqual(decoder.DecodingNode((((1, 0), 0.1), )), subTree[2][0])
         self.assertEqual(decoder.DecodingNode((((1, 1), 0.1), )), subTree[3][0])
 
     def testTableCost2(self):
@@ -184,11 +184,11 @@ class TestDecoder(unittest.TestCase):
         surSubtree = decoder.DecodingNode((((1, 0, 1), 0.1), ((0, 0), 0.1), ((0, 1), 0.1), ((1, 0), 0.1)))
         cost, subTree = dec.computeTableCost(surSubtree, 0, 2)
         self.assertEqual((0, 0.1), subTree[0][1])
-        self.assertEqual((1, 0.2), subTree[1][1])
-        self.assertEqual((2, 0.1), subTree[2][1])
+        self.assertEqual((2, 0.1), subTree[1][1])
+        self.assertEqual((4, 0.2), subTree[2][1])
         self.assertEqual(decoder.DecodingNode((((0, 0), 0.1), )), subTree[0][0])
-        self.assertEqual(decoder.DecodingNode((((1, 0, 1), 0.1), ((1, 0), 0.1))), subTree[1][0])
-        self.assertEqual(decoder.DecodingNode((((0, 1), 0.1), )), subTree[2][0])
+        self.assertEqual(decoder.DecodingNode((((1, 0, 1), 0.1), ((1, 0), 0.1))), subTree[2][0])
+        self.assertEqual(decoder.DecodingNode((((0, 1), 0.1), )), subTree[1][0])
 
     def testTableCost3(self):
         # Tests that, given a subtree, the computational cost is correctly computed
@@ -196,11 +196,11 @@ class TestDecoder(unittest.TestCase):
         surSubtree = decoder.DecodingNode((((1, 0, None), 0.1), ((0, 0), 0.1), ((0, 1), 0.1), ((1, 0), 0.1)))
         cost, subTree = dec.computeTableCost(surSubtree, 0, 2)
         self.assertEqual((0, 0.1), subTree[0][1])
-        self.assertEqual((1, 0.2), subTree[1][1])
-        self.assertEqual((2, 0.1), subTree[2][1])
+        self.assertEqual((2, 0.1), subTree[1][1])
+        self.assertEqual((4, 0.2), subTree[2][1])
         self.assertEqual(decoder.DecodingNode((((0, 0), 0.1), )), subTree[0][0])
-        self.assertEqual(decoder.DecodingNode((((1, 0, None), 0.1), ((1, 0), 0.1))), subTree[1][0])
-        self.assertEqual(decoder.DecodingNode((((0, 1), 0.1), )), subTree[2][0])
+        self.assertEqual(decoder.DecodingNode((((1, 0, None), 0.1), ((1, 0), 0.1))), subTree[2][0])
+        self.assertEqual(decoder.DecodingNode((((0, 1), 0.1), )), subTree[1][0])
 
     def testPatternCost1(self):
         # Tests that, given a subtree, the computational cost is correctly computed
@@ -261,8 +261,8 @@ class TestDecoder(unittest.TestCase):
         self.assertEqual([1, 1, 1], splitFunc.table)
         self.assertEqual(decoder.DecodingNode((((0, 0, 0), 0.1), )), bestLeaves[0][0])
         self.assertEqual(decoder.DecodingNode((((1, 0, 0), 0.1), )), bestLeaves[1][0])
-        self.assertEqual(decoder.DecodingNode((((1, 1, 0), 0.1), )), bestLeaves[2][0])
-        self.assertEqual(decoder.DecodingNode((((1, 0, 1), 0.1), )), bestLeaves[3][0])
+        self.assertEqual(decoder.DecodingNode((((1, 0, 1), 0.1), )), bestLeaves[2][0])
+        self.assertEqual(decoder.DecodingNode((((1, 1, 0), 0.1), )), bestLeaves[3][0])
 
     def testBestPattern1(self):
         # Tests that, given a subtree, the correct best pattern matching
@@ -286,7 +286,6 @@ class TestDecoder(unittest.TestCase):
         dec = decoder.decoderCreator({})
         surSubtree = decoder.DecodingNode(((bitString1, 1), (bitString2, 1), (bitString3, 1)))
         splitFunc, bestLeaves, bestCost = dec.findBestTable(surSubtree)
-        #self.assertEqual(None, splitFunc)
-        #self.assertEqual(None, bestLeaves)
-        #self.assertEqual(None, bestCost)
-        # TODO completed the test
+        self.assertEqual([0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], splitFunc.table)
+        self.assertEqual(decoder.DecodingNode(((bitString1, 1), (bitString2, 1))), bestLeaves[0][0])
+        self.assertEqual(decoder.DecodingNode(((bitString3, 1), )), bestLeaves[1][0])
