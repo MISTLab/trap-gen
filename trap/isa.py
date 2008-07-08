@@ -195,6 +195,8 @@ class ISA:
                     raise Exception('Register ' + reg + ' used in the MachineCode description does not exists')
 
     def getCPPClasses(self, procName, modelType):
+        # TODO: remember that we also need to print the INVALID
+        # instruction
         return []
 
     def getCPPTests(self, procName, modelType):

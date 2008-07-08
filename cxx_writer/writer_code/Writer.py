@@ -33,6 +33,15 @@
 #
 ####################################################################################
 
+class StringWriter:
+    def __init__(self):
+        self.code = ''
+
+    def write(self, code):
+        self.code += code
+
+    def __str__(self):
+        return self.code
 
 class CodeWriter:
     """This class is simply used to write strings to an output file; the added value is that we do not

@@ -1,21 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Tasks SYSTEM "Tasks-4.1.dtd">
 <!-- eric4 tasks file for project TRAP -->
-<!-- Saved: 2008-07-07, 06:45:52 -->
+<!-- Saved: 2008-07-09, 00:43:21 -->
 <Tasks version="4.1">
-  <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: add the possibility of defining templated methods as done for</Summary>
-    <Description></Description>
-    <Created>2008-07-05, 20:18:49</Created>
-    <Resource>
-      <Filename>
-        <Dir>cxx_writer</Dir>
-        <Dir>writer_code</Dir>
-        <Name>ClassDecls.py</Name>
-      </Filename>
-      <Linenumber>49</Linenumber>
-    </Resource>
-  </Task>
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: see this category, maybe we can express it in a more general way</Summary>
     <Description></Description>
@@ -69,22 +56,21 @@
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: I do not like it too much ... any better ideas?; is there</Summary>
+    <Summary>TODO: The current version of the decoder does not take into account splitting</Summary>
     <Description></Description>
-    <Created>2008-07-05, 23:17:35</Created>
+    <Created>2008-07-08, 04:57:06</Created>
     <Resource>
       <Filename>
-        <Dir>processors</Dir>
-        <Dir>ARM7TDMI</Dir>
-        <Name>ARMArch.py</Name>
+        <Dir>trap</Dir>
+        <Name>decoder.py</Name>
       </Filename>
-      <Linenumber>142</Linenumber>
+      <Linenumber>37</Linenumber>
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: do we need to access the fields of the instructions? if so</Summary>
     <Description></Description>
-    <Created>2008-07-07, 06:09:17</Created>
+    <Created>2008-07-09, 00:04:43</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
@@ -96,7 +82,7 @@
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: as for the begin op, do we need to access any</Summary>
     <Description></Description>
-    <Created>2008-07-07, 06:09:17</Created>
+    <Created>2008-07-09, 00:04:43</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
@@ -106,39 +92,77 @@
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: think about how to do the mnemonic</Summary>
+    <Summary>TODO: remember that we also need to print the INVALID</Summary>
     <Description></Description>
-    <Created>2008-07-07, 06:09:17</Created>
+    <Created>2008-07-09, 00:04:43</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
         <Name>isa.py</Name>
       </Filename>
-      <Linenumber>289</Linenumber>
+      <Linenumber>198</Linenumber>
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: an accurate interface is also needed. This means that</Summary>
+    <Summary>TODO: think about how to do the mnemonic</Summary>
     <Description></Description>
-    <Created>2008-07-07, 06:09:23</Created>
+    <Created>2008-07-09, 00:04:43</Created>
+    <Resource>
+      <Filename>
+        <Dir>trap</Dir>
+        <Name>isa.py</Name>
+      </Filename>
+      <Linenumber>291</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: I do not like it too much ... any better ideas?; is there</Summary>
+    <Description></Description>
+    <Created>2008-07-09, 00:16:58</Created>
+    <Resource>
+      <Filename>
+        <Dir>processors</Dir>
+        <Dir>ARM7TDMI</Dir>
+        <Name>ARMArch.py</Name>
+      </Filename>
+      <Linenumber>139</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: Finally we initialize the instances of the other architectural elements</Summary>
+    <Description></Description>
+    <Created>2008-07-09, 00:35:17</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
         <Name>processor.py</Name>
       </Filename>
-      <Linenumber>686</Linenumber>
+      <Linenumber>600</Linenumber>
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: The current version of the decoder does not take into account splitting</Summary>
+    <Summary>TODO: an accurate interface is also needed. This means that</Summary>
     <Description></Description>
-    <Created>2008-07-07, 06:44:28</Created>
+    <Created>2008-07-09, 00:35:17</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
-        <Name>decoder.py</Name>
+        <Name>processor.py</Name>
       </Filename>
-      <Linenumber>37</Linenumber>
+      <Linenumber>763</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: add the possibility of defining templated methods as done for</Summary>
+    <Description></Description>
+    <Created>2008-07-09, 00:37:51</Created>
+    <Resource>
+      <Filename>
+        <Dir>cxx_writer</Dir>
+        <Dir>writer_code</Dir>
+        <Name>ClassDecls.py</Name>
+      </Filename>
+      <Linenumber>49</Linenumber>
     </Resource>
   </Task>
 </Tasks>

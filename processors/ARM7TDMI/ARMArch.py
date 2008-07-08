@@ -127,11 +127,8 @@ processor.setFetchRegister('PC', -8)
 
 # Lets now add details about the processor interconnection (i.e. memory ports,
 # interrupt ports, pins, etc.)
-# Note that for the TLM port, if only one is specified and the it is the
-# port for the fetch, another port called memPort_fetch will be automatically
-# instantiated. the port called memPort can be, instead, used for accessing normal
-# data
 processor.addTLMPort('memPort', True)
+#processor.setMemSize(10*1024*1024)
 irq = trap.Interrupt('IRQ', priority = 0)
 processor.addIrq(irq)
 fiq = trap.Interrupt('FIQ', priority = 1)

@@ -220,7 +220,7 @@ class Processor:
     functional processor in case a local memory is used (in case TLM ports
     are used the systemc parameter is not taken into account)
     """
-    def __init__(self, name, version = 0.1, systemc = True, coprocessor = False):
+    def __init__(self, name, version = 0.1, systemc = True, coprocessor = False, instructionCache = True):
         self.name = name
         self.version = version
         self.isBigEndian = None
@@ -245,6 +245,7 @@ class Processor:
         self.tlmPorts = {}
         self.memAlias = []
         self.systemc = systemc
+        self.instructionCache = instructionCache
 
     def setISA(self, isa):
         self.isa = isa
@@ -529,7 +530,82 @@ class Processor:
 
     def getCPPProc(self):
         # creates the class describing the processor
-        return None
+        from isa import resolveBitType
+        fetchWordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>')
+        includes = fetchWordType.getIncludes()
+        codeString = str(fetchWordType) + ' bitString = '
+        # Now I have to check what is the fetch: if there is a TLM port or
+        # if I have to access local memory
+        if self.memorySize:
+            # I perform the fetch from the local memory
+            codeString += 'MEMORY'
+        else:
+            for name, isFetch  in self.tlmPorts.items():
+                if isFetch:
+                    codeString += name
+            if codeString.endswith('= '):
+                raise Exception('No TLM port was chosen for the instruction fetch')
+        codeString += '.read_word();\n'
+        if self.instructionCache:
+            codeString += 'std::map< ' + str(fetchWordType) + ', Instruction * >::iterator  cachedInstr = instrCache.find(bitstring);'
+            codeString += """
+            if(cachedInstr != instrCache.end()){
+                // I can call the instruction, I have found it
+                cachedInstr->second->behavior();
+            }
+            else{
+                // The current instruction is not present in the cache:
+                // I have to perform the normal decoding phase ...
+            """
+        codeString += """
+        int instrId = decoder.decode(bitString);
+        Instruction * instr = INSTRUCTIONS[instrId];
+        """
+        if self.instructionCache:
+            codeString += """
+                instr->setParams(bitString);
+                instr->behavior();
+                // ... and then add the instruction to the cache
+            """
+            codeString += 'instrCache.insert( std::pair< ' + str(fetchWordType) + ', Instruction * >(bitstring, instr) );'
+            codeString += """
+                INSTRUCTIONS[instrId] = instr.replicate();
+            }
+            """
+            includes.append('map')
+        else:
+            codeString += 'instr->behavior(bitString)\n';
+
+        mainLoopCode = cxx_writer.writer_code.Code(codeString, includes)
+        mainLoopMethod = cxx_writer.writer_code.Method('mainLoop', mainLoopCode, cxx_writer.writer_code.voidType, 'pu')
+        decoderAttribute = cxx_writer.writer_code.Attribute('decoder', cxx_writer.writer_code.Type('Decoder', 'decoder.hpp'), 'pri')
+        instructionsAttribute = cxx_writer.writer_code.Attribute('INSTRUCTIONS',
+                            cxx_writer.writer_code.ArrayType('Instruction', len(self.isa.instructions),
+                                include = 'instruction.hpp').makeInnerPointer(), 'pri', True, 'NULL')
+        # Ok, here I have to create the code for the constructor: I have to
+        # initialize the INSTRUCTIONS array, the local memory (if present)
+        # the TLM ports
+        constrCode = 'if(INSTRUCTIONS == NULL){\n'
+        constrCode += '// Initialization of the array holding the initial instance of the instructions\n'
+        maxInstrId = 0
+        for name, instr in self.isa.instructions.items():
+            constrCode += 'INSTRUCTIONS[' + str(instr.id) + '] = new ' + name + '();\n'
+            if maxInstrId < instr.id:
+                maxInstrId = instr.id
+        constrCode += 'INSTRUCTIONS[' + str(maxInstrId + 1) + '] = new InvalidInstr();\n'
+        constrCode += '}\n'
+        if self.memorySize:
+            # Here we need to create and instance of the memory
+            constrCode += '//Creating the memory instance'
+        # TODO: Finally we initialize the instances of the other architectural elements
+        constrCode += 'SC_THREAD(mainLoop);\nend_module();'
+        constructorBody = cxx_writer.writer_code.Code(constrCode)
+        constructorParams = [cxx_writer.writer_code.Parameter('name', cxx_writer.writer_code.sc_module_nameType), 
+                    cxx_writer.writer_code.Parameter('latency', cxx_writer.writer_code.sc_timeType)]
+        publicConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['sc_module(name)'])
+        processorDecl = cxx_writer.writer_code.SCModule('Processor', [decoderAttribute, mainLoopMethod])
+        processorDecl.addConstructor(publicConstr)
+        return processorDecl
 
     def getCPPIf(self):
         # creates the interface which is used by the tools
@@ -566,11 +642,12 @@ class Processor:
         # actually create the ISS code
         # First of all we have to create the decoder
         print '\t\tCreating the decoder'
+        from isa import resolveBitType
         import decoder, os
         dec = decoder.decoderCreator(self.isa.instructions)
         if dumpDecoderName:
             dec.printDecoder(dumpDecoderName)
-        decClass = dec.getCPPClass()
+        decClass = dec.getCPPClass(resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>'))
         decTests = dec.getCPPTests()
         implFileDec = cxx_writer.writer_code.FileDumper('decoder.cpp', False)
         headFileDec = cxx_writer.writer_code.FileDumper('decoder.hpp', True)

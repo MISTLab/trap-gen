@@ -125,6 +125,8 @@ class FileDumper:
                         self.includes.append(include)
             except AttributeError:
                 pass
+        if self.includes:
+            writer.write('\n')
         for include in self.includes:
             writer.write('#include <' + include + '>\n')
         writer.write('\n')
@@ -138,6 +140,7 @@ class FileDumper:
             else:
                 try:
                     member.writeImplementation(writer)
+                    writer.write('\n')
                 except AttributeError:
                     pass
         if self.isHeader:

@@ -34,7 +34,7 @@
 ####################################################################################
 
 
-import CustomCode
+import CustomCode, Writer
 
 class DumpElement:
     """Base element of all the elements which have to be dumped. All printable elements like
@@ -49,6 +49,13 @@ class DumpElement:
         for line in self.docstring.split('\n'):
             if line:
                 writer.write('/// ' + line + '\n')
+    def __str__(self):
+        try:
+            stringWriter = Writer.StringWriter()
+            self.writeDeclaration(stringWriter)
+            return str(stringWriter)
+        except:
+            return self.name
 
 class Type(DumpElement):
     """Represents a type; this is use for variable declaration, function parameter declaration ..."""
@@ -80,7 +87,7 @@ class Type(DumpElement):
         writer.write(self.name)
         for i in self.modifiers:
             writer.write(' ' + i)
-
+    
     def getIncludes(self):
         if self.include:
             return [self.include]
@@ -90,10 +97,8 @@ class Type(DumpElement):
 class TemplateType(Type):
     """Represents a templated type; this is use for variable declaration, function parameter declaration ..."""
 
-    def __init__(self, name, template, include = None):
+    def __init__(self, name, template = [], include = None):
         Type.__init__(self, name, include)
-        if not template:
-            raise Exception('At least one template must be specified for a templated type')
         if type(template) != type([]):
             self.template = [template]
         else:
@@ -101,15 +106,16 @@ class TemplateType(Type):
 
     def writeDeclaration(self, writer):
         Type.writeDeclaration(self, writer)
-        writer.write('< ')
-        for i in self.template:
-            try:
-                i.writeDeclaration(writer)
-            except AttributeError:
-                writer.write(str(i))
-            if i != self.template[-1]:
-                writer.write(', ')
-        writer.write(' >')
+        if self.template:
+            writer.write('< ')
+            for i in self.template:
+                try:
+                    i.writeDeclaration(writer)
+                except AttributeError:
+                    writer.write(str(i))
+                if i != self.template[-1]:
+                    writer.write(', ')
+            writer.write(' >')
         for i in self.modifiers:
             writer.write(' ' + i)
 
@@ -136,7 +142,9 @@ boolType = Type('bool')
 sc_uint64Type = Type('sc_dt::uint64', 'systemc.h')
 sc_moduleType = Type('sc_module', 'systemc.h')
 sc_module_nameType = Type('sc_module_name', 'systemc.h')
+sc_timeType = Type('sc_time', 'systemc.h')
 stringType = Type('std::string', 'string')
+voidType = Type('void')
 intRefType = intType.makeRef()
 shortRefType = shortType.makeRef()
 ushortRefType = ushortType.makeRef()
@@ -149,6 +157,7 @@ boolRefType = boolType.makeRef()
 sc_uint64RefType = sc_uint64Type.makeRef()
 sc_moduleRefType = sc_moduleType.makeRef()
 sc_module_nameRefType = sc_module_nameType.makeRef()
+sc_timeRefType = sc_timeType.makeRef()
 stringRefType = stringType.makeRef()
 intPtrType = intType.makePointer()
 uintPtrType = uintType.makePointer()
@@ -162,7 +171,49 @@ boolPtrType = boolType.makePointer()
 sc_uint64PtrType = sc_uint64Type.makePointer()
 sc_modulePtrType = sc_moduleType.makePointer()
 sc_module_namePtrType = sc_module_nameType.makePointer()
+sc_timePtrType = sc_timeType.makeRef()
 stringPtrType = stringType.makePointer()
+
+class ArrayType(TemplateType):
+    def __init__(self, name, size, template = [], include = None):
+        TemplateType.__init__(self, name, template, include)
+        if size < 1:
+            raise Exception('Specified a non valid size for array ' + name + ' the size must be a positive integer')
+        self.size = size
+        self.modifiers = []
+
+    def makeInnerPointer(self):
+        return Type.makePointer(self)
+
+    def makeInnerRef(self):
+        return Type.makeRef(self)
+
+    def makeInnerNormal(self):
+        return Type.makeNormal(self)
+
+    def makePointer(self):
+        import copy
+        newType = copy.deepcopy(self)
+        newType.modifiers.append('*')
+        return newType
+    def makeRef(self):
+        import copy
+        newType = copy.deepcopy(self)
+        newType.modifiers.append('&')
+        return newType
+    def makeNormal(self):
+        if not self.modifiers:
+            raise Exception('Unable to create a normal copy of type ' + self.name + ': the type is not a pointer or a ref')
+        import copy
+        newType = copy.deepcopy(self)
+        newType.modifiers.pop()
+        return newType
+
+    def writeDeclaration(self, writer):
+        TemplateType.writeDeclaration(self, writer)
+        writer.write('[' + str(self.size) + ']')
+        for i in self.modifiers:
+            writer.write(' ' + i)
 
 class Parameter(DumpElement):
     """Represents a parameter of a function; this parameter can be either input or output

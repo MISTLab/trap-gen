@@ -107,8 +107,8 @@ class SplitFunction:
         self.table = table
 
     def toCode(self):
-        mask = 'b'
-        value = 'b'
+        mask = ''
+        value = ''
         if self.pattern:
             for i in reversed(self.pattern):
                 if i !=  None:
@@ -117,14 +117,14 @@ class SplitFunction:
                 else:
                     value += '0'
                     mask += '0'
-            return (mask, value)
+            return (hex(int(mask, 2)), hex(int(value, 2)))
         if self.table:
             for i in reversed(self.table):
                 if i !=  None:
                     mask += '1'
                 else:
                     mask += '0'
-            return mask
+            return hex(int(mask, 2))
 
     def __repr__(self):
         retVal = ''
@@ -334,16 +334,17 @@ class decoderCreator:
         code += '}\n'
         return code
 
-    def getCPPClass(self):
+    def getCPPClass(self, fetchSizeType):
         # Creates the representation of the decoder as a C++ class
         import cxx_writer
+        from isa import resolveBitType
         # OK: now I simply have to go over the decoding tree
         if self.rootNote.splitFunction.pattern:
             codeString = self.createPatternDecoder(self.rootNote)
         else:
             codeString = self.createTableDecoder(self.rootNote)
         code = cxx_writer.writer_code.Code(codeString)
-        parameters = [cxx_writer.writer_code.Parameter('instrCode', cxx_writer.writer_code.intType)]
+        parameters = [cxx_writer.writer_code.Parameter('instrCode', fetchSizeType)]
         decodeMethod = cxx_writer.writer_code.Method('decode', code, cxx_writer.writer_code.intType, 'pu', parameters)
         decodeClass = cxx_writer.writer_code.ClassDeclaration('Decoder', [decodeMethod])
         return decodeClass
@@ -385,7 +386,7 @@ class decoderCreator:
                 code += '// Checking Instruction ' + self.instrName[instrId] + '\n'
             else:
                 code += '// Checking Invalid Instruction\n'
-            code += 'BOOST_CHECK_EQUAL(dec.decode( b' + ''.join(pattern) + ' ), ' + str(expectedId) + ');\n'
+            code += 'BOOST_CHECK_EQUAL(dec.decode( ' + hex(int(''.join(pattern), 2)) + ' ), ' + str(expectedId) + ');\n'
             code += '}\n\n'
             curTest = cxx_writer.writer_code.Code(code, ['boost/test/auto_unit_test.hpp', 'boost/test/test_tools.hpp', 'decoder.hpp'])
             allTests.append(curTest)

@@ -79,9 +79,6 @@ class Method(ClassMember, Function):
         writer.write('}\n')
 
 class Constructor(ClassMember, Function):
-    """Method of a class; note how it is nothing but a normal function
-    with the addition of the visibility attribute"""
-
     def __init__(self, body, visibility, parameters = [], initList = []):
         ClassMember.__init__(self, visibility)
         Function.__init__(self, '', body, Type(''), parameters, False)
@@ -111,6 +108,20 @@ class Constructor(ClassMember, Function):
             else:
                 writer.write(' ')
         writer.write('{\n')
+        self.body.writeImplementation(writer)
+        writer.write('}\n')
+
+class Destructor(ClassMember, Function):
+    def __init__(self, body, visibility):
+        ClassMember.__init__(self, visibility)
+        Function.__init__(self, '', body, Type(''), [], False)
+
+    def writeImplementation(self, writer, className = ''):
+        if self.docstring:
+            self.printDocString(writer)
+        if className:
+            writer.write(className + '::')
+        writer.write('~' + self.name + '(){\n')
         self.body.writeImplementation(writer)
         writer.write('}\n')
 
@@ -166,6 +177,10 @@ class ClassDeclaration(DumpElement):
     def addConstructor(self, constructor):
         constructor.name = self.name
         self.members.append(constructor)
+
+    def addDestructor(self, destructor):
+        destructor.name = self.name
+        self.members.append(destructor)
 
     def addSuperclass(self, superclass):
         self.superclasses.append(superclass)
@@ -260,6 +275,7 @@ class ClassDeclaration(DumpElement):
         for i in self.members:
             try:
                 i.writeImplementation(writer, self.name)
+                writer.write('\n')
             except AttributeError:
                 pass
 
