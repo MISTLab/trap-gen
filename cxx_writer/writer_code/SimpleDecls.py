@@ -174,47 +174,6 @@ sc_module_namePtrType = sc_module_nameType.makePointer()
 sc_timePtrType = sc_timeType.makeRef()
 stringPtrType = stringType.makePointer()
 
-class ArrayType(TemplateType):
-    def __init__(self, name, size, template = [], include = None):
-        TemplateType.__init__(self, name, template, include)
-        if size < 1:
-            raise Exception('Specified a non valid size for array ' + name + ' the size must be a positive integer')
-        self.size = size
-        self.modifiers = []
-
-    def makeInnerPointer(self):
-        return Type.makePointer(self)
-
-    def makeInnerRef(self):
-        return Type.makeRef(self)
-
-    def makeInnerNormal(self):
-        return Type.makeNormal(self)
-
-    def makePointer(self):
-        import copy
-        newType = copy.deepcopy(self)
-        newType.modifiers.append('*')
-        return newType
-    def makeRef(self):
-        import copy
-        newType = copy.deepcopy(self)
-        newType.modifiers.append('&')
-        return newType
-    def makeNormal(self):
-        if not self.modifiers:
-            raise Exception('Unable to create a normal copy of type ' + self.name + ': the type is not a pointer or a ref')
-        import copy
-        newType = copy.deepcopy(self)
-        newType.modifiers.pop()
-        return newType
-
-    def writeDeclaration(self, writer):
-        TemplateType.writeDeclaration(self, writer)
-        writer.write('[' + str(self.size) + ']')
-        for i in self.modifiers:
-            writer.write(' ' + i)
-
 class Parameter(DumpElement):
     """Represents a parameter of a function; this parameter can be either input or output
     (even though in C++ output parameters are not really used)"""
@@ -336,6 +295,9 @@ class Function(DumpElement):
             for j in i.getIncludes():
                 if not j in includes:
                     includes.append(j)
+        for j in self.body.getIncludes():
+            if not j in includes:
+                includes.append(j)
         return includes
 
     def getRetValIncludes(self):

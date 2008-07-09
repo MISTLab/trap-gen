@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Tasks SYSTEM "Tasks-4.1.dtd">
 <!-- eric4 tasks file for project TRAP -->
-<!-- Saved: 2008-07-09, 00:43:21 -->
+<!-- Saved: 2008-07-09, 09:00:22 -->
 <Tasks version="4.1">
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: see this category, maybe we can express it in a more general way</Summary>
@@ -118,7 +118,7 @@
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: I do not like it too much ... any better ideas?; is there</Summary>
     <Description></Description>
-    <Created>2008-07-09, 00:16:58</Created>
+    <Created>2008-07-08, 15:04:38</Created>
     <Resource>
       <Filename>
         <Dir>processors</Dir>
@@ -129,33 +129,9 @@
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: Finally we initialize the instances of the other architectural elements</Summary>
-    <Description></Description>
-    <Created>2008-07-09, 00:35:17</Created>
-    <Resource>
-      <Filename>
-        <Dir>trap</Dir>
-        <Name>processor.py</Name>
-      </Filename>
-      <Linenumber>600</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: an accurate interface is also needed. This means that</Summary>
-    <Description></Description>
-    <Created>2008-07-09, 00:35:17</Created>
-    <Resource>
-      <Filename>
-        <Dir>trap</Dir>
-        <Name>processor.py</Name>
-      </Filename>
-      <Linenumber>763</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: add the possibility of defining templated methods as done for</Summary>
     <Description></Description>
-    <Created>2008-07-09, 00:37:51</Created>
+    <Created>2008-07-08, 15:07:01</Created>
     <Resource>
       <Filename>
         <Dir>cxx_writer</Dir>
@@ -163,6 +139,30 @@
         <Name>ClassDecls.py</Name>
       </Filename>
       <Linenumber>49</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: Finally we initialize the instances of the other architectural elements</Summary>
+    <Description></Description>
+    <Created>2008-07-09, 09:00:18</Created>
+    <Resource>
+      <Filename>
+        <Dir>trap</Dir>
+        <Name>processor.py</Name>
+      </Filename>
+      <Linenumber>597</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: an accurate interface is also needed. This means that</Summary>
+    <Description></Description>
+    <Created>2008-07-09, 09:00:18</Created>
+    <Resource>
+      <Filename>
+        <Dir>trap</Dir>
+        <Name>processor.py</Name>
+      </Filename>
+      <Linenumber>761</Linenumber>
     </Resource>
   </Task>
 </Tasks>

@@ -285,6 +285,10 @@ class ClassDeclaration(DumpElement):
             for j in i.getIncludes():
                 if not j in includes:
                     includes.append(j)
+        for i in self.members:
+            for j in i.getIncludes():
+                if not j in includes:
+                    includes.append(j)
         return includes
 
 class SCModule(ClassDeclaration):

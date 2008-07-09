@@ -562,8 +562,7 @@ class Processor:
         Instruction * instr = INSTRUCTIONS[instrId];
         """
         if self.instructionCache:
-            codeString += """
-                instr->setParams(bitString);
+            codeString += """instr->setParams(bitString);
                 instr->behavior();
                 // ... and then add the instruction to the cache
             """
@@ -580,19 +579,17 @@ class Processor:
         mainLoopMethod = cxx_writer.writer_code.Method('mainLoop', mainLoopCode, cxx_writer.writer_code.voidType, 'pu')
         decoderAttribute = cxx_writer.writer_code.Attribute('decoder', cxx_writer.writer_code.Type('Decoder', 'decoder.hpp'), 'pri')
         instructionsAttribute = cxx_writer.writer_code.Attribute('INSTRUCTIONS',
-                            cxx_writer.writer_code.ArrayType('Instruction', len(self.isa.instructions),
-                                include = 'instruction.hpp').makeInnerPointer(), 'pri', True, 'NULL')
+                            cxx_writer.writer_code.Type('Instruction', include = 'instruction.hpp').makePointer(), 'pri', True, 'NULL')
         # Ok, here I have to create the code for the constructor: I have to
         # initialize the INSTRUCTIONS array, the local memory (if present)
         # the TLM ports
-        constrCode = 'if(INSTRUCTIONS == NULL){\n'
+        constrCode = 'if(Processor::INSTRUCTIONS == NULL){\n'
         constrCode += '// Initialization of the array holding the initial instance of the instructions\n'
-        maxInstrId = 0
+        maxInstrId = max([instr.id for instr in self.isa.instructions.values()]) + 1
+        constrCode += 'Processor::INSTRUCTIONS = new Instruction *[' + str(maxInstrId) + '];\n'
         for name, instr in self.isa.instructions.items():
-            constrCode += 'INSTRUCTIONS[' + str(instr.id) + '] = new ' + name + '();\n'
-            if maxInstrId < instr.id:
-                maxInstrId = instr.id
-        constrCode += 'INSTRUCTIONS[' + str(maxInstrId + 1) + '] = new InvalidInstr();\n'
+            constrCode += 'Processor::INSTRUCTIONS[' + str(instr.id) + '] = new ' + name + '();\n'
+        constrCode += 'Processor::INSTRUCTIONS[' + str(maxInstrId + 1) + '] = new InvalidInstr();\n'
         constrCode += '}\n'
         if self.memorySize:
             # Here we need to create and instance of the memory
@@ -603,7 +600,7 @@ class Processor:
         constructorParams = [cxx_writer.writer_code.Parameter('name', cxx_writer.writer_code.sc_module_nameType), 
                     cxx_writer.writer_code.Parameter('latency', cxx_writer.writer_code.sc_timeType)]
         publicConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['sc_module(name)'])
-        processorDecl = cxx_writer.writer_code.SCModule('Processor', [decoderAttribute, mainLoopMethod])
+        processorDecl = cxx_writer.writer_code.SCModule('Processor', [instructionsAttribute, decoderAttribute, mainLoopMethod])
         processorDecl.addConstructor(publicConstr)
         return processorDecl
 
@@ -687,6 +684,7 @@ class Processor:
             headFileProc = cxx_writer.writer_code.FileDumper('processor.hpp', True)
             implFileProc.addMember(ProcClass)
             headFileProc.addMember(ProcClass)
+            implFileProc.addInclude('processor.hpp')
             implFileIf = cxx_writer.writer_code.FileDumper('interface.cpp', False)
             headFileIf = cxx_writer.writer_code.FileDumper('interface.hpp', True)
             implFileIf.addMember(IfClass)
