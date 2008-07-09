@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Tasks SYSTEM "Tasks-4.1.dtd">
 <!-- eric4 tasks file for project TRAP -->
-<!-- Saved: 2008-07-09, 09:00:22 -->
+<!-- Saved: 2008-07-10, 00:40:50 -->
 <Tasks version="4.1">
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: see this category, maybe we can express it in a more general way</Summary>
@@ -118,7 +118,7 @@
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: I do not like it too much ... any better ideas?; is there</Summary>
     <Description></Description>
-    <Created>2008-07-08, 15:04:38</Created>
+    <Created>2008-07-09, 13:27:00</Created>
     <Resource>
       <Filename>
         <Dir>processors</Dir>
@@ -131,7 +131,7 @@
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: add the possibility of defining templated methods as done for</Summary>
     <Description></Description>
-    <Created>2008-07-08, 15:07:01</Created>
+    <Created>2008-07-10, 00:04:28</Created>
     <Resource>
       <Filename>
         <Dir>cxx_writer</Dir>
@@ -144,25 +144,37 @@
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: Finally we initialize the instances of the other architectural elements</Summary>
     <Description></Description>
-    <Created>2008-07-09, 09:00:18</Created>
+    <Created>2008-07-10, 00:40:34</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
         <Name>processor.py</Name>
       </Filename>
-      <Linenumber>597</Linenumber>
+      <Linenumber>629</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: We also need to initialize the quantuum keeper etc</Summary>
+    <Description></Description>
+    <Created>2008-07-10, 00:40:34</Created>
+    <Resource>
+      <Filename>
+        <Dir>trap</Dir>
+        <Name>processor.py</Name>
+      </Filename>
+      <Linenumber>631</Linenumber>
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: an accurate interface is also needed. This means that</Summary>
     <Description></Description>
-    <Created>2008-07-09, 09:00:18</Created>
+    <Created>2008-07-10, 00:40:34</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
         <Name>processor.py</Name>
       </Filename>
-      <Linenumber>761</Linenumber>
+      <Linenumber>810</Linenumber>
     </Resource>
   </Task>
 </Tasks>

@@ -241,7 +241,7 @@ class Processor:
         self.pins = []
         self.irqOp = None
         self.fetchReg = None
-        self.memorySize = 0
+        self.memory = None
         self.tlmPorts = {}
         self.memAlias = []
         self.systemc = systemc
@@ -250,18 +250,20 @@ class Processor:
     def setISA(self, isa):
         self.isa = isa
 
-    def setMemSize(self, memSize):
+    def setMemory(self, name, memSize):
         for name,isFetch  in self.tlmPorts.items():
             if isFetch:
                 raise Exception('Cannot add internal memory since instructions will be fetched from port ' + name)
-        self.memorySize = memSize
+        self.memory = (name, memSize)
 
     def addTLMPort(self, portName, fetch = False):
         # Note that for the TLM port, if only one is specified and the it is the
         # port for the fetch, another port called portName + '_fetch' will be automatically
         # instantiated. the port called portName can be, instead, used for accessing normal
         # data
-        if fetch and self.memorySize:
+        if not self.systemc:
+            raise Exception('The processor must be created with SystemC enabled in order to be able to use TLM ports')
+        if fetch and self.memory:
             raise Exception('An internal memory is specified, so the instruction fetch will be performed from that memory and not from port ' + portName)
         for name,isFetch  in self.tlmPorts.items():
             if name == portName:
@@ -528,80 +530,127 @@ class Processor:
         # alias
         return None
 
-    def getCPPProc(self):
+    def getCPPProc(self, model):
         # creates the class describing the processor
         from isa import resolveBitType
         fetchWordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>')
         includes = fetchWordType.getIncludes()
-        codeString = str(fetchWordType) + ' bitString = '
+        codeString = 'while(true){\n'
+        codeString += 'unsigned int numCycles = 0;\n'
+        codeString += str(fetchWordType) + ' bitString = '
         # Now I have to check what is the fetch: if there is a TLM port or
         # if I have to access local memory
-        if self.memorySize:
+        if self.memory:
             # I perform the fetch from the local memory
-            codeString += 'MEMORY'
+            codeString += self.memory[0]
         else:
             for name, isFetch  in self.tlmPorts.items():
                 if isFetch:
                     codeString += name
             if codeString.endswith('= '):
                 raise Exception('No TLM port was chosen for the instruction fetch')
-        codeString += '.read_word();\n'
+        codeString += '.read_word(this->' + self.fetchReg[0]
+        if model.startswith('func'):
+            if self.fetchReg[1] < 0:
+                codeString += str(self.fetchReg[1])
+            else:
+                codeString += '+' + str(self.fetchReg[1])
+        codeString += ');\n'
         if self.instructionCache:
-            codeString += 'std::map< ' + str(fetchWordType) + ', Instruction * >::iterator  cachedInstr = instrCache.find(bitstring);'
+            codeString += 'std::map< ' + str(fetchWordType) + ', Instruction * >::iterator cachedInstr = Processor::instrCache.find(bitstring);'
             codeString += """
-            if(cachedInstr != instrCache.end()){
+            if(cachedInstr != Processor::instrCache.end()){
                 // I can call the instruction, I have found it
-                cachedInstr->second->behavior();
+                numCycles = cachedInstr->second->behavior();
             }
             else{
                 // The current instruction is not present in the cache:
                 // I have to perform the normal decoding phase ...
             """
-        codeString += """
-        int instrId = decoder.decode(bitString);
-        Instruction * instr = INSTRUCTIONS[instrId];
+        codeString += """int instrId = decoder.decode(bitString);
+        Instruction * instr = Processor::INSTRUCTIONS[instrId];
         """
         if self.instructionCache:
             codeString += """instr->setParams(bitString);
-                instr->behavior();
+                numCycles = instr->behavior();
                 // ... and then add the instruction to the cache
             """
             codeString += 'instrCache.insert( std::pair< ' + str(fetchWordType) + ', Instruction * >(bitstring, instr) );'
             codeString += """
-                INSTRUCTIONS[instrId] = instr.replicate();
+                Processor::INSTRUCTIONS[instrId] = instr->replicate();
             }
             """
             includes.append('map')
         else:
             codeString += 'instr->behavior(bitString)\n';
+        if self.systemc or model.startswith('acc'):
+            # Code for keeping time with systemc
+            pass
+        else:
+            codeString += 'this->totalCycles += numCycles;\n'
+        codeString += '}'
 
+        processorElements = []
         mainLoopCode = cxx_writer.writer_code.Code(codeString, includes)
         mainLoopMethod = cxx_writer.writer_code.Method('mainLoop', mainLoopCode, cxx_writer.writer_code.voidType, 'pu')
+        processorElements.append(mainLoopMethod)
         decoderAttribute = cxx_writer.writer_code.Attribute('decoder', cxx_writer.writer_code.Type('Decoder', 'decoder.hpp'), 'pri')
+        processorElements.append(decoderAttribute)
+        if self.systemc or model.startswith('acc'):
+            # Here we need to insert the quantum keeper etc.
+            pass
+        else:
+            totCyclesAttribute = cxx_writer.writer_code.Attribute('totalCycles', cxx_writer.writer_code.uintType, 'pu')
+            processorElements.append(totCyclesAttribute)
+        IntructionType = cxx_writer.writer_code.Type('Instruction', include = 'instruction.hpp')
+        IntructionTypePtr = IntructionType.makePointer()
         instructionsAttribute = cxx_writer.writer_code.Attribute('INSTRUCTIONS',
-                            cxx_writer.writer_code.Type('Instruction', include = 'instruction.hpp').makePointer(), 'pri', True, 'NULL')
+                                IntructionTypePtr, 'pri', True, 'NULL')
+        cacheAttribute = cxx_writer.writer_code.Attribute('instrCache',
+                            cxx_writer.writer_code.TemplateType('std::map',
+                                [fetchWordType, IntructionTypePtr], 'map'), 'pri', True)
+        numProcAttribute = cxx_writer.writer_code.Attribute('numInstances',
+                                cxx_writer.writer_code.intType, 'pri', True, '0')
+        processorElements += [cacheAttribute, instructionsAttribute, numProcAttribute]
         # Ok, here I have to create the code for the constructor: I have to
         # initialize the INSTRUCTIONS array, the local memory (if present)
         # the TLM ports
-        constrCode = 'if(Processor::INSTRUCTIONS == NULL){\n'
+        constrCode = 'Processor::numInstances++;\nif(Processor::INSTRUCTIONS == NULL){\n'
         constrCode += '// Initialization of the array holding the initial instance of the instructions\n'
         maxInstrId = max([instr.id for instr in self.isa.instructions.values()]) + 1
-        constrCode += 'Processor::INSTRUCTIONS = new Instruction *[' + str(maxInstrId) + '];\n'
+        constrCode += 'Processor::INSTRUCTIONS = new Instruction *[' + str(maxInstrId + 1) + '];\n'
         for name, instr in self.isa.instructions.items():
             constrCode += 'Processor::INSTRUCTIONS[' + str(instr.id) + '] = new ' + name + '();\n'
-        constrCode += 'Processor::INSTRUCTIONS[' + str(maxInstrId + 1) + '] = new InvalidInstr();\n'
+        constrCode += 'Processor::INSTRUCTIONS[' + str(maxInstrId) + '] = new InvalidInstr();\n'
         constrCode += '}\n'
-        if self.memorySize:
+        if self.memory:
             # Here we need to create and instance of the memory
             constrCode += '//Creating the memory instance'
         # TODO: Finally we initialize the instances of the other architectural elements
-        constrCode += 'SC_THREAD(mainLoop);\nend_module();'
+        if self.systemc or model.startswith('acc'):
+            # TODO: We also need to initialize the quantuum keeper etc
+            constrCode += 'SC_THREAD(mainLoop);\n'
+        else:
+            constrCode += 'this->totalCycles = 0;'
+        constrCode += 'end_module();'
         constructorBody = cxx_writer.writer_code.Code(constrCode)
         constructorParams = [cxx_writer.writer_code.Parameter('name', cxx_writer.writer_code.sc_module_nameType), 
                     cxx_writer.writer_code.Parameter('latency', cxx_writer.writer_code.sc_timeType)]
         publicConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['sc_module(name)'])
-        processorDecl = cxx_writer.writer_code.SCModule('Processor', [instructionsAttribute, decoderAttribute, mainLoopMethod])
+        destrCode = """Processor::numInstances--;
+        if(Processor::numInstances == 0){
+            for(int i = 0; i < """ + str(maxInstrId + 1) + """; i++){
+                delete Processor::INSTRUCTIONS[i];
+            }
+            delete [] Processor::INSTRUCTIONS;
+            Processor::INSTRUCTIONS = NULL;
+        }
+        """
+        destructorBody = cxx_writer.writer_code.Code(destrCode)
+        publicDestr = cxx_writer.writer_code.Destructor(destructorBody, 'pu')
+        processorDecl = cxx_writer.writer_code.SCModule('Processor', processorElements)
         processorDecl.addConstructor(publicConstr)
+        processorDecl.addDestructor(publicDestr)
         return processorDecl
 
     def getCPPIf(self):
@@ -660,7 +709,7 @@ class Processor:
             ISATests = self.isa.getCPPTests(self.name, model)
             RegClasses = self.getCPPRegisters()
             AliasClass = self.getCPPAlias()
-            ProcClass = self.getCPPProc()
+            ProcClass = self.getCPPProc(model)
             IfClass = self.getCPPIf()
             # Ok, now that we have all the classes it is time to write
             # them to file

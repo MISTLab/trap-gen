@@ -58,6 +58,8 @@ class CodeWriter:
         self.curIndent = 0
         self.indentSize = indentSize
         self.codeBuffer = ''
+        if lineWidth < 20:
+            raise Exception('A minimum line length of at least 20 characters should be specified')
         self.lineWidth = lineWidth
 
     def __del__(self):
@@ -93,7 +95,7 @@ class CodeWriter:
             self.codeBuffer = lastLine
 
     def go_new_line(self, toModify):
-        """Given a documentation string the function introduces newline characters to
+        """Given a string the function introduces newline characters to
         respect the line width constraint"""
         singleIndent = ''
         for i in range(0, self.indentSize):
@@ -108,14 +110,14 @@ class CodeWriter:
         if endToCheck < 0:
             endToCheck = len(toModify)
         i = endToCheck
-        for i in range(self.lineWidth, endToCheck):
+        for i in range(self.lineWidth - 10, endToCheck):
             if toModify[i] == ' ':
                 break
-        if i < endToCheck:
-            return toModify[0:i] + '\n' + singleIndent + totalIndent + self.go_new_line(toModify[(i + 1):endToCheck])
+        if i < endToCheck - 1:
+            return toModify[:i] + '\n' + singleIndent + totalIndent + self.go_new_line(toModify[(i + 1):endToCheck])
         else:
             if i < len(toModify) - 1:
-                return toModify[0:(endToCheck + 1)] + self.go_new_line(toModify[(endToCheck + 1):len(toModify)])
+                return toModify[:(endToCheck + 1)] + self.go_new_line(toModify[(endToCheck + 1):])
             else:
                 return toModify
 

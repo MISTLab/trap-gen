@@ -121,7 +121,7 @@ class Destructor(ClassMember, Function):
             self.printDocString(writer)
         if className:
             writer.write(className + '::')
-        writer.write('~' + self.name + '(){\n')
+        writer.write(self.name + '(){\n')
         self.body.writeImplementation(writer)
         writer.write('}\n')
 
@@ -179,7 +179,7 @@ class ClassDeclaration(DumpElement):
         self.members.append(constructor)
 
     def addDestructor(self, destructor):
-        destructor.name = self.name
+        destructor.name = '~' + self.name
         self.members.append(destructor)
 
     def addSuperclass(self, superclass):
