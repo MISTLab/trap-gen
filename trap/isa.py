@@ -35,6 +35,7 @@
 
 import re
 import cxx_writer
+import isaWriter
 
 def resolveBitType(typeString):
     """Given a string representing a bit type it returns the more appropriate C++ type
@@ -197,10 +198,10 @@ class ISA:
     def getCPPClasses(self, procName, modelType):
         # TODO: remember that we also need to print the INVALID
         # instruction
-        return []
+        return isaWriter.getCPPClasses(self, procName, modelType)
 
     def getCPPTests(self, procName, modelType):
-        return []
+        return isaWriter.getCPPTests(self, procName, modelType)
 
 class Instruction:
     """Represents an instruction of the processor. The instruction
@@ -375,6 +376,12 @@ class Instruction:
 
     def __str__(self):
         return repr(self)
+
+    def getCPPClass(self, model):
+        return isaWriter.getCPPInstr(self, model)
+
+    def getCPPTest(self, model):
+        return isaWriter.getCPPInstrTest(self, model)
 
 class HelperOperation:
     """Represents some code; this code can be shared among the

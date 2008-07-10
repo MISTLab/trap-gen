@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Tasks SYSTEM "Tasks-4.1.dtd">
 <!-- eric4 tasks file for project TRAP -->
-<!-- Saved: 2008-07-10, 00:40:50 -->
+<!-- Saved: 2008-07-09, 15:06:38 -->
 <Tasks version="4.1">
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: see this category, maybe we can express it in a more general way</Summary>
@@ -68,54 +68,6 @@
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: do we need to access the fields of the instructions? if so</Summary>
-    <Description></Description>
-    <Created>2008-07-09, 00:04:43</Created>
-    <Resource>
-      <Filename>
-        <Dir>trap</Dir>
-        <Name>isa.py</Name>
-      </Filename>
-      <Linenumber>113</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: as for the begin op, do we need to access any</Summary>
-    <Description></Description>
-    <Created>2008-07-09, 00:04:43</Created>
-    <Resource>
-      <Filename>
-        <Dir>trap</Dir>
-        <Name>isa.py</Name>
-      </Filename>
-      <Linenumber>123</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: remember that we also need to print the INVALID</Summary>
-    <Description></Description>
-    <Created>2008-07-09, 00:04:43</Created>
-    <Resource>
-      <Filename>
-        <Dir>trap</Dir>
-        <Name>isa.py</Name>
-      </Filename>
-      <Linenumber>198</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: think about how to do the mnemonic</Summary>
-    <Description></Description>
-    <Created>2008-07-09, 00:04:43</Created>
-    <Resource>
-      <Filename>
-        <Dir>trap</Dir>
-        <Name>isa.py</Name>
-      </Filename>
-      <Linenumber>291</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: I do not like it too much ... any better ideas?; is there</Summary>
     <Description></Description>
     <Created>2008-07-09, 13:27:00</Created>
@@ -144,37 +96,97 @@
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: Finally we initialize the instances of the other architectural elements</Summary>
     <Description></Description>
-    <Created>2008-07-10, 00:40:34</Created>
+    <Created>2008-07-09, 15:02:56</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
-        <Name>processor.py</Name>
+        <Name>procWriter.py</Name>
       </Filename>
-      <Linenumber>629</Linenumber>
+      <Linenumber>149</Linenumber>
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: We also need to initialize the quantuum keeper etc</Summary>
     <Description></Description>
-    <Created>2008-07-10, 00:40:34</Created>
+    <Created>2008-07-09, 15:02:56</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
-        <Name>processor.py</Name>
+        <Name>procWriter.py</Name>
       </Filename>
-      <Linenumber>631</Linenumber>
+      <Linenumber>151</Linenumber>
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: an accurate interface is also needed. This means that</Summary>
     <Description></Description>
-    <Created>2008-07-10, 00:40:34</Created>
+    <Created>2008-07-09, 15:04:53</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
         <Name>processor.py</Name>
       </Filename>
-      <Linenumber>810</Linenumber>
+      <Linenumber>689</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: remember that we also need to print the INVALID</Summary>
+    <Description></Description>
+    <Created>2008-07-09, 15:06:09</Created>
+    <Resource>
+      <Filename>
+        <Dir>trap</Dir>
+        <Name>isaWriter.py</Name>
+      </Filename>
+      <Linenumber>37</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: do we need to access the fields of the instructions? if so</Summary>
+    <Description></Description>
+    <Created>2008-07-09, 15:06:31</Created>
+    <Resource>
+      <Filename>
+        <Dir>trap</Dir>
+        <Name>isa.py</Name>
+      </Filename>
+      <Linenumber>114</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: as for the begin op, do we need to access any</Summary>
+    <Description></Description>
+    <Created>2008-07-09, 15:06:31</Created>
+    <Resource>
+      <Filename>
+        <Dir>trap</Dir>
+        <Name>isa.py</Name>
+      </Filename>
+      <Linenumber>124</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: remember that we also need to print the INVALID</Summary>
+    <Description></Description>
+    <Created>2008-07-09, 15:06:31</Created>
+    <Resource>
+      <Filename>
+        <Dir>trap</Dir>
+        <Name>isa.py</Name>
+      </Filename>
+      <Linenumber>199</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: think about how to do the mnemonic</Summary>
+    <Description></Description>
+    <Created>2008-07-09, 15:06:31</Created>
+    <Resource>
+      <Filename>
+        <Dir>trap</Dir>
+        <Name>isa.py</Name>
+      </Filename>
+      <Linenumber>292</Linenumber>
     </Resource>
   </Task>
 </Tasks>

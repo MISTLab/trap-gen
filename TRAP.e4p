@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Project SYSTEM "Project-4.2.dtd">
 <!-- eric4 project file for project TRAP -->
-<!-- Saved: 2008-07-02, 17:14:52 -->
+<!-- Saved: 2008-07-09, 14:56:32 -->
 <!-- Copyright (C) 2008 ,  -->
 <Project version="4.2">
   <ProgLanguage mixed="0">Python</ProgLanguage>
@@ -133,6 +133,14 @@
       <Dir>processors</Dir>
       <Dir>ARM7TDMI</Dir>
       <Name>ARMIsa.py</Name>
+    </Source>
+    <Source>
+      <Dir>trap</Dir>
+      <Name>procWriter.py</Name>
+    </Source>
+    <Source>
+      <Dir>trap</Dir>
+      <Name>isaWriter.py</Name>
     </Source>
   </Sources>
   <Forms>
