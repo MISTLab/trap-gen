@@ -42,7 +42,7 @@
 import cxx_writer
 
 binaryOps = ['=', '+', '-', '*', '/', '|', '&', '^', '+=', '-=', '*=', '/=', '|=', '&=', '^=']
-unaryOps = ['=', '~']
+unaryOps = ['~']
 comparisonOps = ['<', '>', '<=', '>=', '==', '!=']
 regMaxType = None
 
@@ -50,15 +50,19 @@ def getCPPRegClass(self, model, regType):
     # returns the class implementing the current register; I have to
     # define all the operators;
     # TODO: think about the clocked registers
+    from isa import resolveBitType
+    regWidthType = resolveBitType('BIT<' + str(self.bitWidth) + '>')
     registerType = cxx_writer.writer_code.Type('Register')
     registerElements = []
 
+    # operator used to access the register fields
     codeOperatorBody = ''
     if not self.bitMask:
         codeOperatorBody = 'return this->value;'
     else:
         for key in self.bitMask.keys():
-            codeOperatorBody = 'if(bitField == \"' + key + '\"){\nreturn this->' + key + ';\n}\n'
+            codeOperatorBody += 'if(bitField == \"' + key + '\"){\nreturn this->value.bits' + key + ';\n}\n'
+        codeOperatorBody = 'return this->value.entire;'
     operatorBody = cxx_writer.writer_code.Code(codeOperatorBody)
     operatorParam = [cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.stringRefType, True)]
     operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, regMaxType.makeRef(), 'pu', operatorParam)
@@ -90,7 +94,51 @@ def getCPPRegClass(self, model, regType):
 #    operatorDecl = cxx_writer.writer_code.MemberOperator(i, emptyBody, pureDecls.makeRef(), 'pu', [operatorParam])
 #    registerElements.append(operatorDecl)
 
+    # Normal Constructor
+    constructorBody = cxx_writer.writer_code.Code('')
+    constructorParams = [cxx_writer.writer_code.Parameter('name', cxx_writer.writer_code.sc_module_nameType)]
+    publicConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['Register(name, ' + str(self.bitWidth) + ')'])
+    # Copy Constructors
+    
+    # Stream Operators
+    outStreamType = cxx_writer.writer_code.Type('std::ostream', 'ostream')
+    code = 'stream << std::hex << std::showbase << this->value'
+    if self.bitMask:
+        code += '.entire'
+    code += ' << std::dec;\nreturn stream;'
+    operatorBody = cxx_writer.writer_code.Code(code)
+    operatorParam = cxx_writer.writer_code.Parameter('stream', outStreamType.makeRef())
+    operatorDecl = cxx_writer.writer_code.MemberOperator('<<', operatorBody, outStreamType, 'pu', [operatorParam])
+    registerElements.append(operatorDecl)
+    
+    # Attributes
+    attrs = []
+    if self.bitMask:
+        fields = []
+        for name, width in self.bitMask.items():
+            fields.append((width[1], name, width[1] - width[0] + 1))
+        fields = sorted(fields, lambda x, y: cmp(x[0], y[0]))
+        toAddFields = []
+        curBit = 0
+        for end, name, width in fields:
+            if end - width > curBit:
+                toAddFields.append((end - width, '', end - width - curBit))
+            curBit = end
+        fields = sorted(fields + toAddFields, lambda x, y: cmp(x[0], y[0]))
+        fields = [(i[1], i[2]) for i in fields]
+        bitFieldType = cxx_writer.writer_code.BitField('bitValType', fields)
+        attrs.append(bitFieldType)
+        unionType = cxx_writer.writer_code.Union('regValType', [cxx_writer.writer_code.Variable('bits', bitFieldType.getType()), 
+                                                                cxx_writer.writer_code.Variable('entire', regWidthType)])
+        attrs.append(unionType)
+        valueAttribute = cxx_writer.writer_code.Attribute('value', unionType.getType(), 'pri')
+    else:
+        valueAttribute = cxx_writer.writer_code.Attribute('value', regWidthType, 'pri')
+    attrs.append(valueAttribute)
+    registerElements = attrs + registerElements
+    
     registerDecl = cxx_writer.writer_code.ClassDeclaration(regType.name, registerElements, [registerType])
+    registerDecl.addConstructor(publicConstr)
     return registerDecl
 
 def getCPPRegBankClass(self, model, regType):
@@ -115,10 +163,19 @@ def getCPPRegisters(self, model):
 
     from isa import resolveBitType
     global regMaxType
-    regMaxType = resolveBitType('BIT<' + str(regLen) + '>')    
+    regMaxType = resolveBitType('BIT<' + str(regLen) + '>')
     registerType = cxx_writer.writer_code.Type('Register')
     emptyBody = cxx_writer.writer_code.Code('')
 
+    # Constructor: it initializes the width of the register
+    widthAttribute = cxx_writer.writer_code.Attribute('bitWidth', cxx_writer.writer_code.uintType, 'pri')
+    registerElements.append(widthAttribute)
+    constructorBody = cxx_writer.writer_code.Code('this->bitWidth = bitWidth;\nend_module();')
+    constructorParams = [cxx_writer.writer_code.Parameter('name', cxx_writer.writer_code.sc_module_nameType), 
+                cxx_writer.writer_code.Parameter('bitWidth', cxx_writer.writer_code.uintType)]
+    publicConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['sc_module(name)'])
+    
+    # operators used to access the fields
     operatorParam = cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.stringRefType, True)
     operatorDecl = cxx_writer.writer_code.MemberOperator('[]', emptyBody, regMaxType.makeRef(), 'pu', [operatorParam], pure = True)
     registerElements.append(operatorDecl)
@@ -138,6 +195,12 @@ def getCPPRegisters(self, model):
             operatorDecl = cxx_writer.writer_code.MemberOperator(i, emptyBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], pure = True)
             registerElements.append(operatorDecl)
 
+    # Stream Operators
+    outStreamType = cxx_writer.writer_code.Type('std::ostream', 'ostream')
+    operatorParam = cxx_writer.writer_code.Parameter('other', outStreamType.makeRef())
+    operatorDecl = cxx_writer.writer_code.MemberOperator(i, emptyBody, outStreamType, 'pu', [operatorParam], pure = True)
+    registerElements.append(operatorDecl)
+    
     # Now here I declare the non-pure versions optimized for the different
     # registers.
     regTypes = []
@@ -172,6 +235,7 @@ def getCPPRegisters(self, model):
         realRegClasses.append(regType.getCPPClass(model, customRegType))
 
     registerDecl = cxx_writer.writer_code.SCModule('Register', registerElements)
+    registerDecl.addConstructor(publicConstr)
     classes = [registerDecl] + realRegClasses
 
     return classes

@@ -380,6 +380,35 @@ class Union(DumpElement):
                     includes.append(j)
         return includes
 
+    def getType(self):
+        return Type(self.name)
+
+class BitField(DumpElement):
+    """Represents a bitfield"""
+
+    def __init__(self, name, members = []):
+        DumpElement.__init__(self, name)
+        self.members = members
+
+    def addMember(self, member):
+        self.members.append(member)
+
+    def writeDeclaration(self, writer):
+        if self.docstring:
+            self.printDocString(writer)
+        if not self.members:
+            raise Exception('There must be elements inside the BitField before printing it')
+        writer.write('struct ' + self.name + ' {\n')
+        for i in self.members:
+            writer.write('unsigned ' + str(i[0]) + ':' + str(i[1]) + ';\n')
+        writer.write('};\n')
+
+    def getIncludes(self):
+        return []
+
+    def getType(self):
+        return Type(self.name)
+
 class Typedef(DumpElement):
     """Represents a typedef of an existing type"""
 
@@ -396,3 +425,6 @@ class Typedef(DumpElement):
 
     def getIncludes(self):
         return self.oldType.getIncludes()
+
+    def getType(self):
+        return Type(self.name)

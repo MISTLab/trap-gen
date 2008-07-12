@@ -79,11 +79,11 @@ processor.addRegBank(regBank)
 # the different fields is provided
 # SPSR[0] = spsr_fiq, SPSR[1] = spsr_irq, SPSR[2] = spsr_svc,
 # SPSR[3] = spsr_abt, SPSR[4] = spsr_und
-spsrBitMask = {'N': (31, 31), 'Z': (30, 30), 'C': (29, 29), 'V': (28, 28), 'I': (7, 7), 'F': (6, 6), 'mode': (0, 4)}
+spsrBitMask = {'N': (31, 31), 'Z': (30, 30), 'C': (29, 29), 'V': (28, 28), 'I': (7, 7), 'F': (6, 6), 'mode': (0, 3)}
 spsrBank = trap.RegisterBank('SPSR', 5, 32, spsrBitMask)
 processor.addRegBank(spsrBank)
 # Current processor status register
-cpsrBitMask = {'N': (31, 31), 'Z': (30, 30), 'C': (29, 29), 'V': (28, 28), 'I': (7, 7), 'F': (6, 6), 'mode': (0, 4)}
+cpsrBitMask = {'N': (31, 31), 'Z': (30, 30), 'C': (29, 29), 'V': (28, 28), 'I': (7, 7), 'F': (6, 6), 'mode': (0, 3)}
 cpsr = trap.Register('CPSR', 32, cpsrBitMask)
 cpsr.setDefaultValue(0x000000D3)
 processor.addRegister(cpsr)

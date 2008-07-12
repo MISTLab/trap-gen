@@ -101,9 +101,7 @@ class RegisterBank:
                             raise Exception('The bit mask specified for register bank ' + self.name + ' for field ' + key + ' intersects with the mask of field ' + key1)
         self.bitMask = bitMask
         self.numRegs = numRegs
-        self.defValues = []
-        for i in range(0, numRegs):
-            self.defValues.append(0)
+        self.defValues = [0 for i in range(0, numRegs)]
     def setDefaultValues(self, values):
         if len(values) != self.numRegs:
             raise Exception('The initialization values for register bank ' + self.name + ' are different, in number, from the number of registers')
@@ -609,6 +607,7 @@ class Processor:
                 implFileInstr.addMember(i)
                 headFileInstr.addMember(i)
             implFileRegs = cxx_writer.writer_code.FileDumper('registers.cpp', False)
+            implFileRegs.addInclude('registers.hpp')
             headFileRegs = cxx_writer.writer_code.FileDumper('registers.hpp', True)
             for i in RegClasses:
                 implFileRegs.addMember(i)

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Tasks SYSTEM "Tasks-4.1.dtd">
 <!-- eric4 tasks file for project TRAP -->
-<!-- Saved: 2008-07-12, 02:21:17 -->
+<!-- Saved: 2008-07-12, 12:38:09 -->
 <Tasks version="4.1">
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: I do not like this way: I would like to make it more automatic</Summary>
@@ -102,19 +102,6 @@
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: I do not like it too much ... any better ideas?; is there</Summary>
-    <Description></Description>
-    <Created>2008-07-11, 18:35:59</Created>
-    <Resource>
-      <Filename>
-        <Dir>processors</Dir>
-        <Dir>ARM7TDMI</Dir>
-        <Name>ARMArch.py</Name>
-      </Filename>
-      <Linenumber>139</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: see this category, maybe we can express it in a more general way</Summary>
     <Description></Description>
     <Created>2008-07-11, 18:36:53</Created>
@@ -143,19 +130,45 @@
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: an accurate interface is also needed. This means that</Summary>
     <Description></Description>
-    <Created>2008-07-12, 01:29:24</Created>
+    <Created>2008-07-12, 10:30:32</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
         <Name>processor.py</Name>
       </Filename>
-      <Linenumber>704</Linenumber>
+      <Linenumber>703</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: add the possibility of defining templated methods as done for</Summary>
+    <Description></Description>
+    <Created>2008-07-12, 12:11:33</Created>
+    <Resource>
+      <Filename>
+        <Dir>cxx_writer</Dir>
+        <Dir>writer_code</Dir>
+        <Name>ClassDecls.py</Name>
+      </Filename>
+      <Linenumber>49</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: I do not like it too much ... any better ideas?; is there</Summary>
+    <Description></Description>
+    <Created>2008-07-12, 12:20:28</Created>
+    <Resource>
+      <Filename>
+        <Dir>processors</Dir>
+        <Dir>ARM7TDMI</Dir>
+        <Name>ARMArch.py</Name>
+      </Filename>
+      <Linenumber>139</Linenumber>
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: think about the clocked registers</Summary>
     <Description></Description>
-    <Created>2008-07-12, 02:07:49</Created>
+    <Created>2008-07-12, 12:37:15</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
@@ -167,38 +180,25 @@
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: Finally we initialize the instances of the other architectural elements</Summary>
     <Description></Description>
-    <Created>2008-07-12, 02:07:49</Created>
+    <Created>2008-07-12, 12:37:15</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
         <Name>procWriter.py</Name>
       </Filename>
-      <Linenumber>286</Linenumber>
+      <Linenumber>350</Linenumber>
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: We also need to initialize the quantuum keeper etc</Summary>
     <Description></Description>
-    <Created>2008-07-12, 02:07:49</Created>
+    <Created>2008-07-12, 12:37:15</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
         <Name>procWriter.py</Name>
       </Filename>
-      <Linenumber>288</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: add the possibility of defining templated methods as done for</Summary>
-    <Description></Description>
-    <Created>2008-07-12, 02:20:55</Created>
-    <Resource>
-      <Filename>
-        <Dir>cxx_writer</Dir>
-        <Dir>writer_code</Dir>
-        <Name>ClassDecls.py</Name>
-      </Filename>
-      <Linenumber>49</Linenumber>
+      <Linenumber>352</Linenumber>
     </Resource>
   </Task>
 </Tasks>
