@@ -41,23 +41,139 @@
 
 import cxx_writer
 
-def getCPPRegClass(self, model):
-    # returns the class implementing the current register
-    return None
+binaryOps = ['=', '+', '-', '*', '/', '|', '&', '^', '+=', '-=', '*=', '/=', '|=', '&=', '^=']
+unaryOps = ['=', '~']
+comparisonOps = ['<', '>', '<=', '>=', '==', '!=']
+regMaxType = None
 
-def getCPPRegBankClass(self, model):
+def getCPPRegClass(self, model, regType):
+    # returns the class implementing the current register; I have to
+    # define all the operators;
+    # TODO: think about the clocked registers
+    registerType = cxx_writer.writer_code.Type('Register')
+    registerElements = []
+
+    codeOperatorBody = ''
+    if not self.bitMask:
+        codeOperatorBody = 'return this->value;'
+    else:
+        for key in self.bitMask.keys():
+            codeOperatorBody = 'if(bitField == \"' + key + '\"){\nreturn this->' + key + ';\n}\n'
+    operatorBody = cxx_writer.writer_code.Code(codeOperatorBody)
+    operatorParam = [cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.stringRefType, True)]
+    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, regMaxType.makeRef(), 'pu', operatorParam)
+    registerElements.append(operatorDecl)
+
+    # Unary operators
+    operatorBody = cxx_writer.writer_code.Code('return this->value')
+    operatorDecl = cxx_writer.writer_code.MemberOperator('+', operatorBody, regMaxType.makeRef(), 'pu')
+    registerElements.append(operatorDecl)
+    operatorBody = cxx_writer.writer_code.Code('return this->value')
+    operatorDecl = cxx_writer.writer_code.MemberOperator('=', operatorBody, regMaxType.makeRef(), 'pu')
+    registerElements.append(operatorDecl)
+    operatorBody = cxx_writer.writer_code.Code('return this->value')
+    operatorDecl = cxx_writer.writer_code.MemberOperator('+', operatorBody, registerType.makeRef(), 'pu')
+    registerElements.append(operatorDecl)
+    operatorBody = cxx_writer.writer_code.Code('return this->value')
+    operatorDecl = cxx_writer.writer_code.MemberOperator('=', operatorBody, registerType.makeRef(), 'pu')
+    registerElements.append(operatorDecl)
+
+    # Binary Operators
+#    registerElements.append(operatorDecl)
+#    operatorParam = [cxx_writer.writer_code.Parameter('other', pureDecls.makeRef(), True)]
+#    operatorDecl = cxx_writer.writer_code.MemberOperator(i, emptyBody, pureDecls.makeRef(), 'pu', [operatorParam])
+#    registerElements.append(operatorDecl)
+#
+#    # Binary Comparison Operators
+#    registerElements.append(operatorDecl)
+#    operatorParam = [cxx_writer.writer_code.Parameter('other', pureDecls.makeRef(), True)]
+#    operatorDecl = cxx_writer.writer_code.MemberOperator(i, emptyBody, pureDecls.makeRef(), 'pu', [operatorParam])
+#    registerElements.append(operatorDecl)
+
+    registerDecl = cxx_writer.writer_code.ClassDeclaration(regType.name, registerElements, [registerType])
+    return registerDecl
+
+def getCPPRegBankClass(self, model, regType):
     # returns the class implementing the single register of
     # the register bank
-    return None
+    return getCPPRegClass(self, model, regType)
 
 def getCPPRegisters(self, model):
     # This method creates all the classes necessary for declaring
     # the registers: in particular the register base class
     # and all the classes for the different bitwidths; in order to
     # do this I simply iterate over the registers
-    classes = []
-    for regs in self.regs + self.regBanks:
-        classes.append(regs.getCPPClass(model))
+    regLen = 0
+    for reg in self.regs + self.regBanks:
+        # I have to determine the register with the longest width and
+        # accordingly create the type
+        if reg.bitWidth > regLen:
+            regLen = reg.bitWidth
+
+    # Now I create the base class for all the registers
+    registerElements = []
+
+    from isa import resolveBitType
+    global regMaxType
+    regMaxType = resolveBitType('BIT<' + str(regLen) + '>')    
+    registerType = cxx_writer.writer_code.Type('Register')
+    emptyBody = cxx_writer.writer_code.Code('')
+
+    operatorParam = cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.stringRefType, True)
+    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', emptyBody, regMaxType.makeRef(), 'pu', [operatorParam], pure = True)
+    registerElements.append(operatorDecl)
+
+    pureDeclTypes = [regMaxType, registerType]
+    
+    for pureDecls in pureDeclTypes:
+        for i in unaryOps:
+            operatorDecl = cxx_writer.writer_code.MemberOperator(i, emptyBody, pureDecls.makeRef(), 'pu', pure = True)
+            registerElements.append(operatorDecl)
+        for i in binaryOps:
+            operatorParam = cxx_writer.writer_code.Parameter('other', pureDecls.makeRef(), True)
+            operatorDecl = cxx_writer.writer_code.MemberOperator(i, emptyBody, pureDecls.makeRef(), 'pu', [operatorParam], pure = True)
+            registerElements.append(operatorDecl)
+        for i in comparisonOps:
+            operatorParam = cxx_writer.writer_code.Parameter('other', pureDecls.makeRef(), True)
+            operatorDecl = cxx_writer.writer_code.MemberOperator(i, emptyBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], pure = True)
+            registerElements.append(operatorDecl)
+
+    # Now here I declare the non-pure versions optimized for the different
+    # registers.
+    regTypes = []
+    regTypesCount = {}
+    for reg in self.regs + self.regBanks:
+        if not reg.bitWidth in [i.bitWidth for i in regTypes]:
+            regTypes.append(reg)
+            regTypesCount[reg.bitWidth] = 1
+        else:
+            # There is already a register with this bitwidth
+            # I add this one only if it has a different bitMask
+            if not reg.bitMask in [i.bitMask for i in filter(lambda x: x.bitWidth == reg.bitWidth, regTypes)]:
+                regTypes.append(reg)
+    realRegClasses = []
+    for regType in regTypes:
+        customRegType = cxx_writer.writer_code.Type('Reg' + str(regType.bitWidth) + '_' + str(regTypesCount[regType.bitWidth]))
+        regTypesCount[regType.bitWidth] = regTypesCount[regType.bitWidth] + 1
+        for i in unaryOps:
+            callGeneric = cxx_writer.writer_code.Code('return ' + i + '(*(static_cast<Register *>(this)));')
+            operatorDecl = cxx_writer.writer_code.MemberOperator(i, callGeneric, customRegType.makeRef(), 'pu', virtual = True)
+            registerElements.append(operatorDecl)
+        for i in binaryOps:
+            callGeneric = cxx_writer.writer_code.Code('return (*(static_cast<Register *>(this))) ' + i + ' other;')
+            operatorParam = cxx_writer.writer_code.Parameter('other', customRegType.makeRef(), True)
+            operatorDecl = cxx_writer.writer_code.MemberOperator(i, callGeneric, customRegType.makeRef(), 'pu', [operatorParam], virtual = True)
+            registerElements.append(operatorDecl)
+        for i in comparisonOps:
+            callGeneric = cxx_writer.writer_code.Code('return (*(static_cast<Register *>(this))) ' + i + ' other;')
+            operatorParam = cxx_writer.writer_code.Parameter('other', customRegType.makeRef(), True)
+            operatorDecl = cxx_writer.writer_code.MemberOperator(i, callGeneric, cxx_writer.writer_code.boolType, 'pu', [operatorParam], virtual = True)
+            registerElements.append(operatorDecl)
+        realRegClasses.append(regType.getCPPClass(model, customRegType))
+
+    registerDecl = cxx_writer.writer_code.SCModule('Register', registerElements)
+    classes = [registerDecl] + realRegClasses
+
     return classes
 
 def getCPPAlias(self, model):
@@ -146,7 +262,7 @@ def getCPPProc(self, model):
     IntructionType = cxx_writer.writer_code.Type('Instruction', include = 'instruction.hpp')
     IntructionTypePtr = IntructionType.makePointer()
     instructionsAttribute = cxx_writer.writer_code.Attribute('INSTRUCTIONS',
-                            IntructionTypePtr, 'pri', True, 'NULL')
+                            IntructionTypePtr.makePointer(), 'pri', True, 'NULL')
     cacheAttribute = cxx_writer.writer_code.Attribute('instrCache',
                         cxx_writer.writer_code.TemplateType('std::map',
                             [fetchWordType, IntructionTypePtr], 'map'), 'pri', True)

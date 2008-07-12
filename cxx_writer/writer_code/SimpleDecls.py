@@ -229,7 +229,7 @@ class Function(DumpElement):
     """Represents a function of the program; this function is not
     a method of a class"""
 
-    def __init__(self, name, body, retType = Type('void'), parameters = [], static = False, inline = False, template = []):
+    def __init__(self, name, body, retType = Type('void'), parameters = [], static = False, inline = False, template = [], noException = False):
         DumpElement.__init__(self, name)
         self.body = body
         self.parameters = parameters
@@ -237,6 +237,7 @@ class Function(DumpElement):
         self.template = template
         self.static = static
         self.inline = inline
+        self.noException = noException
 
     def writeDeclaration(self, writer):
         if self.docstring:
@@ -252,6 +253,13 @@ class Function(DumpElement):
             writer.write('static ')
         if self.inline:
             writer.write('inline ')
+        try:
+            if self.virtual:
+                if self.static or self.inline:
+                    raise Exception('Operation ' + self.name + ' is virtual but also inline or static: this is not possible')
+                writer.write('virtual ')
+        except AttributeError:
+            pass
         self.retType.writeDeclaration(writer)
         writer.write(' ' + self.name + '(')
         if self.parameters:
@@ -263,11 +271,22 @@ class Function(DumpElement):
             else:
                 writer.write(' ')
         if self.template or self.inline:
-            writer.write('){\n')
+            writer.write(')')
+            if self.noException:
+                writer.write(' throw()\n')
+            writer.write('{\n')
             self.body.writeImplementation(writer)
             writer.write('}\n')
         else:
-            writer.write(');\n')
+            writer.write(')')
+            if self.noException:
+                writer.write(' throw()\n')
+            try:
+                if self.pure:
+                    writer.write(' = 0')
+            except AttributeError:
+                pass
+            writer.write(';\n')
 
     def writeImplementation(self, writer):
         if self.docstring:
@@ -285,7 +304,10 @@ class Function(DumpElement):
                 writer.write(', ')
             else:
                 writer.write(' ')
-        writer.write('){\n')
+        writer.write(')')
+        if self.noException:
+            writer.write(' throw()\n')
+        writer.write('{\n')
         self.body.writeImplementation(writer)
         writer.write('}\n')
 
@@ -302,6 +324,13 @@ class Function(DumpElement):
 
     def getRetValIncludes(self):
         return self.retType.getIncludes()
+
+class Operator(Function):
+    """Represents an operator of the program; this operator is not
+    a method of a class"""
+
+    def __init__(self, name, body, retType = Type('void'), parameters = [], static = False, inline = False, template = [], noException = False):
+        Function.__init__(self, 'operator' + name, body, retType, parameters, static, inline, template, noException)
 
 class Enum(DumpElement):
     """Represents the declaration of an enumeration type"""

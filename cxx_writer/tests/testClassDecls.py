@@ -103,9 +103,9 @@ class TestClassDecls(unittest.TestCase):
         testFile = open('prova.cpp', 'r')
         lines = testFile.readlines()
         testFile.close()
-        self.assertEqual(len(lines), 2)
-        self.assertEqual(lines[0], 'MyClass::MyClass(){\n')
-        self.assertEqual(lines[1], '}\n')
+        self.assertEqual(len(lines), 4)
+        self.assertEqual(lines[1], 'MyClass::MyClass(){\n')
+        self.assertEqual(lines[2], '}\n')
 
     def testTemplateDecl(self):
         intDecl = writer_code.intType
@@ -179,10 +179,10 @@ class TestClassDecls(unittest.TestCase):
         testFile = open('prova.cpp', 'r')
         lines = testFile.readlines()
         testFile.close()
-        self.assertEqual(len(lines), 3)
+        self.assertEqual(len(lines), 5)
         self.assertEqual(lines[0], 'int MyClass::pippo = 0;\n')
-        self.assertEqual(lines[1], 'MyClass::MyClass() : std::string() {\n')
-        self.assertEqual(lines[2], '}\n')
+        self.assertEqual(lines[2], 'MyClass::MyClass() : std::string() {\n')
+        self.assertEqual(lines[3], '}\n')
 
     def testSCModuleDecl(self):
         intDecl = writer_code.intType
@@ -222,10 +222,10 @@ class TestClassDecls(unittest.TestCase):
         testFile = open('prova.cpp', 'r')
         lines = testFile.readlines()
         testFile.close()
-        self.assertEqual(len(lines), 3)
-        self.assertEqual(lines[0], 'MyClass::MyClass( sc_module_name name ) : std::string(), sc_module(name) {\n')
-        self.assertEqual(lines[1], '    end_module();\n')
-        self.assertEqual(lines[2], '}\n')
+        self.assertEqual(len(lines), 5)
+        self.assertEqual(lines[1], 'MyClass::MyClass( sc_module_name name ) : std::string(), sc_module(name) {\n')
+        self.assertEqual(lines[2], '    end_module();\n')
+        self.assertEqual(lines[3], '}\n')
 
     def testInlineMethodDecl(self):
         intDecl = writer_code.intType
@@ -261,6 +261,6 @@ class TestClassDecls(unittest.TestCase):
         testFile = open('prova.cpp', 'r')
         lines = testFile.readlines()
         testFile.close()
-        self.assertEqual(len(lines), 2)
-        self.assertEqual(lines[0], 'MyClass::MyClass(){\n')
-        self.assertEqual(lines[1], '}\n')
+        self.assertEqual(len(lines), 4)
+        self.assertEqual(lines[1], 'MyClass::MyClass(){\n')
+        self.assertEqual(lines[2], '}\n')

@@ -52,12 +52,55 @@ class Method(ClassMember, Function):
     """Method of a class; note how it is nothing but a normal function
     with the addition of the visibility attribute"""
 
-    def __init__(self, name, body, retType, visibility, parameters = [], static = False, inline = False):
+    def __init__(self, name, body, retType, visibility, parameters = [],
+                 static = False, inline = False, noException = False, virtual = False, pure = False):
         ClassMember.__init__(self, visibility)
-        Function.__init__(self, name, body, retType, parameters, static, inline)
+        Function.__init__(self, name, body, retType, parameters, static, inline, [], noException)
+        self.virtual = virtual
+        self.pure = pure
+        if self.pure:
+            self.virtual = True
 
     def writeImplementation(self, writer, className = ''):
-        if self.inline:
+        if self.inline or self.pure:
+            return
+        if self.docstring:
+            self.printDocString(writer)
+        self.retType.writeDeclaration(writer)
+        writer.write(' ')
+        if className:
+            writer.write(className + '::')
+        writer.write(self.name + '(')
+        if self.parameters:
+            writer.write(' ')
+        for i in self.parameters:
+            i.writeDeclaration(writer)
+            if i != self.parameters[-1]:
+                writer.write(', ')
+            else:
+                writer.write(' ')
+        writer.write(')')
+        if self.noException:
+            writer.write(' throw()\n')
+        writer.write('{\n')
+        self.body.writeImplementation(writer)
+        writer.write('}\n\n')
+
+class MemberOperator(ClassMember, Operator):
+    """Operator of a class; note how it is nothing but a normal operator
+    with the addition of the visibility attribute"""
+
+    def __init__(self, name, body, retType, visibility, parameters = [], static = False,
+                 inline = False, noException = False, virtual = False, pure = False):
+        ClassMember.__init__(self, visibility)
+        Operator.__init__(self, name, body, retType, parameters, static, inline, [], noException)
+        self.virtual = virtual
+        self.pure = pure
+        if self.pure:
+            self.virtual = True
+
+    def writeImplementation(self, writer, className = ''):
+        if self.inline or self.pure:
             return
         if self.docstring:
             self.printDocString(writer)
@@ -76,7 +119,7 @@ class Method(ClassMember, Function):
                 writer.write(' ')
         writer.write('){\n')
         self.body.writeImplementation(writer)
-        writer.write('}\n')
+        writer.write('}\n\n')
 
 class Constructor(ClassMember, Function):
     def __init__(self, body, visibility, parameters = [], initList = []):
@@ -109,7 +152,7 @@ class Constructor(ClassMember, Function):
                 writer.write(' ')
         writer.write('{\n')
         self.body.writeImplementation(writer)
-        writer.write('}\n')
+        writer.write('}\n\n')
 
 class Destructor(ClassMember, Function):
     def __init__(self, body, visibility):
@@ -264,7 +307,7 @@ class ClassDeclaration(DumpElement):
                         pass
                 else:
                     i.writeDeclaration(writer)
-        writer.write('};\n')
+        writer.write('};\n\n')
 
     def writeImplementation(self, writer):
         if self.template:
@@ -275,7 +318,6 @@ class ClassDeclaration(DumpElement):
         for i in self.members:
             try:
                 i.writeImplementation(writer, self.name)
-                writer.write('\n')
             except AttributeError:
                 pass
 
@@ -295,8 +337,7 @@ class SCModule(ClassDeclaration):
     """Represents an SC module; the biggest difference with respect to a
     normal class lies in the presence of defines inside the class declaration"""
     def __init__(self, className, members = [], superclasses = [], template = []):
-        superclasses.append(sc_moduleType)
-        ClassDeclaration.__init__(self, className, members, superclasses, template)
+        ClassDeclaration.__init__(self, className, members, superclasses + [sc_moduleType], template)
 
     def computeMemVisibility(self):
         self.private = []

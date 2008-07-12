@@ -79,8 +79,8 @@ class Register:
         self.defValue = 0
     def setDefaultValue(self, value):
         self.defValue = value
-    def getCPPClass(self, model):
-        return procWriter.getCPPRegClass(self, model)
+    def getCPPClass(self, model, regType):
+        return procWriter.getCPPRegClass(self, model, regType)
 
 class RegisterBank:
     """Same thing of a register, it also specifies the
@@ -113,8 +113,8 @@ class RegisterBank:
         if position < 0 or position >= self.numRegs:
             raise Exception('The initialization value for register bank ' + self.name + ' position ' + position + ' is not valid: position out of range')
         self.defValues[position] = value
-    def getCPPClass(self, model):
-        return procWriter.getCPPRegBankClass(self, model)
+    def getCPPClass(self, model, regType):
+        return procWriter.getCPPRegBankClass(self, model, regType)
 
 class AliasRegister:
     """Alias for a register of the processor;

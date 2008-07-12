@@ -140,7 +140,6 @@ class FileDumper:
             else:
                 try:
                     member.writeImplementation(writer)
-                    writer.write('\n')
                 except AttributeError:
                     pass
         if self.isHeader:
