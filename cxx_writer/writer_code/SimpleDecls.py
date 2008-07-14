@@ -60,10 +60,11 @@ class DumpElement:
 class Type(DumpElement):
     """Represents a type; this is use for variable declaration, function parameter declaration ..."""
 
-    def __init__(self, name, include = None):
+    def __init__(self, name, include = None, const = False):
         DumpElement.__init__(self, name)
         self.include = include
         self.modifiers = []
+        self.const = const
 
     def makePointer(self):
         import copy
@@ -82,8 +83,19 @@ class Type(DumpElement):
         newType = copy.deepcopy(self)
         newType.modifiers.pop()
         return newType
-
+    def makeConst(self):
+        import copy
+        newType = copy.deepcopy(self)
+        newType.const = True
+        return newType    
+    def removeConst(self):
+        import copy
+        newType = copy.deepcopy(self)
+        newType.const = False
+        return newType    
     def writeDeclaration(self, writer):
+        if self.const:
+            writer.write('const ')
         writer.write(self.name)
         for i in self.modifiers:
             writer.write(' ' + i)
@@ -178,16 +190,13 @@ class Parameter(DumpElement):
     """Represents a parameter of a function; this parameter can be either input or output
     (even though in C++ output parameters are not really used)"""
 
-    def __init__(self, name, type, constant = False, restrict = False, input = True):
+    def __init__(self, name, type, restrict = False, input = True):
         DumpElement.__init__(self, name)
         self.type = type
         self.input = input
         self.restrict = restrict
-        self.constant = constant
 
     def writeDeclaration(self, writer):
-        if self.constant:
-            writer.write('const ')
         self.type.writeDeclaration(writer)
         if self.input:
             if self.restrict:
@@ -273,14 +282,19 @@ class Function(DumpElement):
         if self.template or self.inline:
             writer.write(')')
             if self.noException:
-                writer.write(' throw()\n')
+                writer.write(' throw()')
             writer.write('{\n')
             self.body.writeImplementation(writer)
             writer.write('}\n')
         else:
             writer.write(')')
             if self.noException:
-                writer.write(' throw()\n')
+                writer.write(' throw()')
+            try:
+                if self.const:
+                    writer.write(' const')
+            except AttributeError:
+                pass
             try:
                 if self.pure:
                     writer.write(' = 0')
@@ -330,7 +344,7 @@ class Operator(Function):
     a method of a class"""
 
     def __init__(self, name, body, retType = Type('void'), parameters = [], static = False, inline = False, template = [], noException = False):
-        Function.__init__(self, 'operator' + name, body, retType, parameters, static, inline, template, noException)
+        Function.__init__(self, 'operator ' + name, body, retType, parameters, static, inline, template, noException)
 
 class Enum(DumpElement):
     """Represents the declaration of an enumeration type"""

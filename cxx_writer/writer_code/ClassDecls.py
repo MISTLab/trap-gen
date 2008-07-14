@@ -53,13 +53,14 @@ class Method(ClassMember, Function):
     with the addition of the visibility attribute"""
 
     def __init__(self, name, body, retType, visibility, parameters = [],
-                 static = False, inline = False, noException = False, virtual = False, pure = False):
+                 static = False, inline = False, noException = False, virtual = False, pure = False, const = False):
         ClassMember.__init__(self, visibility)
         Function.__init__(self, name, body, retType, parameters, static, inline, [], noException)
         self.virtual = virtual
         self.pure = pure
         if self.pure:
             self.virtual = True
+        self.const = const
 
     def writeImplementation(self, writer, className = ''):
         if self.inline or self.pure:
@@ -81,7 +82,9 @@ class Method(ClassMember, Function):
                 writer.write(' ')
         writer.write(')')
         if self.noException:
-            writer.write(' throw()\n')
+            writer.write(' throw()')
+        if self.const:
+            writer.write(' const')
         writer.write('{\n')
         self.body.writeImplementation(writer)
         writer.write('}\n\n')
@@ -91,13 +94,14 @@ class MemberOperator(ClassMember, Operator):
     with the addition of the visibility attribute"""
 
     def __init__(self, name, body, retType, visibility, parameters = [], static = False,
-                 inline = False, noException = False, virtual = False, pure = False):
+                 inline = False, noException = False, virtual = False, pure = False, const = False):
         ClassMember.__init__(self, visibility)
         Operator.__init__(self, name, body, retType, parameters, static, inline, [], noException)
         self.virtual = virtual
         self.pure = pure
         if self.pure:
             self.virtual = True
+        self.const = const
 
     def writeImplementation(self, writer, className = ''):
         if self.inline or self.pure:
@@ -117,7 +121,12 @@ class MemberOperator(ClassMember, Operator):
                 writer.write(', ')
             else:
                 writer.write(' ')
-        writer.write('){\n')
+        writer.write(')')
+        if self.noException:
+            writer.write(' throw()')
+        if self.const:
+            writer.write(' const')
+        writer.write('{\n')
         self.body.writeImplementation(writer)
         writer.write('}\n\n')
 
@@ -148,8 +157,6 @@ class Constructor(ClassMember, Function):
             writer.write(i)
             if i != self.initList[-1]:
                 writer.write(', ')
-            else:
-                writer.write(' ')
         writer.write('{\n')
         self.body.writeImplementation(writer)
         writer.write('}\n\n')
@@ -332,6 +339,9 @@ class ClassDeclaration(DumpElement):
                 if not j in includes:
                     includes.append(j)
         return includes
+
+    def getType(self):
+        return Type(self.name)
 
 class SCModule(ClassDeclaration):
     """Represents an SC module; the biggest difference with respect to a

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Tasks SYSTEM "Tasks-4.1.dtd">
 <!-- eric4 tasks file for project TRAP -->
-<!-- Saved: 2008-07-12, 12:38:09 -->
+<!-- Saved: 2008-07-14, 07:17:16 -->
 <Tasks version="4.1">
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: I do not like this way: I would like to make it more automatic</Summary>
@@ -140,19 +140,6 @@
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: add the possibility of defining templated methods as done for</Summary>
-    <Description></Description>
-    <Created>2008-07-12, 12:11:33</Created>
-    <Resource>
-      <Filename>
-        <Dir>cxx_writer</Dir>
-        <Dir>writer_code</Dir>
-        <Name>ClassDecls.py</Name>
-      </Filename>
-      <Linenumber>49</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: I do not like it too much ... any better ideas?; is there</Summary>
     <Description></Description>
     <Created>2008-07-12, 12:20:28</Created>
@@ -166,39 +153,52 @@
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: add the possibility of defining templated methods as done for</Summary>
+    <Description></Description>
+    <Created>2008-07-14, 07:07:22</Created>
+    <Resource>
+      <Filename>
+        <Dir>cxx_writer</Dir>
+        <Dir>writer_code</Dir>
+        <Name>ClassDecls.py</Name>
+      </Filename>
+      <Linenumber>49</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: think about the clocked registers</Summary>
     <Description></Description>
-    <Created>2008-07-12, 12:37:15</Created>
+    <Created>2008-07-14, 07:16:34</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
         <Name>procWriter.py</Name>
       </Filename>
-      <Linenumber>52</Linenumber>
+      <Linenumber>53</Linenumber>
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: Finally we initialize the instances of the other architectural elements</Summary>
     <Description></Description>
-    <Created>2008-07-12, 12:37:15</Created>
-    <Resource>
-      <Filename>
-        <Dir>trap</Dir>
-        <Name>procWriter.py</Name>
-      </Filename>
-      <Linenumber>350</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: We also need to initialize the quantuum keeper etc</Summary>
-    <Description></Description>
-    <Created>2008-07-12, 12:37:15</Created>
+    <Created>2008-07-14, 07:16:34</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
         <Name>procWriter.py</Name>
       </Filename>
       <Linenumber>352</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: We also need to initialize the quantuum keeper etc</Summary>
+    <Description></Description>
+    <Created>2008-07-14, 07:16:34</Created>
+    <Resource>
+      <Filename>
+        <Dir>trap</Dir>
+        <Name>procWriter.py</Name>
+      </Filename>
+      <Linenumber>354</Linenumber>
     </Resource>
   </Task>
 </Tasks>
