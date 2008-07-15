@@ -1,46 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Tasks SYSTEM "Tasks-4.1.dtd">
 <!-- eric4 tasks file for project TRAP -->
-<!-- Saved: 2008-07-14, 07:17:16 -->
+<!-- Saved: 2008-07-15, 00:01:34 -->
 <Tasks version="4.1">
-  <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: I do not like this way: I would like to make it more automatic</Summary>
-    <Description></Description>
-    <Created>2008-07-05, 20:21:29</Created>
-    <Resource>
-      <Filename>
-        <Dir>processors</Dir>
-        <Dir>ARM7TDMI</Dir>
-        <Name>ARMMethods.py</Name>
-      </Filename>
-      <Linenumber>46</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: check carry and overflow operations; in particular, are they valid for</Summary>
-    <Description></Description>
-    <Created>2008-07-05, 20:21:29</Created>
-    <Resource>
-      <Filename>
-        <Dir>processors</Dir>
-        <Dir>ARM7TDMI</Dir>
-        <Name>ARMMethods.py</Name>
-      </Filename>
-      <Linenumber>523</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: The current version of the decoder does not take into account splitting</Summary>
-    <Description></Description>
-    <Created>2008-07-08, 04:57:06</Created>
-    <Resource>
-      <Filename>
-        <Dir>trap</Dir>
-        <Name>decoder.py</Name>
-      </Filename>
-      <Linenumber>37</Linenumber>
-    </Resource>
-  </Task>
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: do we need to access the fields of the instructions? if so</Summary>
     <Description></Description>
@@ -128,21 +90,21 @@
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: an accurate interface is also needed. This means that</Summary>
+    <Summary>TODO: The current version of the decoder does not take into account splitting</Summary>
     <Description></Description>
-    <Created>2008-07-12, 10:30:32</Created>
+    <Created>2008-07-14, 19:19:43</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
-        <Name>processor.py</Name>
+        <Name>decoder.py</Name>
       </Filename>
-      <Linenumber>703</Linenumber>
+      <Linenumber>37</Linenumber>
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: I do not like it too much ... any better ideas?; is there</Summary>
     <Description></Description>
-    <Created>2008-07-12, 12:20:28</Created>
+    <Created>2008-07-14, 19:23:02</Created>
     <Resource>
       <Filename>
         <Dir>processors</Dir>
@@ -153,9 +115,35 @@
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: I do not like this way: I would like to make it more automatic</Summary>
+    <Description></Description>
+    <Created>2008-07-14, 23:04:50</Created>
+    <Resource>
+      <Filename>
+        <Dir>processors</Dir>
+        <Dir>ARM7TDMI</Dir>
+        <Name>ARMMethods.py</Name>
+      </Filename>
+      <Linenumber>46</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: check carry and overflow operations; in particular, are they valid for</Summary>
+    <Description></Description>
+    <Created>2008-07-14, 23:04:50</Created>
+    <Resource>
+      <Filename>
+        <Dir>processors</Dir>
+        <Dir>ARM7TDMI</Dir>
+        <Name>ARMMethods.py</Name>
+      </Filename>
+      <Linenumber>523</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: add the possibility of defining templated methods as done for</Summary>
     <Description></Description>
-    <Created>2008-07-14, 07:07:22</Created>
+    <Created>2008-07-14, 23:50:41</Created>
     <Resource>
       <Filename>
         <Dir>cxx_writer</Dir>
@@ -168,7 +156,7 @@
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: think about the clocked registers</Summary>
     <Description></Description>
-    <Created>2008-07-14, 07:16:34</Created>
+    <Created>2008-07-14, 23:55:42</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
@@ -180,25 +168,37 @@
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: Finally we initialize the instances of the other architectural elements</Summary>
     <Description></Description>
-    <Created>2008-07-14, 07:16:34</Created>
+    <Created>2008-07-14, 23:55:42</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
         <Name>procWriter.py</Name>
       </Filename>
-      <Linenumber>352</Linenumber>
+      <Linenumber>494</Linenumber>
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: We also need to initialize the quantuum keeper etc</Summary>
     <Description></Description>
-    <Created>2008-07-14, 07:16:34</Created>
+    <Created>2008-07-14, 23:55:42</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
         <Name>procWriter.py</Name>
       </Filename>
-      <Linenumber>354</Linenumber>
+      <Linenumber>496</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: an accurate interface is also needed. This means that</Summary>
+    <Description></Description>
+    <Created>2008-07-15, 00:00:57</Created>
+    <Resource>
+      <Filename>
+        <Dir>trap</Dir>
+        <Name>processor.py</Name>
+      </Filename>
+      <Linenumber>695</Linenumber>
     </Resource>
   </Task>
 </Tasks>

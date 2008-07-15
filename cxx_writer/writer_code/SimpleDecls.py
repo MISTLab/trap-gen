@@ -190,11 +190,19 @@ class Parameter(DumpElement):
     """Represents a parameter of a function; this parameter can be either input or output
     (even though in C++ output parameters are not really used)"""
 
-    def __init__(self, name, type, restrict = False, input = True):
+    def __init__(self, name, type, restrict = False, input = True, initValue = ''):
         DumpElement.__init__(self, name)
         self.type = type
         self.input = input
         self.restrict = restrict
+        self.initValue = initValue
+
+    def writeImplementation(self, writer):
+        self.type.writeDeclaration(writer)
+        if self.input:
+            if self.restrict:
+                writer.write(' restrict')
+            writer.write(' ' + self.name)
 
     def writeDeclaration(self, writer):
         self.type.writeDeclaration(writer)
@@ -202,6 +210,8 @@ class Parameter(DumpElement):
             if self.restrict:
                 writer.write(' restrict')
             writer.write(' ' + self.name)
+            if self.initValue:
+                writer.write(' = ' + self.initValue)
 
     def getIncludes(self):
         return self.type.getIncludes()
@@ -313,7 +323,7 @@ class Function(DumpElement):
         if self.parameters:
             writer.write(' ')
         for i in self.parameters:
-            i.writeDeclaration(writer)
+            i.writeImplementation(writer)
             if i != self.parameters[-1]:
                 writer.write(', ')
             else:

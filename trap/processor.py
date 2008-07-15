@@ -121,18 +121,8 @@ class AliasRegister:
     the right register; updating it is responsibility of
     the programmer; it is also possible to directly specify
     a target for the alias: in this case the alias is fixed"""
-    def __init__(self, name, bitWidth, initAlias, bitMask = {}):
+    def __init__(self, name, initAlias):
         self.name = name
-        self.bitWidth = bitWidth
-        if bitMask:
-            for key, value in bitMask.items():
-                if value[1] >= bitWidth:
-                    raise Exception('The bit mask specified for register ' + self.name + ' for field ' + key + ' is of size ' + str(value[1]) + ' while the register has size ' + str(bitWidth))
-                for key1, value1 in bitMask.items():
-                    if key1 != key:
-                        if (value1[0] <= value[0] and value1[1] >= value[0]) or (value1[0] <= value[1] and value1[1] >= value[1]):
-                            raise Exception('The bit mask specified for register ' + self.name + ' for field ' + key + ' intersects with the mask of field ' + key1)
-        self.bitMask = bitMask
         # I make sure that there is just one registers specified for
         # the alias
         index = extractRegInterval(initAlias)
@@ -159,19 +149,9 @@ class AliasRegBank:
     the right register; updating it is responsibility of
     the programmer; it is also possible to directly specify
     a target for the alias: in this case the alias is fixed"""
-    def __init__(self, name, numRegs, bitWidth, initAlias, bitMask = {}):
+    def __init__(self, name, numRegs, initAlias):
         self.name = name
-        self.bitWidth = bitWidth
         self.numRegs = numRegs
-        if bitMask:
-            for key, value in bitMask.items():
-                if value[1] >= bitWidth:
-                    raise Exception('The bit mask specified for register ' + self.name + ' for field ' + key + ' is of size ' + str(value[1]) + ' while the register has size ' + str(bitWidth))
-                for key1, value1 in bitMask.items():
-                    if key1 != key:
-                        if (value1[0] <= value[0] and value1[1] >= value[0]) or (value1[0] <= value[1] and value1[1] >= value[1]):
-                            raise Exception('The bit mask specified for register ' + self.name + ' for field ' + key + ' intersects with the mask of field ' + key1)
-        self.bitMask = bitMask
         # Now I have to make sure that the registers specified for the
         # alias have the same lenght of the alias width
         if isinstance(initAlias, type('')):
@@ -553,6 +533,11 @@ class Processor:
         # BOOST_AUTO_TEST_MAIN and BOOST_TEST_DYN_LINK
         return procWriter.getTestMainCode(self)
 
+    def getMainCode(self, model):
+        # Returns the code which instantiate the processor
+        # in order to execute simulations
+        return procWriter.getMainCode(self, model)
+
     def write(self, folder = '', models = validModels, dumpDecoderName = ''):
         # Ok: this method does two things: first of all it performs all
         # the possible checks to ensure that the processor description is
@@ -613,22 +598,28 @@ class Processor:
                 implFileRegs.addMember(i)
                 headFileRegs.addMember(i)
             implFileAlias = cxx_writer.writer_code.FileDumper('alias.cpp', False)
+            implFileAlias.addInclude('alias.hpp')
             headFileAlias = cxx_writer.writer_code.FileDumper('alias.hpp', True)
-            implFileAlias.addMember(AliasClass)
-            headFileAlias.addMember(AliasClass)
+            for i in AliasClass:
+                implFileAlias.addMember(i)
+                headFileAlias.addMember(i)
             implFileProc = cxx_writer.writer_code.FileDumper('processor.cpp', False)
             headFileProc = cxx_writer.writer_code.FileDumper('processor.hpp', True)
             implFileProc.addMember(ProcClass)
             headFileProc.addMember(ProcClass)
             implFileProc.addInclude('processor.hpp')
             implFileIf = cxx_writer.writer_code.FileDumper('interface.cpp', False)
+            implFileIf.addInclude('interface.hpp')
             headFileIf = cxx_writer.writer_code.FileDumper('interface.hpp', True)
             implFileIf.addMember(IfClass)
             headFileIf.addMember(IfClass)
             implFileMem = cxx_writer.writer_code.FileDumper('memory.cpp', False)
+            implFileMem.addInclude('memory.hpp')
             headFileMem = cxx_writer.writer_code.FileDumper('memory.hpp', True)
             implFileMem.addMember(MemClass)
             headFileMem.addMember(MemClass)
+            mainFile = cxx_writer.writer_code.FileDumper('main.cpp', False)
+            mainFile.addMember(self.getMainCode(model))
 
             testFolder = cxx_writer.writer_code.Folder('tests')
             curFolder.addSubFolder(testFolder)
@@ -655,6 +646,7 @@ class Processor:
             curFolder.addCode(implFileDec)
             curFolder.addHeader(headFileMem)
             curFolder.addCode(implFileMem)
+            curFolder.addCode(mainFile)
             curFolder.create()
             testFolder.create()
             print '\t\tCreated'

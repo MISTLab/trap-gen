@@ -75,7 +75,7 @@ class Method(ClassMember, Function):
         if self.parameters:
             writer.write(' ')
         for i in self.parameters:
-            i.writeDeclaration(writer)
+            i.writeImplementation(writer)
             if i != self.parameters[-1]:
                 writer.write(', ')
             else:
@@ -116,7 +116,7 @@ class MemberOperator(ClassMember, Operator):
         if self.parameters:
             writer.write(' ')
         for i in self.parameters:
-            i.writeDeclaration(writer)
+            i.writeImplementation(writer)
             if i != self.parameters[-1]:
                 writer.write(', ')
             else:
@@ -145,7 +145,7 @@ class Constructor(ClassMember, Function):
         if self.parameters:
             writer.write(' ')
         for i in self.parameters:
-            i.writeDeclaration(writer)
+            i.writeImplementation(writer)
             if i != self.parameters[-1]:
                 writer.write(', ')
             else:
@@ -220,6 +220,7 @@ class ClassDeclaration(DumpElement):
         self.members = members
         self.superclasses = superclasses
         self.template = template
+        self.innerClasses = []
 
     def addMember(self, member):
         self.members.append(member)
@@ -227,6 +228,9 @@ class ClassDeclaration(DumpElement):
     def addConstructor(self, constructor):
         constructor.name = self.name
         self.members.append(constructor)
+
+    def addInnerClass(self, innerClass):
+        self.innerClasses.append(innerClass)
 
     def addDestructor(self, destructor):
         destructor.name = '~' + self.name
@@ -284,6 +288,18 @@ class ClassDeclaration(DumpElement):
             if i != self.superclasses[-1]:
                 writer.write(', ')
         writer.write('{\n')
+        # First of all I create the inner classes:
+        if self.innerClasses:
+            writer.write('public:\n')
+            for i in self.innerClasses:
+                if self.template:
+                    try:
+                        i.writeImplementation(writer)
+                    except AttributeError:
+                        pass
+                else:
+                    i.writeDeclaration(writer)
+        # Now I create the normal members
         if self.private:
             writer.write('private:\n')
             for i in self.private:
@@ -316,15 +332,23 @@ class ClassDeclaration(DumpElement):
                     i.writeDeclaration(writer)
         writer.write('};\n\n')
 
-    def writeImplementation(self, writer):
+    def writeImplementation(self, writer, outerName = ''):
         if self.template:
             return
         # Now I print the implementation; note
         # that the order to the prints does not
         # matter anymore
-        for i in self.members:
+        for i in self.innerClasses:
             try:
                 i.writeImplementation(writer, self.name)
+            except AttributeError:
+                pass
+        for i in self.members:
+            try:
+                if outerName:
+                    i.writeImplementation(writer, outerName + '::' + self.name)
+                else:
+                    i.writeImplementation(writer, self.name)
             except AttributeError:
                 pass
 
