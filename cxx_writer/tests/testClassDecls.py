@@ -57,7 +57,7 @@ class TestClassDecls(unittest.TestCase):
         testFile = open('prova.cpp', 'r')
         lines = testFile.readlines()
         testFile.close()
-        self.assertEqual(len(lines), 2)
+        self.assertEqual(len(lines), 3)
         self.assertEqual(lines[0], 'class emptyClass{\n')
         self.assertEqual(lines[1], '};\n')
 
@@ -82,7 +82,7 @@ class TestClassDecls(unittest.TestCase):
         testFile = open('prova.cpp', 'r')
         lines = testFile.readlines()
         testFile.close()
-        self.assertEqual(len(lines), 7)
+        self.assertEqual(len(lines), 8)
         self.assertEqual(lines[0], 'class MyClass{\n')
         self.assertEqual(lines[1], '    private:\n')
         self.assertEqual(lines[2], '    int pippo;\n')
@@ -103,9 +103,9 @@ class TestClassDecls(unittest.TestCase):
         testFile = open('prova.cpp', 'r')
         lines = testFile.readlines()
         testFile.close()
-        self.assertEqual(len(lines), 4)
-        self.assertEqual(lines[1], 'MyClass::MyClass(){\n')
-        self.assertEqual(lines[2], '}\n')
+        self.assertEqual(len(lines), 3)
+        self.assertEqual(lines[0], 'MyClass::MyClass(){\n')
+        self.assertEqual(lines[1], '}\n')
 
     def testTemplateDecl(self):
         intDecl = writer_code.intType
@@ -120,15 +120,16 @@ class TestClassDecls(unittest.TestCase):
         testFile = open('prova.cpp', 'r')
         lines = testFile.readlines()
         testFile.close()
-        self.assertEqual(len(lines), 8)
+        self.assertEqual(len(lines), 10)
         self.assertEqual(lines[0], 'template < typename T > class MyClass : public std::string{\n')
         self.assertEqual(lines[1], '    private:\n')
         self.assertEqual(lines[2], '    int pippo;\n')
         self.assertEqual(lines[3], '\n')
         self.assertEqual(lines[4], '    public:\n')
-        self.assertEqual(lines[5], '    MyClass() : std::string() {\n')
+        self.assertEqual(lines[5], '    MyClass() : std::string(){\n')
         self.assertEqual(lines[6], '    }\n')
-        self.assertEqual(lines[7], '};\n')
+        self.assertEqual(lines[7], '\n')
+        self.assertEqual(lines[8], '};\n')
 
     def testTemplateImpl(self):
         intDecl = writer_code.intType
@@ -158,7 +159,7 @@ class TestClassDecls(unittest.TestCase):
         testFile = open('prova.cpp', 'r')
         lines = testFile.readlines()
         testFile.close()
-        self.assertEqual(len(lines), 7)
+        self.assertEqual(len(lines), 8)
         self.assertEqual(lines[0], 'class MyClass : public std::string{\n')
         self.assertEqual(lines[1], '    private:\n')
         self.assertEqual(lines[2], '    static int pippo;\n')
@@ -179,10 +180,10 @@ class TestClassDecls(unittest.TestCase):
         testFile = open('prova.cpp', 'r')
         lines = testFile.readlines()
         testFile.close()
-        self.assertEqual(len(lines), 5)
+        self.assertEqual(len(lines), 4)
         self.assertEqual(lines[0], 'int MyClass::pippo = 0;\n')
-        self.assertEqual(lines[2], 'MyClass::MyClass() : std::string() {\n')
-        self.assertEqual(lines[3], '}\n')
+        self.assertEqual(lines[1], 'MyClass::MyClass() : std::string(){\n')
+        self.assertEqual(lines[2], '}\n')
 
     def testSCModuleDecl(self):
         intDecl = writer_code.intType
@@ -198,7 +199,7 @@ class TestClassDecls(unittest.TestCase):
         testFile = open('prova.cpp', 'r')
         lines = testFile.readlines()
         testFile.close()
-        self.assertEqual(len(lines), 8)
+        self.assertEqual(len(lines), 9)
         self.assertEqual(lines[0], 'class MyClass : public std::string, public sc_module{\n')
         self.assertEqual(lines[1], '    private:\n')
         self.assertEqual(lines[2], '    int pippo;\n')
@@ -222,10 +223,10 @@ class TestClassDecls(unittest.TestCase):
         testFile = open('prova.cpp', 'r')
         lines = testFile.readlines()
         testFile.close()
-        self.assertEqual(len(lines), 5)
-        self.assertEqual(lines[1], 'MyClass::MyClass( sc_module_name name ) : std::string(), sc_module(name) {\n')
-        self.assertEqual(lines[2], '    end_module();\n')
-        self.assertEqual(lines[3], '}\n')
+        self.assertEqual(len(lines), 4)
+        self.assertEqual(lines[0], 'MyClass::MyClass( sc_module_name name ) : std::string(), sc_module(name){\n')
+        self.assertEqual(lines[1], '    end_module();\n')
+        self.assertEqual(lines[2], '}\n')
 
     def testInlineMethodDecl(self):
         intDecl = writer_code.intType
@@ -239,7 +240,7 @@ class TestClassDecls(unittest.TestCase):
         testFile = open('prova.cpp', 'r')
         lines = testFile.readlines()
         testFile.close()
-        self.assertEqual(len(lines), 8)
+        self.assertEqual(len(lines), 9)
         self.assertEqual(lines[0], 'class MyClass{\n')
         self.assertEqual(lines[1], '    private:\n')
         self.assertEqual(lines[2], '    inline int pippo(){\n')
@@ -261,6 +262,6 @@ class TestClassDecls(unittest.TestCase):
         testFile = open('prova.cpp', 'r')
         lines = testFile.readlines()
         testFile.close()
-        self.assertEqual(len(lines), 4)
-        self.assertEqual(lines[1], 'MyClass::MyClass(){\n')
-        self.assertEqual(lines[2], '}\n')
+        self.assertEqual(len(lines), 3)
+        self.assertEqual(lines[0], 'MyClass::MyClass(){\n')
+        self.assertEqual(lines[1], '}\n')

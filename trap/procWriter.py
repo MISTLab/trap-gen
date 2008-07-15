@@ -162,10 +162,20 @@ def getCPPRegClass(self, model, regType):
                 else:
                     negatedMask = '1' + negatedMask
                     mask = '0' + mask
-            operatorBody = cxx_writer.writer_code.Code('this->value &= ' + hex(int(negatedMask, 2)) + ';\nthis->value |= (other << ' + str(length[0]) + ');\nreturn *this;')
+            operatorCode = 'this->value &= ' + hex(int(negatedMask, 2)) + ';\nthis->value |= '
+            if length[0] > 0:
+                operatorCode += '(other << ' + str(length[0]) + ');\n'
+            else:
+                operatorCode += 'other;\n'
+            operatorCode += 'return *this;'
+            operatorBody = cxx_writer.writer_code.Code(operatorCode)
             operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
             operatorEqualDecl = cxx_writer.writer_code.MemberOperator('=', operatorBody, cxx_writer.writer_code.Type('InnerField').makeRef(), 'pu', [operatorParam])
-            operatorBody = cxx_writer.writer_code.Code('return (this->value & ' + hex(int(mask, 2)) + ') >> ' + str(length[0]) + ';')            
+            operatorCode = 'return (this->value & ' + hex(int(mask, 2)) + ')'
+            if length[0] > 0:
+                operatorCode += ' >> ' + str(length[0])
+            operatorCode += ';'
+            operatorBody = cxx_writer.writer_code.Code(operatorCode)
             operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True)
             fieldAttribute = cxx_writer.writer_code.Attribute('value', regMaxType.makeRef(), 'pri')
             constructorParams = [cxx_writer.writer_code.Parameter('value', regMaxType.makeRef())]
@@ -297,12 +307,12 @@ def getCPPAlias(self, model):
     # of the register. In addition there is the updateAlias operation which updates
     # the register this alias points to (and eventually the offset).
     regWidthType = regMaxType
-    registerType = cxx_writer.writer_code.Type('Register', 'register.hpp')
+    registerType = cxx_writer.writer_code.Type('Register', 'registers.hpp')
     aliasType = cxx_writer.writer_code.Type('Alias')
     aliasElements = []
 
     ####################### Lets declare the operators used to access the register fields ##############
-    codeOperatorBody = 'return (*this->register)[bitField];'
+    codeOperatorBody = 'return (*this->reg)[bitField];'
     InnerFieldType = cxx_writer.writer_code.Type('InnerField')
     operatorBody = cxx_writer.writer_code.Code(codeOperatorBody)
     operatorParam = [cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.stringRefType.makeConst())]
@@ -311,89 +321,93 @@ def getCPPAlias(self, model):
     
     #################### Lets declare the normal operators (implementation of the pure operators of the base class) ###########
     for i in unaryOps:
-        operatorBody = cxx_writer.writer_code.Code('return ' + i + '(*this->register);')
+        operatorBody = cxx_writer.writer_code.Code('return ' + i + '(*this->reg);')
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu')
         aliasElements.append(operatorDecl)
     # Now I have the three versions of the operators, depending whether they take
     # in input the integer value, the specific register or the base one
     # INTEGER
     for i in binaryOps:
-        operatorBody = cxx_writer.writer_code.Code('return (*this->register ' + i + ' other);')
+        operatorBody = cxx_writer.writer_code.Code('return (*this->reg ' + i + ' other);')
         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True)
         aliasElements.append(operatorDecl)
     for i in comparisonOps:
-        operatorBody = cxx_writer.writer_code.Code('return (*this->register ' + i + ' other);')
+        operatorBody = cxx_writer.writer_code.Code('return (*this->reg ' + i + ' (other - this->offset));')
         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
         aliasElements.append(operatorDecl)
     for i in assignmentOps:
-        operatorBody = cxx_writer.writer_code.Code('*this->register ' + i + ' other;\nreturn *this;')
+        operatorBody = cxx_writer.writer_code.Code('*this->reg ' + i + ' other;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam])
         aliasElements.append(operatorDecl)        
     # Alias Register
     for i in binaryOps:
-        operatorBody = cxx_writer.writer_code.Code('return (*this->register ' + i + ' other.register);')
+        operatorBody = cxx_writer.writer_code.Code('return (*this->reg ' + i + ' *other.reg);')
         operatorParam = cxx_writer.writer_code.Parameter('other', aliasType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True)
         aliasElements.append(operatorDecl)
     for i in comparisonOps:
-        operatorBody = cxx_writer.writer_code.Code('return (*this->register ' + i + ' other.register);')
+        operatorBody = cxx_writer.writer_code.Code('return (*this->reg + this->offset ' + i + ' *other.reg);')
         operatorParam = cxx_writer.writer_code.Parameter('other', aliasType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
         aliasElements.append(operatorDecl)
     for i in assignmentOps:
-        operatorBody = cxx_writer.writer_code.Code('*this->register ' + i + ' other.register;\nreturn *this;')
+        operatorBody = cxx_writer.writer_code.Code('*this->reg ' + i + ' *other.reg;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', aliasType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam])
         aliasElements.append(operatorDecl)        
     # GENERIC REGISTER:
     for i in binaryOps:
-        operatorBody = cxx_writer.writer_code.Code('return (*this->register ' + i + ' other);')
+        operatorBody = cxx_writer.writer_code.Code('return (*this->reg ' + i + ' other);')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True)
         aliasElements.append(operatorDecl)
     for i in comparisonOps:
-        operatorBody = cxx_writer.writer_code.Code('return (*this->register ' + i + ' other);')
+        operatorBody = cxx_writer.writer_code.Code('return (*this->reg + this->offset ' + i + ' other);')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
         aliasElements.append(operatorDecl)
     for i in assignmentOps:
-        operatorBody = cxx_writer.writer_code.Code('*this->register ' + i + ' other;\nreturn *this;')
+        operatorBody = cxx_writer.writer_code.Code('*this->reg ' + i + ' other;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam])
         aliasElements.append(operatorDecl)        
     # Scalar value cast operator
-    operatorBody = cxx_writer.writer_code.Code('return *this->register;')
+    operatorBody = cxx_writer.writer_code.Code('return *this->reg + this->offset;')
     operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True)
     aliasElements.append(operatorIntDecl)
 
     # Constructors: takes as input the initial register
     constructorBody = cxx_writer.writer_code.Code('')
-    constructorParams = [cxx_writer.writer_code.Parameter('register', registerType.makePointer()), cxx_writer.writer_code.Parameter('offset', cxx_writer.writer_code.uintType, initValue = '0')]
-    publicMainClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['register(register)', 'offset(offset)'])
+    constructorParams = [cxx_writer.writer_code.Parameter('reg', registerType.makePointer()), cxx_writer.writer_code.Parameter('offset', cxx_writer.writer_code.uintType, initValue = '0')]
+    publicMainClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['reg(reg)', 'offset(offset)'])
     
     # Stream Operators
     outStreamType = cxx_writer.writer_code.Type('std::ostream', 'ostream')
-    code = 'stream << *this->register;\nreturn stream;'
+    code = 'stream << *this->reg + this->offset;\nreturn stream;'
     operatorBody = cxx_writer.writer_code.Code(code)
     operatorParam = cxx_writer.writer_code.Parameter('stream', outStreamType.makeRef())
     operatorDecl = cxx_writer.writer_code.MemberOperator('<<', operatorBody, outStreamType.makeRef(), 'pu', [operatorParam], const = True)
     aliasElements.append(operatorDecl)
 
     # Update method: updates the register pointed by this alias
-    updateBody = cxx_writer.writer_code.Code('this->register = newAlias.register;\nthis->offset = newAlias.offset;')
+    updateBody = cxx_writer.writer_code.Code('this->reg = newAlias.reg;\nthis->offset = newAlias.offset;')
     updateParam = cxx_writer.writer_code.Parameter('newAlias', aliasType.makeRef())
-    updateDecl = cxx_writer.writer_code.Method('updateAlias', operatorBody, cxx_writer.writer_code.voidType, 'pu', [updateParam])
+    updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', [updateParam])
     aliasElements.append(updateDecl)
-    updateBody = cxx_writer.writer_code.Code('this->register = &newAlias;\nthis->offset = newOffset;')
+    updateBody = cxx_writer.writer_code.Code('this->reg = &newAlias;\nthis->offset = newOffset;')
     updateParam1 = cxx_writer.writer_code.Parameter('newAlias', registerType.makeRef())
     updateParam2 = cxx_writer.writer_code.Parameter('newOffset', cxx_writer.writer_code.uintType, initValue = '0')
-    updateDecl = cxx_writer.writer_code.Method('updateAlias', operatorBody, cxx_writer.writer_code.voidType, 'pu', [updateParam1, updateParam2])
+    updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', [updateParam1, updateParam2])
     aliasElements.append(updateDecl)
 
     # Finally I declare the class and pass to it all the declared members
+    regAttribute = cxx_writer.writer_code.Attribute('reg', registerType.makePointer(), 'pri')
+    aliasElements.append(regAttribute)
+    offsetAttribute = cxx_writer.writer_code.Attribute('offset', cxx_writer.writer_code.uintType, 'pri')
+    aliasElements.append(offsetAttribute)
     aliasDecl = cxx_writer.writer_code.ClassDeclaration(aliasType.name, aliasElements)
     aliasDecl.addConstructor(publicMainClassConstr)
     classes = [aliasDecl]
@@ -546,5 +560,8 @@ def getTestMainCode(self):
 def getMainCode(self, model):
     # Returns the code which instantiate the processor
     # in order to execute simulations
-    mainCode = cxx_writer.writer_code.Code('')
+    code = ''
+    mainCode = cxx_writer.writer_code.Code(code)
+    parameters = [cxx_writer.writer_code.Parameter('argc', cxx_writer.writer_code.intType), cxx_writer.writer_code.Parameter('argv', cxx_writer.writer_code.charPtrType.makePointer())]
+    function = cxx_writer.writer_code.Function('main', code, cxx_writer.writer_code.intType, parameters)
     return mainCode

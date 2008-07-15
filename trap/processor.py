@@ -632,6 +632,7 @@ class Processor:
             mainTestFile = cxx_writer.writer_code.FileDumper('main.cpp', False)
             mainTestFile.addMember(self.getTestMainCode())
             testFolder.addCode(mainTestFile)
+            testFolder.addUseLib(os.path.split(curFolder.path)[-1])
             curFolder.addHeader(headFileInstr)
             curFolder.addCode(implFileInstr)
             curFolder.addHeader(headFileRegs)
@@ -647,6 +648,7 @@ class Processor:
             curFolder.addHeader(headFileMem)
             curFolder.addCode(implFileMem)
             curFolder.addCode(mainFile)
+            curFolder.setMain(mainFile.name)
             curFolder.create()
             testFolder.create()
             print '\t\tCreated'

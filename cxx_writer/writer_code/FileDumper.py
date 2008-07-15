@@ -158,9 +158,17 @@ class Folder:
         self.headers = []
         self.codeFiles = []
         self.subfolders = []
+        self.mainFile = ''
+        self.uselib_local = []
 
     def addHeader(self, header):
         self.headers.append(header)
+
+    def addUseLib(self, library):
+        self.uselib_local.append(library)
+        
+    def setMain(self, mainFile):
+        self.mainFile = mainFile
 
     def addCode(self, codeFile):
         self.codeFiles.append(codeFile)
@@ -180,8 +188,8 @@ class Folder:
         # it also creates the appropriate wscript for the
         # compilation
         curDir = os.getcwd()
-        self.path = os.path.split(self.path)
-        for i in self.path:
+        curpath = os.path.split(self.path)
+        for i in curpath:
             if not os.path.exists(i):
                 os.mkdir(i)
             os.chdir(i)
@@ -193,12 +201,17 @@ class Folder:
         # of the current folder; note that event though the project is
         # small we need to create the configure part
         self.createWscript(configure)
+        if configure:
+            import shutil, sys
+            wafPath = os.path.abspath(os.path.join(os.path.dirname(sys.modules['cxx_writer'].__file__), 'waf'))
+            shutil.copy(wafPath, os.path.abspath(os.path.join('.', 'waf')))
         os.chdir(curDir)
 
     def createWscript(self, configure):
         wscriptFile = open('wscript', 'wt')
         print >> wscriptFile, '#!/usr/bin/env python\n'
         if configure:
+            print >> wscriptFile, 'import sys, Options\n'
             print >> wscriptFile, '# these variables are mandatory'
             print >> wscriptFile, 'srcdir = \'.\''
             print >> wscriptFile, 'blddir = \'_build_\''
@@ -206,16 +219,32 @@ class Folder:
         if self.codeFiles or self.subfolders:
             print >> wscriptFile, 'def build(bld):'
             if self.subfolders:
-                print >> wscriptFile, '    bld.add_subdirs(\'' + ' '.join(self.subfolders) + '\')\n'
+                print >> wscriptFile, '    bld.add_subdirs(\'' + ' '.join([str(fold)[len(str(self.path)):] for fold in self.subfolders]) + '\')\n'
             if self.codeFiles:
-                print >> wscriptFile, '    obj = bld.new_task_gen(\'cxx\', \'program\')'
+                if not self.mainFile:
+                    print >> wscriptFile, '    obj = bld.new_task_gen(\'cxx\', \'program\')'
+                else:
+                    print >> wscriptFile, '    obj = bld.new_task_gen(\'cxx\', \'staticlib\')'
                 print >> wscriptFile, '    obj.source=\"\"\"'
                 for codeFile in self.codeFiles:
-                    print >> wscriptFile, '        ' + codeFile.name
+                    if self.mainFile != codeFile.name:
+                        print >> wscriptFile, '        ' + codeFile.name
                 print >> wscriptFile, '    \"\"\"'
-                print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK\''
-                print >> wscriptFile, '    obj.name = \'' + self.path[-1] + '\''
-                print >> wscriptFile, '    obj.target = \'' + self.path[-1] + '\'\n'
+                print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK SYSTEMC TLM\''
+                print >> wscriptFile, '    obj.includes = \'.\''
+                if self.uselib_local:
+                    print >> wscriptFile, '    obj.uselib_local = \'' + ' '.join(self.uselib_local) + '\''
+                if self.mainFile:
+                    print >> wscriptFile, '    obj.export_incdirs = \'.\''
+                print >> wscriptFile, '    obj.name = \'' + os.path.split(self.path)[-1] + '\''
+                print >> wscriptFile, '    obj.target = \'' + os.path.split(self.path)[-1] + '\'\n'
+            if self.mainFile:
+                print >> wscriptFile, '    obj = bld.new_task_gen(\'cxx\', \'program\')'
+                print >> wscriptFile, '    obj.source=\'' + self.mainFile + '\''
+                print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK SYSTEMC TLM\''
+                print >> wscriptFile, '    obj.uselib_local = \'' + ' '.join(self.uselib_local + [os.path.split(self.path)[-1]]) + '\''
+                print >> wscriptFile, '    obj.name = \'' + os.path.split(self.path)[-1] + '_main\''
+                print >> wscriptFile, '    obj.target = \'' + os.path.split(self.path)[-1] + '\'\n'
         # Ok, here I need to insert the configure script if needed
         if configure:
             print >> wscriptFile, 'def configure(conf):'
@@ -223,20 +252,20 @@ class Folder:
     # I make sure that the search paths really exists and eliminates the non
     # existing ones (usefull in case your PC doesn't have the /usr/local/include
     # folder for example)
-    import Configure
+    import config_c
 
     incl_path = []
-    for path in Configure.g_stdincpath:
+    for path in config_c.stdincpath:
         if os.path.exists(path):
             incl_path.append(path)
-    Configure.g_stdincpath = incl_path
+    config_c.stdincpath = incl_path
     lib_path = []
 
-    Configure.g_stdlibpath += ['/usr/lib64/']
-    for path in Configure.g_stdlibpath:
+    config_c.stdlibpath += ['/usr/lib64/']
+    for path in config_c.stdlibpath:
         if os.path.exists(path):
             lib_path.append(path)
-    Configure.g_stdlibpath = lib_path
+    config_c.stdlibpath = lib_path
 
     # Set Optimized as the default compilation mode, enabled if no other is selected on the command line
     try:
@@ -256,9 +285,6 @@ class Folder:
     ########################################
     if not conf.check_flags(''):
         Params.fatal('gcc does not support the custom flags used. Please change gcc version of the custom flags')
-    if not Params.g_options.static_plat:
-        if not conf.check_flags('-Wl,-rpath .'):
-            Params.fatal('gcc does not support -Wl,-rpath flag. Please change gcc version')
 
     ########################################
     # Setting the host endianess
@@ -303,8 +329,8 @@ class Folder:
     # creation
     conf.env.append_unique('CPPFLAGS','-DSC_INCLUDE_DYNAMIC_PROCESSES')
     syscpath = None
-    if Params.g_options.systemcdir:
-        syscpath = ([os.path.abspath(os.path.join(Params.g_options.systemcdir, 'include'))])
+    if Options.options.systemcdir:
+        syscpath = ([os.path.abspath(os.path.join(Options.options.systemcdir, 'include'))])
     elif 'SYSTEMC' in os.environ:
         syscpath = ([os.path.abspath(os.path.join(os.environ['SYSTEMC'], 'include'))])
 
@@ -388,8 +414,8 @@ class Folder:
         }
     \"\"\"
     he.message = 'Library and Headers for TLM ver. 2.0 not found'
-    if Params.g_options.tlmdir:
-        he.path = [os.path.abspath(os.path.join(Params.g_options.tlmdir, 'tlm'))]
+    if Options.options.tlmdir:
+        he.path = [os.path.abspath(os.path.join(Options.options.tlmdir, 'tlm'))]
     elif 'TLM' in os.environ:
         he.path = [os.path.abspath(os.path.join(os.environ['TLM'], 'tlm'))]
     he.run()
