@@ -525,6 +525,12 @@ class Processor:
         # to access the processor core
         return procWriter.getCPPIf(self, model)
 
+    def getCPPExternalPorts(self, model):
+        # creates the processor external ports used for the
+        # communication with the external world (the memory port
+        # is not among this ports, it is treated separately)
+        return procWriter.getCPPExternalPorts(self, model)
+
     def getTestMainCode(self):
         # Returns the code for the file which contains the main
         # routine for the execution of the tests.
@@ -575,13 +581,14 @@ class Processor:
             print '\t\tCreating the implementation for model ' + model
             if not model in validModels:
                 raise Exception(model + ' is not a valid model type')
-            ISAClasses = self.isa.getCPPClasses(self.name, model)
-            ISATests = self.isa.getCPPTests(self.name, model)
+            ISAClasses = self.isa.getCPPClasses(self, model)
+            ISATests = self.isa.getCPPTests(self, model)
             RegClasses = self.getCPPRegisters(model)
             AliasClass = self.getCPPAlias(model)
             ProcClass = self.getCPPProc(model)
             IfClass = self.getCPPIf(model)
             MemClass = self.getCPPMemoryIf(model)
+            ExternalIf = self.getCPPExternalPorts(model)
             # Ok, now that we have all the classes it is time to write
             # them to file
             curFolder = cxx_writer.writer_code.Folder(os.path.join(folder, model))
@@ -616,8 +623,14 @@ class Processor:
             implFileMem = cxx_writer.writer_code.FileDumper('memory.cpp', False)
             implFileMem.addInclude('memory.hpp')
             headFileMem = cxx_writer.writer_code.FileDumper('memory.hpp', True)
-            implFileMem.addMember(MemClass)
-            headFileMem.addMember(MemClass)
+            for i  in MemClass:
+                implFileMem.addMember(i)
+                headFileMem.addMember(i)
+            implFileExt = cxx_writer.writer_code.FileDumper('externalPorts.cpp', False)
+            implFileExt.addInclude('externalPorts.hpp')
+            headFileExt = cxx_writer.writer_code.FileDumper('externalPorts.hpp', True)
+            implFileExt.addMember(ExternalIf)
+            headFileExt.addMember(ExternalIf)
             mainFile = cxx_writer.writer_code.FileDumper('main.cpp', False)
             mainFile.addMember(self.getMainCode(model))
 
@@ -647,6 +660,8 @@ class Processor:
             curFolder.addCode(implFileDec)
             curFolder.addHeader(headFileMem)
             curFolder.addCode(implFileMem)
+            curFolder.addHeader(headFileExt)
+            curFolder.addCode(implFileExt)
             curFolder.addCode(mainFile)
             curFolder.setMain(mainFile.name)
             curFolder.create()

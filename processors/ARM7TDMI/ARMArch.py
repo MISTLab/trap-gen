@@ -127,8 +127,10 @@ processor.setFetchRegister('PC', -8)
 
 # Lets now add details about the processor interconnection (i.e. memory ports,
 # interrupt ports, pins, etc.)
-processor.addTLMPort('memPort', True)
-#processor.setMemSize(10*1024*1024)
+#processor.addTLMPort('instrMem', True)
+#processor.addTLMPort('dataMem')
+processor.setMemory('dataMem', 10*1024*1024)
+# Now lets add the interrupt ports
 irq = trap.Interrupt('IRQ', priority = 0)
 processor.addIrq(irq)
 fiq = trap.Interrupt('FIQ', priority = 1)

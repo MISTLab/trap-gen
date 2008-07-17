@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<XMI verified="false" xmi.version="1.2" timestamp="2008-07-11T02:40:50" xmlns:UML="http://schema.omg.org/spec/UML/1.3" >
+<XMI verified="false" xmi.version="1.2" timestamp="2008-07-16T17:32:34" xmlns:UML="http://schema.omg.org/spec/UML/1.3" >
  <XMI.header>
   <XMI.documentation>
    <XMI.exporter>umbrello uml modeller http://uml.sf.net</XMI.exporter>
@@ -166,7 +166,7 @@
          <classwidget linecolor="none" usesdiagramfillcolor="1" linewidth="none" showoperations="1" usesdiagramusefillcolor="1" showpubliconly="0" showpackage="1" x="603" showattsigs="601" showstereotype="1" y="94" showattributes="1" font="Sans Serif,8,-1,5,50,0,0,0,0,0" width="124" isinstance="0" usefillcolor="1" fillcolor="none" xmi.id="bg5SVoLgGlky" showscope="1" height="50" showopsigs="601" />
          <notewidget width="302" showstereotype="1" x="476" noteType="0" y="11" usesdiagramusefillcolor="1" usesdiagramfillcolor="1" isinstance="0" fillcolor="none" height="61" linecolor="none" xmi.id="69sU8WAB0VuH" usefillcolor="1" linewidth="none" font="Sans Serif,8,-1,5,50,0,0,0,0,0" text="The register banks and the alias banks are simply arrays of registers or aliases" />
          <classwidget linecolor="none" usesdiagramfillcolor="1" linewidth="none" showoperations="1" usesdiagramusefillcolor="1" showpubliconly="0" showpackage="1" x="0" showattsigs="601" showstereotype="1" y="171" showattributes="1" font="Sans Serif,8,-1,5,50,0,0,0,0,0" width="96" isinstance="0" usefillcolor="1" fillcolor="none" xmi.id="akC97iUQ3TJT" showscope="1" height="52" showopsigs="601" />
-         <notewidget width="429" showstereotype="1" x="23" noteType="0" y="386" usesdiagramusefillcolor="1" usesdiagramfillcolor="1" isinstance="0" fillcolor="none" height="201" linecolor="none" xmi.id="1clUDqp38FGh" usefillcolor="1" linewidth="none" font="Sans Serif,8,-1,5,50,0,0,0,0,0" text="The processor contains an array with the instruction instances: the id returned by the decoder is the index in the instruction array&#xa;&#xa;The base behavior of the instruction contains the calls to the methods  that are common to all the instructions&#xa;&#xa;Each specific instruction will contain thereferences to the registers and the values of alla the fields&#xa;&#xa;If an instruction can modify the PC, at the end of its behavior we call the jumpCycle method of BaseTool" />
+         <notewidget width="398" showstereotype="1" x="23" noteType="0" y="386" usesdiagramusefillcolor="1" usesdiagramfillcolor="1" isinstance="0" fillcolor="none" height="162" linecolor="none" xmi.id="1clUDqp38FGh" usefillcolor="1" linewidth="none" font="Sans Serif,8,-1,5,50,0,0,0,0,0" text="The processor contains an array with the instruction instances: the id returned by the decoder is the index in the instruction array&#xa;&#xa;The base behavior of the instruction contains the calls to the methods  that are common to all the instructions&#xa;&#xa;Each specific instruction will contain thereferences to the registers and the values of alla the fields&#xa;&#xa;If an instruction can modify the PC, at the end of its behavior we call the jumpCycle method of BaseTool" />
          <notewidget width="369" showstereotype="1" x="5" noteType="0" y="0" usesdiagramusefillcolor="1" usesdiagramfillcolor="1" isinstance="0" fillcolor="none" height="134" linecolor="none" xmi.id="WkueIqwxuu6N" usefillcolor="1" linewidth="none" font="Sans Serif,8,-1,5,50,0,0,0,0,0" text="The processor contains the registers, ports etc, and the base instruction will contain references to the same&#xa;&#xa;The array of instructions in the processor contains the objects of the instructions and it is indexed by the decoding_id. Note that the instruction variables also have to be customized with the values returned by the decoder. When an instruction is moved into cache, it is copied into a new object." />
          <classwidget linecolor="none" usesdiagramfillcolor="1" linewidth="none" showoperations="1" usesdiagramusefillcolor="1" showpubliconly="0" showpackage="1" x="19" showattsigs="601" showstereotype="1" y="300" showattributes="1" font="Sans Serif,8,-1,5,50,0,0,0,0,0" width="107" isinstance="0" usefillcolor="1" fillcolor="none" xmi.id="syEv5TCmdyVW" showscope="1" height="46" showopsigs="601" />
          <classwidget linecolor="none" usesdiagramfillcolor="1" linewidth="none" showoperations="1" usesdiagramusefillcolor="1" showpubliconly="0" showpackage="1" x="871" showattsigs="601" showstereotype="1" y="28" showattributes="1" font="Sans Serif,8,-1,5,50,0,0,0,0,0" width="204" isinstance="0" usefillcolor="1" fillcolor="none" xmi.id="XtSJAdFEP9mg" showscope="1" height="138" showopsigs="601" />
@@ -197,7 +197,7 @@
            <startpoint startx="410" starty="145" />
            <endpoint endx="410" endy="96" />
           </linepath>
-          <floatingtext linecolor="none" usesdiagramfillcolor="1" linewidth="none" usesdiagramusefillcolor="1" x="360" showstereotype="1" y="98" text="processor" font="Sans Serif,8,-1,5,50,0,0,0,0,0" pretext="-" role="710" width="48" isinstance="0" posttext="" usefillcolor="1" fillcolor="none" xmi.id="RupqxB15vrKr" height="16" />
+          <floatingtext linecolor="none" usesdiagramfillcolor="1" linewidth="none" usesdiagramusefillcolor="1" x="360" showstereotype="1" y="98" text="processor" font="Sans Serif,8,-1,5,50,0,0,0,0,0" pretext="-" role="710" width="48" isinstance="0" posttext="" usefillcolor="1" fillcolor="none" xmi.id="0aLh1bQuntj3" height="16" />
          </assocwidget>
          <assocwidget indexa="1" indexb="2" widgetaid="vd56w4kGhmpg" linecolor="none" totalcounta="2" xmi.id="GX0NOkEsQtRa" widgetbid="kB0Uk32E2GjY" totalcountb="4" type="510" linewidth="none" >
           <linepath>
@@ -258,7 +258,7 @@
            <startpoint startx="270" starty="233" />
            <endpoint endx="552" endy="499" />
           </linepath>
-          <floatingtext linecolor="none" usesdiagramfillcolor="1" linewidth="none" usesdiagramusefillcolor="1" x="530" showstereotype="1" y="481" text="reg" font="Sans Serif,8,-1,5,50,0,0,0,0,0" pretext="-" role="710" width="23" isinstance="0" posttext="" usefillcolor="1" fillcolor="none" xmi.id="jsAENhQkEz8c" height="16" />
+          <floatingtext linecolor="none" usesdiagramfillcolor="1" linewidth="none" usesdiagramusefillcolor="1" x="530" showstereotype="1" y="481" text="reg" font="Sans Serif,8,-1,5,50,0,0,0,0,0" pretext="-" role="710" width="23" isinstance="0" posttext="" usefillcolor="1" fillcolor="none" xmi.id="uVvPqImoUkuU" height="16" />
          </assocwidget>
         </associations>
        </diagram>
@@ -446,11 +446,11 @@
         </header>
        </codeaccessormethod>
       </codeclassfield>
-      <codeclassfield role_id="1" listClassName="" field_type="4" parent_id="tU74G451gFag" writeOutMethods="true" initialValue="" >
+      <codeclassfield role_id="0" listClassName="" field_type="4" parent_id="tU74G451gFag" writeOutMethods="true" initialValue="" >
        <header>
         <cppcodedocumentation tag="" />
        </header>
-       <ccfdeclarationcodeblock role_id="0" tag="" parent_id="tU74G451gFag" writeOutText="false" indentLevel="1" text="public BaseTool ;" canDelete="false" >
+       <ccfdeclarationcodeblock role_id="0" tag="" parent_id="tU74G451gFag" writeOutText="false" indentLevel="1" text="public Processor ;" canDelete="false" >
         <header>
          <cppcodedocumentation tag="" writeOutText="false" indentLevel="1" />
         </header>
@@ -864,11 +864,11 @@
         </header>
        </codeaccessormethod>
       </codeclassfield>
-      <codeclassfield role_id="0" listClassName="" field_type="4" parent_id="GX0NOkEsQtRa" writeOutMethods="true" initialValue="" >
+      <codeclassfield role_id="1" listClassName="" field_type="4" parent_id="GX0NOkEsQtRa" writeOutMethods="true" initialValue="" >
        <header>
         <cppcodedocumentation tag="" />
        </header>
-       <ccfdeclarationcodeblock role_id="1" tag="" parent_id="GX0NOkEsQtRa" writeOutText="false" indentLevel="1" text="public Profiler ;" canDelete="false" >
+       <ccfdeclarationcodeblock role_id="1" tag="" parent_id="GX0NOkEsQtRa" writeOutText="false" indentLevel="1" text="public ToolsInterface ;" canDelete="false" >
         <header>
          <cppcodedocumentation tag="" writeOutText="false" indentLevel="1" />
         </header>
@@ -899,11 +899,11 @@
         </header>
        </codeaccessormethod>
       </codeclassfield>
-      <codeclassfield role_id="0" listClassName="" field_type="4" parent_id="RMKlakCa1fPo" writeOutMethods="true" initialValue="" >
+      <codeclassfield role_id="1" listClassName="" field_type="4" parent_id="RMKlakCa1fPo" writeOutMethods="true" initialValue="" >
        <header>
         <cppcodedocumentation tag="" />
        </header>
-       <ccfdeclarationcodeblock role_id="1" tag="" parent_id="RMKlakCa1fPo" writeOutText="false" indentLevel="1" text="public GDBStub ;" canDelete="false" >
+       <ccfdeclarationcodeblock role_id="1" tag="" parent_id="RMKlakCa1fPo" writeOutText="false" indentLevel="1" text="public ToolsInterface ;" canDelete="false" >
         <header>
          <cppcodedocumentation tag="" writeOutText="false" indentLevel="1" />
         </header>
@@ -934,11 +934,11 @@
         </header>
        </codeaccessormethod>
       </codeclassfield>
-      <codeclassfield role_id="0" listClassName="" field_type="4" parent_id="SlEwxpfALiiX" writeOutMethods="true" initialValue="" >
+      <codeclassfield role_id="1" listClassName="" field_type="4" parent_id="SlEwxpfALiiX" writeOutMethods="true" initialValue="" >
        <header>
         <cppcodedocumentation tag="" />
        </header>
-       <ccfdeclarationcodeblock role_id="1" tag="" parent_id="SlEwxpfALiiX" writeOutText="false" indentLevel="1" text="public RoutineEmulator ;" canDelete="false" >
+       <ccfdeclarationcodeblock role_id="1" tag="" parent_id="SlEwxpfALiiX" writeOutText="false" indentLevel="1" text="public ToolsInterface ;" canDelete="false" >
         <header>
          <cppcodedocumentation tag="" writeOutText="false" indentLevel="1" />
         </header>
@@ -969,11 +969,11 @@
         </header>
        </codeaccessormethod>
       </codeclassfield>
-      <codeclassfield role_id="1" listClassName="" field_type="4" parent_id="snxzEosmNTeq" writeOutMethods="true" initialValue="" >
+      <codeclassfield role_id="0" listClassName="" field_type="4" parent_id="snxzEosmNTeq" writeOutMethods="true" initialValue="" >
        <header>
         <cppcodedocumentation tag="" />
        </header>
-       <ccfdeclarationcodeblock role_id="0" tag="" parent_id="snxzEosmNTeq" writeOutText="false" indentLevel="1" text="public Profiler ;" canDelete="false" >
+       <ccfdeclarationcodeblock role_id="0" tag="" parent_id="snxzEosmNTeq" writeOutText="false" indentLevel="1" text="public ToolsInterface ;" canDelete="false" >
         <header>
          <cppcodedocumentation tag="" writeOutText="false" indentLevel="1" />
         </header>
@@ -1056,11 +1056,11 @@
       <codecomment tag="" />
      </header>
      <classfields>
-      <codeclassfield role_id="1" listClassName="" field_type="4" parent_id="RMKlakCa1fPo" writeOutMethods="true" initialValue="" >
+      <codeclassfield role_id="0" listClassName="" field_type="4" parent_id="RMKlakCa1fPo" writeOutMethods="true" initialValue="" >
        <header>
         <cppcodedocumentation tag="" />
        </header>
-       <ccfdeclarationcodeblock role_id="0" tag="" parent_id="RMKlakCa1fPo" writeOutText="false" indentLevel="1" text="public ToolsInterface ;" canDelete="false" >
+       <ccfdeclarationcodeblock role_id="0" tag="" parent_id="RMKlakCa1fPo" writeOutText="false" indentLevel="1" text="public GDBStub ;" canDelete="false" >
         <header>
          <cppcodedocumentation tag="" writeOutText="false" indentLevel="1" />
         </header>
@@ -1143,11 +1143,11 @@
       <codecomment tag="" />
      </header>
      <classfields>
-      <codeclassfield role_id="1" listClassName="" field_type="4" parent_id="SlEwxpfALiiX" writeOutMethods="true" initialValue="" >
+      <codeclassfield role_id="0" listClassName="" field_type="4" parent_id="SlEwxpfALiiX" writeOutMethods="true" initialValue="" >
        <header>
         <cppcodedocumentation tag="" />
        </header>
-       <ccfdeclarationcodeblock role_id="0" tag="" parent_id="SlEwxpfALiiX" writeOutText="false" indentLevel="1" text="public ToolsInterface ;" canDelete="false" >
+       <ccfdeclarationcodeblock role_id="0" tag="" parent_id="SlEwxpfALiiX" writeOutText="false" indentLevel="1" text="public RoutineEmulator ;" canDelete="false" >
         <header>
          <cppcodedocumentation tag="" writeOutText="false" indentLevel="1" />
         </header>
@@ -1230,11 +1230,11 @@
       <codecomment tag="" />
      </header>
      <classfields>
-      <codeclassfield role_id="1" listClassName="" field_type="4" parent_id="GX0NOkEsQtRa" writeOutMethods="true" initialValue="" >
+      <codeclassfield role_id="0" listClassName="" field_type="4" parent_id="GX0NOkEsQtRa" writeOutMethods="true" initialValue="" >
        <header>
         <cppcodedocumentation tag="" />
        </header>
-       <ccfdeclarationcodeblock role_id="0" tag="" parent_id="GX0NOkEsQtRa" writeOutText="false" indentLevel="1" text="public ToolsInterface ;" canDelete="false" >
+       <ccfdeclarationcodeblock role_id="0" tag="" parent_id="GX0NOkEsQtRa" writeOutText="false" indentLevel="1" text="public Profiler ;" canDelete="false" >
         <header>
          <cppcodedocumentation tag="" writeOutText="false" indentLevel="1" />
         </header>
@@ -1265,11 +1265,11 @@
         </header>
        </codeaccessormethod>
       </codeclassfield>
-      <codeclassfield role_id="0" listClassName="" field_type="4" parent_id="snxzEosmNTeq" writeOutMethods="true" initialValue="" >
+      <codeclassfield role_id="1" listClassName="" field_type="4" parent_id="snxzEosmNTeq" writeOutMethods="true" initialValue="" >
        <header>
         <cppcodedocumentation tag="" />
        </header>
-       <ccfdeclarationcodeblock role_id="1" tag="" parent_id="snxzEosmNTeq" writeOutText="false" indentLevel="1" text="public ToolsInterface ;" canDelete="false" >
+       <ccfdeclarationcodeblock role_id="1" tag="" parent_id="snxzEosmNTeq" writeOutText="false" indentLevel="1" text="public Profiler ;" canDelete="false" >
         <header>
          <cppcodedocumentation tag="" writeOutText="false" indentLevel="1" />
         </header>
@@ -1362,11 +1362,11 @@
       <codecomment tag="" />
      </header>
      <classfields>
-      <codeclassfield role_id="0" listClassName="" field_type="4" parent_id="tU74G451gFag" writeOutMethods="true" initialValue="" >
+      <codeclassfield role_id="1" listClassName="" field_type="4" parent_id="tU74G451gFag" writeOutMethods="true" initialValue="" >
        <header>
         <cppcodedocumentation tag="" />
        </header>
-       <ccfdeclarationcodeblock role_id="1" tag="" parent_id="tU74G451gFag" writeOutText="false" indentLevel="1" text="public Processor ;" canDelete="false" >
+       <ccfdeclarationcodeblock role_id="1" tag="" parent_id="tU74G451gFag" writeOutText="false" indentLevel="1" text="public BaseTool ;" canDelete="false" >
         <header>
          <cppcodedocumentation tag="" writeOutText="false" indentLevel="1" />
         </header>
@@ -1528,11 +1528,11 @@
         </header>
        </codeaccessormethod>
       </codeclassfield>
-      <codeclassfield role_id="1" listClassName="" field_type="4" parent_id="tU74G451gFag" writeOutMethods="true" initialValue="" >
+      <codeclassfield role_id="0" listClassName="" field_type="4" parent_id="tU74G451gFag" writeOutMethods="true" initialValue="" >
        <header>
         <cppcodedocumentation tag="" />
        </header>
-       <ccfdeclarationcodeblock role_id="0" tag="tblock_0" parent_id="tU74G451gFag" writeOutText="false" indentLevel="1" text=" BaseTool ;" canDelete="false" >
+       <ccfdeclarationcodeblock role_id="0" tag="tblock_0" parent_id="tU74G451gFag" writeOutText="false" indentLevel="1" text=" Processor ;" canDelete="false" >
         <header>
          <cppcodedocumentation tag="" writeOutText="false" indentLevel="1" />
         </header>
@@ -1885,11 +1885,11 @@
         </header>
        </codeaccessormethod>
       </codeclassfield>
-      <codeclassfield role_id="0" listClassName="" field_type="4" parent_id="GX0NOkEsQtRa" writeOutMethods="true" initialValue="" >
+      <codeclassfield role_id="1" listClassName="" field_type="4" parent_id="GX0NOkEsQtRa" writeOutMethods="true" initialValue="" >
        <header>
         <cppcodedocumentation tag="" />
        </header>
-       <ccfdeclarationcodeblock role_id="1" tag="tblock_0" parent_id="GX0NOkEsQtRa" writeOutText="false" indentLevel="1" text=" Profiler ;" canDelete="false" >
+       <ccfdeclarationcodeblock role_id="1" tag="tblock_0" parent_id="GX0NOkEsQtRa" writeOutText="false" indentLevel="1" text=" ToolsInterface ;" canDelete="false" >
         <header>
          <cppcodedocumentation tag="" writeOutText="false" indentLevel="1" />
         </header>
@@ -1920,11 +1920,11 @@
         </header>
        </codeaccessormethod>
       </codeclassfield>
-      <codeclassfield role_id="0" listClassName="" field_type="4" parent_id="RMKlakCa1fPo" writeOutMethods="true" initialValue="" >
+      <codeclassfield role_id="1" listClassName="" field_type="4" parent_id="RMKlakCa1fPo" writeOutMethods="true" initialValue="" >
        <header>
         <cppcodedocumentation tag="" />
        </header>
-       <ccfdeclarationcodeblock role_id="1" tag="_0" parent_id="RMKlakCa1fPo" writeOutText="false" indentLevel="1" text=" GDBStub ;" canDelete="false" >
+       <ccfdeclarationcodeblock role_id="1" tag="_0" parent_id="RMKlakCa1fPo" writeOutText="false" indentLevel="1" text=" ToolsInterface ;" canDelete="false" >
         <header>
          <cppcodedocumentation tag="" writeOutText="false" indentLevel="1" />
         </header>
@@ -1955,11 +1955,11 @@
         </header>
        </codeaccessormethod>
       </codeclassfield>
-      <codeclassfield role_id="0" listClassName="" field_type="4" parent_id="SlEwxpfALiiX" writeOutMethods="true" initialValue="" >
+      <codeclassfield role_id="1" listClassName="" field_type="4" parent_id="SlEwxpfALiiX" writeOutMethods="true" initialValue="" >
        <header>
         <cppcodedocumentation tag="" />
        </header>
-       <ccfdeclarationcodeblock role_id="1" tag="_1" parent_id="SlEwxpfALiiX" writeOutText="false" indentLevel="1" text=" RoutineEmulator ;" canDelete="false" >
+       <ccfdeclarationcodeblock role_id="1" tag="_1" parent_id="SlEwxpfALiiX" writeOutText="false" indentLevel="1" text=" ToolsInterface ;" canDelete="false" >
         <header>
          <cppcodedocumentation tag="" writeOutText="false" indentLevel="1" />
         </header>
@@ -1990,11 +1990,11 @@
         </header>
        </codeaccessormethod>
       </codeclassfield>
-      <codeclassfield role_id="1" listClassName="" field_type="4" parent_id="snxzEosmNTeq" writeOutMethods="true" initialValue="" >
+      <codeclassfield role_id="0" listClassName="" field_type="4" parent_id="snxzEosmNTeq" writeOutMethods="true" initialValue="" >
        <header>
         <cppcodedocumentation tag="" />
        </header>
-       <ccfdeclarationcodeblock role_id="0" tag="_2" parent_id="snxzEosmNTeq" writeOutText="false" indentLevel="1" text=" Profiler ;" canDelete="false" >
+       <ccfdeclarationcodeblock role_id="0" tag="_2" parent_id="snxzEosmNTeq" writeOutText="false" indentLevel="1" text=" ToolsInterface ;" canDelete="false" >
         <header>
          <cppcodedocumentation tag="" writeOutText="false" indentLevel="1" />
         </header>
@@ -2066,11 +2066,11 @@
       <codecomment tag="" />
      </header>
      <classfields>
-      <codeclassfield role_id="1" listClassName="" field_type="4" parent_id="RMKlakCa1fPo" writeOutMethods="true" initialValue="" >
+      <codeclassfield role_id="0" listClassName="" field_type="4" parent_id="RMKlakCa1fPo" writeOutMethods="true" initialValue="" >
        <header>
         <cppcodedocumentation tag="" />
        </header>
-       <ccfdeclarationcodeblock role_id="0" tag="tblock_0" parent_id="RMKlakCa1fPo" writeOutText="false" indentLevel="1" text=" ToolsInterface ;" canDelete="false" >
+       <ccfdeclarationcodeblock role_id="0" tag="tblock_0" parent_id="RMKlakCa1fPo" writeOutText="false" indentLevel="1" text=" GDBStub ;" canDelete="false" >
         <header>
          <cppcodedocumentation tag="" writeOutText="false" indentLevel="1" />
         </header>
@@ -2142,11 +2142,11 @@
       <codecomment tag="" />
      </header>
      <classfields>
-      <codeclassfield role_id="1" listClassName="" field_type="4" parent_id="SlEwxpfALiiX" writeOutMethods="true" initialValue="" >
+      <codeclassfield role_id="0" listClassName="" field_type="4" parent_id="SlEwxpfALiiX" writeOutMethods="true" initialValue="" >
        <header>
         <cppcodedocumentation tag="" />
        </header>
-       <ccfdeclarationcodeblock role_id="0" tag="tblock_0" parent_id="SlEwxpfALiiX" writeOutText="false" indentLevel="1" text=" ToolsInterface ;" canDelete="false" >
+       <ccfdeclarationcodeblock role_id="0" tag="tblock_0" parent_id="SlEwxpfALiiX" writeOutText="false" indentLevel="1" text=" RoutineEmulator ;" canDelete="false" >
         <header>
          <cppcodedocumentation tag="" writeOutText="false" indentLevel="1" />
         </header>
@@ -2218,11 +2218,11 @@
       <codecomment tag="" />
      </header>
      <classfields>
-      <codeclassfield role_id="1" listClassName="" field_type="4" parent_id="GX0NOkEsQtRa" writeOutMethods="true" initialValue="" >
+      <codeclassfield role_id="0" listClassName="" field_type="4" parent_id="GX0NOkEsQtRa" writeOutMethods="true" initialValue="" >
        <header>
         <cppcodedocumentation tag="" />
        </header>
-       <ccfdeclarationcodeblock role_id="0" tag="tblock_0" parent_id="GX0NOkEsQtRa" writeOutText="false" indentLevel="1" text=" ToolsInterface ;" canDelete="false" >
+       <ccfdeclarationcodeblock role_id="0" tag="tblock_0" parent_id="GX0NOkEsQtRa" writeOutText="false" indentLevel="1" text=" Profiler ;" canDelete="false" >
         <header>
          <cppcodedocumentation tag="" writeOutText="false" indentLevel="1" />
         </header>
@@ -2253,11 +2253,11 @@
         </header>
        </codeaccessormethod>
       </codeclassfield>
-      <codeclassfield role_id="0" listClassName="" field_type="4" parent_id="snxzEosmNTeq" writeOutMethods="true" initialValue="" >
+      <codeclassfield role_id="1" listClassName="" field_type="4" parent_id="snxzEosmNTeq" writeOutMethods="true" initialValue="" >
        <header>
         <cppcodedocumentation tag="" />
        </header>
-       <ccfdeclarationcodeblock role_id="1" tag="_0" parent_id="snxzEosmNTeq" writeOutText="false" indentLevel="1" text=" ToolsInterface ;" canDelete="false" >
+       <ccfdeclarationcodeblock role_id="1" tag="_0" parent_id="snxzEosmNTeq" writeOutText="false" indentLevel="1" text=" Profiler ;" canDelete="false" >
         <header>
          <cppcodedocumentation tag="" writeOutText="false" indentLevel="1" />
         </header>
@@ -2329,11 +2329,11 @@
       <codecomment tag="" />
      </header>
      <classfields>
-      <codeclassfield role_id="0" listClassName="" field_type="4" parent_id="tU74G451gFag" writeOutMethods="true" initialValue="" >
+      <codeclassfield role_id="1" listClassName="" field_type="4" parent_id="tU74G451gFag" writeOutMethods="true" initialValue="" >
        <header>
         <cppcodedocumentation tag="" />
        </header>
-       <ccfdeclarationcodeblock role_id="1" tag="tblock_0" parent_id="tU74G451gFag" writeOutText="false" indentLevel="1" text=" Processor ;" canDelete="false" >
+       <ccfdeclarationcodeblock role_id="1" tag="tblock_0" parent_id="tU74G451gFag" writeOutText="false" indentLevel="1" text=" BaseTool ;" canDelete="false" >
         <header>
          <cppcodedocumentation tag="" writeOutText="false" indentLevel="1" />
         </header>

@@ -417,7 +417,93 @@ def getCPPMemoryIf(self, model):
     # Creates the necessary structures for communicating with the memory; an
     # array in case of an internal memory, the TLM port for the use with TLM
     # etc.
-    return None
+    from isa import resolveBitType
+    archWordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>')
+    archHWordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize/2) + '>')
+    archByteType = resolveBitType('BIT<' + str(self.byteSize) + '>')
+    # First of all I create the memory base class
+    classes = []
+    memoryIfElements = []
+    emptyBody = cxx_writer.writer_code.Code('')
+    addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
+    readDecl = cxx_writer.writer_code.Method('read_word', emptyBody, archWordType, 'pu', [addressParam], pure = True)
+    memoryIfElements.append(readDecl)
+    readDecl = cxx_writer.writer_code.Method('read_half', emptyBody, archHWordType, 'pu', [addressParam], pure = True)
+    memoryIfElements.append(readDecl)
+    readDecl = cxx_writer.writer_code.Method('read_byte', emptyBody, archByteType, 'pu', [addressParam], pure = True)
+    memoryIfElements.append(readDecl)
+    addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
+    datumParam = cxx_writer.writer_code.Parameter('datum', archWordType.makeRef())
+    writeDecl = cxx_writer.writer_code.Method('write_word', emptyBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], pure = True)
+    memoryIfElements.append(writeDecl)
+    datumParam = cxx_writer.writer_code.Parameter('datum', archHWordType.makeRef())
+    writeDecl = cxx_writer.writer_code.Method('write_half', emptyBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], pure = True)
+    memoryIfElements.append(writeDecl)
+    datumParam = cxx_writer.writer_code.Parameter('datum', archByteType.makeRef())
+    writeDecl = cxx_writer.writer_code.Method('write_byte', emptyBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], pure = True)
+    memoryIfElements.append(writeDecl)
+    lockDecl = cxx_writer.writer_code.Method('lock', emptyBody, cxx_writer.writer_code.voidType, 'pu', pure = True)
+    memoryIfElements.append(lockDecl)
+    unlockDecl = cxx_writer.writer_code.Method('unlock', emptyBody, cxx_writer.writer_code.voidType, 'pu', pure = True)
+    memoryIfElements.append(unlockDecl)
+    memoryIfDecl = cxx_writer.writer_code.ClassDeclaration('MemoryInterface', memoryIfElements)
+    classes.append(memoryIfDecl)
+    # Now I check if it is the case of creating a local memory
+    # TODO: in case the processor contains memory aliases, we need to make those registers accessible from
+    # the memory. I also have to print in the read and write methods the code to access them
+    readMemAliasCode = ''
+    writeMemAliasCode = ''
+    aliasAttrs = []
+    aliasParams = []
+    aliasInit = []
+    for alias in self.memAlias:
+        pass
+    if self.memory:
+        memoryElements = []
+        emptyBody = cxx_writer.writer_code.Code('')
+        readBody = cxx_writer.writer_code.Code('return *(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
+        addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
+        readDecl = cxx_writer.writer_code.Method('read_word', readBody, archWordType, 'pu', [addressParam])
+        memoryElements.append(readDecl)
+        readBody = cxx_writer.writer_code.Code('return *(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
+        readDecl = cxx_writer.writer_code.Method('read_half', readBody, archHWordType, 'pu', [addressParam])
+        memoryElements.append(readDecl)
+        readBody = cxx_writer.writer_code.Code('return *(' + str(archByteType.makePointer()) + ')(this->memory + (unsigned long)address);')
+        readDecl = cxx_writer.writer_code.Method('read_byte', readBody, archByteType, 'pu', [addressParam])
+        memoryElements.append(readDecl)
+        writeBody = cxx_writer.writer_code.Code('*(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
+        addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
+        datumParam = cxx_writer.writer_code.Parameter('datum', archWordType.makeRef())
+        writeDecl = cxx_writer.writer_code.Method('write_word', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam])
+        memoryElements.append(writeDecl)
+        writeBody = cxx_writer.writer_code.Code('*(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
+        datumParam = cxx_writer.writer_code.Parameter('datum', archHWordType.makeRef())
+        writeDecl = cxx_writer.writer_code.Method('write_half', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam])
+        memoryElements.append(writeDecl)
+        writeBody = cxx_writer.writer_code.Code('*(' + str(archByteType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
+        datumParam = cxx_writer.writer_code.Parameter('datum', archByteType.makeRef())
+        writeDecl = cxx_writer.writer_code.Method('write_byte', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam])
+        memoryElements.append(writeDecl)
+        lockDecl = cxx_writer.writer_code.Method('lock', emptyBody, cxx_writer.writer_code.voidType, 'pu')
+        memoryElements.append(lockDecl)
+        unlockDecl = cxx_writer.writer_code.Method('unlock', emptyBody, cxx_writer.writer_code.voidType, 'pu')
+        memoryElements.append(unlockDecl)
+        arrayAttribute = cxx_writer.writer_code.Attribute('memory', cxx_writer.writer_code.charPtrType, 'pri')
+        memoryElements.append(arrayAttribute)
+        memoryElements += aliasAttrs
+        localMemDecl = cxx_writer.writer_code.ClassDeclaration('LocalMemory', memoryElements, [memoryIfDecl.getType()])
+        constructorBody = cxx_writer.writer_code.Code('this->memory = new char[size];')
+        constructorParams = [cxx_writer.writer_code.Parameter('size', cxx_writer.writer_code.uintType)]
+        publicMemConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams + aliasParams, ['size(size)'] + aliasInit)
+        localMemDecl.addConstructor(publicMemConstr)
+        destructorBody = cxx_writer.writer_code.Code('delete [] this->memory;')
+        publicMemDestr = cxx_writer.writer_code.Destructor(destructorBody, 'pu')
+        localMemDecl.addDestructor(publicMemDestr)
+        classes.append(localMemDecl)
+    # Finally I create all the necessary TLM memory ports
+    # TODO: create using all the newest TLM 2.0 the TLM ports; remember also
+    # to consider endianess issues
+    return classes
 
 def getCPPProc(self, model):
     # creates the class describing the processor
@@ -547,6 +633,12 @@ def getCPPIf(self, model):
     # to access the processor core
     return None
 
+def getCPPExternalPorts(self, model):
+    # creates the processor external ports used for the
+    # communication with the external world (the memory port
+    # is not among this ports, it is treated separately)
+    return None
+
 def getTestMainCode(self):
     # Returns the code for the file which contains the main
     # routine for the execution of the tests.
@@ -560,7 +652,7 @@ def getTestMainCode(self):
 def getMainCode(self, model):
     # Returns the code which instantiate the processor
     # in order to execute simulations
-    code = ''
+    code = 'return 0;'
     mainCode = cxx_writer.writer_code.Code(code)
     parameters = [cxx_writer.writer_code.Parameter('argc', cxx_writer.writer_code.intType), cxx_writer.writer_code.Parameter('argv', cxx_writer.writer_code.charPtrType.makePointer())]
     function = cxx_writer.writer_code.Function('main', code, cxx_writer.writer_code.intType, parameters)

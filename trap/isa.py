@@ -195,13 +195,11 @@ class ISA:
                 if not checkerMethod(reg):
                     raise Exception('Register ' + reg + ' used in the MachineCode description does not exists')
 
-    def getCPPClasses(self, procName, modelType):
-        # TODO: remember that we also need to print the INVALID
-        # instruction
-        return isaWriter.getCPPClasses(self, procName, modelType)
+    def getCPPClasses(self, processor, modelType):
+        return isaWriter.getCPPClasses(self, processor, modelType)
 
-    def getCPPTests(self, procName, modelType):
-        return isaWriter.getCPPTests(self, procName, modelType)
+    def getCPPTests(self, processor, modelType):
+        return isaWriter.getCPPTests(self, processor, modelType)
 
 class Instruction:
     """Represents an instruction of the processor. The instruction
@@ -380,8 +378,8 @@ class Instruction:
     def getCPPClass(self, model):
         return isaWriter.getCPPInstr(self, model)
 
-    def getCPPTest(self, model):
-        return isaWriter.getCPPInstrTest(self, model)
+    def getCPPTest(self,processor,  model):
+        return isaWriter.getCPPInstrTest(self, processor, model)
 
 class HelperOperation:
     """Represents some code; this code can be shared among the
