@@ -128,7 +128,8 @@ class FileDumper:
         if self.includes:
             writer.write('\n')
         for include in self.includes:
-            writer.write('#include <' + include + '>\n')
+            if include != self.name:
+                writer.write('#include <' + include + '>\n')
         writer.write('\n')
         # Now I simply have to print in order all the members
         for member in self.members:

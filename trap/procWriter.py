@@ -46,6 +46,7 @@ binaryOps = ['+', '-', '*', '/', '|', '&', '^']
 unaryOps = ['~']
 comparisonOps = ['<', '>', '<=', '>=', '==', '!=']
 regMaxType = None
+resourceType = {}
 
 def getCPPRegClass(self, model, regType):
     # returns the class implementing the current register; I have to
@@ -278,6 +279,7 @@ def getCPPRegisters(self, model):
     registerElements.append(operatorIntDecl)
     
     ################ Finally I put everything together and print if ##################
+    global resourceType
     regTypes = []
     regTypesCount = {}
     for reg in self.regs + self.regBanks:
@@ -289,11 +291,11 @@ def getCPPRegisters(self, model):
             # I add this one only if it has a different bitMask
             if not reg.bitMask in [i.bitMask for i in filter(lambda x: x.bitWidth == reg.bitWidth, regTypes)]:
                 regTypes.append(reg)
+                regTypesCount[reg.bitWidth] = regTypesCount[reg.bitWidth] + 1
+        resourceType[reg.name] = cxx_writer.writer_code.Type('Reg' + str(reg.bitWidth) + '_' + str(regTypesCount[reg.bitWidth]), 'registers.hpp')
     realRegClasses = []
     for regType in regTypes:
-        customRegType = cxx_writer.writer_code.Type('Reg' + str(regType.bitWidth) + '_' + str(regTypesCount[regType.bitWidth]))
-        regTypesCount[regType.bitWidth] = regTypesCount[regType.bitWidth] + 1
-        realRegClasses.append(regType.getCPPClass(model, customRegType))
+        realRegClasses.append(regType.getCPPClass(model, resourceType[regType.name]))
     registerDecl = cxx_writer.writer_code.SCModule('Register', registerElements)
     registerDecl.addConstructor(publicConstr)
     classes = [InnerFieldClass, registerDecl] + realRegClasses
@@ -310,6 +312,9 @@ def getCPPAlias(self, model):
     registerType = cxx_writer.writer_code.Type('Register', 'registers.hpp')
     aliasType = cxx_writer.writer_code.Type('Alias')
     aliasElements = []
+    global resourceType
+    for i in self.aliasRegs:
+        resourceType[i.name] = cxx_writer.writer_code.Type('Alias', 'alias.hpp')
 
     ####################### Lets declare the operators used to access the register fields ##############
     codeOperatorBody = 'return (*this->reg)[bitField];'
@@ -449,38 +454,40 @@ def getCPPMemoryIf(self, model):
     memoryIfDecl = cxx_writer.writer_code.ClassDeclaration('MemoryInterface', memoryIfElements)
     classes.append(memoryIfDecl)
     # Now I check if it is the case of creating a local memory
-    # TODO: in case the processor contains memory aliases, we need to make those registers accessible from
-    # the memory. I also have to print in the read and write methods the code to access them
     readMemAliasCode = ''
     writeMemAliasCode = ''
     aliasAttrs = []
     aliasParams = []
     aliasInit = []
     for alias in self.memAlias:
-        pass
+        aliasAttrs.append(cxx_writer.writer_code.Attribute(alias.alias, resourceType[alias.alias].makeRef(), 'pri'))
+        aliasParams.append(cxx_writer.writer_code.Parameter(alias.alias, resourceType[alias.alias].makeRef()))
+        aliasInit.append(alias.alias + '(' + alias.alias + ')')
+        readMemAliasCode += 'if(address == ' + str(alias.address) + '){\nreturn ' + alias.alias + ';\n}\n'
+        writeMemAliasCode += 'if(address == ' + str(alias.address) + '){\n' + alias.alias + ' = datum;\nreturn;\n}\n'
     if self.memory:
         memoryElements = []
         emptyBody = cxx_writer.writer_code.Code('')
-        readBody = cxx_writer.writer_code.Code('return *(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
+        readBody = cxx_writer.writer_code.Code(readMemAliasCode + 'return *(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
         addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
         readDecl = cxx_writer.writer_code.Method('read_word', readBody, archWordType, 'pu', [addressParam])
         memoryElements.append(readDecl)
-        readBody = cxx_writer.writer_code.Code('return *(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
+        readBody = cxx_writer.writer_code.Code(readMemAliasCode + 'return *(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
         readDecl = cxx_writer.writer_code.Method('read_half', readBody, archHWordType, 'pu', [addressParam])
         memoryElements.append(readDecl)
-        readBody = cxx_writer.writer_code.Code('return *(' + str(archByteType.makePointer()) + ')(this->memory + (unsigned long)address);')
+        readBody = cxx_writer.writer_code.Code(readMemAliasCode + 'return *(' + str(archByteType.makePointer()) + ')(this->memory + (unsigned long)address);')
         readDecl = cxx_writer.writer_code.Method('read_byte', readBody, archByteType, 'pu', [addressParam])
         memoryElements.append(readDecl)
-        writeBody = cxx_writer.writer_code.Code('*(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
+        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + '*(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
         addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
         datumParam = cxx_writer.writer_code.Parameter('datum', archWordType.makeRef())
         writeDecl = cxx_writer.writer_code.Method('write_word', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam])
         memoryElements.append(writeDecl)
-        writeBody = cxx_writer.writer_code.Code('*(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
+        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + '*(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
         datumParam = cxx_writer.writer_code.Parameter('datum', archHWordType.makeRef())
         writeDecl = cxx_writer.writer_code.Method('write_half', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam])
         memoryElements.append(writeDecl)
-        writeBody = cxx_writer.writer_code.Code('*(' + str(archByteType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
+        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + '*(' + str(archByteType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
         datumParam = cxx_writer.writer_code.Parameter('datum', archByteType.makeRef())
         writeDecl = cxx_writer.writer_code.Method('write_byte', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam])
         memoryElements.append(writeDecl)
@@ -577,7 +584,7 @@ def getCPPProc(self, model):
     else:
         totCyclesAttribute = cxx_writer.writer_code.Attribute('totalCycles', cxx_writer.writer_code.uintType, 'pu')
         processorElements.append(totCyclesAttribute)
-    IntructionType = cxx_writer.writer_code.Type('Instruction', include = 'instruction.hpp')
+    IntructionType = cxx_writer.writer_code.Type('Instruction', include = 'instructions.hpp')
     IntructionTypePtr = IntructionType.makePointer()
     instructionsAttribute = cxx_writer.writer_code.Attribute('INSTRUCTIONS',
                             IntructionTypePtr.makePointer(), 'pri', True, 'NULL')
