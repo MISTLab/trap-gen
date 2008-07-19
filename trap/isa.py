@@ -97,14 +97,14 @@ class ISA:
     def addOperation(self, operation):
         if operation.instrvars:
             raise Exception('Operation ' + operation.name + ' contains instruction variables, but this is not allowed for operations not assegned to a particular instruction')
-        for i in self.helperOps:
+        for i in self.helperOps + self.methods:
             if i.name == operation.name:
                 raise Exception('Operation ' + operation.name + ' already added to the ISA')
         operation.numUsed += 1
         self.helperOps.append(operation)
 
     def addMethod(self, method):
-        for i in self.methods:
+        for i in self.methods + self.helperOps:
             if i.name == method.name:
                 raise Exception('Method ' + method.name + ' already added to the ISA')
         self.methods.append(method)
@@ -114,7 +114,7 @@ class ISA:
         # TODO: do we need to access the fields of the instructions? if so
         # which? the ones which have the same name and same position in all
         # the instructions?
-        for i in self.helperOps:
+        for i in self.helperOps + self.methods:
             if i.name == operation.name:
                 raise Exception('Operation ' + operation.name + ' already added to the ISA')
         self.beginOp = operation
@@ -123,7 +123,7 @@ class ISA:
         # Operation executed at the end of every instruction
         # TODO: as for the begin op, do we need to access any
         # of the instruction fields?
-        for i in self.helperOps:
+        for i in self.helperOps + self.methods:
             if i.name == operation.name:
                 raise Exception('Operation ' + operation.name + ' already added to the ISA')
         self.endOp = operation
@@ -428,6 +428,10 @@ class HelperOperation:
                     raise Exception('Trying to add variable ' + variable.name + ' of type ' + variable.type.name + ' to operation ' + self.name + ' which already has a variable with such a name of type ' + instrVar.type.name)
         self.instrvars.append(variable)
 
+    def getCppOperation(self):
+        # returns the cpp code implementing the current method
+        return isaWriter.getCppOperation(self)
+
     def __repr__(self):
         return self.name
 
@@ -479,6 +483,10 @@ class HelperMethod:
                 if param.name == lparam.name:
                     raise Exception('Trying to add parameter ' + param.name + ' to operation ' + self.name + ' which already has a parameter with such a name')
             self.parameters.append(param)
+
+    def getCppMethod(self):
+        # returns the cpp code implementing the current method
+        return isaWriter.getCppMethod(self)
 
     def __repr__(self):
         return self.name

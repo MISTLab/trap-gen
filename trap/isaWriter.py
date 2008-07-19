@@ -35,6 +35,19 @@
 
 import cxx_writer
 
+# Contains, for each behavior, the type corresponding to the class which defines
+# it. If a behavior is not here it means that it must be explicitly inlined
+# in the instruction itself
+behClass = {}
+
+def getCppMethod(self):
+    # Returns the code implementing a helper method
+    return None
+
+def getCppOperation(self):
+    # Returns the code implementing a helper operation
+    return None
+
 def getCPPInstr(self, model):
     # Returns the code implementing the current instruction: we have to provide the
     # implementation of all the abstract methods and call from the behavior method
@@ -88,14 +101,40 @@ def getCPPClasses(self, processor, modelType):
     setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
     setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam], pure = True)
     instructionElements.append(setparamsDecl)
-    # TODO: we have to check all the operation and the behaviors of the instructions and build
-    # the instruction hierarchy in order to group them depending on which instructions use
-    # them: the ones used by all in the base instruction, then if set A use another method, we
-    # crea the superclass A, etc.
+    # we now have to check if there is a non-inline behavior common to all instructions:
+    # in this case I declare it here in the base instruction class
+    behNum = {}
+    for instr in self.instructions.values():
+        for behaviors in instr.postbehaviors.values() + instr.prebehaviors.values():
+            for beh in behaviors:
+                if behNum.has_key(beh.name):
+                    behNum[beh.name][0] = behNum[beh.name][0] + 1
+                else:
+                    behNum[beh.name] = [1, beh]
+    for behv, num in behNum.items():
+        if num[0] == len(self.instructions):
+            # This behavior is present in all the instructions: I declare it in
+            # the base instruction class
+            instructionElements.append(num[1].getCppOperation())
+    # Ok, now I add the generic helper methods and operations
+    for helpOp in self.helperOps + [self.beginOp, self.endOp]:
+        if helpOp:
+            instructionElements.append(helpOp.getCppOperation())
+    for helpMeth in self.methods:
+        if helpMeth:
+            instructionElements.append(helpMeth.getCppMethod())
     # TODO: create references to the architectural elements contained in the processor
     instructionDecl = cxx_writer.writer_code.ClassDeclaration('Instruction', instructionElements)
     classes.append(instructionDecl)
-    
+
+    # we now have to check all the operation and the behaviors of the instructions and create
+    # the classes for each shared non-inline behavior
+    for instr in self.instructions.values():
+        for behaviors in instr.postbehaviors.values() + instr.prebehaviors.values():
+            for beh in behaviors:
+                if not behClass.has_key(beh.name) and beh.inline:
+                    behClass[beh.name] = beh.getCppOperation()
+
     # Now I go over all the other instructions and I declare them
     for instr in self.instructions.values():
         classes.append(instr.getCPPClass(modelType))
