@@ -136,7 +136,7 @@ switch(curMode){
     case 0x1:{
         //I'm in FIQ mode
         CPSR = SPSR[0];
-        break;
+        break;}
     case 0x2:{
         //I'm in IRQ mode
         CPSR = SPSR[1];

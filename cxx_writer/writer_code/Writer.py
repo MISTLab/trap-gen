@@ -77,7 +77,7 @@ class CodeWriter:
         for line in self.codeBuffer.split('\n')[:-1]:
             line = line.strip()
             # I check if it is the case to unindent
-            if line.startswith('}') and self.curIndent >= self.indentSize:
+            if line.endswith('}') and self.curIndent >= self.indentSize:
                 self.curIndent -= self.indentSize
             # Now I print the current line, making sure that It is not too long
             # in case I send it to a new line
@@ -114,7 +114,7 @@ class CodeWriter:
             if toModify[i] == ' ':
                 break
         if i < endToCheck - 1:
-            return toModify[:i] + '\n' + singleIndent + totalIndent + self.go_new_line(toModify[(i + 1):endToCheck])
+            return toModify[:i] + ' \\ \n' + singleIndent + totalIndent + self.go_new_line(toModify[(i + 1):endToCheck])
         else:
             if i < len(toModify) - 1:
                 return toModify[:(endToCheck + 1)] + self.go_new_line(toModify[(endToCheck + 1):])

@@ -42,10 +42,21 @@ behClass = {}
 
 def getCppMethod(self):
     # Returns the code implementing a helper method
-    return None
+    for var in self.localvars:
+        self.code.addVariable(var)
+    methodDecl = cxx_writer.writer_code.Method(self.name, self.code, self.retType, 'pu', self.parameters)
+    return methodDecl
 
 def getCppOperation(self):
     # Returns the code implementing a helper operation
+    for var in self.localvars:
+        self.code.addVariable(var)
+    methodDecl = cxx_writer.writer_code.Method(self.name, self.code, cxx_writer.writer_code.voidType, 'pro')
+    return methodDecl
+
+def getCppOpClass(self):
+    # Returns a class (directly deriving from instruction) implementing the
+    # method corresponding to the current operation
     return None
 
 def getCPPInstr(self, model):
@@ -103,19 +114,15 @@ def getCPPClasses(self, processor, modelType):
     instructionElements.append(setparamsDecl)
     # we now have to check if there is a non-inline behavior common to all instructions:
     # in this case I declare it here in the base instruction class
-    behNum = {}
+    alreadyDeclared = []
     for instr in self.instructions.values():
         for behaviors in instr.postbehaviors.values() + instr.prebehaviors.values():
             for beh in behaviors:
-                if behNum.has_key(beh.name):
-                    behNum[beh.name][0] = behNum[beh.name][0] + 1
-                else:
-                    behNum[beh.name] = [1, beh]
-    for behv, num in behNum.items():
-        if num[0] == len(self.instructions):
-            # This behavior is present in all the instructions: I declare it in
-            # the base instruction class
-            instructionElements.append(num[1].getCppOperation())
+                if beh.numUsed == len(self.instructions) and not beh.name in alreadyDeclared:
+                    # This behavior is present in all the instructions: I declare it in
+                    # the base instruction class
+                    alreadyDeclared.append(beh.name)
+                    instructionElements.append(beh.getCppOperation())
     # Ok, now I add the generic helper methods and operations
     for helpOp in self.helperOps + [self.beginOp, self.endOp]:
         if helpOp:
@@ -123,7 +130,8 @@ def getCPPClasses(self, processor, modelType):
     for helpMeth in self.methods:
         if helpMeth:
             instructionElements.append(helpMeth.getCppMethod())
-    # TODO: create references to the architectural elements contained in the processor
+    # TODO: create references to the architectural elements contained in the processor and
+    # initialize them through the constructor
     instructionDecl = cxx_writer.writer_code.ClassDeclaration('Instruction', instructionElements)
     classes.append(instructionDecl)
 
@@ -133,7 +141,8 @@ def getCPPClasses(self, processor, modelType):
         for behaviors in instr.postbehaviors.values() + instr.prebehaviors.values():
             for beh in behaviors:
                 if not behClass.has_key(beh.name) and beh.inline:
-                    behClass[beh.name] = beh.getCppOperation()
+                    behClass[beh.name] = beh.getCppOpClass()
+                    classes.append(behClass[beh.name])
 
     # Now I go over all the other instructions and I declare them
     for instr in self.instructions.values():

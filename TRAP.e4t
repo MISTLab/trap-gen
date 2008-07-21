@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Tasks SYSTEM "Tasks-4.1.dtd">
 <!-- eric4 tasks file for project TRAP -->
-<!-- Saved: 2008-07-19, 02:41:12 -->
+<!-- Saved: 2008-07-21, 13:10:18 -->
 <Tasks version="4.1">
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: see this category, maybe we can express it in a more general way</Summary>
@@ -27,45 +27,6 @@
         <Name>ARMCoding.py</Name>
       </Filename>
       <Linenumber>82</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: I do not like this way: I would like to make it more automatic</Summary>
-    <Description></Description>
-    <Created>2008-07-15, 01:47:06</Created>
-    <Resource>
-      <Filename>
-        <Dir>processors</Dir>
-        <Dir>ARM7TDMI</Dir>
-        <Name>ARMMethods.py</Name>
-      </Filename>
-      <Linenumber>46</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: check carry and overflow operations; in particular, are they valid for</Summary>
-    <Description></Description>
-    <Created>2008-07-15, 01:47:06</Created>
-    <Resource>
-      <Filename>
-        <Dir>processors</Dir>
-        <Dir>ARM7TDMI</Dir>
-        <Name>ARMMethods.py</Name>
-      </Filename>
-      <Linenumber>523</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: add the possibility of defining templated methods as done for</Summary>
-    <Description></Description>
-    <Created>2008-07-16, 17:48:50</Created>
-    <Resource>
-      <Filename>
-        <Dir>cxx_writer</Dir>
-        <Dir>writer_code</Dir>
-        <Name>ClassDecls.py</Name>
-      </Filename>
-      <Linenumber>49</Linenumber>
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
@@ -154,9 +115,22 @@
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: add the possibility of defining templated methods as done for</Summary>
+    <Description></Description>
+    <Created>2008-07-21, 12:23:43</Created>
+    <Resource>
+      <Filename>
+        <Dir>cxx_writer</Dir>
+        <Dir>writer_code</Dir>
+        <Name>ClassDecls.py</Name>
+      </Filename>
+      <Linenumber>49</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: do we need to access the fields of the instructions? if so</Summary>
     <Description></Description>
-    <Created>2008-07-19, 02:29:22</Created>
+    <Created>2008-07-21, 12:37:17</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
@@ -168,7 +142,7 @@
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: as for the begin op, do we need to access any</Summary>
     <Description></Description>
-    <Created>2008-07-19, 02:29:22</Created>
+    <Created>2008-07-21, 12:37:17</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
@@ -180,7 +154,7 @@
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: think about how to do the mnemonic</Summary>
     <Description></Description>
-    <Created>2008-07-19, 02:29:22</Created>
+    <Created>2008-07-21, 12:37:17</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
@@ -192,43 +166,19 @@
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO:</Summary>
     <Description></Description>
-    <Created>2008-07-19, 02:40:41</Created>
+    <Created>2008-07-21, 12:38:01</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
         <Name>isaWriter.py</Name>
       </Filename>
-      <Linenumber>47</Linenumber>
+      <Linenumber>66</Linenumber>
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: first of all I create the instance of the instruction and of all the</Summary>
     <Description></Description>
-    <Created>2008-07-19, 02:40:41</Created>
-    <Resource>
-      <Filename>
-        <Dir>trap</Dir>
-        <Name>isaWriter.py</Name>
-      </Filename>
-      <Linenumber>57</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: I perform the operation</Summary>
-    <Description></Description>
-    <Created>2008-07-19, 02:40:41</Created>
-    <Resource>
-      <Filename>
-        <Dir>trap</Dir>
-        <Name>isaWriter.py</Name>
-      </Filename>
-      <Linenumber>65</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: remember that we also need to print the INVALID</Summary>
-    <Description></Description>
-    <Created>2008-07-19, 02:40:41</Created>
+    <Created>2008-07-21, 12:38:01</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
@@ -238,15 +188,65 @@
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: create references to the architectural elements contained in the processor</Summary>
+    <Summary>TODO: I perform the operation</Summary>
     <Description></Description>
-    <Created>2008-07-19, 02:40:41</Created>
+    <Created>2008-07-21, 12:38:01</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
         <Name>isaWriter.py</Name>
       </Filename>
-      <Linenumber>110</Linenumber>
+      <Linenumber>84</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: remember that we also need to print the INVALID</Summary>
+    <Description></Description>
+    <Created>2008-07-21, 12:38:01</Created>
+    <Resource>
+      <Filename>
+        <Dir>trap</Dir>
+        <Name>isaWriter.py</Name>
+      </Filename>
+      <Linenumber>95</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: create references to the architectural elements contained in the processor and</Summary>
+    <Description></Description>
+    <Created>2008-07-21, 12:38:01</Created>
+    <Resource>
+      <Filename>
+        <Dir>trap</Dir>
+        <Name>isaWriter.py</Name>
+      </Filename>
+      <Linenumber>133</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: I do not like this way: I would like to make it more automatic</Summary>
+    <Description></Description>
+    <Created>2008-07-21, 12:43:21</Created>
+    <Resource>
+      <Filename>
+        <Dir>processors</Dir>
+        <Dir>ARM7TDMI</Dir>
+        <Name>ARMMethods.py</Name>
+      </Filename>
+      <Linenumber>46</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: check carry and overflow operations; in particular, are they valid for</Summary>
+    <Description></Description>
+    <Created>2008-07-21, 12:43:21</Created>
+    <Resource>
+      <Filename>
+        <Dir>processors</Dir>
+        <Dir>ARM7TDMI</Dir>
+        <Name>ARMMethods.py</Name>
+      </Filename>
+      <Linenumber>523</Linenumber>
     </Resource>
   </Task>
 </Tasks>

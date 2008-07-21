@@ -431,6 +431,12 @@ class HelperOperation:
     def getCppOperation(self):
         # returns the cpp code implementing the current method
         return isaWriter.getCppOperation(self)
+        
+    def getCppOpClass(self):
+        # Relturn a CPP class, deriving from Instruction,
+        # implementing a method which defines the current
+        # oepration
+        return isaWriter.getCppOpClass(self)
 
     def __repr__(self):
         return self.name

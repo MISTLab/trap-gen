@@ -215,10 +215,11 @@ class ClassDeclaration(DumpElement):
     and public and they are dumped in that order; if a member does
     not have the visibility attribute it is considered public."""
 
-    def __init__(self, className, members = [], superclasses = [], template = []):
+    def __init__(self, className, members = [], superclasses = [], template = [], virtual_superclasses = []):
         DumpElement.__init__(self, className)
         self.members = members
         self.superclasses = superclasses
+        self.virtual_superclasses = virtual_superclasses
         self.template = template
         self.innerClasses = []
 
@@ -282,6 +283,11 @@ class ClassDeclaration(DumpElement):
         writer.write('class ' + self.name)
         if self.superclasses:
             writer.write(' : ')
+        for i in self.virtual_superclasses:
+            writer.write('public virtual ')
+            i.writeDeclaration(writer)
+            if i != self.virtual_superclasses[-1] or self.superclasses:
+                writer.write(', ')
         for i in self.superclasses:
             writer.write('public ')
             i.writeDeclaration(writer)
