@@ -281,7 +281,7 @@ class ClassDeclaration(DumpElement):
                     writer.write(', ')
             writer.write(' > ')
         writer.write('class ' + self.name)
-        if self.superclasses:
+        if self.superclasses or self.virtual_superclasses:
             writer.write(' : ')
         for i in self.virtual_superclasses:
             writer.write('public virtual ')
@@ -360,7 +360,7 @@ class ClassDeclaration(DumpElement):
 
     def getIncludes(self):
         includes = []
-        for i in self.superclasses:
+        for i in self.superclasses + self.virtual_superclasses:
             for j in i.getIncludes():
                 if not j in includes:
                     includes.append(j)

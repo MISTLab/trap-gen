@@ -39,11 +39,13 @@ import cxx_writer
 # it. If a behavior is not here it means that it must be explicitly inlined
 # in the instruction itself
 behClass = {}
+archWordType = None
 
 def getCppMethod(self):
     # Returns the code implementing a helper method
     for var in self.localvars:
         self.code.addVariable(var)
+    self.code.addInclude('utils.hpp')
     methodDecl = cxx_writer.writer_code.Method(self.name, self.code, self.retType, 'pu', self.parameters)
     return methodDecl
 
@@ -51,20 +53,51 @@ def getCppOperation(self):
     # Returns the code implementing a helper operation
     for var in self.localvars:
         self.code.addVariable(var)
-    methodDecl = cxx_writer.writer_code.Method(self.name, self.code, cxx_writer.writer_code.voidType, 'pro')
+    self.code.addInclude('utils.hpp')
+    methodDecl = cxx_writer.writer_code.Method(self.name, self.code, cxx_writer.writer_code.voidType, 'pro', inline = True)
     return methodDecl
 
 def getCppOpClass(self):
     # Returns a class (directly deriving from instruction) implementing the
     # method corresponding to the current operation
-    return None
+    instructionType = cxx_writer.writer_code.Type('Instruction', 'instructions.hpp')
+    for var in self.localvars:
+        self.code.addVariable(var)
+    self.code.addInclude('utils.hpp')
+    methodDecl = cxx_writer.writer_code.Method(self.name, self.code, cxx_writer.writer_code.voidType, 'pro', inline = True)
+    opDecl = cxx_writer.writer_code.ClassDeclaration(self.name + '_op', [methodDecl], virtual_superclasses = [instructionType])
+    return opDecl
 
 def getCPPInstr(self, model):
     # Returns the code implementing the current instruction: we have to provide the
     # implementation of all the abstract methods and call from the behavior method
     # all the different behaviors contained in the type hierarchy of this class
-    # TODO:
-    return None
+    instructionType = cxx_writer.writer_code.Type('Instruction', 'instructions.hpp')
+    classElements = []
+    baseClasses = []
+    toInline = []
+    for behaviors in self.postbehaviors.values() + self.prebehaviors.values():
+        for beh in behaviors:
+            if behClass.has_key(beh.name):
+                baseClasses.append(behClass[beh.name].getType())
+            elif beh.inline:
+                classElements.append(beh.getCppOperation())
+            else:
+                toInline.append(beh.name)
+    if not baseClasses:
+        baseClasses.append(instructionType)
+    behaviorBody = cxx_writer.writer_code.Code('//TODO')
+    behaviorDecl = cxx_writer.writer_code.Method('behavior', behaviorBody, cxx_writer.writer_code.uintType, 'pu')
+    classElements.append(behaviorDecl)
+    replicateBody = cxx_writer.writer_code.Code('//TODO')
+    replicateDecl = cxx_writer.writer_code.Method('replicate', replicateBody, instructionType.makePointer(), 'pu')
+    classElements.append(replicateDecl)
+    setParamsBody = cxx_writer.writer_code.Code('//TODO')
+    setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
+    setparamsDecl = cxx_writer.writer_code.Method('setParams', setParamsBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam])
+    classElements.append(setparamsDecl)
+    instructionDecl = cxx_writer.writer_code.ClassDeclaration(self.name, classElements, superclasses = baseClasses)
+    return instructionDecl
 
 def getCPPInstrTest(self, processor, model):
     # Returns the code testing the current instruction: note that a test
@@ -98,6 +131,7 @@ def getCPPClasses(self, processor, modelType):
     # I go over each instruction and print the class representing it;
     # note how the instruction base class is part of the runtime
     from isa import resolveBitType
+    global archWordType
     archWordType = resolveBitType('BIT<' + str(processor.wordSize*processor.byteSize) + '>')
     classes = []
     # First of all I create the base instruction type: note that it contains references
@@ -132,15 +166,18 @@ def getCPPClasses(self, processor, modelType):
             instructionElements.append(helpMeth.getCppMethod())
     # TODO: create references to the architectural elements contained in the processor and
     # initialize them through the constructor
+    # TODO: create the methods (stall, flush, etc.) use to controll the instruction flow.
+    # are they going to be part of the instructions ISA?
     instructionDecl = cxx_writer.writer_code.ClassDeclaration('Instruction', instructionElements)
     classes.append(instructionDecl)
 
     # we now have to check all the operation and the behaviors of the instructions and create
     # the classes for each shared non-inline behavior
+    global behClass
     for instr in self.instructions.values():
         for behaviors in instr.postbehaviors.values() + instr.prebehaviors.values():
             for beh in behaviors:
-                if not behClass.has_key(beh.name) and beh.inline:
+                if not behClass.has_key(beh.name) and beh.inline and beh.numUsed > 1:
                     behClass[beh.name] = beh.getCppOpClass()
                     classes.append(behClass[beh.name])
 

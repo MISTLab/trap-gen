@@ -77,7 +77,7 @@ class CodeWriter:
         for line in self.codeBuffer.split('\n')[:-1]:
             line = line.strip()
             # I check if it is the case to unindent
-            if line.endswith('}') and self.curIndent >= self.indentSize:
+            if (line.endswith('}') or line.startswith('}')) and self.curIndent >= self.indentSize:
                 self.curIndent -= self.indentSize
             # Now I print the current line, making sure that It is not too long
             # in case I send it to a new line
