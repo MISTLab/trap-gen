@@ -125,9 +125,6 @@ def getCPPInstrTest(self, processor, model):
     return tests
 
 def getCPPClasses(self, processor, modelType):
-    # TODO: remember that we also need to print the INVALID
-    # instruction (how do we deal with the cycle accurate? when do we
-    # raise the error there?)
     # I go over each instruction and print the class representing it;
     # note how the instruction base class is part of the runtime
     from isa import resolveBitType
@@ -166,6 +163,7 @@ def getCPPClasses(self, processor, modelType):
             instructionElements.append(helpMeth.getCppMethod())
     # TODO: create references to the architectural elements contained in the processor and
     # initialize them through the constructor
+    from procWriter import resourceType
     # TODO: create the methods (stall, flush, etc.) use to controll the instruction flow.
     # are they going to be part of the instructions ISA?
     instructionDecl = cxx_writer.writer_code.ClassDeclaration('Instruction', instructionElements)
@@ -181,6 +179,26 @@ def getCPPClasses(self, processor, modelType):
                     behClass[beh.name] = beh.getCppOpClass()
                     classes.append(behClass[beh.name])
 
+    # Now I print the invalid instruction
+    invalidInstrElements = []
+    codeString = 'THROW_EXCEPTION(\"Unknown Instruction at PC: \" << this->' + processor.fetchReg[0]
+    if modelType.startswith('func'):
+        if processor.fetchReg[1] < 0:
+            codeString += str(processor.fetchReg[1])
+        else:
+            codeString += '+' + str(processor.fetchReg[1])
+    codeString += ');\nreturn 0;'
+    behaviorBody = cxx_writer.writer_code.Code(codeString)
+    behaviorDecl = cxx_writer.writer_code.Method('behavior', behaviorBody, cxx_writer.writer_code.uintType, 'pu')
+    invalidInstrElements.append(behaviorDecl)
+    replicateBody = cxx_writer.writer_code.Code('return this;')
+    replicateDecl = cxx_writer.writer_code.Method('replicate', replicateBody, instructionType.makePointer(), 'pu')
+    invalidInstrElements.append(replicateDecl)
+    setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
+    setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam])
+    invalidInstrElements.append(setparamsDecl)
+    invalidInstrDecl = cxx_writer.writer_code.ClassDeclaration('InvalidInstr', invalidInstrElements, [instructionDecl.getType()])
+    classes.append(invalidInstrDecl)
     # Now I go over all the other instructions and I declare them
     for instr in self.instructions.values():
         classes.append(instr.getCPPClass(modelType))

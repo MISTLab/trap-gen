@@ -120,8 +120,8 @@ class AliasRegister:
     might be updated during program execution to point to
     the right register; updating it is responsibility of
     the programmer; it is also possible to directly specify
-    a target for the alias: in this case the alias is fixed"""
-    def __init__(self, name, initAlias):
+    a target for the alias"""
+    def __init__(self, name, initAlias, offset = 0):
         self.name = name
         # I make sure that there is just one registers specified for
         # the alias
@@ -130,8 +130,8 @@ class AliasRegister:
             if index[0] != index[1]:
                 raise Exception('Aliasing a single register, so ' + initAlias + ' cannot specify an interval of more than on register')
         self.initAlias = initAlias
+        self.offset = offset
         self.defValue = None
-
     def setDefaultValue(self, value):
         self.defValue = value
 
@@ -173,12 +173,16 @@ class AliasRegBank:
             if totalRegs != numRegs:
                 raise Exception('Aliasing a register bank of width ' + str(numRegs) + ', while ' + str(initAlias) + ' contains a different number of registers')
         self.initAlias = initAlias
-        self.defValues = {}
+        self.defValues = [None for i in range(0, numRegs)]
+    def setDefaultValues(self, values):
+        if len(values) != self.numRegs:
+            raise Exception('The initialization values for alias bank ' + self.name + ' are different, in number, from the number of registers')
+        self.defValues = values
 
     def setDefaultValue(self, value, position):
         if position < 0 or position >= self.numRegs:
-            raise Exception('The initialization value for register bank ' + self.name + ' position ' + position + ' is not valid: position out of range')
-        self.defValues[str(position)] = value
+            raise Exception('The initialization value for alias bank ' + self.name + ' position ' + position + ' is not valid: position out of range')
+        self.defValues[position] = value
 
 class Processor:
     """

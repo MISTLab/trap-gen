@@ -139,6 +139,7 @@ def getCPPRegClass(self, model, regType):
     constructorBody = cxx_writer.writer_code.Code('this->value = 0;')
     constructorParams = [cxx_writer.writer_code.Parameter('name', cxx_writer.writer_code.sc_module_nameType)]
     publicMainClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['Register(name, ' + str(self.bitWidth) + ')'] + fieldInit)
+    publicMainClassEmptyConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', initList = ['Register(sc_gen_unique_name(' + regType.name + '), ' + str(self.bitWidth) + ')'] + fieldInit)
     
     # Stream Operators
     outStreamType = cxx_writer.writer_code.Type('std::ostream', 'ostream')
@@ -203,6 +204,7 @@ def getCPPRegClass(self, model, regType):
     
     registerDecl = cxx_writer.writer_code.ClassDeclaration(regType.name, registerElements, [registerType])
     registerDecl.addConstructor(publicMainClassConstr)
+    registerDecl.addConstructor(publicMainClassEmptyConstr)
     for i in innerClasses:
         registerDecl.addInnerClass(i)
     return registerDecl
@@ -313,7 +315,7 @@ def getCPPAlias(self, model):
     aliasType = cxx_writer.writer_code.Type('Alias')
     aliasElements = []
     global resourceType
-    for i in self.aliasRegs:
+    for i in self.aliasRegs + self.aliasRegBanks:
         resourceType[i.name] = cxx_writer.writer_code.Type('Alias', 'alias.hpp')
 
     ####################### Lets declare the operators used to access the register fields ##############
@@ -388,6 +390,7 @@ def getCPPAlias(self, model):
     constructorBody = cxx_writer.writer_code.Code('')
     constructorParams = [cxx_writer.writer_code.Parameter('reg', registerType.makePointer()), cxx_writer.writer_code.Parameter('offset', cxx_writer.writer_code.uintType, initValue = '0')]
     publicMainClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['reg(reg)', 'offset(offset)'])
+    publicMainEmptyClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu')
     
     # Stream Operators
     outStreamType = cxx_writer.writer_code.Type('std::ostream', 'ostream')
@@ -415,6 +418,7 @@ def getCPPAlias(self, model):
     aliasElements.append(offsetAttribute)
     aliasDecl = cxx_writer.writer_code.ClassDeclaration(aliasType.name, aliasElements)
     aliasDecl.addConstructor(publicMainClassConstr)
+    aliasDecl.addConstructor(publicMainEmptyClassConstr)
     classes = [aliasDecl]
     return classes
 
@@ -578,11 +582,63 @@ def getCPPProc(self, model):
     processorElements.append(mainLoopMethod)
     decoderAttribute = cxx_writer.writer_code.Attribute('decoder', cxx_writer.writer_code.Type('Decoder', 'decoder.hpp'), 'pri')
     processorElements.append(decoderAttribute)
+    # Lets now add the registers, the reg banks, the aliases, etc.
+    # We also need to add the memory
+    initElements = []
+    bodyInits = ''
+    bodyDestructor = ''
+    for reg in self.regs:
+        attribute = cxx_writer.writer_code.Attribute(reg.name, resourceType[reg.name], 'pu')
+        initElements.append(reg.name + '(\"' + reg.name + '\")')
+        processorElements.append(attribute)
+    for regB in self.regBanks:
+        attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name].makePointer(), 'pu')
+        bodyInits += 'this->' + regB.name + ' = new ' + str(resourceType[regB.name]) + '[' + str(regB.numRegs) + '];\n'
+        bodyDestructor += 'delete [] this->' + regB.name + ';\n'
+        processorElements.append(attribute)
+    for alias in self.aliasRegs:
+        attribute = cxx_writer.writer_code.Attribute(alias.name, resourceType[alias.name], 'pu')
+        initElements.append(alias.name + '(&' + alias.initAlias + ', ' + str(alias.offset) + ')')
+        processorElements.append(attribute)
+    for aliasB in self.aliasRegBanks:
+        attribute = cxx_writer.writer_code.Attribute(aliasB.name, resourceType[aliasB.name].makePointer(), 'pu')
+        bodyInits += 'this->' + aliasB.name + ' = new ' + str(resourceType[aliasB.name]) + '[' + str(aliasB.numRegs) + '];\n'
+        bodyDestructor += 'delete [] this->' + aliasB.name + ';\n'
+        # Lets now deal with the initialization of the single elements of the regBank
+        from processor import extractRegInterval
+        if isinstance(aliasB.initAlias, type('')):
+            index = extractRegInterval(aliasB.initAlias)
+            curIndex = index[0]
+            for i in range(0, aliasB.numRegs):
+                bodyInits += 'this->' + aliasB.name + '[' + str(i) + '].updateAlias(' + aliasB.initAlias[:aliasB.initAlias.find('[')] + '[' + str(curIndex) + ']);\n'
+                curIndex += 1
+        else:
+            curIndex = 0
+            for i in initAlias:
+                index = extractRegInterval(i)
+                for i in range(index[0], index[1] + 1):
+                    bodyInits += 'this->' + aliasB.name + '[' + str(curIndex) + '].updateAlias(' + aliasB.initAlias[:aliasB.initAlias.find('[')] + '[' + str(i) + ']);\n'
+                    curIndex += 1
+        processorElements.append(attribute)
+    # TODO: check the initialization of the aliases, their initialization must be chained (we should
+    # create an initialization graph since an alias might depend on another one ...)
+    if self.memory:
+        attribute = cxx_writer.writer_code.Attribute(self.memory[0], cxx_writer.writer_code.Type('LocalMemory', 'memory.hpp'), 'pu')
+        initMemCode = self.memory[0] + '(' + str(self.memory[1])
+        for memAl in self.memAlias:
+            initMemCode += ', ' + memAl.alias
+        initMemCode += ')'
+        initElements.append(initMemCode)
+        processorElements.append(attribute)
+    for tlmPortName in self.tlmPorts.keys():
+        attribute = cxx_writer.writer_code.Attribute(tlmPortName, cxx_writer.writer_code.Type('TLMPORT', 'memory.hpp'), 'pu')
+        processorElements.append(attribute)        
     if self.systemc or model.startswith('acc'):
         # Here we need to insert the quantum keeper etc.
         pass
     else:
         totCyclesAttribute = cxx_writer.writer_code.Attribute('totalCycles', cxx_writer.writer_code.uintType, 'pu')
+        bodyInits += 'this->totalCycles = 0;\n'
         processorElements.append(totCyclesAttribute)
     IntructionType = cxx_writer.writer_code.Type('Instruction', include = 'instructions.hpp')
     IntructionTypePtr = IntructionType.makePointer()
@@ -605,10 +661,7 @@ def getCPPProc(self, model):
         constrCode += 'Processor::INSTRUCTIONS[' + str(instr.id) + '] = new ' + name + '();\n'
     constrCode += 'Processor::INSTRUCTIONS[' + str(maxInstrId) + '] = new InvalidInstr();\n'
     constrCode += '}\n'
-    if self.memory:
-        # Here we need to create and instance of the memory
-        constrCode += '//Creating the memory instance'
-    # TODO: Finally we initialize the instances of the other architectural elements
+    constrCode += bodyInits
     if self.systemc or model.startswith('acc'):
         # TODO: We also need to initialize the quantuum keeper etc
         constrCode += 'SC_THREAD(mainLoop);\n'
@@ -618,7 +671,7 @@ def getCPPProc(self, model):
     constructorBody = cxx_writer.writer_code.Code(constrCode)
     constructorParams = [cxx_writer.writer_code.Parameter('name', cxx_writer.writer_code.sc_module_nameType), 
                 cxx_writer.writer_code.Parameter('latency', cxx_writer.writer_code.sc_timeType)]
-    publicConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['sc_module(name)'])
+    publicConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['sc_module(name)'] + initElements)
     destrCode = """Processor::numInstances--;
     if(Processor::numInstances == 0){
         for(int i = 0; i < """ + str(maxInstrId + 1) + """; i++){
@@ -628,6 +681,7 @@ def getCPPProc(self, model):
         Processor::INSTRUCTIONS = NULL;
     }
     """
+    destrCode += bodyDestructor
     destructorBody = cxx_writer.writer_code.Code(destrCode)
     publicDestr = cxx_writer.writer_code.Destructor(destructorBody, 'pu')
     processorDecl = cxx_writer.writer_code.SCModule('Processor', processorElements)
