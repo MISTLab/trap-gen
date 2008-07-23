@@ -585,23 +585,18 @@ class Processor:
             print '\t\tCreating the implementation for model ' + model
             if not model in validModels:
                 raise Exception(model + ' is not a valid model type')
-            ISAClasses = self.isa.getCPPClasses(self, model)
-            ISATests = self.isa.getCPPTests(self, model)
             RegClasses = self.getCPPRegisters(model)
             AliasClass = self.getCPPAlias(model)
             ProcClass = self.getCPPProc(model)
             IfClass = self.getCPPIf(model)
             MemClass = self.getCPPMemoryIf(model)
             ExternalIf = self.getCPPExternalPorts(model)
+            ISAClasses = self.isa.getCPPClasses(self, model)
+            ISATests = self.isa.getCPPTests(self, model)
             # Ok, now that we have all the classes it is time to write
             # them to file
             curFolder = cxx_writer.writer_code.Folder(os.path.join(folder, model))
             mainFolder.addSubFolder(curFolder)
-            implFileInstr = cxx_writer.writer_code.FileDumper('instructions.cpp', False)
-            headFileInstr = cxx_writer.writer_code.FileDumper('instructions.hpp', True)
-            for i in ISAClasses:
-                implFileInstr.addMember(i)
-                headFileInstr.addMember(i)
             implFileRegs = cxx_writer.writer_code.FileDumper('registers.cpp', False)
             implFileRegs.addInclude('registers.hpp')
             headFileRegs = cxx_writer.writer_code.FileDumper('registers.hpp', True)
@@ -619,6 +614,11 @@ class Processor:
             implFileProc.addMember(ProcClass)
             headFileProc.addMember(ProcClass)
             implFileProc.addInclude('processor.hpp')
+            implFileInstr = cxx_writer.writer_code.FileDumper('instructions.cpp', False)
+            headFileInstr = cxx_writer.writer_code.FileDumper('instructions.hpp', True)
+            for i in ISAClasses:
+                implFileInstr.addMember(i)
+                headFileInstr.addMember(i)
             implFileIf = cxx_writer.writer_code.FileDumper('interface.cpp', False)
             implFileIf.addInclude('interface.hpp')
             headFileIf = cxx_writer.writer_code.FileDumper('interface.hpp', True)

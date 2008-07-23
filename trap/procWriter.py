@@ -312,11 +312,11 @@ def getCPPAlias(self, model):
     # the register this alias points to (and eventually the offset).
     regWidthType = regMaxType
     registerType = cxx_writer.writer_code.Type('Register', 'registers.hpp')
-    aliasType = cxx_writer.writer_code.Type('Alias')
+    aliasType = cxx_writer.writer_code.Type('Alias', 'alias.hpp')
     aliasElements = []
     global resourceType
     for i in self.aliasRegs + self.aliasRegBanks:
-        resourceType[i.name] = cxx_writer.writer_code.Type('Alias', 'alias.hpp')
+        resourceType[i.name] = aliasType
 
     ####################### Lets declare the operators used to access the register fields ##############
     codeOperatorBody = 'return (*this->reg)[bitField];'
@@ -386,11 +386,15 @@ def getCPPAlias(self, model):
     operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True)
     aliasElements.append(operatorIntDecl)
 
-    # Constructors: takes as input the initial register
+    # Constructor: takes as input the initial register
     constructorBody = cxx_writer.writer_code.Code('')
     constructorParams = [cxx_writer.writer_code.Parameter('reg', registerType.makePointer()), cxx_writer.writer_code.Parameter('offset', cxx_writer.writer_code.uintType, initValue = '0')]
     publicMainClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['reg(reg)', 'offset(offset)'])
     publicMainEmptyClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu')
+    # Constructor: takes as input the initial alias
+    constructorBody = cxx_writer.writer_code.Code('initAlias->referredAliases.push_back(this);')
+    constructorParams = [cxx_writer.writer_code.Parameter('initAlias', aliasType.makePointer()), cxx_writer.writer_code.Parameter('offset', cxx_writer.writer_code.uintType, initValue = '0')]
+    publicAliasConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['reg(initAlias->reg)', 'offset(initAlias->offset + offset)'])
     
     # Stream Operators
     outStreamType = cxx_writer.writer_code.Type('std::ostream', 'ostream')
@@ -401,7 +405,16 @@ def getCPPAlias(self, model):
     aliasElements.append(operatorDecl)
 
     # Update method: updates the register pointed by this alias
-    updateBody = cxx_writer.writer_code.Code('this->reg = newAlias.reg;\nthis->offset = newAlias.offset;')
+    # TODO: keep on updating the aliases for inter-alias references
+    updateCode = """
+    this->reg = newAlias.reg;
+    this->offset = newAlias.offset;
+    std::vector<Alias *>::iterator referredIter, referredEnd;
+    for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
+        (*referredIter)->reg = newAlias.reg;
+    }
+    """
+    updateBody = cxx_writer.writer_code.Code(updateCode)
     updateParam = cxx_writer.writer_code.Parameter('newAlias', aliasType.makeRef())
     updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', [updateParam])
     aliasElements.append(updateDecl)
@@ -419,6 +432,7 @@ def getCPPAlias(self, model):
     aliasDecl = cxx_writer.writer_code.ClassDeclaration(aliasType.name, aliasElements)
     aliasDecl.addConstructor(publicMainClassConstr)
     aliasDecl.addConstructor(publicMainEmptyClassConstr)
+    aliasDecl.addConstructor(publicAliasConstr)
     classes = [aliasDecl]
     return classes
 

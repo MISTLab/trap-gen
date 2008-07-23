@@ -86,10 +86,25 @@ def getCPPInstr(self, model):
                 toInline.append(beh.name)
     if not baseClasses:
         baseClasses.append(instructionType)
-    behaviorBody = cxx_writer.writer_code.Code('//TODO')
+    behaviorCode = ''
+    for behaviors in self.prebehaviors.values():
+        for beh in behaviors:
+            if beh.name in toInline:
+                behaviorCode += str(beh.code)
+            else:
+                behaviorCode += 'this->' + beh.name + '();\n'
+    for code in self.code.values():
+        behaviorCode += str(code.code)
+    for behaviors in self.postbehaviors.values():
+        for beh in behaviors:
+            if beh.name in toInline:
+                behaviorCode += str(beh.code)
+            else:
+                behaviorCode += 'this->' + beh.name + '();\n'
+    behaviorBody = cxx_writer.writer_code.Code(behaviorCode)
     behaviorDecl = cxx_writer.writer_code.Method('behavior', behaviorBody, cxx_writer.writer_code.uintType, 'pu')
     classElements.append(behaviorDecl)
-    replicateBody = cxx_writer.writer_code.Code('//TODO')
+    replicateBody = cxx_writer.writer_code.Code('return new ' + self.name + '();')
     replicateDecl = cxx_writer.writer_code.Method('replicate', replicateBody, instructionType.makePointer(), 'pu')
     classElements.append(replicateDecl)
     setParamsBody = cxx_writer.writer_code.Code('//TODO')
@@ -161,12 +176,36 @@ def getCPPClasses(self, processor, modelType):
     for helpMeth in self.methods:
         if helpMeth:
             instructionElements.append(helpMeth.getCppMethod())
-    # TODO: create references to the architectural elements contained in the processor and
+    # Now create references to the architectural elements contained in the processor and
     # initialize them through the constructor
+    initElements = []
+    constrParams = []
     from procWriter import resourceType
+    for reg in processor.regs:
+        attribute = cxx_writer.writer_code.Attribute(reg.name, resourceType[reg.name].makeRef(), 'pri')
+        constrParams.append(cxx_writer.writer_code.Parameter(reg.name, resourceType[reg.name].makeRef()))
+        initElements.append(reg.name + '(' + reg.name + ')')
+        instructionElements.append(attribute)
+    for regB in processor.regBanks:
+        attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name].makePointer().makeRef(), 'pri')
+        constrParams.append(cxx_writer.writer_code.Parameter(regB.name, resourceType[regB.name].makePointer().makeRef()))
+        initElements.append(regB.name + '(' + regB.name + ')')
+        instructionElements.append(attribute)
+    for alias in processor.aliasRegs:
+        attribute = cxx_writer.writer_code.Attribute(alias.name, resourceType[alias.name].makeRef(), 'pri')
+        constrParams.append(cxx_writer.writer_code.Parameter(alias.name, resourceType[alias.name].makeRef()))
+        initElements.append(alias.name + '(' + alias.name + ')')
+        instructionElements.append(attribute)
+    for aliasB in processor.aliasRegBanks:
+        attribute = cxx_writer.writer_code.Attribute(aliasB.name, resourceType[aliasB.name].makePointer().makeRef(), 'pri')
+        constrParams.append(cxx_writer.writer_code.Parameter(aliasB.name, resourceType[aliasB.name].makePointer().makeRef()))
+        initElements.append(aliasB.name + '(' + aliasB.name + ')')
+        instructionElements.append(attribute)
     # TODO: create the methods (stall, flush, etc.) use to controll the instruction flow.
     # are they going to be part of the instructions ISA?
+    publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', constrParams, initElements)
     instructionDecl = cxx_writer.writer_code.ClassDeclaration('Instruction', instructionElements)
+    instructionDecl.addConstructor(publicConstr)
     classes.append(instructionDecl)
 
     # we now have to check all the operation and the behaviors of the instructions and create
