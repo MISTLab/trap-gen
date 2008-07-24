@@ -42,9 +42,9 @@
 import cxx_writer
 
 assignmentOps = ['=', '+=', '-=', '*=', '/=', '|=', '&=', '^=']
-binaryOps = ['+', '-', '*', '/', '|', '&', '^']
+binaryOps = ['+', '-', '*', '/', '|', '&', '^', '<<', '>>']
 unaryOps = ['~']
-comparisonOps = ['<', '>', '<=', '>=', '==', '!=']
+comparisonOps = ['<', '>', '<=', '>=', '==', '!=', '<<=', '>>=']
 regMaxType = None
 resourceType = {}
 
@@ -389,12 +389,12 @@ def getCPPAlias(self, model):
     # Constructor: takes as input the initial register
     constructorBody = cxx_writer.writer_code.Code('')
     constructorParams = [cxx_writer.writer_code.Parameter('reg', registerType.makePointer()), cxx_writer.writer_code.Parameter('offset', cxx_writer.writer_code.uintType, initValue = '0')]
-    publicMainClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['reg(reg)', 'offset(offset)'])
+    publicMainClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['reg(reg)', 'offset(offset)', 'defaultOffset(0)'])
     publicMainEmptyClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu')
     # Constructor: takes as input the initial alias
-    constructorBody = cxx_writer.writer_code.Code('initAlias->referredAliases.push_back(this);')
+    constructorBody = cxx_writer.writer_code.Code('initAlias->referredAliases.insert(this);\ntihis->referringAliases.insert(initAlias);')
     constructorParams = [cxx_writer.writer_code.Parameter('initAlias', aliasType.makePointer()), cxx_writer.writer_code.Parameter('offset', cxx_writer.writer_code.uintType, initValue = '0')]
-    publicAliasConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['reg(initAlias->reg)', 'offset(initAlias->offset + offset)'])
+    publicAliasConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['reg(initAlias->reg)', 'offset(initAlias->offset + offset)', 'defaultOffset(offset)'])
     
     # Stream Operators
     outStreamType = cxx_writer.writer_code.Type('std::ostream', 'ostream')
@@ -405,20 +405,42 @@ def getCPPAlias(self, model):
     aliasElements.append(operatorDecl)
 
     # Update method: updates the register pointed by this alias
-    # TODO: keep on updating the aliases for inter-alias references
-    updateCode = """
-    this->reg = newAlias.reg;
-    this->offset = newAlias.offset;
-    std::vector<Alias *>::iterator referredIter, referredEnd;
+    updateCode = """this->reg = newAlias.reg;
+    this->offset = newAlias.offset + newOffset;
+    this->defaultOffset = newOffset;
+    std::set<Alias *>::iterator referredIter, referredEnd;
     for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
         (*referredIter)->reg = newAlias.reg;
+        (*referredIter)->offset = newAlias.offset + newOffset + (*referredIter)->defaultOffset;
     }
+    newAlias.referredAliases.insert(this);
+    std::set<Alias *>::iterator referringIter, referringEnd;
+    for(referringIter = this->referringAliases.begin(), referringEnd = this->referringAliases.end(); referringIter != referringEnd; referringIter++){
+        (*referringIter)->referredAliases.erase(this);
+    }    
+    tihis->referringAliases.clear();
+    tihis->referringAliases.insert(&newAlias);
     """
     updateBody = cxx_writer.writer_code.Code(updateCode)
-    updateParam = cxx_writer.writer_code.Parameter('newAlias', aliasType.makeRef())
-    updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', [updateParam])
+    updateParam1 = cxx_writer.writer_code.Parameter('newAlias', aliasType.makeRef())
+    updateParam2 = cxx_writer.writer_code.Parameter('newOffset', cxx_writer.writer_code.uintType, initValue = '0')
+    updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', [updateParam1, updateParam2])
     aliasElements.append(updateDecl)
-    updateBody = cxx_writer.writer_code.Code('this->reg = &newAlias;\nthis->offset = newOffset;')
+    updateCode = """this->reg = &newAlias;
+    this->offset = newOffset;
+    this->defaultOffset = 0;
+    std::set<Alias *>::iterator referredIter, referredEnd;
+    for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
+        (*referredIter)->reg = &newAlias;
+        (*referredIter)->offset = newOffset + (*referredIter)->defaultOffset;
+    }
+    std::set<Alias *>::iterator referringIter, referringEnd;
+    for(referringIter = this->referringAliases.begin(), referringEnd = this->referringAliases.end(); referringIter != referringEnd; referringIter++){
+        (*referringIter)->referredAliases.erase(this);
+    }    
+    tihis->referringAliases.clear();
+    """
+    updateBody = cxx_writer.writer_code.Code('updateCode')
     updateParam1 = cxx_writer.writer_code.Parameter('newAlias', registerType.makeRef())
     updateParam2 = cxx_writer.writer_code.Parameter('newOffset', cxx_writer.writer_code.uintType, initValue = '0')
     updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', [updateParam1, updateParam2])
@@ -429,6 +451,12 @@ def getCPPAlias(self, model):
     aliasElements.append(regAttribute)
     offsetAttribute = cxx_writer.writer_code.Attribute('offset', cxx_writer.writer_code.uintType, 'pri')
     aliasElements.append(offsetAttribute)
+    offsetAttribute = cxx_writer.writer_code.Attribute('defaultOffset', cxx_writer.writer_code.uintType, 'pri')
+    aliasElements.append(offsetAttribute)
+    aliasesAttribute = cxx_writer.writer_code.Attribute('referredAliases', cxx_writer.writer_code.TemplateType('std::set', [aliasType.makePointer()], 'set'), 'pri')
+    aliasElements.append(aliasesAttribute)
+    aliasesAttribute = cxx_writer.writer_code.Attribute('referringAliases', cxx_writer.writer_code.TemplateType('std::set', [aliasType.makePointer()], 'set'), 'pri')
+    aliasElements.append(aliasesAttribute)
     aliasDecl = cxx_writer.writer_code.ClassDeclaration(aliasType.name, aliasElements)
     aliasDecl.addConstructor(publicMainClassConstr)
     aliasDecl.addConstructor(publicMainEmptyClassConstr)

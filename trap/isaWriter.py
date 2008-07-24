@@ -111,6 +111,7 @@ def getCPPInstr(self, model):
     setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
     setparamsDecl = cxx_writer.writer_code.Method('setParams', setParamsBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam])
     classElements.append(setparamsDecl)
+    # TODO: we need to create the attribute for the variables referenced by the non-constant parts of the instruction
     instructionDecl = cxx_writer.writer_code.ClassDeclaration(self.name, classElements, superclasses = baseClasses)
     return instructionDecl
 
