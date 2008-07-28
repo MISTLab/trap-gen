@@ -72,6 +72,7 @@ def getCPPInstr(self, model):
     # Returns the code implementing the current instruction: we have to provide the
     # implementation of all the abstract methods and call from the behavior method
     # all the different behaviors contained in the type hierarchy of this class
+    aliasType = cxx_writer.writer_code.Type('Alias', 'alias.hpp')
     instructionType = cxx_writer.writer_code.Type('Instruction', 'instructions.hpp')
     classElements = []
     baseClasses = []
@@ -109,18 +110,36 @@ def getCPPInstr(self, model):
     replicateBody = cxx_writer.writer_code.Code('return new ' + self.name + '();')
     replicateDecl = cxx_writer.writer_code.Method('replicate', replicateBody, instructionType.makePointer(), 'pu')
     classElements.append(replicateDecl)
-    setParamsBody = cxx_writer.writer_code.Code('//TODO')
-    setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
-    setparamsDecl = cxx_writer.writer_code.Method('setParams', setParamsBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam])
-    classElements.append(setparamsDecl)
-    for var in self.variables:
-        classElements.append(cxx_writer.writer_code.Attribute(var.name, var.type, 'pro',  var.static))
-    for name, correspondence in self.machineCode.bitCorrespondence:
+
     # TODO: we need to create the attribute for the variables referenced by the non-constant parts of the instruction;
     # they are the bitCorrespondence variable of the machine code (they establish the correspondence with either registers
     # or aliases); they other remaining undefined parts of the instruction are normal integer variables.
     # Note, anyway, that I add the integer variable also for the parts of the instructions specified in
     # bitCorrespondence.
+    setParamsCode = ''
+    for name, correspondence in self.machineCode.bitCorrespondence:
+        classElements.append(cxx_writer.writer_code.Attribute(name, aliasType, 'pri'))
+        classElements.append(cxx_writer.writer_code.Attribute(name + '_bit', cxx_writer.writer_code.uintType, 'pri'))
+        mask = ''
+        for i in range(0, self.machineCode.bitPos[name]):
+            mask += '0'
+        for i in range(0, self.machineCode.bitValue[name]):
+            mask += '1'
+        maskLen = len(mask)
+        for i in range(0, self.instrLen - maskLen):
+            mask += '0'
+        shiftAmm = self.machineCode.bitPos[name]
+        setParamsCode = 'this->' + name + '_bit = (bitString & ' + hex(int(mask, 2)) + ')'
+        if shiftAmm > 0:
+            setParamsCode += ' >> ' + str(shiftAmm)
+        setParamsCode += ';\n'
+        setParamsCode += 'this->' + name + ' = ' + correspondence[0] + '[' + str(correspondence[1]) +  + ' + this->' + name + '_bit];\n'
+    setParamsBody = cxx_writer.writer_code.Code(setParamsCode)
+    setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
+    setparamsDecl = cxx_writer.writer_code.Method('setParams', setParamsBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam])
+    classElements.append(setparamsDecl)
+    for var in self.variables:
+        classElements.append(cxx_writer.writer_code.Attribute(var.name, var.type, 'pro',  var.static))
     instructionDecl = cxx_writer.writer_code.ClassDeclaration(self.name, classElements, superclasses = baseClasses)
     return instructionDecl
 

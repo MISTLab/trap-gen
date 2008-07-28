@@ -401,6 +401,7 @@ class HelperOperation:
         self.numUsed = 0
         self.localvars = []
         self.instrvars = []
+        self.archElems = []
         validModel = ['all', 'func', 'acc']
         # Now we check which model has to include the operation
         if not model in validModel:
@@ -428,6 +429,11 @@ class HelperOperation:
                 if variable.type.name != instrVar.type.name:
                     raise Exception('Trying to add variable ' + variable.name + ' of type ' + variable.type.name + ' to operation ' + self.name + ' which already has a variable with such a name of type ' + instrVar.type.name)
         self.instrvars.append(variable)
+
+    def addUserInstructionElement(self, archElem):
+        # adds an instruction element to this instruction: this is necessary in case
+        # the current operation needs to access the field of a machine code
+        self.archElems.append(archElem)
 
     def getCppOperation(self):
         # returns the cpp code implementing the current method
