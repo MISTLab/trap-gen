@@ -105,6 +105,15 @@ class Type(DumpElement):
             return [self.include]
         else:
             return []
+            
+    def __str__(self):
+        typeStr = ''
+        if self.const:
+            typeStr += 'const '
+        typeStr += self.name
+        for i in self.modifiers:
+            typeStr += ' ' + i
+        return typeStr
 
 class TemplateType(Type):
     """Represents a templated type; this is use for variable declaration, function parameter declaration ..."""
@@ -117,6 +126,8 @@ class TemplateType(Type):
             self.template = template
 
     def writeDeclaration(self, writer):
+        currentModifiers = self.modifiers
+        self.modifiers = []
         Type.writeDeclaration(self, writer)
         if self.template:
             writer.write('< ')
@@ -128,7 +139,7 @@ class TemplateType(Type):
                 if i != self.template[-1]:
                     writer.write(', ')
             writer.write(' >')
-        for i in self.modifiers:
+        for i in currentModifiers:
             writer.write(' ' + i)
 
     def getIncludes(self):
@@ -141,6 +152,23 @@ class TemplateType(Type):
             except AttributeError:
                 pass
         return includes
+
+    def __str__(self):
+        currentModifiers = self.modifiers
+        self.modifiers = []
+        typeStr = Type.__str__(self)
+        if self.template:
+            typeStr += '< '
+            for i in self.template:
+                try:
+                    typeStr += str(writer)
+                except AttributeError:
+                    writer.write(str(i))
+                if i != self.template[-1]:
+                    typeStr += ', '
+            typeStr += ' >'
+        for i in currentModifiers:
+            typeStr += ' ' + i
 
 intType = Type('int')
 shortType = Type('short int')
@@ -243,6 +271,19 @@ class Variable(DumpElement):
 
     def getIncludes(self):
         return self.type.getIncludes()
+
+    def __str__(self):
+        varStr = ''
+        if self.docstring:
+            varStr += self.docstring
+        if self.static:
+            varStr += 'static '
+        varStr += str(self.type)
+        varStr += ' ' + self.name
+        if self.initValue:
+            varStr += ' = ' + self.initValue
+        varStr += ';\n'
+        return varStr
 
 class Function(DumpElement):
     """Represents a function of the program; this function is not

@@ -82,6 +82,8 @@ def getCPPInstr(self, model):
                 baseClasses.append(behClass[beh.name].getType())
             elif beh.inline:
                 classElements.append(beh.getCppOperation())
+                for var in beh.instrvars:
+                    classElements.append(cxx_writer.writer_code.Attribute(var.name, var.type, 'pro',  var.static))
             else:
                 toInline.append(beh.name)
     if not baseClasses:
@@ -111,7 +113,14 @@ def getCPPInstr(self, model):
     setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
     setparamsDecl = cxx_writer.writer_code.Method('setParams', setParamsBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam])
     classElements.append(setparamsDecl)
-    # TODO: we need to create the attribute for the variables referenced by the non-constant parts of the instruction
+    for var in self.variables:
+        classElements.append(cxx_writer.writer_code.Attribute(var.name, var.type, 'pro',  var.static))
+    for name, correspondence in self.machineCode.bitCorrespondence:
+    # TODO: we need to create the attribute for the variables referenced by the non-constant parts of the instruction;
+    # they are the bitCorrespondence variable of the machine code (they establish the correspondence with either registers
+    # or aliases); they other remaining undefined parts of the instruction are normal integer variables.
+    # Note, anyway, that I add the integer variable also for the parts of the instructions specified in
+    # bitCorrespondence.
     instructionDecl = cxx_writer.writer_code.ClassDeclaration(self.name, classElements, superclasses = baseClasses)
     return instructionDecl
 

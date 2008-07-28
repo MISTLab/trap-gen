@@ -325,8 +325,10 @@ class Instruction:
                     if var.type.name != instrVar.type.name:
                         raise Exception('A Helper Operation is trying to add variable ' + var.name + ' of type ' + var.type.name + ' to instruction ' + self.name + ' which already has a variable with such a name of type ' + instrVar.type.name)
                 else:
-                    self.variables.append(var)
+                    self.variables.remove(instrVar)
                     break
+        for var in behavior.localvars:
+            behavior.code.addVariable(var)
 
     def setCode(self, code, stage):
         # code is simply a string containing the code
@@ -414,7 +416,6 @@ class HelperOperation:
             if variable.name == instrVar.name:
                 if variable.type.name != instrVar.type.name:
                     raise Exception('Trying to add variable ' + variable.name + ' of type ' + variable.type.name + ' to operation ' + self.name + ' which already has a variable with such a name of type ' + instrVar.type.name)
-
         self.localvars.append(variable)
 
     def addInstuctionVar(self, variable):

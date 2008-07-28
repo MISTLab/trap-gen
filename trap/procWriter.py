@@ -41,6 +41,13 @@
 
 import cxx_writer
 
+try:
+    import networkx as NX
+except:
+    import traceback
+    traceback.print_exc()
+    raise Exception('Error occurred during the import of module networkx, required for the creation of the decoder. Please correctly install the module')
+
 assignmentOps = ['=', '+=', '-=', '*=', '/=', '|=', '&=', '^=']
 binaryOps = ['+', '-', '*', '/', '|', '&', '^', '<<', '>>']
 unaryOps = ['~']
@@ -410,8 +417,7 @@ def getCPPAlias(self, model):
     this->defaultOffset = newOffset;
     std::set<Alias *>::iterator referredIter, referredEnd;
     for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
-        (*referredIter)->reg = newAlias.reg;
-        (*referredIter)->offset = newAlias.offset + newOffset + (*referredIter)->defaultOffset;
+        (*referredIter)->newReferredAlias(newAlias.reg, newAlias.offset + newOffset);
     }
     newAlias.referredAliases.insert(this);
     std::set<Alias *>::iterator referringIter, referringEnd;
@@ -431,8 +437,7 @@ def getCPPAlias(self, model):
     this->defaultOffset = 0;
     std::set<Alias *>::iterator referredIter, referredEnd;
     for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
-        (*referredIter)->reg = &newAlias;
-        (*referredIter)->offset = newOffset + (*referredIter)->defaultOffset;
+        (*referredIter)->newReferredAlias(&newAlias, newOffset);
     }
     std::set<Alias *>::iterator referringIter, referringEnd;
     for(referringIter = this->referringAliases.begin(), referringEnd = this->referringAliases.end(); referringIter != referringEnd; referringIter++){
@@ -440,12 +445,24 @@ def getCPPAlias(self, model):
     }    
     tihis->referringAliases.clear();
     """
-    updateBody = cxx_writer.writer_code.Code('updateCode')
+    updateBody = cxx_writer.writer_code.Code(updateCode)
     updateParam1 = cxx_writer.writer_code.Parameter('newAlias', registerType.makeRef())
     updateParam2 = cxx_writer.writer_code.Parameter('newOffset', cxx_writer.writer_code.uintType, initValue = '0')
     updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', [updateParam1, updateParam2])
     aliasElements.append(updateDecl)
-
+    updateCode = """this->reg = newAlias;
+    this->offset = newOffset + this->defaultOffset;
+    std::set<Alias *>::iterator referredIter, referredEnd;
+    for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
+        (*referredIter)->newReferredAlias(newAlias, newOffset);
+    }
+    """
+    updateBody = cxx_writer.writer_code.Code(updateCode)
+    updateParam1 = cxx_writer.writer_code.Parameter('newAlias', registerType.makePointer())
+    updateParam2 = cxx_writer.writer_code.Parameter('newOffset', cxx_writer.writer_code.uintType)
+    updateDecl = cxx_writer.writer_code.Method('newReferredAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', [updateParam1, updateParam2])
+    aliasElements.append(updateDecl)
+    
     # Finally I declare the class and pass to it all the declared members
     regAttribute = cxx_writer.writer_code.Attribute('reg', registerType.makePointer(), 'pri')
     aliasElements.append(regAttribute)
@@ -563,7 +580,10 @@ def getCPPProc(self, model):
     from isa import resolveBitType
     fetchWordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>')
     includes = fetchWordType.getIncludes()
-    codeString = 'while(true){\n'
+    codeString = ''
+    if self.beginOp:
+        codeString += 'this->beginOp();\n'
+    codeString += 'while(true){\n'
     codeString += 'unsigned int numCycles = 0;\n'
     codeString += str(fetchWordType) + ' bitString = '
     # Now I have to check what is the fetch: if there is a TLM port or
@@ -622,6 +642,15 @@ def getCPPProc(self, model):
     mainLoopCode = cxx_writer.writer_code.Code(codeString, includes)
     mainLoopMethod = cxx_writer.writer_code.Method('mainLoop', mainLoopCode, cxx_writer.writer_code.voidType, 'pu')
     processorElements.append(mainLoopMethod)
+    if self.beginOp:
+        beginOpMethod = cxx_writer.writer_code.Method('beginOp', self.beginOp, cxx_writer.writer_code.voidType, 'pri')
+        processorElements.append(beginOpMethod)
+    if self.endOp:
+        endOpMethod = cxx_writer.writer_code.Method('endOp', self.endOp, cxx_writer.writer_code.voidType, 'pri')
+        processorElements.append(endOpMethod)
+    if self.resetOp:
+        resetOpMethod = cxx_writer.writer_code.Method('resetOp', self.resetOp, cxx_writer.writer_code.voidType, 'pu')
+        processorElements.append(resetOpMethod)
     decoderAttribute = cxx_writer.writer_code.Attribute('decoder', cxx_writer.writer_code.Type('Decoder', 'decoder.hpp'), 'pri')
     processorElements.append(decoderAttribute)
     # Lets now add the registers, the reg banks, the aliases, etc.
@@ -629,6 +658,7 @@ def getCPPProc(self, model):
     initElements = []
     bodyInits = ''
     bodyDestructor = ''
+    aliasInit = {}
     for reg in self.regs:
         attribute = cxx_writer.writer_code.Attribute(reg.name, resourceType[reg.name], 'pu')
         initElements.append(reg.name + '(\"' + reg.name + '\")')
@@ -640,7 +670,7 @@ def getCPPProc(self, model):
         processorElements.append(attribute)
     for alias in self.aliasRegs:
         attribute = cxx_writer.writer_code.Attribute(alias.name, resourceType[alias.name], 'pu')
-        initElements.append(alias.name + '(&' + alias.initAlias + ', ' + str(alias.offset) + ')')
+        aliasInit[alias.name] = (alias.name + '(&' + alias.initAlias + ', ' + str(alias.offset) + ')')
         processorElements.append(attribute)
     for aliasB in self.aliasRegBanks:
         attribute = cxx_writer.writer_code.Attribute(aliasB.name, resourceType[aliasB.name].makePointer(), 'pu')
@@ -662,8 +692,19 @@ def getCPPProc(self, model):
                     bodyInits += 'this->' + aliasB.name + '[' + str(curIndex) + '].updateAlias(' + aliasB.initAlias[:aliasB.initAlias.find('[')] + '[' + str(i) + ']);\n'
                     curIndex += 1
         processorElements.append(attribute)
-    # TODO: check the initialization of the aliases, their initialization must be chained (we should
+    # the initialization of the aliases must be chained (we should
     # create an initialization graph since an alias might depend on another one ...)
+    aliasGraph = NX.XDiGraph()
+    for alias in self.aliasRegs + self.aliasRegBanks:
+        aliasGraph.add_node(alias)
+    for alias in self.aliasRegs + self.aliasRegBanks:
+        for initAlias in self.aliasRegs + self.aliasRegBanks:
+            if alias.initAlias == initAlias.name:
+                aliasGraph.add_edge(initAlias, alias)
+    # TODO: now I have to check for loops, if there are then the alias assignment is not valid
+    # TODO: I do a topological sort and take the elements in this ordes and I add them to the initialization;
+    # note that the ones whose initialization depend on banks (either register or alias) have to be
+    # postponed after the creation of the arrays
     if self.memory:
         attribute = cxx_writer.writer_code.Attribute(self.memory[0], cxx_writer.writer_code.Type('LocalMemory', 'memory.hpp'), 'pu')
         initMemCode = self.memory[0] + '(' + str(self.memory[1])
@@ -704,6 +745,8 @@ def getCPPProc(self, model):
     constrCode += 'Processor::INSTRUCTIONS[' + str(maxInstrId) + '] = new InvalidInstr();\n'
     constrCode += '}\n'
     constrCode += bodyInits
+    # TODO: now I have to complete initializing the alias graph, print the remaining
+    # nodes in topological order
     if self.systemc or model.startswith('acc'):
         # TODO: We also need to initialize the quantuum keeper etc
         constrCode += 'SC_THREAD(mainLoop);\n'
@@ -721,6 +764,10 @@ def getCPPProc(self, model):
         }
         delete [] Processor::INSTRUCTIONS;
         Processor::INSTRUCTIONS = NULL;
+        std::map< ' + str(fetchWordType) + ', Instruction * >::iterator cacheIter, cacheEnd;
+        for(cacheIter = Processor::instrCache.begin(), cacheEnd = Processor::instrCache.end(); cacheIter != cacheEnd; cacheIter++){
+            delete cacheIter->second;
+        }
     }
     """
     destrCode += bodyDestructor

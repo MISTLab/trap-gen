@@ -63,7 +63,18 @@ class Code:
         self.variables.append(variable)
 
     def __str__(self):
-        return self.code
+        codeStr = ''
+        if self.variables:
+            codeStr += '{\n'
+            for i in self.variables:
+                codeStr += str(i)
+        else:
+            if self.code:
+                codeStr += '\n'
+        codeStr += self.code
+        if self.variables:
+            codeStr += '}\n'
+        return codeStr
 
     def writeDeclaration(self, writer):
         if self.variables:
