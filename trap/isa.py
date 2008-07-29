@@ -327,8 +327,6 @@ class Instruction:
                 else:
                     self.variables.remove(instrVar)
                     break
-        for var in behavior.localvars:
-            behavior.code.addVariable(var)
 
     def setCode(self, code, stage):
         # code is simply a string containing the code
@@ -526,6 +524,7 @@ class MachineCode:
         self.bitFields = []
         self.bitValue = {}
         self.bitPos = {}
+        self.bitLen = {}
         self.instrLen = 0
         curPosition = 0
         for key, fieldLen in bitFields:
@@ -534,6 +533,7 @@ class MachineCode:
                     key = key + '_d'
             if self.bitPos.has_key(key):
                 raise Exception('Machine code cannot contain duplicate fields (a part from zero and one fields.). ' + key + ' is duplicatede')
+            self.bitLen[key] = fieldLen
             self.bitFields.append((key, fieldLen))
             self.bitPos[key] = curPosition
             curPosition += fieldLen

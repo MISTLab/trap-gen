@@ -65,15 +65,21 @@ def getCPPRegClass(self, model, regType):
 
     ####################### Lets declare the operators used to access the register fields ##############
     codeOperatorBody = ''
-    if not self.bitMask:
-        codeOperatorBody = 'return this->field_empty;'
-    else:
-        for key in self.bitMask.keys():
-            codeOperatorBody += 'if(bitField == \"' + key + '\"){\nreturn this->field_' + key + ';\n}\n'
-        codeOperatorBody = 'return this->field_empty;'
+    for key in self.bitMask.keys():
+        codeOperatorBody += 'if(bitField == \"' + key + '\"){\nreturn this->field_' + key + ';\n}\n'
+    codeOperatorBody += 'return this->field_empty;'
     InnerFieldType = cxx_writer.writer_code.Type('InnerField')
     operatorBody = cxx_writer.writer_code.Code(codeOperatorBody)
     operatorParam = [cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.stringRefType.makeConst())]
+    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, InnerFieldType.makeRef(), 'pu', operatorParam)
+    registerElements.append(operatorDecl)
+    codeOperatorBody = ''
+    for key in self.bitMask.keys():
+        codeOperatorBody += 'if(strcmp(bitField, \"' + key + '\") == 0){\nreturn this->field_' + key + ';\n}\n'
+    codeOperatorBody += 'return this->field_empty;'
+    operatorBody = cxx_writer.writer_code.Code(codeOperatorBody)
+    operatorBody.addInclude('cstring')
+    operatorParam = [cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.charPtrType.makeConst())]
     operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, InnerFieldType.makeRef(), 'pu', operatorParam)
     registerElements.append(operatorDecl)
     
@@ -140,13 +146,12 @@ def getCPPRegClass(self, model, regType):
 
     # Constructors
     fieldInit = []
-    if self.bitMask:
-        for field in self.bitMask.keys():
-            fieldInit.append('field_' + field + '(value)')
+    for field in self.bitMask.keys():
+        fieldInit.append('field_' + field + '(value)')
     constructorBody = cxx_writer.writer_code.Code('this->value = 0;')
     constructorParams = [cxx_writer.writer_code.Parameter('name', cxx_writer.writer_code.sc_module_nameType)]
     publicMainClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['Register(name, ' + str(self.bitWidth) + ')'] + fieldInit)
-    publicMainClassEmptyConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', initList = ['Register(sc_gen_unique_name(' + regType.name + '), ' + str(self.bitWidth) + ')'] + fieldInit)
+    publicMainClassEmptyConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', initList = ['Register(sc_gen_unique_name(\"' + regType.name + '\"), ' + str(self.bitWidth) + ')'] + fieldInit)
     
     # Stream Operators
     outStreamType = cxx_writer.writer_code.Type('std::ostream', 'ostream')
@@ -159,41 +164,40 @@ def getCPPRegClass(self, model, regType):
     # Attributes and inner classes declarations
     attrs = []
     innerClasses = []
-    if self.bitMask:
-        for field, length in self.bitMask.items():
-            # Here I have to define the classes that represent the different fields
-            negatedMask = ''
-            mask = ''
-            for i in range(0, self.bitWidth):
-                if(i >= length[0] and i <= length[1]):
-                    negatedMask = '0' + negatedMask
-                    mask = '1' + mask
-                else:
-                    negatedMask = '1' + negatedMask
-                    mask = '0' + mask
-            operatorCode = 'this->value &= ' + hex(int(negatedMask, 2)) + ';\nthis->value |= '
-            if length[0] > 0:
-                operatorCode += '(other << ' + str(length[0]) + ');\n'
+    for field, length in self.bitMask.items():
+        # Here I have to define the classes that represent the different fields
+        negatedMask = ''
+        mask = ''
+        for i in range(0, self.bitWidth):
+            if(i >= length[0] and i <= length[1]):
+                negatedMask = '0' + negatedMask
+                mask = '1' + mask
             else:
-                operatorCode += 'other;\n'
-            operatorCode += 'return *this;'
-            operatorBody = cxx_writer.writer_code.Code(operatorCode)
-            operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
-            operatorEqualDecl = cxx_writer.writer_code.MemberOperator('=', operatorBody, cxx_writer.writer_code.Type('InnerField').makeRef(), 'pu', [operatorParam])
-            operatorCode = 'return (this->value & ' + hex(int(mask, 2)) + ')'
-            if length[0] > 0:
-                operatorCode += ' >> ' + str(length[0])
-            operatorCode += ';'
-            operatorBody = cxx_writer.writer_code.Code(operatorCode)
-            operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True)
-            fieldAttribute = cxx_writer.writer_code.Attribute('value', regMaxType.makeRef(), 'pri')
-            constructorParams = [cxx_writer.writer_code.Parameter('value', regMaxType.makeRef())]
-            publicConstr = cxx_writer.writer_code.Constructor(cxx_writer.writer_code.Code(''), 'pu', constructorParams, ['value(value)'])
-            InnerFieldClass = cxx_writer.writer_code.ClassDeclaration('InnerField_' + field, [operatorEqualDecl, operatorIntDecl, fieldAttribute], [cxx_writer.writer_code.Type('InnerField')])
-            InnerFieldClass.addConstructor(publicConstr)
-            innerClasses.append(InnerFieldClass)
-            fieldAttribute = cxx_writer.writer_code.Attribute('field_' + field, InnerFieldClass.getType(), 'pri')
-            attrs.append(fieldAttribute)
+                negatedMask = '1' + negatedMask
+                mask = '0' + mask
+        operatorCode = 'this->value &= ' + hex(int(negatedMask, 2)) + ';\nthis->value |= '
+        if length[0] > 0:
+            operatorCode += '(other << ' + str(length[0]) + ');\n'
+        else:
+            operatorCode += 'other;\n'
+        operatorCode += 'return *this;'
+        operatorBody = cxx_writer.writer_code.Code(operatorCode)
+        operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
+        operatorEqualDecl = cxx_writer.writer_code.MemberOperator('=', operatorBody, cxx_writer.writer_code.Type('InnerField').makeRef(), 'pu', [operatorParam])
+        operatorCode = 'return (this->value & ' + hex(int(mask, 2)) + ')'
+        if length[0] > 0:
+            operatorCode += ' >> ' + str(length[0])
+        operatorCode += ';'
+        operatorBody = cxx_writer.writer_code.Code(operatorCode)
+        operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True)
+        fieldAttribute = cxx_writer.writer_code.Attribute('value', regMaxType.makeRef(), 'pri')
+        constructorParams = [cxx_writer.writer_code.Parameter('value', regMaxType.makeRef())]
+        publicConstr = cxx_writer.writer_code.Constructor(cxx_writer.writer_code.Code(''), 'pu', constructorParams, ['value(value)'])
+        InnerFieldClass = cxx_writer.writer_code.ClassDeclaration('InnerField_' + field, [operatorEqualDecl, operatorIntDecl, fieldAttribute], [cxx_writer.writer_code.Type('InnerField')])
+        InnerFieldClass.addConstructor(publicConstr)
+        innerClasses.append(InnerFieldClass)
+        fieldAttribute = cxx_writer.writer_code.Attribute('field_' + field, InnerFieldClass.getType(), 'pri')
+        attrs.append(fieldAttribute)
     operatorBody = cxx_writer.writer_code.Code('return *this;')
     operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
     operatorEqualDecl = cxx_writer.writer_code.MemberOperator('=', operatorBody, cxx_writer.writer_code.Type('InnerField').makeRef(), 'pu', [operatorParam])
@@ -260,6 +264,9 @@ def getCPPRegisters(self, model):
     
     # Now lets procede with the members of the main class
     operatorParam = cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.stringRefType.makeConst())
+    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', emptyBody, InnerFieldClass.getType().makeRef(), 'pu', [operatorParam], const = True, pure = True)
+    registerElements.append(operatorDecl)
+    operatorParam = cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.charPtrType.makeConst())
     operatorDecl = cxx_writer.writer_code.MemberOperator('[]', emptyBody, InnerFieldClass.getType().makeRef(), 'pu', [operatorParam], const = True, pure = True)
     registerElements.append(operatorDecl)
     for i in unaryOps:
@@ -764,7 +771,7 @@ def getCPPProc(self, model):
         }
         delete [] Processor::INSTRUCTIONS;
         Processor::INSTRUCTIONS = NULL;
-        std::map< ' + str(fetchWordType) + ', Instruction * >::iterator cacheIter, cacheEnd;
+        std::map< """ + str(fetchWordType) + """, Instruction * >::iterator cacheIter, cacheEnd;
         for(cacheIter = Processor::instrCache.begin(), cacheEnd = Processor::instrCache.end(); cacheIter != cacheEnd; cacheIter++){
             delete cacheIter->second;
         }

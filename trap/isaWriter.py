@@ -64,8 +64,17 @@ def getCppOpClass(self):
     for var in self.localvars:
         self.code.addVariable(var)
     self.code.addInclude('utils.hpp')
-    methodDecl = cxx_writer.writer_code.Method(self.name, self.code, cxx_writer.writer_code.voidType, 'pro', inline = True)
-    opDecl = cxx_writer.writer_code.ClassDeclaration(self.name + '_op', [methodDecl], virtual_superclasses = [instructionType])
+    classElements = []
+    # Now I also need to declare the instruction variables
+    for var in self.instrvars:
+        classElements.append(cxx_writer.writer_code.Attribute(var.name, var.type, 'pro',  var.static))
+    metodParams = []
+    for elem in self.archElems:
+        metodParams.append(cxx_writer.writer_code.Parameter(elem, aliasType.makeRef()))
+        metodParams.append(cxx_writer.writer_code.Parameter(elem + '_bit', cxx_writer.writer_code.uintRefType))
+    methodDecl = cxx_writer.writer_code.Method(self.name, self.code, cxx_writer.writer_code.voidType, 'pro', metodParams, inline = True)
+    classElements.append(methodDecl)
+    opDecl = cxx_writer.writer_code.ClassDeclaration(self.name + '_op', classElements, virtual_superclasses = [instructionType])
     return opDecl
 
 def getCPPInstr(self, model):
@@ -94,6 +103,14 @@ def getCPPInstr(self, model):
         for beh in behaviors:
             if beh.name in toInline:
                 behaviorCode += str(beh.code)
+            elif behClass.has_key(beh.name):
+                behaviorCode += 'this->' + beh.name + '('
+                for elem in beh.archElems:
+                    behaviorCode += 'this->' + elem + ', '
+                    behaviorCode += 'this->' + elem + '_bit'
+                    if elem != self.archElems[-1]:
+                        behaviorCode += ', '
+                behaviorCode += ');\n'
             else:
                 behaviorCode += 'this->' + beh.name + '();\n'
     for code in self.code.values():
@@ -102,6 +119,14 @@ def getCPPInstr(self, model):
         for beh in behaviors:
             if beh.name in toInline:
                 behaviorCode += str(beh.code)
+            elif behClass.has_key(beh.name):
+                behaviorCode += 'this->' + beh.name + '('
+                for elem in beh.archElems:
+                    behaviorCode += 'this->' + elem + ', '
+                    behaviorCode += 'this->' + elem + '_bit'
+                    if elem != self.archElems[-1]:
+                        behaviorCode += ', '
+                behaviorCode += ');\n'
             else:
                 behaviorCode += 'this->' + beh.name + '();\n'
     behaviorBody = cxx_writer.writer_code.Code(behaviorCode)
@@ -111,29 +136,29 @@ def getCPPInstr(self, model):
     replicateDecl = cxx_writer.writer_code.Method('replicate', replicateBody, instructionType.makePointer(), 'pu')
     classElements.append(replicateDecl)
 
-    # TODO: we need to create the attribute for the variables referenced by the non-constant parts of the instruction;
+    # We need to create the attribute for the variables referenced by the non-constant parts of the instruction;
     # they are the bitCorrespondence variable of the machine code (they establish the correspondence with either registers
     # or aliases); they other remaining undefined parts of the instruction are normal integer variables.
     # Note, anyway, that I add the integer variable also for the parts of the instructions specified in
     # bitCorrespondence.
     setParamsCode = ''
-    for name, correspondence in self.machineCode.bitCorrespondence:
+    for name, correspondence in self.machineCode.bitCorrespondence.items():
         classElements.append(cxx_writer.writer_code.Attribute(name, aliasType, 'pri'))
         classElements.append(cxx_writer.writer_code.Attribute(name + '_bit', cxx_writer.writer_code.uintType, 'pri'))
         mask = ''
-        for i in range(0, self.machineCode.bitPos[name]):
+        for i in range(0, self.machineCode.instrLen - self.machineCode.bitPos[name] - self.machineCode.bitLen[name]):
             mask += '0'
-        for i in range(0, self.machineCode.bitValue[name]):
+        for i in range(0, self.machineCode.bitLen[name]):
             mask += '1'
         maskLen = len(mask)
-        for i in range(0, self.instrLen - maskLen):
+        for i in range(0, self.machineCode.bitPos[name]):
             mask += '0'
         shiftAmm = self.machineCode.bitPos[name]
         setParamsCode = 'this->' + name + '_bit = (bitString & ' + hex(int(mask, 2)) + ')'
         if shiftAmm > 0:
             setParamsCode += ' >> ' + str(shiftAmm)
         setParamsCode += ';\n'
-        setParamsCode += 'this->' + name + ' = ' + correspondence[0] + '[' + str(correspondence[1]) +  + ' + this->' + name + '_bit];\n'
+        setParamsCode += 'this->' + name + '.updateAlias(' + correspondence[0] + '[' + str(correspondence[1]) + ' + this->' + name + '_bit]);\n'
     setParamsBody = cxx_writer.writer_code.Code(setParamsCode)
     setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
     setparamsDecl = cxx_writer.writer_code.Method('setParams', setParamsBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam])
