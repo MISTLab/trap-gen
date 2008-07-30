@@ -114,7 +114,7 @@ class CodeWriter:
             if toModify[i] == ' ':
                 break
         if i < endToCheck - 1:
-            return toModify[:i] + ' \\ \n' + singleIndent + totalIndent + self.go_new_line(toModify[(i + 1):endToCheck])
+            return toModify[:i] + ' \\\n' + singleIndent + totalIndent + self.go_new_line(toModify[(i + 1):endToCheck])
         else:
             if i < len(toModify) - 1:
                 return toModify[:(endToCheck + 1)] + self.go_new_line(toModify[(endToCheck + 1):])

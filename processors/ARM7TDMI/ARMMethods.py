@@ -154,7 +154,7 @@ switch(curMode){
         CPSR = SPSR[4];
         break;}
     default:{
-        THROW_ERROR("Unable to restore the PSR when starting from user or supervisor mode");
+        THROW_EXCEPTION("Unable to restore the PSR when starting from user or supervisor mode");
         break;}
 }
 updateAlias(curMode, CPSR["mode"]);
@@ -199,7 +199,7 @@ switch(toMode){
         REGS[14].updateAlias(RB[20]);
     break;}
     default:{
-        THROW_ERROR("Not valid toMode " << toMode << " when changing the registers")
+        THROW_EXCEPTION("Not valid toMode " << toMode << " when changing the registers")
     break;}
 }
 
@@ -326,13 +326,14 @@ if(cond != 0xE){
         }
         default:{
             // Not recognized condition code
-            THROW_ERROR("Unpredictable condition code: " << cond);
+            THROW_EXCEPTION("Unpredictable condition code: " << cond);
             break;
         }
     }
 }
 """)
 condCheckOp = trap.HelperOperation('condition_check', opCode)
+condCheckOp.addUserInstructionElement('cond')
 # Now I define the behavior for the shift immediate operation: all data processing instructions with
 # an immediate value and a shift use it
 opCode = cxx_writer.Code("""
@@ -343,7 +344,7 @@ if(shift_op == 0 && shift_amm == 0){
 else{
 #ifndef NDEBUG
     if ((shift_amm < 0) || (shift_amm > 31)){
-        THROW_ERROR("Shift ammunt " << shift_amm << " not valid");
+        THROW_EXCEPTION("Shift ammunt " << shift_amm << " not valid");
     }
 #endif
     switch(shift_op) {
@@ -351,7 +352,7 @@ else{
             // Logical shift left
             #ifndef NDEBUG
             if (shift_amm == 0){
-                THROW_ERROR("Shift ammunt " << shift_amm << " and logical shift left not valid: this situation should have already been cheched");
+                THROW_EXCEPTION("Shift ammunt " << shift_amm << " and logical shift left not valid: this situation should have already been cheched");
             }
             else{
             #endif
@@ -404,7 +405,7 @@ else{
             }
             break;}
         default:{
-            THROW_ERROR("Shift operation " << shift_op << " not valid");
+            THROW_EXCEPTION("Shift operation " << shift_op << " not valid");
             break;}
     }
 }
@@ -412,6 +413,9 @@ else{
 DPI_shift_imm_Op = trap.HelperOperation('DPI_shift_imm', opCode)
 DPI_shift_imm_Op.addInstuctionVar(('operand', 'BIT<32>'))
 DPI_shift_imm_Op.addInstuctionVar(('carry', 'BIT<1>'))
+DPI_shift_imm_Op.addUserInstructionElement('shift_amm')
+DPI_shift_imm_Op.addUserInstructionElement('rm')
+DPI_shift_imm_Op.addUserInstructionElement('shift_op')
 # Now I define the behavior for the shift register operation: all data processing instructions with
 # an register value and a shift use it
 opCode = cxx_writer.Code("""
@@ -492,7 +496,7 @@ switch(shift_op) {
         }
         break;}
     default:{
-        THROW_ERROR("Shift operation " << shift_op << " not valid");
+        THROW_EXCEPTION("Shift operation " << shift_op << " not valid");
         break;}
 }
 //Ok, this operation is such that it stall the pipeline for 1 stage;
@@ -503,6 +507,10 @@ stall(1);
 DPI_reg_shift_Op = trap.HelperOperation('DPI_reg_shift', opCode)
 DPI_reg_shift_Op.addInstuctionVar(('operand', 'BIT<32>'))
 DPI_reg_shift_Op.addInstuctionVar(('carry', 'BIT<1>'))
+DPI_reg_shift_Op.addUserInstructionElement('shift_amm')
+DPI_reg_shift_Op.addUserInstructionElement('rm')
+DPI_reg_shift_Op.addUserInstructionElement('shift_op')
+DPI_reg_shift_Op.addUserInstructionElement('rs')
 # Now I define the behavior for the rotate immediate operation: all data processing instructions with
 # an immediate value and a rotation use it
 opCode = cxx_writer.Code("""
@@ -518,6 +526,8 @@ else{
 DPI_imm_Op = trap.HelperOperation('DPI_imm', opCode)
 DPI_imm_Op.addInstuctionVar(('operand', 'BIT<32>'))
 DPI_imm_Op.addInstuctionVar(('carry', 'BIT<1>'))
+DPI_imm_Op.addUserInstructionElement('rotate')
+DPI_imm_Op.addUserInstructionElement('immediate')
 # Now I define the behavior used by most of the data processing operations
 # for the update of the program status register
 # TODO: check carry and overflow operations; in particular, are they valid for
@@ -537,7 +547,7 @@ if (s == 0x1){
         //Update flag Z if the result is 0
         CPSR["Z"] = (result == 0);
         //Update the C flag if a carry occurred in the operation
-        CPSR["C"] = (((((rn >> 31) & 0x01) ^ ((operand >> 31) & 0x01)) ^ (result & 0x0000000100000000)) != 0);
+        CPSR["C"] = (((((rn >> 31) & 0x01) ^ ((operand >> 31) & 0x01)) ^ (result & 0x0000000100000000LL)) != 0);
         //Update the V flag if an overflow occurred in the operation
         CPSR["V"] = ((rn & operand & ~result & 0x0000000080000000LL) != 0 ||
                      (~rn & ~operand & result & 0x0000000080000000LL) != 0);
@@ -545,6 +555,10 @@ if (s == 0x1){
 }
 """)
 UpdatePSR = trap.HelperOperation('UpdatePSR', opCode)
+UpdatePSR.addInstuctionVar(('result', 'BIT<64>'))
+DPI_imm_Op.addUserInstructionElement('s')
+DPI_imm_Op.addUserInstructionElement('rn')
+DPI_imm_Op.addInstuctionVar(('operand', 'BIT<32>'))
 # In case the program counter is the updated register I have
 # to increment the latency of the operation
 opCode = cxx_writer.Code("""
@@ -561,3 +575,4 @@ if(rd_bit == 15){
 }
 """)
 UpdatePC = trap.HelperOperation('UpdatePC', opCode, False)
+UpdatePC.addUserInstructionElement('rd')

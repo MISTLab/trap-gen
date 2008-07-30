@@ -60,6 +60,7 @@ def getCppOperation(self):
 def getCppOpClass(self):
     # Returns a class (directly deriving from instruction) implementing the
     # method corresponding to the current operation
+    aliasType = cxx_writer.writer_code.Type('Alias', 'alias.hpp')
     instructionType = cxx_writer.writer_code.Type('Instruction', 'instructions.hpp')
     for var in self.localvars:
         self.code.addVariable(var)
@@ -108,7 +109,7 @@ def getCPPInstr(self, model):
                 for elem in beh.archElems:
                     behaviorCode += 'this->' + elem + ', '
                     behaviorCode += 'this->' + elem + '_bit'
-                    if elem != self.archElems[-1]:
+                    if elem != beh.archElems[-1]:
                         behaviorCode += ', '
                 behaviorCode += ');\n'
             else:
@@ -124,7 +125,7 @@ def getCPPInstr(self, model):
                 for elem in beh.archElems:
                     behaviorCode += 'this->' + elem + ', '
                     behaviorCode += 'this->' + elem + '_bit'
-                    if elem != self.archElems[-1]:
+                    if elem != beh.archElems[-1]:
                         behaviorCode += ', '
                 behaviorCode += ');\n'
             else:
