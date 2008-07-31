@@ -433,10 +433,10 @@ class HelperOperation:
         # the current operation needs to access the field of a machine code
         self.archElems.append(archElem)
 
-    def getCppOperation(self):
+    def getCppOperation(self, parameters = False):
         # returns the cpp code implementing the current method
-        return isaWriter.getCppOperation(self)
-        
+        return isaWriter.getCppOperation(self, parameters)
+
     def getCppOpClass(self):
         # Relturn a CPP class, deriving from Instruction,
         # implementing a method which defines the current

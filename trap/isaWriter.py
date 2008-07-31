@@ -40,6 +40,9 @@ import cxx_writer
 # in the instruction itself
 behClass = {}
 archWordType = None
+alreadyDeclared = []
+baseInstrConstrParams = []
+baseInitElement = ''
 
 def getCppMethod(self):
     # Returns the code implementing a helper method
@@ -49,12 +52,20 @@ def getCppMethod(self):
     methodDecl = cxx_writer.writer_code.Method(self.name, self.code, self.retType, 'pu', self.parameters)
     return methodDecl
 
-def getCppOperation(self):
+def getCppOperation(self, parameters = False):
     # Returns the code implementing a helper operation
+    aliasType = cxx_writer.writer_code.Type('Alias', 'alias.hpp')
     for var in self.localvars:
         self.code.addVariable(var)
     self.code.addInclude('utils.hpp')
-    methodDecl = cxx_writer.writer_code.Method(self.name, self.code, cxx_writer.writer_code.voidType, 'pro', inline = True)
+    metodParams = []
+    if parameters:
+        for elem in self.archElems:
+            metodParams.append(cxx_writer.writer_code.Parameter(elem, aliasType.makeRef()))
+            metodParams.append(cxx_writer.writer_code.Parameter(elem + '_bit', cxx_writer.writer_code.uintRefType))
+        for var in self.instrvars:
+            metodParams.append(cxx_writer.writer_code.Parameter(var.name, var.type))
+    methodDecl = cxx_writer.writer_code.Method(self.name, self.code, cxx_writer.writer_code.voidType, 'pro', metodParams, inline = True)
     return methodDecl
 
 def getCppOpClass(self):
@@ -66,13 +77,13 @@ def getCppOpClass(self):
         self.code.addVariable(var)
     self.code.addInclude('utils.hpp')
     classElements = []
-    # Now I also need to declare the instruction variables
-    for var in self.instrvars:
-        classElements.append(cxx_writer.writer_code.Attribute(var.name, var.type, 'pro',  var.static))
+    # Now I also need to declare the instruction variables and referenced architectural elements
     metodParams = []
     for elem in self.archElems:
         metodParams.append(cxx_writer.writer_code.Parameter(elem, aliasType.makeRef()))
         metodParams.append(cxx_writer.writer_code.Parameter(elem + '_bit', cxx_writer.writer_code.uintRefType))
+    for var in self.instrvars:
+        metodParams.append(cxx_writer.writer_code.Parameter(var.name, var.type))
     methodDecl = cxx_writer.writer_code.Method(self.name, self.code, cxx_writer.writer_code.voidType, 'pro', metodParams, inline = True)
     classElements.append(methodDecl)
     opDecl = cxx_writer.writer_code.ClassDeclaration(self.name + '_op', classElements, virtual_superclasses = [instructionType])
@@ -84,18 +95,20 @@ def getCPPInstr(self, model):
     # all the different behaviors contained in the type hierarchy of this class
     aliasType = cxx_writer.writer_code.Type('Alias', 'alias.hpp')
     instructionType = cxx_writer.writer_code.Type('Instruction', 'instructions.hpp')
+    emptyBody = cxx_writer.writer_code.Code('')
     classElements = []
     baseClasses = []
     toInline = []
+    global alreadyDeclared
     for behaviors in self.postbehaviors.values() + self.prebehaviors.values():
         for beh in behaviors:
             if behClass.has_key(beh.name):
                 baseClasses.append(behClass[beh.name].getType())
-            elif beh.inline:
+            elif beh.inline and not beh.name in alreadyDeclared:
                 classElements.append(beh.getCppOperation())
                 for var in beh.instrvars:
                     classElements.append(cxx_writer.writer_code.Attribute(var.name, var.type, 'pro',  var.static))
-            else:
+            elif not beh.name in alreadyDeclared:
                 toInline.append(beh.name)
     if not baseClasses:
         baseClasses.append(instructionType)
@@ -109,7 +122,11 @@ def getCPPInstr(self, model):
                 for elem in beh.archElems:
                     behaviorCode += 'this->' + elem + ', '
                     behaviorCode += 'this->' + elem + '_bit'
-                    if elem != beh.archElems[-1]:
+                    if beh.instrvars or elem != beh.archElems[-1]:
+                        behaviorCode += ', '
+                for var in beh.instrvars:
+                    behaviorCode += 'this->' + var.name
+                    if var != beh.instrvars[-1]:
                         behaviorCode += ', '
                 behaviorCode += ');\n'
             else:
@@ -125,7 +142,11 @@ def getCPPInstr(self, model):
                 for elem in beh.archElems:
                     behaviorCode += 'this->' + elem + ', '
                     behaviorCode += 'this->' + elem + '_bit'
-                    if elem != beh.archElems[-1]:
+                    if beh.instrvars or elem != beh.archElems[-1]:
+                        behaviorCode += ', '
+                for var in beh.instrvars:
+                    behaviorCode += 'this->' + var.name
+                    if var != beh.instrvars[-1]:
                         behaviorCode += ', '
                 behaviorCode += ');\n'
             else:
@@ -166,7 +187,12 @@ def getCPPInstr(self, model):
     classElements.append(setparamsDecl)
     for var in self.variables:
         classElements.append(cxx_writer.writer_code.Attribute(var.name, var.type, 'pro',  var.static))
+    # Now I have to declare the constructor
+    global baseInstrConstrParams
+    global baseInitElements
+    publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, [baseInitElement])
     instructionDecl = cxx_writer.writer_code.ClassDeclaration(self.name, classElements, superclasses = baseClasses)
+    instructionDecl.addConstructor(publicConstr)
     return instructionDecl
 
 def getCPPInstrTest(self, processor, model):
@@ -215,7 +241,7 @@ def getCPPClasses(self, processor, modelType):
     instructionElements.append(setparamsDecl)
     # we now have to check if there is a non-inline behavior common to all instructions:
     # in this case I declare it here in the base instruction class
-    alreadyDeclared = []
+    global alreadyDeclared
     for instr in self.instructions.values():
         for behaviors in instr.postbehaviors.values() + instr.prebehaviors.values():
             for beh in behaviors:
@@ -223,42 +249,50 @@ def getCPPClasses(self, processor, modelType):
                     # This behavior is present in all the instructions: I declare it in
                     # the base instruction class
                     alreadyDeclared.append(beh.name)
-                    instructionElements.append(beh.getCppOperation())
+                    instructionElements.append(beh.getCppOperation(True))
     # Ok, now I add the generic helper methods and operations
     for helpOp in self.helperOps + [self.beginOp, self.endOp]:
-        if helpOp:
-            instructionElements.append(helpOp.getCppOperation())
+        if helpOp and not helpOp.name in alreadyDeclared:
+            instructionElements.append(helpOp.getCppOperation(True))
     for helpMeth in self.methods:
         if helpMeth:
             instructionElements.append(helpMeth.getCppMethod())
     # Now create references to the architectural elements contained in the processor and
     # initialize them through the constructor
     initElements = []
-    constrParams = []
+    global baseInstrConstrParams, baseInitElement
+    baseInstrConstrParams = []
+    baseInitElement = 'Instruction('
     from procWriter import resourceType
     for reg in processor.regs:
         attribute = cxx_writer.writer_code.Attribute(reg.name, resourceType[reg.name].makeRef(), 'pri')
-        constrParams.append(cxx_writer.writer_code.Parameter(reg.name, resourceType[reg.name].makeRef()))
+        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(reg.name, resourceType[reg.name].makeRef()))
         initElements.append(reg.name + '(' + reg.name + ')')
+        baseInitElement += reg.name + ', '
         instructionElements.append(attribute)
     for regB in processor.regBanks:
         attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name].makePointer().makeRef(), 'pri')
-        constrParams.append(cxx_writer.writer_code.Parameter(regB.name, resourceType[regB.name].makePointer().makeRef()))
+        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(regB.name, resourceType[regB.name].makePointer().makeRef()))
         initElements.append(regB.name + '(' + regB.name + ')')
+        baseInitElement += regB.name + ', '
         instructionElements.append(attribute)
     for alias in processor.aliasRegs:
         attribute = cxx_writer.writer_code.Attribute(alias.name, resourceType[alias.name].makeRef(), 'pri')
-        constrParams.append(cxx_writer.writer_code.Parameter(alias.name, resourceType[alias.name].makeRef()))
+        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(alias.name, resourceType[alias.name].makeRef()))
         initElements.append(alias.name + '(' + alias.name + ')')
+        baseInitElement += alias.name + ', '
         instructionElements.append(attribute)
     for aliasB in processor.aliasRegBanks:
         attribute = cxx_writer.writer_code.Attribute(aliasB.name, resourceType[aliasB.name].makePointer().makeRef(), 'pri')
-        constrParams.append(cxx_writer.writer_code.Parameter(aliasB.name, resourceType[aliasB.name].makePointer().makeRef()))
+        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(aliasB.name, resourceType[aliasB.name].makePointer().makeRef()))
         initElements.append(aliasB.name + '(' + aliasB.name + ')')
+        baseInitElement += aliasB.name + ', '
         instructionElements.append(attribute)
+    baseInitElement = baseInitElement[:-2]
+    baseInitElement += ')'
     # TODO: create the methods (stall, flush, etc.) use to controll the instruction flow.
     # are they going to be part of the instructions ISA?
-    publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', constrParams, initElements)
+    publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, initElements)
     instructionDecl = cxx_writer.writer_code.ClassDeclaration('Instruction', instructionElements)
     instructionDecl.addConstructor(publicConstr)
     classes.append(instructionDecl)
@@ -269,7 +303,7 @@ def getCPPClasses(self, processor, modelType):
     for instr in self.instructions.values():
         for behaviors in instr.postbehaviors.values() + instr.prebehaviors.values():
             for beh in behaviors:
-                if not behClass.has_key(beh.name) and beh.inline and beh.numUsed > 1:
+                if not behClass.has_key(beh.name) and beh.inline and beh.numUsed > 1 and not beh.name in alreadyDeclared:
                     behClass[beh.name] = beh.getCppOpClass()
                     classes.append(behClass[beh.name])
 

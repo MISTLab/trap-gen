@@ -556,9 +556,10 @@ if (s == 0x1){
 """)
 UpdatePSR = trap.HelperOperation('UpdatePSR', opCode)
 UpdatePSR.addInstuctionVar(('result', 'BIT<64>'))
-DPI_imm_Op.addUserInstructionElement('s')
-DPI_imm_Op.addUserInstructionElement('rn')
-DPI_imm_Op.addInstuctionVar(('operand', 'BIT<32>'))
+UpdatePSR.addUserInstructionElement('s')
+UpdatePSR.addUserInstructionElement('rn')
+UpdatePSR.addUserInstructionElement('rd')
+UpdatePSR.addInstuctionVar(('operand', 'BIT<32>'))
 # In case the program counter is the updated register I have
 # to increment the latency of the operation
 opCode = cxx_writer.Code("""

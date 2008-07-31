@@ -41,8 +41,8 @@
 try:
     import trap
 except ImportError:
-    import sys
-    sys.path.append('/home/luke/SVN/trap-gen/')
+    import sys, os
+    sys.path.append(os.path.abspath(os.path.join('..', '..')))
     try:
         import trap
     except ImportError:
