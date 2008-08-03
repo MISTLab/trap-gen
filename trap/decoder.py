@@ -388,7 +388,8 @@ class decoderCreator:
                 code += '// Checking Invalid Instruction\n'
             code += 'BOOST_CHECK_EQUAL(dec.decode( ' + hex(int(''.join(pattern), 2)) + ' ), ' + str(expectedId) + ');\n'
             code += '}\n\n'
-            curTest = cxx_writer.writer_code.Code(code, ['boost/test/auto_unit_test.hpp', 'boost/test/test_tools.hpp', 'decoder.hpp'])
+            curTest = cxx_writer.writer_code.Code(code)
+            curTest.addInclude(['boost/test/auto_unit_test.hpp', 'boost/test/test_tools.hpp', 'decoder.hpp'])
             allTests.append(curTest)
             testCount += 1
         return allTests
@@ -444,7 +445,7 @@ class decoderCreator:
         neqSubtree = DecodingNode(neqPattern)
         eqProb = 0
         neqProb = 0
-        for i in eqPattern: 
+        for i in eqPattern:
             eqProb += i[1]
         for i in neqPattern:
             neqProb += i[1]
@@ -491,7 +492,7 @@ class decoderCreator:
         # Ok, I have created the splitted nodes
         cost = 0
         retTuple = []
-        
+
         probs = {}
         memoryCost = 1 + math.pow(2, curTableLen)
         for key, value in leavesPatterns.items():

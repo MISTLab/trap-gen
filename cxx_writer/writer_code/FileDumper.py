@@ -87,7 +87,7 @@ class FileDumper:
             self.members += list(member)
         except TypeError:
             self.members.append(member)
-    
+
     def addInclude(self, include):
         if not include in self.includes:
             self.includes.append(include)
@@ -99,18 +99,18 @@ class FileDumper:
         #inside self.members
         fileHnd = open(self.name, 'wt')
         print >> fileHnd, '/***************************************************************************\\'
-        print >> fileHnd, '*   '
+        print >> fileHnd, '*'
         for line in banner.split('\n'):
             print >> fileHnd, '*   ' + line
-        print >> fileHnd, '*   '
-        print >> fileHnd, '*   '
+        print >> fileHnd, '*'
+        print >> fileHnd, '*'
         for line in license.split('\n'):
             print >> fileHnd, '*   ' + line
-        print >> fileHnd, '*   '
-        print >> fileHnd, '*   '
+        print >> fileHnd, '*'
+        print >> fileHnd, '*'
         for line in copyright.split('\n'):
             print >> fileHnd, '*   ' + line
-        print >> fileHnd, '*   '
+        print >> fileHnd, '*'
         print >> fileHnd, '\\***************************************************************************/\n\n'
         # Now I can start priting the actual code: lets create the writer
         writer = Writer.CodeWriter(fileHnd)
@@ -167,7 +167,7 @@ class Folder:
 
     def addUseLib(self, library):
         self.uselib_local.append(library)
-        
+
     def setMain(self, mainFile):
         self.mainFile = mainFile
 
@@ -301,7 +301,8 @@ class Folder:
     # Check for boost libraries
     ########################################
     boostconf = conf.create_boost_configurator()
-    boostconf.lib = ['thread', 'regex', 'date_time' , 'program_options' , 'system', 'filesystem','unit_test_framework']
+    #boostconf.lib = ['thread', 'regex', 'date_time', 'program_options', 'system', 'filesystem','unit_test_framework', 'timer']
+    boostconf.lib = ['thread', 'regex', 'date_time', 'program_options', 'filesystem','unit_test_framework', 'timer']
     boostconf.min_version = '1.35.0'
     boostconf.run()
 

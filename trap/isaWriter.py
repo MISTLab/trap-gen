@@ -42,7 +42,6 @@ behClass = {}
 archWordType = None
 alreadyDeclared = []
 baseInstrConstrParams = []
-baseInitElement = ''
 
 def getCppMethod(self):
     # Returns the code implementing a helper method
@@ -181,6 +180,25 @@ def getCPPInstr(self, model):
             setParamsCode += ' >> ' + str(shiftAmm)
         setParamsCode += ';\n'
         setParamsCode += 'this->' + name + '.updateAlias(' + correspondence[0] + '[' + str(correspondence[1]) + ' + this->' + name + '_bit]);\n'
+    # now I need to declare the fields for the variable parts of the
+    # instruction
+    for name, length in self.machineCode.bitFields:
+        if name in self.machineBits.keys() + self.machineCode.bitValue.keys() + self.machineCode.bitCorrespondence.keys():
+            continue
+        classElements.append(cxx_writer.writer_code.Attribute(name, cxx_writer.writer_code.uintType, 'pri'))
+        mask = ''
+        for i in range(0, self.machineCode.instrLen - self.machineCode.bitPos[name] - self.machineCode.bitLen[name]):
+            mask += '0'
+        for i in range(0, self.machineCode.bitLen[name]):
+            mask += '1'
+        maskLen = len(mask)
+        for i in range(0, self.machineCode.bitPos[name]):
+            mask += '0'
+        shiftAmm = self.machineCode.bitPos[name]
+        setParamsCode = 'this->' + name + ' = (bitString & ' + hex(int(mask, 2)) + ')'
+        if shiftAmm > 0:
+            setParamsCode += ' >> ' + str(shiftAmm)
+        setParamsCode += ';\n'
     setParamsBody = cxx_writer.writer_code.Code(setParamsCode)
     setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
     setparamsDecl = cxx_writer.writer_code.Method('setParams', setParamsBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam])
@@ -189,8 +207,8 @@ def getCPPInstr(self, model):
         classElements.append(cxx_writer.writer_code.Attribute(var.name, var.type, 'pro',  var.static))
     # Now I have to declare the constructor
     global baseInstrConstrParams
-    global baseInitElements
-    publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, [baseInitElement])
+    from procWriter import baseInstrInitElement
+    publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, ['Instruction(' + baseInstrInitElement + ')'])
     instructionDecl = cxx_writer.writer_code.ClassDeclaration(self.name, classElements, superclasses = baseClasses)
     instructionDecl.addConstructor(publicConstr)
     return instructionDecl
@@ -260,7 +278,7 @@ def getCPPClasses(self, processor, modelType):
     # Now create references to the architectural elements contained in the processor and
     # initialize them through the constructor
     initElements = []
-    global baseInstrConstrParams, baseInitElement
+    global baseInstrConstrParams
     baseInstrConstrParams = []
     baseInitElement = 'Instruction('
     from procWriter import resourceType

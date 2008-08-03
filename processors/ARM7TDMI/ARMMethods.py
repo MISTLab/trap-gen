@@ -294,7 +294,7 @@ if(cond != 0xE){
         }
         case 0xA:{
             // GE
-            if (CPSR["V"] != CPSR.N){
+            if (CPSR["V"] != CPSR["N"]){
                 flush();
             }
             break;
@@ -507,7 +507,6 @@ stall(1);
 DPI_reg_shift_Op = trap.HelperOperation('DPI_reg_shift', opCode)
 DPI_reg_shift_Op.addInstuctionVar(('operand', 'BIT<32>'))
 DPI_reg_shift_Op.addInstuctionVar(('carry', 'BIT<1>'))
-DPI_reg_shift_Op.addUserInstructionElement('shift_amm')
 DPI_reg_shift_Op.addUserInstructionElement('rm')
 DPI_reg_shift_Op.addUserInstructionElement('shift_op')
 DPI_reg_shift_Op.addUserInstructionElement('rs')

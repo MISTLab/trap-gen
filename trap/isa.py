@@ -303,6 +303,15 @@ class Instruction:
                 raise Exception('Field ' + i + ' already specified in the machine code for instruction ' + self.name)
         self.machineCode = machineCode
         self.machineBits = machineBits
+        for behavior in self.postbehaviors.values() + self.prebehaviors.values():
+            for procElem in behavior.archElems:
+                found = False
+                for key, fieldLen in self.machineCode.bitFields:
+                    if key == procElem:
+                        found = True
+                        break
+                if not found:
+                    raise Exception('Error, architectural element ' + procElem + ' specified in operation ' + behavior.name + ' is not present in the machine code of instruction ' + self.name)
 
     def addBehavior(self, behavior, stage, pre = True):
         # adds a behavior (an instance of the class
@@ -327,6 +336,16 @@ class Instruction:
                 else:
                     self.variables.remove(instrVar)
                     break
+        if self.machineCode:
+            for procElem in behavior.archElems:
+                found = False
+                for key, fieldLen in self.machineCode.bitFields:
+                    if key == procElem:
+                        found = True
+                        break
+                if not found:
+                    raise Exception('Error, architectural element ' + procElem + ' specified in operation ' + behavior.name + ' is not present in the machine code of instruction ' + self.name)
+
 
     def setCode(self, code, stage):
         # code is simply a string containing the code

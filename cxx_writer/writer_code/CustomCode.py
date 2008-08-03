@@ -39,12 +39,12 @@ class Code:
     This class is for example used to specify the behavior of a class method or
     of a function"""
 
-    def __init__(self,  code,  includes = []):
+    def __init__(self,  code):
         if type(code) == type([]):
             self.code = '\n'.join(code)
         else:
             self.code = code
-        self.includes = includes
+        self.includes = []
         self.variables = []
 
     def addCode(self, code):

@@ -48,12 +48,13 @@ except:
     traceback.print_exc()
     raise Exception('Error occurred during the import of module networkx, required for the creation of the decoder. Please correctly install the module')
 
-assignmentOps = ['=', '+=', '-=', '*=', '/=', '|=', '&=', '^=']
+assignmentOps = ['=', '+=', '-=', '*=', '/=', '|=', '&=', '^=', '<<=', '>>=']
 binaryOps = ['+', '-', '*', '/', '|', '&', '^', '<<', '>>']
 unaryOps = ['~']
-comparisonOps = ['<', '>', '<=', '>=', '==', '!=', '<<=', '>>=']
+comparisonOps = ['<', '>', '<=', '>=', '==', '!=']
 regMaxType = None
 resourceType = {}
+baseInstrInitElement = ''
 
 def getCPPRegClass(self, model, regType):
     # returns the class implementing the current register; I have to
@@ -82,7 +83,7 @@ def getCPPRegClass(self, model, regType):
     operatorParam = [cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.charPtrType.makeConst())]
     operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, InnerFieldType.makeRef(), 'pu', operatorParam)
     registerElements.append(operatorDecl)
-    
+
     #################### Lets declare the normal operators (implementation of the pure operators of the base class) ###########
     for i in unaryOps:
         operatorBody = cxx_writer.writer_code.Code('return ' + i + '(this->value);')
@@ -105,7 +106,7 @@ def getCPPRegClass(self, model, regType):
         operatorBody = cxx_writer.writer_code.Code('this->value ' + i + ' other;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regType.makeRef(), 'pu', [operatorParam])
-        registerElements.append(operatorDecl)        
+        registerElements.append(operatorDecl)
     # SPECIFIC REGISTER
     for i in binaryOps:
         operatorBody = cxx_writer.writer_code.Code('return (this->value ' + i + ' other.value);')
@@ -121,7 +122,7 @@ def getCPPRegClass(self, model, regType):
         operatorBody = cxx_writer.writer_code.Code('this->value ' + i + ' other.value;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', regType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regType.makeRef(), 'pu', [operatorParam])
-        registerElements.append(operatorDecl)        
+        registerElements.append(operatorDecl)
     # GENERIC REGISTER: this case is look more complicated; actually I simply used the
     # operators of parameter other
     for i in binaryOps:
@@ -138,7 +139,7 @@ def getCPPRegClass(self, model, regType):
         operatorBody = cxx_writer.writer_code.Code('this->value ' + i + ' other;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regType.makeRef(), 'pu', [operatorParam])
-        registerElements.append(operatorDecl)        
+        registerElements.append(operatorDecl)
     # Scalar value cast operator
     operatorBody = cxx_writer.writer_code.Code('return this->value;')
     operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True)
@@ -152,7 +153,7 @@ def getCPPRegClass(self, model, regType):
     constructorParams = [cxx_writer.writer_code.Parameter('name', cxx_writer.writer_code.sc_module_nameType)]
     publicMainClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['Register(name, ' + str(self.bitWidth) + ')'] + fieldInit)
     publicMainClassEmptyConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', initList = ['Register(sc_gen_unique_name(\"' + regType.name + '\"), ' + str(self.bitWidth) + ')'] + fieldInit)
-    
+
     # Stream Operators
     outStreamType = cxx_writer.writer_code.Type('std::ostream', 'ostream')
     code = 'stream << std::hex << std::showbase << this->value << std::dec;\nreturn stream;'
@@ -160,7 +161,7 @@ def getCPPRegClass(self, model, regType):
     operatorParam = cxx_writer.writer_code.Parameter('stream', outStreamType.makeRef())
     operatorDecl = cxx_writer.writer_code.MemberOperator('<<', operatorBody, outStreamType.makeRef(), 'pu', [operatorParam], const = True)
     registerElements.append(operatorDecl)
-    
+
     # Attributes and inner classes declarations
     attrs = []
     innerClasses = []
@@ -201,7 +202,7 @@ def getCPPRegClass(self, model, regType):
     operatorBody = cxx_writer.writer_code.Code('return *this;')
     operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
     operatorEqualDecl = cxx_writer.writer_code.MemberOperator('=', operatorBody, cxx_writer.writer_code.Type('InnerField').makeRef(), 'pu', [operatorParam])
-    operatorBody = cxx_writer.writer_code.Code('return 0;')   
+    operatorBody = cxx_writer.writer_code.Code('return 0;')
     operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True)
     publicConstr = cxx_writer.writer_code.Constructor(cxx_writer.writer_code.Code(''), 'pu')
     InnerFieldClass = cxx_writer.writer_code.ClassDeclaration('InnerField_Empty', [operatorEqualDecl, operatorIntDecl], [cxx_writer.writer_code.Type('InnerField')])
@@ -212,7 +213,7 @@ def getCPPRegClass(self, model, regType):
     valueAttribute = cxx_writer.writer_code.Attribute('value', regWidthType, 'pri')
     attrs.append(valueAttribute)
     registerElements = attrs + registerElements
-    
+
     registerDecl = cxx_writer.writer_code.ClassDeclaration(regType.name, registerElements, [registerType])
     registerDecl.addConstructor(publicMainClassConstr)
     registerDecl.addConstructor(publicMainClassEmptyConstr)
@@ -250,10 +251,10 @@ def getCPPRegisters(self, model):
     widthAttribute = cxx_writer.writer_code.Attribute('bitWidth', cxx_writer.writer_code.uintType, 'pri')
     registerElements.append(widthAttribute)
     constructorBody = cxx_writer.writer_code.Code('this->bitWidth = bitWidth;\nend_module();')
-    constructorParams = [cxx_writer.writer_code.Parameter('name', cxx_writer.writer_code.sc_module_nameRefType.makeConst()), 
+    constructorParams = [cxx_writer.writer_code.Parameter('name', cxx_writer.writer_code.sc_module_nameRefType.makeConst()),
                 cxx_writer.writer_code.Parameter('bitWidth', cxx_writer.writer_code.uintType)]
     publicConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['sc_module(name)'])
-    
+
     ################ Operators working with the base class, employed when polimorphism is used ##################
     # First lets declare the class which will be used to manipulate the
     # bitfields
@@ -261,13 +262,13 @@ def getCPPRegisters(self, model):
     operatorEqualDecl = cxx_writer.writer_code.MemberOperator('=', emptyBody, cxx_writer.writer_code.Type('InnerField').makeRef(), 'pu', [operatorParam], pure = True)
     operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), emptyBody, cxx_writer.writer_code.Type(''), 'pu', const = True, pure = True)
     InnerFieldClass = cxx_writer.writer_code.ClassDeclaration('InnerField', [operatorEqualDecl, operatorIntDecl])
-    
+
     # Now lets procede with the members of the main class
     operatorParam = cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.stringRefType.makeConst())
-    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', emptyBody, InnerFieldClass.getType().makeRef(), 'pu', [operatorParam], const = True, pure = True)
+    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', emptyBody, InnerFieldClass.getType().makeRef(), 'pu', [operatorParam], pure = True)
     registerElements.append(operatorDecl)
     operatorParam = cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.charPtrType.makeConst())
-    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', emptyBody, InnerFieldClass.getType().makeRef(), 'pu', [operatorParam], const = True, pure = True)
+    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', emptyBody, InnerFieldClass.getType().makeRef(), 'pu', [operatorParam], pure = True)
     registerElements.append(operatorDecl)
     for i in unaryOps:
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, emptyBody, regMaxType, 'pu', pure = True)
@@ -285,15 +286,15 @@ def getCPPRegisters(self, model):
         for i in assignmentOps:
             operatorParam = cxx_writer.writer_code.Parameter('other', pureDecls.makeRef().makeConst())
             operatorDecl = cxx_writer.writer_code.MemberOperator(i, emptyBody, registerType.makeRef(), 'pu', [operatorParam], pure = True)
-            registerElements.append(operatorDecl)        
+            registerElements.append(operatorDecl)
     # Stream Operators
     outStreamType = cxx_writer.writer_code.Type('std::ostream', 'ostream')
     operatorParam = cxx_writer.writer_code.Parameter('other', outStreamType.makeRef())
-    operatorDecl = cxx_writer.writer_code.MemberOperator('<<', emptyBody, outStreamType.makeRef(), 'pu', [operatorParam], pure = True)
+    operatorDecl = cxx_writer.writer_code.MemberOperator('<<', emptyBody, outStreamType.makeRef(), 'pu', [operatorParam], const = True, pure = True)
     registerElements.append(operatorDecl)
     operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), emptyBody, cxx_writer.writer_code.Type(''), 'pu', const = True, pure = True)
     registerElements.append(operatorIntDecl)
-    
+
     ################ Finally I put everything together and print if ##################
     global resourceType
     regTypes = []
@@ -339,7 +340,7 @@ def getCPPAlias(self, model):
     operatorParam = [cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.stringRefType.makeConst())]
     operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, InnerFieldType.makeRef(), 'pu', operatorParam)
     aliasElements.append(operatorDecl)
-    
+
     #################### Lets declare the normal operators (implementation of the pure operators of the base class) ###########
     for i in unaryOps:
         operatorBody = cxx_writer.writer_code.Code('return ' + i + '(*this->reg);')
@@ -362,7 +363,7 @@ def getCPPAlias(self, model):
         operatorBody = cxx_writer.writer_code.Code('*this->reg ' + i + ' other;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam])
-        aliasElements.append(operatorDecl)        
+        aliasElements.append(operatorDecl)
     # Alias Register
     for i in binaryOps:
         operatorBody = cxx_writer.writer_code.Code('return (*this->reg ' + i + ' *other.reg);')
@@ -378,7 +379,7 @@ def getCPPAlias(self, model):
         operatorBody = cxx_writer.writer_code.Code('*this->reg ' + i + ' *other.reg;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', aliasType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam])
-        aliasElements.append(operatorDecl)        
+        aliasElements.append(operatorDecl)
     # GENERIC REGISTER:
     for i in binaryOps:
         operatorBody = cxx_writer.writer_code.Code('return (*this->reg ' + i + ' other);')
@@ -394,7 +395,7 @@ def getCPPAlias(self, model):
         operatorBody = cxx_writer.writer_code.Code('*this->reg ' + i + ' other;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam])
-        aliasElements.append(operatorDecl)        
+        aliasElements.append(operatorDecl)
     # Scalar value cast operator
     operatorBody = cxx_writer.writer_code.Code('return *this->reg + this->offset;')
     operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True)
@@ -409,7 +410,7 @@ def getCPPAlias(self, model):
     constructorBody = cxx_writer.writer_code.Code('initAlias->referredAliases.insert(this);\ntihis->referringAliases.insert(initAlias);')
     constructorParams = [cxx_writer.writer_code.Parameter('initAlias', aliasType.makePointer()), cxx_writer.writer_code.Parameter('offset', cxx_writer.writer_code.uintType, initValue = '0')]
     publicAliasConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['reg(initAlias->reg)', 'offset(initAlias->offset + offset)', 'defaultOffset(offset)'])
-    
+
     # Stream Operators
     outStreamType = cxx_writer.writer_code.Type('std::ostream', 'ostream')
     code = 'stream << *this->reg + this->offset;\nreturn stream;'
@@ -430,7 +431,7 @@ def getCPPAlias(self, model):
     std::set<Alias *>::iterator referringIter, referringEnd;
     for(referringIter = this->referringAliases.begin(), referringEnd = this->referringAliases.end(); referringIter != referringEnd; referringIter++){
         (*referringIter)->referredAliases.erase(this);
-    }    
+    }
     tihis->referringAliases.clear();
     tihis->referringAliases.insert(&newAlias);
     """
@@ -449,7 +450,7 @@ def getCPPAlias(self, model):
     std::set<Alias *>::iterator referringIter, referringEnd;
     for(referringIter = this->referringAliases.begin(), referringEnd = this->referringAliases.end(); referringIter != referringEnd; referringIter++){
         (*referringIter)->referredAliases.erase(this);
-    }    
+    }
     tihis->referringAliases.clear();
     """
     updateBody = cxx_writer.writer_code.Code(updateCode)
@@ -469,7 +470,7 @@ def getCPPAlias(self, model):
     updateParam2 = cxx_writer.writer_code.Parameter('newOffset', cxx_writer.writer_code.uintType)
     updateDecl = cxx_writer.writer_code.Method('newReferredAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', [updateParam1, updateParam2])
     aliasElements.append(updateDecl)
-    
+
     # Finally I declare the class and pass to it all the declared members
     regAttribute = cxx_writer.writer_code.Attribute('reg', registerType.makePointer(), 'pri')
     aliasElements.append(regAttribute)
@@ -589,7 +590,7 @@ def getCPPProc(self, model):
     includes = fetchWordType.getIncludes()
     codeString = ''
     if self.beginOp:
-        codeString += 'this->beginOp();\n'
+        codeString += '//user-defined initialization\nthis->beginOp();\n'
     codeString += 'while(true){\n'
     codeString += 'unsigned int numCycles = 0;\n'
     codeString += str(fetchWordType) + ' bitString = '
@@ -646,7 +647,8 @@ def getCPPProc(self, model):
     codeString += '}'
 
     processorElements = []
-    mainLoopCode = cxx_writer.writer_code.Code(codeString, includes)
+    mainLoopCode = cxx_writer.writer_code.Code(codeString)
+    mainLoopCode.addInclude(includes)
     mainLoopMethod = cxx_writer.writer_code.Method('mainLoop', mainLoopCode, cxx_writer.writer_code.voidType, 'pu')
     processorElements.append(mainLoopMethod)
     if self.beginOp:
@@ -708,10 +710,13 @@ def getCPPProc(self, model):
         for initAlias in self.aliasRegs + self.aliasRegBanks:
             if alias.initAlias == initAlias.name:
                 aliasGraph.add_edge(initAlias, alias)
-    # TODO: now I have to check for loops, if there are then the alias assignment is not valid
-    # TODO: I do a topological sort and take the elements in this ordes and I add them to the initialization;
-    # note that the ones whose initialization depend on banks (either register or alias) have to be
-    # postponed after the creation of the arrays
+    # now I have to check for loops, if there are then the alias assignment is not valid
+    if not NX.is_directed_acyclic_graph(aliasGraph):
+        raise Exception('There is a circular dependency in the aliases initialization')
+    # I do a topological sort and take the elements in this ordes and I add them to the initialization;
+    #note that the ones whose initialization depend on banks (either register or alias) have to be postponned after the creation of the arrays
+    orderedNodes = NX.topological_sort(aliasGraph)
+    # TODO: completed initialization
     if self.memory:
         attribute = cxx_writer.writer_code.Attribute(self.memory[0], cxx_writer.writer_code.Type('LocalMemory', 'memory.hpp'), 'pu')
         initMemCode = self.memory[0] + '(' + str(self.memory[1])
@@ -722,14 +727,17 @@ def getCPPProc(self, model):
         processorElements.append(attribute)
     for tlmPortName in self.tlmPorts.keys():
         attribute = cxx_writer.writer_code.Attribute(tlmPortName, cxx_writer.writer_code.Type('TLMPORT', 'memory.hpp'), 'pu')
-        processorElements.append(attribute)        
+        processorElements.append(attribute)
     if self.systemc or model.startswith('acc'):
         # Here we need to insert the quantum keeper etc.
         pass
     else:
         totCyclesAttribute = cxx_writer.writer_code.Attribute('totalCycles', cxx_writer.writer_code.uintType, 'pu')
-        bodyInits += 'this->totalCycles = 0;\n'
         processorElements.append(totCyclesAttribute)
+        bodyInits += 'this->totalCycles = 0;\n'
+    numInstructions = cxx_writer.writer_code.Attribute('numInstructions', cxx_writer.writer_code.uintType, 'pu')
+    processorElements.append(numInstructions)
+    bodyInits += 'this->numInstructions = 0;\n'
     IntructionType = cxx_writer.writer_code.Type('Instruction', include = 'instructions.hpp')
     IntructionTypePtr = IntructionType.makePointer()
     instructionsAttribute = cxx_writer.writer_code.Attribute('INSTRUCTIONS',
@@ -743,25 +751,35 @@ def getCPPProc(self, model):
     # Ok, here I have to create the code for the constructor: I have to
     # initialize the INSTRUCTIONS array, the local memory (if present)
     # the TLM ports
+    global baseInstrInitElement
+    for reg in self.regs:
+        baseInstrInitElement += reg.name + ', '
+    for regB in self.regBanks:
+        baseInstrInitElement += regB.name + ', '
+    for alias in self.aliasRegs:
+        baseInstrInitElement += alias.name + ', '
+    for aliasB in self.aliasRegBanks:
+        baseInstrInitElement += aliasB.name + ', '
+    baseInstrInitElement = baseInstrInitElement[:-2]
+
     constrCode = 'Processor::numInstances++;\nif(Processor::INSTRUCTIONS == NULL){\n'
     constrCode += '// Initialization of the array holding the initial instance of the instructions\n'
     maxInstrId = max([instr.id for instr in self.isa.instructions.values()]) + 1
     constrCode += 'Processor::INSTRUCTIONS = new Instruction *[' + str(maxInstrId + 1) + '];\n'
     for name, instr in self.isa.instructions.items():
-        constrCode += 'Processor::INSTRUCTIONS[' + str(instr.id) + '] = new ' + name + '();\n'
-    constrCode += 'Processor::INSTRUCTIONS[' + str(maxInstrId) + '] = new InvalidInstr();\n'
+        constrCode += 'Processor::INSTRUCTIONS[' + str(instr.id) + '] = new ' + name + '(' + baseInstrInitElement +');\n'
+    constrCode += 'Processor::INSTRUCTIONS[' + str(maxInstrId) + '] = new InvalidInstr(' + baseInstrInitElement + ');\n'
     constrCode += '}\n'
     constrCode += bodyInits
     # TODO: now I have to complete initializing the alias graph, print the remaining
     # nodes in topological order
-    if self.systemc or model.startswith('acc'):
-        # TODO: We also need to initialize the quantuum keeper etc
-        constrCode += 'SC_THREAD(mainLoop);\n'
-    else:
+    # TODO: I have to set the initial constant values for the registers and the aliases
+    constrCode += 'SC_THREAD(mainLoop);\n'
+    if not self.systemc and not model.startswith('acc'):
         constrCode += 'this->totalCycles = 0;'
     constrCode += 'end_module();'
     constructorBody = cxx_writer.writer_code.Code(constrCode)
-    constructorParams = [cxx_writer.writer_code.Parameter('name', cxx_writer.writer_code.sc_module_nameType), 
+    constructorParams = [cxx_writer.writer_code.Parameter('name', cxx_writer.writer_code.sc_module_nameType),
                 cxx_writer.writer_code.Parameter('latency', cxx_writer.writer_code.sc_timeType)]
     publicConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['sc_module(name)'] + initElements)
     destrCode = """Processor::numInstances--;
@@ -809,8 +827,52 @@ def getTestMainCode(self):
 def getMainCode(self, model):
     # Returns the code which instantiate the processor
     # in order to execute simulations
-    code = 'return 0;'
+    code = """
+    boost::program_options::options_description desc("Processor simulator for """ + self.name + """");
+    desc.add_options()
+        ("help,h", "produces the help message")
+        ("frequency,f", "processor clock frequency specified in MHz [Default 1MHz]")
+    ;
+
+    boost::program_options::variables_map vm;
+    boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
+    boost::program_options::notify(vm);
+
+    // Checking that the parameters are correctly specified
+    if(vm.count("help") != 0){
+        std::cout << desc << std::endl;
+        return 0;
+    }
+
+    double latency = 10e-6; // 1us
+    if(vm.count("help") != 0){
+        latency = 1/(vm["frequency"].as<double>());
+    }
+    //Now we can procede with the actual instantiation of the processor
+    Processor procInst(""" + self.name + """, latency);
+    //Now we can start the execution
+    boost::timer t;
+    sc_start();
+    double elapsedSec = t.elapsed();
+    std::cout << "Elapsed " << elapsedSec << " sec" << std::endl;
+    std::cout << "Executed " << procInst.numInstructions << " instructions" << std::endl;
+    std::cout << "Execition Speed " << (double)procInst.numInstructions/(elapsedSec*10e6) << " MIPS" << std::endl;
+    """
+    if self.systemc or model.startswith('acc'):
+        code += 'std::cout << \"Simulated time \" << sc_simulation_time()/10e3 << \" ns\" << std::endl\n'
+    else:
+        code += 'std::cout << \"Elapsed \" << procInst.totalCycles << \" cycles\" << std::endl\n'
+    if self.endOp:
+        code += '//Ok, simulation has ended: lets call cleanup methods\nprocInst.endOp();\n'
+    code += """
+    return 0;
+    """
     mainCode = cxx_writer.writer_code.Code(code)
+    mainCode.addInclude('processor.hpp')
+    mainCode.addInclude('utils.hpp')
+    mainCode.addInclude('systemc.h')
+    mainCode.addInclude('boost/program_options.hpp')
+    mainCode.addInclude('boost/timer.hpp')
     parameters = [cxx_writer.writer_code.Parameter('argc', cxx_writer.writer_code.intType), cxx_writer.writer_code.Parameter('argv', cxx_writer.writer_code.charPtrType.makePointer())]
-    function = cxx_writer.writer_code.Function('main', code, cxx_writer.writer_code.intType, parameters)
-    return mainCode
+    function = cxx_writer.writer_code.Function('main', mainCode, cxx_writer.writer_code.intType, parameters)
+    return function
