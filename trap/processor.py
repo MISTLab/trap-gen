@@ -429,6 +429,12 @@ class Processor:
                     return True
         return False
 
+    def isBank(self, bankName):
+        for i in self.regBanks + self.aliasRegBanks:
+            if bankName == i.name:
+                return True
+        return False
+
     def checkAliases(self):
         # checks that the declared aliases actually refer to
         # existing registers

@@ -92,16 +92,16 @@ def getCPPRegClass(self, model, regType):
     # Now I have the three versions of the operators, depending whether they take
     # in input the integer value, the specific register or the base one
     # INTEGER
-    for i in binaryOps:
-        operatorBody = cxx_writer.writer_code.Code('return (this->value ' + i + ' other);')
-        operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True)
-        registerElements.append(operatorDecl)
-    for i in comparisonOps:
-        operatorBody = cxx_writer.writer_code.Code('return (this->value ' + i + ' other);')
-        operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
-        registerElements.append(operatorDecl)
+#     for i in binaryOps:
+#         operatorBody = cxx_writer.writer_code.Code('return (this->value ' + i + ' other);')
+#         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
+#         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True)
+#         registerElements.append(operatorDecl)
+#     for i in comparisonOps:
+#         operatorBody = cxx_writer.writer_code.Code('return (this->value ' + i + ' other);')
+#         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
+#         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
+#         registerElements.append(operatorDecl)
     for i in assignmentOps:
         operatorBody = cxx_writer.writer_code.Code('this->value ' + i + ' other;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
@@ -273,16 +273,17 @@ def getCPPRegisters(self, model):
     for i in unaryOps:
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, emptyBody, regMaxType, 'pu', pure = True)
         registerElements.append(operatorDecl)
+    for i in binaryOps:
+        operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, emptyBody, regMaxType, 'pu', [operatorParam], const = True, pure = True)
+        registerElements.append(operatorDecl)
+    for i in comparisonOps:
+        operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, emptyBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True, pure = True)
+        registerElements.append(operatorDecl)
+
     pureDeclTypes = [regMaxType, registerType]
     for pureDecls in pureDeclTypes:
-        for i in binaryOps:
-            operatorParam = cxx_writer.writer_code.Parameter('other', pureDecls.makeRef().makeConst())
-            operatorDecl = cxx_writer.writer_code.MemberOperator(i, emptyBody, regMaxType, 'pu', [operatorParam], const = True, pure = True)
-            registerElements.append(operatorDecl)
-        for i in comparisonOps:
-            operatorParam = cxx_writer.writer_code.Parameter('other', pureDecls.makeRef().makeConst())
-            operatorDecl = cxx_writer.writer_code.MemberOperator(i, emptyBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True, pure = True)
-            registerElements.append(operatorDecl)
         for i in assignmentOps:
             operatorParam = cxx_writer.writer_code.Parameter('other', pureDecls.makeRef().makeConst())
             operatorDecl = cxx_writer.writer_code.MemberOperator(i, emptyBody, registerType.makeRef(), 'pu', [operatorParam], pure = True)
@@ -349,16 +350,16 @@ def getCPPAlias(self, model):
     # Now I have the three versions of the operators, depending whether they take
     # in input the integer value, the specific register or the base one
     # INTEGER
-    for i in binaryOps:
-        operatorBody = cxx_writer.writer_code.Code('return (*this->reg ' + i + ' other);')
-        operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True)
-        aliasElements.append(operatorDecl)
-    for i in comparisonOps:
-        operatorBody = cxx_writer.writer_code.Code('return (*this->reg ' + i + ' (other - this->offset));')
-        operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
-        aliasElements.append(operatorDecl)
+#     for i in binaryOps:
+#         operatorBody = cxx_writer.writer_code.Code('return (*this->reg ' + i + ' other);')
+#         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
+#         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True)
+#         aliasElements.append(operatorDecl)
+#     for i in comparisonOps:
+#         operatorBody = cxx_writer.writer_code.Code('return (*this->reg ' + i + ' (other - this->offset));')
+#         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
+#         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
+#         aliasElements.append(operatorDecl)
     for i in assignmentOps:
         operatorBody = cxx_writer.writer_code.Code('*this->reg ' + i + ' other;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
@@ -668,6 +669,8 @@ def getCPPProc(self, model):
     bodyInits = ''
     bodyDestructor = ''
     aliasInit = {}
+    bodyAliasInit = {}
+    from processor import extractRegInterval
     for reg in self.regs:
         attribute = cxx_writer.writer_code.Attribute(reg.name, resourceType[reg.name], 'pu')
         initElements.append(reg.name + '(\"' + reg.name + '\")')
@@ -680,25 +683,27 @@ def getCPPProc(self, model):
     for alias in self.aliasRegs:
         attribute = cxx_writer.writer_code.Attribute(alias.name, resourceType[alias.name], 'pu')
         aliasInit[alias.name] = (alias.name + '(&' + alias.initAlias + ', ' + str(alias.offset) + ')')
+        index = extractRegInterval(alias.initAlias)
+        curIndex = index[0]
+        bodyAliasInit[alias.name] = 'this->' + alias.name + '.updateAlias(' + alias.initAlias[:alias.initAlias.find('[')] + '[' + str(curIndex) + ']);\n'
         processorElements.append(attribute)
     for aliasB in self.aliasRegBanks:
         attribute = cxx_writer.writer_code.Attribute(aliasB.name, resourceType[aliasB.name].makePointer(), 'pu')
-        bodyInits += 'this->' + aliasB.name + ' = new ' + str(resourceType[aliasB.name]) + '[' + str(aliasB.numRegs) + '];\n'
+        bodyAliasInit[aliasB.name] = 'this->' + aliasB.name + ' = new ' + str(resourceType[aliasB.name]) + '[' + str(aliasB.numRegs) + '];\n'
         bodyDestructor += 'delete [] this->' + aliasB.name + ';\n'
         # Lets now deal with the initialization of the single elements of the regBank
-        from processor import extractRegInterval
         if isinstance(aliasB.initAlias, type('')):
             index = extractRegInterval(aliasB.initAlias)
             curIndex = index[0]
             for i in range(0, aliasB.numRegs):
-                bodyInits += 'this->' + aliasB.name + '[' + str(i) + '].updateAlias(' + aliasB.initAlias[:aliasB.initAlias.find('[')] + '[' + str(curIndex) + ']);\n'
+                bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '[' + str(i) + '].updateAlias(' + aliasB.initAlias[:aliasB.initAlias.find('[')] + '[' + str(curIndex) + ']);\n'
                 curIndex += 1
         else:
             curIndex = 0
             for i in initAlias:
                 index = extractRegInterval(i)
                 for i in range(index[0], index[1] + 1):
-                    bodyInits += 'this->' + aliasB.name + '[' + str(curIndex) + '].updateAlias(' + aliasB.initAlias[:aliasB.initAlias.find('[')] + '[' + str(i) + ']);\n'
+                    bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '[' + str(curIndex) + '].updateAlias(' + aliasB.initAlias[:aliasB.initAlias.find('[')] + '[' + str(i) + ']);\n'
                     curIndex += 1
         processorElements.append(attribute)
     # the initialization of the aliases must be chained (we should
@@ -714,9 +719,24 @@ def getCPPProc(self, model):
     if not NX.is_directed_acyclic_graph(aliasGraph):
         raise Exception('There is a circular dependency in the aliases initialization')
     # I do a topological sort and take the elements in this ordes and I add them to the initialization;
-    #note that the ones whose initialization depend on banks (either register or alias) have to be postponned after the creation of the arrays
+    # note that the ones whose initialization depend on banks (either register or alias)
+    # have to be postponned after the creation of the arrays
     orderedNodes = NX.topological_sort(aliasGraph)
-    # TODO: completed initialization
+    orderedNodesTemp = []
+    for alias in orderedNodes:
+        if self.isBank(alias.name):
+            break
+        outEdges = aliasGraph.out_edges(alias)
+        if outEdges and self.isBank(outEdges[0][1]):
+            break
+        initElements.append(aliasInit[alias.name])
+        orderedNodesTemp.append(alias)
+    for alias in orderedNodesTemp:
+        orderedNodes.remove(alias)
+    # Now I have the remaining aliases, I have to add their initialization after
+    # the registers has been created
+    for alias in orderedNodes:
+        bodyInits += bodyAliasInit[alias.name]
     if self.memory:
         attribute = cxx_writer.writer_code.Attribute(self.memory[0], cxx_writer.writer_code.Type('LocalMemory', 'memory.hpp'), 'pu')
         initMemCode = self.memory[0] + '(' + str(self.memory[1])

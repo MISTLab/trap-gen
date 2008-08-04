@@ -257,6 +257,13 @@ def getCPPClasses(self, processor, modelType):
     setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
     setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam], pure = True)
     instructionElements.append(setparamsDecl)
+
+    flushDecl = cxx_writer.writer_code.Method('flush', emptyBody, cxx_writer.writer_code.voidType, 'pu')
+    instructionElements.append(flushDecl)
+    stallParam = cxx_writer.writer_code.Parameter('numCycles', archWordType.makeRef().makeConst())
+    stallBody = cxx_writer.writer_code.Code('this->totalCycles++;')
+    stallDecl = cxx_writer.writer_code.Method('stall', stallBody, cxx_writer.writer_code.voidType, 'pu', [stallParam])
+    instructionElements.append(stallDecl)
     # we now have to check if there is a non-inline behavior common to all instructions:
     # in this case I declare it here in the base instruction class
     global alreadyDeclared
