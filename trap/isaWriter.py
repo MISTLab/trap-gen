@@ -290,25 +290,25 @@ def getCPPClasses(self, processor, modelType):
     baseInitElement = 'Instruction('
     from procWriter import resourceType
     for reg in processor.regs:
-        attribute = cxx_writer.writer_code.Attribute(reg.name, resourceType[reg.name].makeRef(), 'pri')
+        attribute = cxx_writer.writer_code.Attribute(reg.name, resourceType[reg.name].makeRef(), 'pro')
         baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(reg.name, resourceType[reg.name].makeRef()))
         initElements.append(reg.name + '(' + reg.name + ')')
         baseInitElement += reg.name + ', '
         instructionElements.append(attribute)
     for regB in processor.regBanks:
-        attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name].makePointer().makeRef(), 'pri')
+        attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name].makePointer().makeRef(), 'pro')
         baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(regB.name, resourceType[regB.name].makePointer().makeRef()))
         initElements.append(regB.name + '(' + regB.name + ')')
         baseInitElement += regB.name + ', '
         instructionElements.append(attribute)
     for alias in processor.aliasRegs:
-        attribute = cxx_writer.writer_code.Attribute(alias.name, resourceType[alias.name].makeRef(), 'pri')
+        attribute = cxx_writer.writer_code.Attribute(alias.name, resourceType[alias.name].makeRef(), 'pro')
         baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(alias.name, resourceType[alias.name].makeRef()))
         initElements.append(alias.name + '(' + alias.name + ')')
         baseInitElement += alias.name + ', '
         instructionElements.append(attribute)
     for aliasB in processor.aliasRegBanks:
-        attribute = cxx_writer.writer_code.Attribute(aliasB.name, resourceType[aliasB.name].makePointer().makeRef(), 'pri')
+        attribute = cxx_writer.writer_code.Attribute(aliasB.name, resourceType[aliasB.name].makePointer().makeRef(), 'pro')
         baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(aliasB.name, resourceType[aliasB.name].makePointer().makeRef()))
         initElements.append(aliasB.name + '(' + aliasB.name + ')')
         baseInitElement += aliasB.name + ', '

@@ -199,7 +199,7 @@ switch(toMode){
         REGS[14].updateAlias(RB[20]);
     break;}
     default:{
-        THROW_EXCEPTION("Not valid toMode " << toMode << " when changing the registers")
+        THROW_EXCEPTION("Not valid toMode " << toMode << " when changing the registers");
     break;}
 }
 

@@ -84,7 +84,7 @@ result = (long long) ((long long)rn + (long long)operand);
 if (CPSR["C"]){
     result += 1;
 }
-rd = result
+rd = result;
 """)
 adc_shift_imm_Instr = trap.Instruction('ADC_si', True)
 adc_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [0, 1, 0, 1]}, 'TODO')

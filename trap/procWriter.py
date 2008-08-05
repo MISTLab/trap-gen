@@ -296,26 +296,36 @@ def getCPPRegisters(self, model):
     operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), emptyBody, cxx_writer.writer_code.Type(''), 'pu', const = True, pure = True)
     registerElements.append(operatorIntDecl)
 
-    ################ Finally I put everything together and print if ##################
+    ################ Here ##################
     global resourceType
     regTypes = []
     regTypesCount = {}
+    regTypesBW = {}
+    regTypeSubName = {}
     for reg in self.regs + self.regBanks:
+        bitFieldSig = ''
+        for maskName, maskPos in reg.bitMask.items():
+            bitFieldSig += maskName + str(maskPos[0]) + str(maskPos[1])
         if not reg.bitWidth in [i.bitWidth for i in regTypes]:
             regTypes.append(reg)
+            regTypesBW[reg.bitWidth] = [bitFieldSig]
             regTypesCount[reg.bitWidth] = 1
+            regTypeSubName[reg.bitWidth] = {bitFieldSig: 1}
         else:
             # There is already a register with this bitwidth
             # I add this one only if it has a different bitMask
-            if not reg.bitMask in [i.bitMask for i in filter(lambda x: x.bitWidth == reg.bitWidth, regTypes)]:
+            if not bitFieldSig in regTypesBW[reg.bitWidth]:
                 regTypes.append(reg)
                 regTypesCount[reg.bitWidth] = regTypesCount[reg.bitWidth] + 1
-        resourceType[reg.name] = cxx_writer.writer_code.Type('Reg' + str(reg.bitWidth) + '_' + str(regTypesCount[reg.bitWidth]), 'registers.hpp')
+                regTypeSubName[reg.bitWidth][bitFieldSig] = regTypesCount[reg.bitWidth]
+                regTypesBW[reg.bitWidth].append(bitFieldSig)
+        resourceType[reg.name] = cxx_writer.writer_code.Type('Reg' + str(reg.bitWidth) + '_' + str(regTypeSubName[reg.bitWidth][bitFieldSig]), 'registers.hpp')
     realRegClasses = []
     for regType in regTypes:
         realRegClasses.append(regType.getCPPClass(model, resourceType[regType.name]))
     registerDecl = cxx_writer.writer_code.SCModule('Register', registerElements)
     registerDecl.addConstructor(publicConstr)
+    ################ Finally I put everything together##################
     classes = [InnerFieldClass, registerDecl] + realRegClasses
 
     return classes
