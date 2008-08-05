@@ -150,6 +150,7 @@ def getCPPInstr(self, model):
                 behaviorCode += ');\n'
             else:
                 behaviorCode += 'this->' + beh.name + '();\n'
+    behaviorCode += 'return this->totalInstrCycles;'
     behaviorBody = cxx_writer.writer_code.Code(behaviorCode)
     behaviorDecl = cxx_writer.writer_code.Method('behavior', behaviorBody, cxx_writer.writer_code.uintType, 'pu')
     classElements.append(behaviorDecl)
@@ -258,10 +259,13 @@ def getCPPClasses(self, processor, modelType):
     setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam], pure = True)
     instructionElements.append(setparamsDecl)
 
+    # Note how the flush operation also stops the execution of the current operation
+    # TODO: complete
+    flushBody = cxx_writer.writer_code.Code('#error "the method must be completed"')
     flushDecl = cxx_writer.writer_code.Method('flush', emptyBody, cxx_writer.writer_code.voidType, 'pu')
     instructionElements.append(flushDecl)
     stallParam = cxx_writer.writer_code.Parameter('numCycles', archWordType.makeRef().makeConst())
-    stallBody = cxx_writer.writer_code.Code('this->totalCycles++;')
+    stallBody = cxx_writer.writer_code.Code('this->totalInstrCycles += numCycles;')
     stallDecl = cxx_writer.writer_code.Method('stall', stallBody, cxx_writer.writer_code.voidType, 'pu', [stallParam])
     instructionElements.append(stallDecl)
     # we now have to check if there is a non-inline behavior common to all instructions:
@@ -315,9 +319,9 @@ def getCPPClasses(self, processor, modelType):
         instructionElements.append(attribute)
     baseInitElement = baseInitElement[:-2]
     baseInitElement += ')'
-    # TODO: create the methods (stall, flush, etc.) use to controll the instruction flow.
-    # are they going to be part of the instructions ISA?
-    publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, initElements)
+    instructionElements.append(cxx_writer.writer_code.Attribute('totalInstrCycles', cxx_writer.writer_code.uintType, 'pro'))
+    constrBody = 'this->totalInstrCycles = 0;'
+    publicConstr = cxx_writer.writer_code.Constructor(cxx_writer.writer_code.Code(constrBody), 'pu', baseInstrConstrParams, initElements)
     instructionDecl = cxx_writer.writer_code.ClassDeclaration('Instruction', instructionElements)
     instructionDecl.addConstructor(publicConstr)
     classes.append(instructionDecl)
