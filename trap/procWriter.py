@@ -684,8 +684,12 @@ def getCPPProc(self, model):
         attribute = cxx_writer.writer_code.Attribute(alias.name, resourceType[alias.name], 'pu')
         aliasInit[alias.name] = (alias.name + '(&' + alias.initAlias + ', ' + str(alias.offset) + ')')
         index = extractRegInterval(alias.initAlias)
-        curIndex = index[0]
-        bodyAliasInit[alias.name] = 'this->' + alias.name + '.updateAlias(' + alias.initAlias[:alias.initAlias.find('[')] + '[' + str(curIndex) + ']);\n'
+        if index:
+            # we are dealing with a member of a register bank
+            curIndex = index[0]
+            bodyAliasInit[alias.name] = 'this->' + alias.name + '.updateAlias(' + alias.initAlias[:alias.initAlias.find('[')] + '[' + str(curIndex) + '], ' + str(alias.offset) + ');\n'
+        else:
+            bodyAliasInit[alias.name] = 'this->' + alias.name + '.updateAlias(' + alias.initAlias + ', ' + str(alias.offset) + ');\n'
         processorElements.append(attribute)
     for aliasB in self.aliasRegBanks:
         attribute = cxx_writer.writer_code.Attribute(aliasB.name, resourceType[aliasB.name].makePointer(), 'pu')
@@ -700,11 +704,16 @@ def getCPPProc(self, model):
                 curIndex += 1
         else:
             curIndex = 0
-            for i in initAlias:
-                index = extractRegInterval(i)
-                for i in range(index[0], index[1] + 1):
-                    bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '[' + str(curIndex) + '].updateAlias(' + aliasB.initAlias[:aliasB.initAlias.find('[')] + '[' + str(i) + ']);\n'
+            for curAlias in aliasB.initAlias:
+                index = extractRegInterval(curAlias)
+                if index:
+                    for curRange in range(index[0], index[1] + 1):
+                        bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '[' + str(curIndex) + '].updateAlias(' + curAlias[:curAlias.find('[')] + '[' + str(curRange) + ']);\n'
+                        curIndex += 1
+                else:
+                    bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '[' + str(curIndex) + '].updateAlias(' + curAlias + ');\n'
                     curIndex += 1
+
         processorElements.append(attribute)
     # the initialization of the aliases must be chained (we should
     # create an initialization graph since an alias might depend on another one ...)
@@ -712,9 +721,26 @@ def getCPPProc(self, model):
     for alias in self.aliasRegs + self.aliasRegBanks:
         aliasGraph.add_node(alias)
     for alias in self.aliasRegs + self.aliasRegBanks:
-        for initAlias in self.aliasRegs + self.aliasRegBanks:
-            if alias.initAlias == initAlias.name:
-                aliasGraph.add_edge(initAlias, alias)
+        initAliases = []
+        if isinstance(alias.initAlias, type('')):
+            bracketIdx = alias.initAlias.find('[')
+            if bracketIdx > 0:
+                initAliases.append(alias.initAlias[:bracketIdx])
+            else:
+                initAliases.append(alias.initAlias)
+        else:
+            for curAlias in alias.initAlias:
+                bracketIdx = curAlias.find('[')
+                if bracketIdx > 0:
+                    initAliases.append(curAlias[:bracketIdx])
+                else:
+                    initAliases.append(curAlias)
+        for initAlias in initAliases:
+            for targetInit in self.aliasRegs + self.aliasRegBanks:
+                if initAlias == targetInit.name:
+                    aliasGraph.add_edge(targetInit, alias)
+                elif self.isBank(initAlias):
+                    aliasGraph.add_edge('stop', alias)
     # now I have to check for loops, if there are then the alias assignment is not valid
     if not NX.is_directed_acyclic_graph(aliasGraph):
         raise Exception('There is a circular dependency in the aliases initialization')
@@ -724,10 +750,11 @@ def getCPPProc(self, model):
     orderedNodes = NX.topological_sort(aliasGraph)
     orderedNodesTemp = []
     for alias in orderedNodes:
+        if alias == 'stop':
+            continue
         if self.isBank(alias.name):
             break
-        outEdges = aliasGraph.out_edges(alias)
-        if outEdges and self.isBank(outEdges[0][1]):
+        if aliasGraph.in_edges(alias)[0][0] == 'stop':
             break
         initElements.append(aliasInit[alias.name])
         orderedNodesTemp.append(alias)
@@ -736,6 +763,8 @@ def getCPPProc(self, model):
     # Now I have the remaining aliases, I have to add their initialization after
     # the registers has been created
     for alias in orderedNodes:
+        if alias == 'stop':
+            continue
         bodyInits += bodyAliasInit[alias.name]
     if self.memory:
         attribute = cxx_writer.writer_code.Attribute(self.memory[0], cxx_writer.writer_code.Type('LocalMemory', 'memory.hpp'), 'pu')

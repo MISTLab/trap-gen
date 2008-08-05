@@ -132,6 +132,7 @@ class AliasRegister:
         self.initAlias = initAlias
         self.offset = offset
         self.defValue = None
+
     def setDefaultValue(self, value):
         self.defValue = value
 
@@ -174,6 +175,7 @@ class AliasRegBank:
                 raise Exception('Aliasing a register bank of width ' + str(numRegs) + ', while ' + str(initAlias) + ' contains a different number of registers')
         self.initAlias = initAlias
         self.defValues = [None for i in range(0, numRegs)]
+
     def setDefaultValues(self, values):
         if len(values) != self.numRegs:
             raise Exception('The initialization values for alias bank ' + self.name + ' are different, in number, from the number of registers')
