@@ -47,7 +47,13 @@ class Code:
         self.includes = []
         self.variables = []
 
-    def addCode(self, code):
+    def prependCode(self, code):
+        if type(code) == type([]):
+            self.code += '\n'.join(code)
+        else:
+            self.code += code
+
+    def appendCode(self, code):
         if type(code) == type([]):
             self.code += '\n'.join(code)
         else:

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Tasks SYSTEM "Tasks-4.1.dtd">
 <!-- eric4 tasks file for project TRAP -->
-<!-- Saved: 2008-07-29, 03:44:07 -->
+<!-- Saved: 2008-08-05, 22:01:39 -->
 <Tasks version="4.1">
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: add the possibility of defining templated methods as done for</Summary>
@@ -29,19 +29,6 @@
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: I do not like it too much ... any better ideas?; is there</Summary>
-    <Description></Description>
-    <Created>2008-07-26, 03:41:49</Created>
-    <Resource>
-      <Filename>
-        <Dir>processors</Dir>
-        <Dir>ARM7TDMI</Dir>
-        <Name>ARMArch.py</Name>
-      </Filename>
-      <Linenumber>141</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: see this category, maybe we can express it in a more general way</Summary>
     <Description></Description>
     <Created>2008-07-28, 15:04:58</Created>
@@ -65,126 +52,6 @@
         <Name>ARMCoding.py</Name>
       </Filename>
       <Linenumber>82</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: think about the clocked registers</Summary>
-    <Description></Description>
-    <Created>2008-07-29, 03:27:22</Created>
-    <Resource>
-      <Filename>
-        <Dir>trap</Dir>
-        <Name>procWriter.py</Name>
-      </Filename>
-      <Linenumber>61</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: create using all the newest TLM 2.0 the TLM ports; remember also</Summary>
-    <Description></Description>
-    <Created>2008-07-29, 03:27:22</Created>
-    <Resource>
-      <Filename>
-        <Dir>trap</Dir>
-        <Name>procWriter.py</Name>
-      </Filename>
-      <Linenumber>581</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: now I have to check for loops, if there are then the alias assignment is not valid</Summary>
-    <Description></Description>
-    <Created>2008-07-29, 03:27:22</Created>
-    <Resource>
-      <Filename>
-        <Dir>trap</Dir>
-        <Name>procWriter.py</Name>
-      </Filename>
-      <Linenumber>711</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: I do a topological sort and take the elements in this ordes and I add them to the initialization;</Summary>
-    <Description></Description>
-    <Created>2008-07-29, 03:27:22</Created>
-    <Resource>
-      <Filename>
-        <Dir>trap</Dir>
-        <Name>procWriter.py</Name>
-      </Filename>
-      <Linenumber>712</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: now I have to complete initializing the alias graph, print the remaining</Summary>
-    <Description></Description>
-    <Created>2008-07-29, 03:27:22</Created>
-    <Resource>
-      <Filename>
-        <Dir>trap</Dir>
-        <Name>procWriter.py</Name>
-      </Filename>
-      <Linenumber>755</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: We also need to initialize the quantuum keeper etc</Summary>
-    <Description></Description>
-    <Created>2008-07-29, 03:27:22</Created>
-    <Resource>
-      <Filename>
-        <Dir>trap</Dir>
-        <Name>procWriter.py</Name>
-      </Filename>
-      <Linenumber>758</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: an accurate interface is also needed. This means that</Summary>
-    <Description></Description>
-    <Created>2008-07-29, 03:27:22</Created>
-    <Resource>
-      <Filename>
-        <Dir>trap</Dir>
-        <Name>processor.py</Name>
-      </Filename>
-      <Linenumber>716</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: do we need to access the fields of the instructions? if so</Summary>
-    <Description></Description>
-    <Created>2008-07-29, 03:27:22</Created>
-    <Resource>
-      <Filename>
-        <Dir>trap</Dir>
-        <Name>isa.py</Name>
-      </Filename>
-      <Linenumber>114</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: as for the begin op, do we need to access any</Summary>
-    <Description></Description>
-    <Created>2008-07-29, 03:27:22</Created>
-    <Resource>
-      <Filename>
-        <Dir>trap</Dir>
-        <Name>isa.py</Name>
-      </Filename>
-      <Linenumber>124</Linenumber>
-    </Resource>
-  </Task>
-  <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: think about how to do the mnemonic</Summary>
-    <Description></Description>
-    <Created>2008-07-29, 03:27:22</Created>
-    <Resource>
-      <Filename>
-        <Dir>trap</Dir>
-        <Name>isa.py</Name>
-      </Filename>
-      <Linenumber>290</Linenumber>
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
@@ -216,37 +83,134 @@
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: first of all I create the instance of the instruction and of all the</Summary>
     <Description></Description>
-    <Created>2008-07-29, 03:43:06</Created>
+    <Created>2008-08-05, 21:02:40</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
         <Name>isaWriter.py</Name>
       </Filename>
-      <Linenumber>179</Linenumber>
+      <Linenumber>224</Linenumber>
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
     <Summary>TODO: I perform the operation</Summary>
     <Description></Description>
-    <Created>2008-07-29, 03:43:06</Created>
+    <Created>2008-08-05, 21:02:40</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
         <Name>isaWriter.py</Name>
       </Filename>
-      <Linenumber>187</Linenumber>
+      <Linenumber>232</Linenumber>
     </Resource>
   </Task>
   <Task priority="1" completed="False" bugfix="False">
-    <Summary>TODO: create the methods (stall, flush, etc.) use to controll the instruction flow.</Summary>
+    <Summary>TODO: complete</Summary>
     <Description></Description>
-    <Created>2008-07-29, 03:43:06</Created>
+    <Created>2008-08-05, 21:02:40</Created>
     <Resource>
       <Filename>
         <Dir>trap</Dir>
         <Name>isaWriter.py</Name>
       </Filename>
-      <Linenumber>259</Linenumber>
+      <Linenumber>263</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: do we need to access the fields of the instructions? if so</Summary>
+    <Description></Description>
+    <Created>2008-08-05, 21:02:40</Created>
+    <Resource>
+      <Filename>
+        <Dir>trap</Dir>
+        <Name>isa.py</Name>
+      </Filename>
+      <Linenumber>114</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: as for the begin op, do we need to access any</Summary>
+    <Description></Description>
+    <Created>2008-08-05, 21:02:40</Created>
+    <Resource>
+      <Filename>
+        <Dir>trap</Dir>
+        <Name>isa.py</Name>
+      </Filename>
+      <Linenumber>124</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: think about how to do the mnemonic</Summary>
+    <Description></Description>
+    <Created>2008-08-05, 21:02:40</Created>
+    <Resource>
+      <Filename>
+        <Dir>trap</Dir>
+        <Name>isa.py</Name>
+      </Filename>
+      <Linenumber>290</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: I do not like it too much ... any better ideas?; is there</Summary>
+    <Description></Description>
+    <Created>2008-08-05, 21:29:04</Created>
+    <Resource>
+      <Filename>
+        <Dir>processors</Dir>
+        <Dir>ARM7TDMI</Dir>
+        <Name>ARMArch.py</Name>
+      </Filename>
+      <Linenumber>141</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: it might be a good idea to introduce 0 offset aliases: they are aliases</Summary>
+    <Description></Description>
+    <Created>2008-08-05, 21:44:12</Created>
+    <Resource>
+      <Filename>
+        <Dir>trap</Dir>
+        <Name>processor.py</Name>
+      </Filename>
+      <Linenumber>128</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: an accurate interface is also needed. This means that</Summary>
+    <Description></Description>
+    <Created>2008-08-05, 21:44:12</Created>
+    <Resource>
+      <Filename>
+        <Dir>trap</Dir>
+        <Name>processor.py</Name>
+      </Filename>
+      <Linenumber>731</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: think about the clocked registers</Summary>
+    <Description></Description>
+    <Created>2008-08-05, 22:01:03</Created>
+    <Resource>
+      <Filename>
+        <Dir>trap</Dir>
+        <Name>procWriter.py</Name>
+      </Filename>
+      <Linenumber>62</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: create using all the newest TLM 2.0 the TLM ports; remember also</Summary>
+    <Description></Description>
+    <Created>2008-08-05, 22:01:03</Created>
+    <Resource>
+      <Filename>
+        <Dir>trap</Dir>
+        <Name>procWriter.py</Name>
+      </Filename>
+      <Linenumber>593</Linenumber>
     </Resource>
   </Task>
 </Tasks>

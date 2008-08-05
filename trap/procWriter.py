@@ -354,7 +354,7 @@ def getCPPAlias(self, model):
 
     #################### Lets declare the normal operators (implementation of the pure operators of the base class) ###########
     for i in unaryOps:
-        operatorBody = cxx_writer.writer_code.Code('return ' + i + '(*this->reg);')
+        operatorBody = cxx_writer.writer_code.Code('return ' + i + '(*this->reg + this->offset);')
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu')
         aliasElements.append(operatorDecl)
     # Now I have the three versions of the operators, depending whether they take
@@ -371,39 +371,39 @@ def getCPPAlias(self, model):
 #         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
 #         aliasElements.append(operatorDecl)
     for i in assignmentOps:
-        operatorBody = cxx_writer.writer_code.Code('*this->reg ' + i + ' other;\nreturn *this;')
+        operatorBody = cxx_writer.writer_code.Code(str(regMaxType) + ' result = *this->reg;\nresult ' + i + ' other;\n*this->reg = (result - this->offset);\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam])
         aliasElements.append(operatorDecl)
     # Alias Register
     for i in binaryOps:
-        operatorBody = cxx_writer.writer_code.Code('return (*this->reg ' + i + ' *other.reg);')
+        operatorBody = cxx_writer.writer_code.Code('return ((*this->reg + this->offset) ' + i + ' *other.reg);')
         operatorParam = cxx_writer.writer_code.Parameter('other', aliasType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True)
         aliasElements.append(operatorDecl)
     for i in comparisonOps:
-        operatorBody = cxx_writer.writer_code.Code('return (*this->reg + this->offset ' + i + ' *other.reg);')
+        operatorBody = cxx_writer.writer_code.Code('return ((*this->reg + this->offset) ' + i + ' *other.reg);')
         operatorParam = cxx_writer.writer_code.Parameter('other', aliasType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
         aliasElements.append(operatorDecl)
     for i in assignmentOps:
-        operatorBody = cxx_writer.writer_code.Code('*this->reg ' + i + ' *other.reg;\nreturn *this;')
+        operatorBody = cxx_writer.writer_code.Code(str(regMaxType) + ' result = *this->reg;\nresult ' + i + ' other.reg;\n*this->reg = (result - this->offset);\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', aliasType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam])
         aliasElements.append(operatorDecl)
     # GENERIC REGISTER:
     for i in binaryOps:
-        operatorBody = cxx_writer.writer_code.Code('return (*this->reg ' + i + ' other);')
+        operatorBody = cxx_writer.writer_code.Code('return ((*this->reg + this->offset) ' + i + ' other);')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True)
         aliasElements.append(operatorDecl)
     for i in comparisonOps:
-        operatorBody = cxx_writer.writer_code.Code('return (*this->reg + this->offset ' + i + ' other);')
+        operatorBody = cxx_writer.writer_code.Code('return ((*this->reg + this->offset) ' + i + ' other);')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
         aliasElements.append(operatorDecl)
     for i in assignmentOps:
-        operatorBody = cxx_writer.writer_code.Code('*this->reg ' + i + ' other;\nreturn *this;')
+        operatorBody = cxx_writer.writer_code.Code(str(regMaxType) + ' result = *this->reg;\nresult ' + i + ' other;\n*this->reg = (result - this->offset);\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam])
         aliasElements.append(operatorDecl)
@@ -599,10 +599,7 @@ def getCPPProc(self, model):
     from isa import resolveBitType
     fetchWordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>')
     includes = fetchWordType.getIncludes()
-    codeString = ''
-    if self.beginOp:
-        codeString += '//user-defined initialization\nthis->beginOp();\n'
-    codeString += 'while(true){\n'
+    codeString = 'while(true){\n'
     codeString += 'unsigned int numCycles = 0;\n'
     codeString += str(fetchWordType) + ' bitString = '
     # Now I have to check what is the fetch: if there is a TLM port or
@@ -668,9 +665,45 @@ def getCPPProc(self, model):
     if self.endOp:
         endOpMethod = cxx_writer.writer_code.Method('endOp', self.endOp, cxx_writer.writer_code.voidType, 'pri')
         processorElements.append(endOpMethod)
-    if self.resetOp:
-        resetOpMethod = cxx_writer.writer_code.Method('resetOp', self.resetOp, cxx_writer.writer_code.voidType, 'pu')
-        processorElements.append(resetOpMethod)
+    if not self.resetOp:
+        self.resetOp = cxx_writer.writer_code.Code('')
+    initString = ''
+    for elem in self.regs + self.aliasRegs:
+        if elem.defValue != None:
+            try:
+                all(elem.defValue)
+                # ok, the element is iterable, so it is an initialization
+                # with a constant and an offset
+                initString += elem.name + ' = ' + str(elem.defValue[0]) + ' + ' + str(elem.defValue[1]) + ';\n'
+            except TypeError:
+                try:
+                    initString += elem.name + ' = ' + hex(elem.defValue) + ';\n'
+                except TypeError:
+                    initString += elem.name + ' = ' + str(elem.defValue) + ';\n'
+    for elem in self.regBanks + self.aliasRegBanks:
+        curId = 0
+        for defValue in elem.defValues:
+            if defValue != None:
+                try:
+                    all(defValue)
+                    # ok, the element is iterable, so it is an initialization
+                    # with a constant and an offset
+                    initString += elem.name + '[' + str(curId) + '] = ' + str(defValue[0]) + ' + ' + str(defValue[1]) + ';\n'
+                except TypeError:
+                    try:
+                        initString += elem.name + '[' + str(curId) + '] = ' + hex(defValue) + ';\n'
+                    except TypeError:
+                        initString += elem.name + '[' + str(curId) + '] = ' + str(defValue) + ';\n'
+            curId += 1
+    self.resetOp.prependCode(initString)
+    if self.beginOp:
+        self.resetOp.appendCode('//user-defined initialization\nthis->beginOp();\n')
+    resetOpMethod = cxx_writer.writer_code.Method('resetOp', self.resetOp, cxx_writer.writer_code.voidType, 'pu')
+    processorElements.append(resetOpMethod)
+    # Now I declare the end of elaboration method, called by systemc just before starting the simulation
+    endElabCode = cxx_writer.writer_code.Code('this->resetOp();')
+    endElabMethod = cxx_writer.writer_code.Method('end_of_elaboration', endElabCode, cxx_writer.writer_code.voidType, 'pu')
+    processorElements.append(endElabMethod)
     decoderAttribute = cxx_writer.writer_code.Attribute('decoder', cxx_writer.writer_code.Type('Decoder', 'decoder.hpp'), 'pri')
     processorElements.append(decoderAttribute)
     # Lets now add the registers, the reg banks, the aliases, etc.
@@ -830,9 +863,6 @@ def getCPPProc(self, model):
     constrCode += 'Processor::INSTRUCTIONS[' + str(maxInstrId) + '] = new InvalidInstr(' + baseInstrInitElement + ');\n'
     constrCode += '}\n'
     constrCode += bodyInits
-    # TODO: now I have to complete initializing the alias graph, print the remaining
-    # nodes in topological order
-    # TODO: I have to set the initial constant values for the registers and the aliases
     constrCode += 'SC_THREAD(mainLoop);\n'
     if not self.systemc and not model.startswith('acc'):
         constrCode += 'this->totalCycles = 0;'
@@ -908,7 +938,7 @@ def getMainCode(self, model):
         latency = 1/(vm["frequency"].as<double>());
     }
     //Now we can procede with the actual instantiation of the processor
-    Processor procInst(""" + self.name + """, latency);
+    Processor procInst(""" + self.name + """, sc_time(latency, SC_NS));
     //Now we can start the execution
     boost::timer t;
     sc_start();

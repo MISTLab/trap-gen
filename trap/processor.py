@@ -77,8 +77,10 @@ class Register:
                             raise Exception('The bit mask specified for register ' + self.name + ' for field ' + key + ' intersects with the mask of field ' + key1)
         self.bitMask = bitMask
         self.defValue = 0
+
     def setDefaultValue(self, value):
         self.defValue = value
+
     def getCPPClass(self, model, regType):
         return procWriter.getCPPRegClass(self, model, regType)
 
@@ -102,6 +104,7 @@ class RegisterBank:
         self.bitMask = bitMask
         self.numRegs = numRegs
         self.defValues = [0 for i in range(0, numRegs)]
+
     def setDefaultValues(self, values):
         if len(values) != self.numRegs:
             raise Exception('The initialization values for register bank ' + self.name + ' are different, in number, from the number of registers')
@@ -111,6 +114,7 @@ class RegisterBank:
         if position < 0 or position >= self.numRegs:
             raise Exception('The initialization value for register bank ' + self.name + ' position ' + position + ' is not valid: position out of range')
         self.defValues[position] = value
+
     def getCPPClass(self, model, regType):
         return procWriter.getCPPRegBankClass(self, model, regType)
 
@@ -121,6 +125,9 @@ class AliasRegister:
     the right register; updating it is responsibility of
     the programmer; it is also possible to directly specify
     a target for the alias"""
+    # TODO: it might be a good idea to introduce 0 offset aliases: they are aliases
+    # for which it is not possible to use any offset by which are much faster than
+    # normal aliases at runtime
     def __init__(self, name, initAlias, offset = 0):
         self.name = name
         # I make sure that there is just one registers specified for
