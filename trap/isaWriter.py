@@ -38,6 +38,7 @@ import cxx_writer
 # Contains, for each behavior, the type corresponding to the class which defines
 # it. If a behavior is not here it means that it must be explicitly inlined
 # in the instruction itself
+baseBehaviors = []
 behClass = {}
 archWordType = None
 alreadyDeclared = []
@@ -111,12 +112,12 @@ def getCPPInstr(self, model):
                 toInline.append(beh.name)
     if not baseClasses:
         baseClasses.append(instructionType)
-    behaviorCode = ''
+    behaviorCode = 'this->totalInstrCycles = 0;'
     for behaviors in self.prebehaviors.values():
         for beh in behaviors:
             if beh.name in toInline:
                 behaviorCode += str(beh.code)
-            elif behClass.has_key(beh.name):
+            elif behClass.has_key(beh.name) or beh.name in baseBehaviors:
                 behaviorCode += 'this->' + beh.name + '('
                 for elem in beh.archElems:
                     behaviorCode += 'this->' + elem + ', '
@@ -136,7 +137,7 @@ def getCPPInstr(self, model):
         for beh in behaviors:
             if beh.name in toInline:
                 behaviorCode += str(beh.code)
-            elif behClass.has_key(beh.name):
+            elif behClass.has_key(beh.name) or beh.name in baseBehaviors:
                 behaviorCode += 'this->' + beh.name + '('
                 for elem in beh.archElems:
                     behaviorCode += 'this->' + elem + ', '
@@ -271,6 +272,7 @@ def getCPPClasses(self, processor, modelType):
     # we now have to check if there is a non-inline behavior common to all instructions:
     # in this case I declare it here in the base instruction class
     global alreadyDeclared
+    global baseBehaviors
     for instr in self.instructions.values():
         for behaviors in instr.postbehaviors.values() + instr.prebehaviors.values():
             for beh in behaviors:
@@ -279,6 +281,7 @@ def getCPPClasses(self, processor, modelType):
                     # the base instruction class
                     alreadyDeclared.append(beh.name)
                     instructionElements.append(beh.getCppOperation(True))
+                    baseBehaviors.append(beh.name)
     # Ok, now I add the generic helper methods and operations
     for helpOp in self.helperOps + [self.beginOp, self.endOp]:
         if helpOp and not helpOp.name in alreadyDeclared:

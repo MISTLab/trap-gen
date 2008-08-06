@@ -671,7 +671,7 @@ def getCPPProc(self, model):
     for elem in self.regs + self.aliasRegs:
         if elem.defValue != None:
             try:
-                all(elem.defValue)
+                enumerate(elem.defValue)
                 # ok, the element is iterable, so it is an initialization
                 # with a constant and an offset
                 initString += elem.name + ' = ' + str(elem.defValue[0]) + ' + ' + str(elem.defValue[1]) + ';\n'
@@ -685,7 +685,7 @@ def getCPPProc(self, model):
         for defValue in elem.defValues:
             if defValue != None:
                 try:
-                    all(defValue)
+                    enumerate(defValue)
                     # ok, the element is iterable, so it is an initialization
                     # with a constant and an offset
                     initString += elem.name + '[' + str(curId) + '] = ' + str(defValue[0]) + ' + ' + str(defValue[1]) + ';\n'
@@ -830,6 +830,17 @@ def getCPPProc(self, model):
     numInstructions = cxx_writer.writer_code.Attribute('numInstructions', cxx_writer.writer_code.uintType, 'pu')
     processorElements.append(numInstructions)
     bodyInits += 'this->numInstructions = 0;\n'
+    # Now I have to declare some special constants used to keep track of the loaded executable file
+    entryPointAttr = cxx_writer.writer_code.Attribute('ENTRY_POINT', fetchWordType, 'pu')
+    processorElements.append(entryPointAttr)
+    bodyInits += 'this->ENTRY_POINT = 0;\n'
+    progLimitAttr = cxx_writer.writer_code.Attribute('PROGRAM_LIMIT', fetchWordType, 'pu')
+    processorElements.append(progLimitAttr)
+    bodyInits += 'this->PROGRAM_LIMIT = 0;\n'
+    progStarttAttr = cxx_writer.writer_code.Attribute('PROGRAM_START', fetchWordType, 'pu')
+    processorElements.append(progStarttAttr)
+    bodyInits += 'this->PROGRAM_START = 0;\n'
+    
     IntructionType = cxx_writer.writer_code.Type('Instruction', include = 'instructions.hpp')
     IntructionTypePtr = IntructionType.makePointer()
     instructionsAttribute = cxx_writer.writer_code.Attribute('INSTRUCTIONS',

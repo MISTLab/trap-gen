@@ -157,7 +157,7 @@ switch(curMode){
         THROW_EXCEPTION("Unable to restore the PSR when starting from user or supervisor mode");
         break;}
 }
-updateAlias(curMode, CPSR["mode"]);
+updateAliases(curMode, CPSR["mode"]);
 """)
 restoreSPSR_method = trap.HelperMethod('restoreSPSR', opCode)
 opCode = cxx_writer.Code("""
@@ -211,7 +211,7 @@ if(fromMode == 0x1 && toMode != 0x1){
     REGS[12].updateAlias(RB[12]);
 }
 """)
-updateAlias_method = trap.HelperMethod('updateAlias', opCode)
+updateAlias_method = trap.HelperMethod('updateAliases', opCode)
 updateAlias_method.setSignature(parameters = [cxx_writer.Parameter('fromMode', cxx_writer.uintType), cxx_writer.Parameter('toMode', cxx_writer.uintType)])
 
 # Behavior that checks for the condition code and consiquently flushes
