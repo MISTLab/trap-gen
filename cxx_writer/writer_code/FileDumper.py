@@ -231,7 +231,7 @@ class Folder:
                     if self.mainFile != codeFile.name:
                         print >> wscriptFile, '        ' + codeFile.name
                 print >> wscriptFile, '    \"\"\"'
-                print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK SYSTEMC TLM\''
+                print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM SYSTEMC TLM\''
                 print >> wscriptFile, '    obj.includes = \'.\''
                 if self.uselib_local:
                     print >> wscriptFile, '    obj.uselib_local = \'' + ' '.join(self.uselib_local) + '\''
