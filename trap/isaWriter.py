@@ -63,8 +63,10 @@ def getCppOperation(self, parameters = False):
         for elem in self.archElems:
             metodParams.append(cxx_writer.writer_code.Parameter(elem, aliasType.makeRef()))
             metodParams.append(cxx_writer.writer_code.Parameter(elem + '_bit', cxx_writer.writer_code.uintRefType))
+        for elem in self.archVars:
+            metodParams.append(cxx_writer.writer_code.Parameter(elem, cxx_writer.writer_code.uintRefType))
         for var in self.instrvars:
-            metodParams.append(cxx_writer.writer_code.Parameter(var.name, var.type))
+            metodParams.append(cxx_writer.writer_code.Parameter(var.name, var.type.makeRef()))
     methodDecl = cxx_writer.writer_code.Method(self.name, self.code, cxx_writer.writer_code.voidType, 'pro', metodParams, inline = True)
     return methodDecl
 
@@ -82,8 +84,10 @@ def getCppOpClass(self):
     for elem in self.archElems:
         metodParams.append(cxx_writer.writer_code.Parameter(elem, aliasType.makeRef()))
         metodParams.append(cxx_writer.writer_code.Parameter(elem + '_bit', cxx_writer.writer_code.uintRefType))
+    for elem in self.archVars:
+        metodParams.append(cxx_writer.writer_code.Parameter(elem, cxx_writer.writer_code.uintRefType))
     for var in self.instrvars:
-        metodParams.append(cxx_writer.writer_code.Parameter(var.name, var.type))
+        metodParams.append(cxx_writer.writer_code.Parameter(var.name, var.type.makeRef()))
     methodDecl = cxx_writer.writer_code.Method(self.name, self.code, cxx_writer.writer_code.voidType, 'pro', metodParams, inline = True)
     classElements.append(methodDecl)
     opDecl = cxx_writer.writer_code.ClassDeclaration(self.name + '_op', classElements, virtual_superclasses = [instructionType])
@@ -122,7 +126,11 @@ def getCPPInstr(self, model):
                 for elem in beh.archElems:
                     behaviorCode += 'this->' + elem + ', '
                     behaviorCode += 'this->' + elem + '_bit'
-                    if beh.instrvars or elem != beh.archElems[-1]:
+                    if beh.archVars or beh.instrvars or elem != beh.archElems[-1]:
+                        behaviorCode += ', '
+                for elem in beh.archVars:
+                    behaviorCode += 'this->' + elem
+                    if beh.instrvars or elem != beh.archVars[-1]:
                         behaviorCode += ', '
                 for var in beh.instrvars:
                     behaviorCode += 'this->' + var.name
@@ -142,7 +150,11 @@ def getCPPInstr(self, model):
                 for elem in beh.archElems:
                     behaviorCode += 'this->' + elem + ', '
                     behaviorCode += 'this->' + elem + '_bit'
-                    if beh.instrvars or elem != beh.archElems[-1]:
+                    if beh.archVars or beh.instrvars or elem != beh.archElems[-1]:
+                        behaviorCode += ', '
+                for elem in beh.archVars:
+                    behaviorCode += 'this->' + elem
+                    if beh.instrvars or elem != beh.archVars[-1]:
                         behaviorCode += ', '
                 for var in beh.instrvars:
                     behaviorCode += 'this->' + var.name
@@ -155,7 +167,8 @@ def getCPPInstr(self, model):
     behaviorBody = cxx_writer.writer_code.Code(behaviorCode)
     behaviorDecl = cxx_writer.writer_code.Method('behavior', behaviorBody, cxx_writer.writer_code.uintType, 'pu')
     classElements.append(behaviorDecl)
-    replicateBody = cxx_writer.writer_code.Code('return new ' + self.name + '();')
+    from procWriter import baseInstrInitElement
+    replicateBody = cxx_writer.writer_code.Code('return new ' + self.name + '(' + baseInstrInitElement + ');')
     replicateDecl = cxx_writer.writer_code.Method('replicate', replicateBody, instructionType.makePointer(), 'pu')
     classElements.append(replicateDecl)
 
@@ -357,7 +370,11 @@ def getCPPClasses(self, processor, modelType):
     setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
     setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam])
     invalidInstrElements.append(setparamsDecl)
+    global baseInstrConstrParams
+    from procWriter import baseInstrInitElement
+    publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, ['Instruction(' + baseInstrInitElement + ')'])
     invalidInstrDecl = cxx_writer.writer_code.ClassDeclaration('InvalidInstr', invalidInstrElements, [instructionDecl.getType()])
+    invalidInstrDecl.addConstructor(publicConstr)
     classes.append(invalidInstrDecl)
     # Now I go over all the other instructions and I declare them
     for instr in self.instructions.values():

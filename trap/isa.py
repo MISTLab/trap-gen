@@ -304,6 +304,7 @@ class Instruction:
         self.machineCode = machineCode
         self.machineBits = machineBits
         for behavior in self.postbehaviors.values() + self.prebehaviors.values():
+            newProcElem = []
             for procElem in behavior.archElems:
                 found = False
                 for key, fieldLen in self.machineCode.bitFields:
@@ -312,6 +313,13 @@ class Instruction:
                         break
                 if not found:
                     raise Exception('Error, architectural element ' + procElem + ' specified in operation ' + behavior.name + ' is not present in the machine code of instruction ' + self.name)
+                # Finally I separate the elements which are really constant from those which are, instead,
+                # only variable parts of the instruction
+                if procElem in self.machineCode.bitCorrespondence.keys():
+                    newProcElem.append(procElem)
+                elif not procElem in behavior.archVars:
+                    behavior.archVars.append(procElem)
+            behavior.archElems = newProcElem
 
     def addBehavior(self, behavior, stage, pre = True):
         # adds a behavior (an instance of the class
@@ -337,6 +345,7 @@ class Instruction:
                     self.variables.remove(instrVar)
                     break
         if self.machineCode:
+            newProcElem = []
             for procElem in behavior.archElems:
                 found = False
                 for key, fieldLen in self.machineCode.bitFields:
@@ -345,6 +354,12 @@ class Instruction:
                         break
                 if not found:
                     raise Exception('Error, architectural element ' + procElem + ' specified in operation ' + behavior.name + ' is not present in the machine code of instruction ' + self.name)
+                if procElem in self.machineCode.bitCorrespondence.keys():
+                    newProcElem.append(procElem)
+                elif not procElem in behavior.archVars:
+                    behavior.archVars.append(procElem)
+            behavior.archElems = newProcElem
+
 
 
     def setCode(self, code, stage):
@@ -419,6 +434,7 @@ class HelperOperation:
         self.localvars = []
         self.instrvars = []
         self.archElems = []
+        self.archVars = []
         validModel = ['all', 'func', 'acc']
         # Now we check which model has to include the operation
         if not model in validModel:

@@ -387,7 +387,7 @@ def getCPPAlias(self, model):
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
         aliasElements.append(operatorDecl)
     for i in assignmentOps:
-        operatorBody = cxx_writer.writer_code.Code(str(regMaxType) + ' result = *this->reg;\nresult ' + i + ' other.reg;\n*this->reg = (result - this->offset);\nreturn *this;')
+        operatorBody = cxx_writer.writer_code.Code(str(regMaxType) + ' result = *this->reg;\nresult ' + i + ' *other.reg;\n*this->reg = (result - this->offset);\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', aliasType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam])
         aliasElements.append(operatorDecl)
@@ -418,7 +418,7 @@ def getCPPAlias(self, model):
     publicMainClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['reg(reg)', 'offset(offset)', 'defaultOffset(0)'])
     publicMainEmptyClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu')
     # Constructor: takes as input the initial alias
-    constructorBody = cxx_writer.writer_code.Code('initAlias->referredAliases.insert(this);\ntihis->referringAliases.insert(initAlias);')
+    constructorBody = cxx_writer.writer_code.Code('initAlias->referredAliases.insert(this);\nthis->referringAliases.insert(initAlias);')
     constructorParams = [cxx_writer.writer_code.Parameter('initAlias', aliasType.makePointer()), cxx_writer.writer_code.Parameter('offset', cxx_writer.writer_code.uintType, initValue = '0')]
     publicAliasConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['reg(initAlias->reg)', 'offset(initAlias->offset + offset)', 'defaultOffset(offset)'])
 
@@ -443,8 +443,8 @@ def getCPPAlias(self, model):
     for(referringIter = this->referringAliases.begin(), referringEnd = this->referringAliases.end(); referringIter != referringEnd; referringIter++){
         (*referringIter)->referredAliases.erase(this);
     }
-    tihis->referringAliases.clear();
-    tihis->referringAliases.insert(&newAlias);
+    this->referringAliases.clear();
+    this->referringAliases.insert(&newAlias);
     """
     updateBody = cxx_writer.writer_code.Code(updateCode)
     updateParam1 = cxx_writer.writer_code.Parameter('newAlias', aliasType.makeRef())
@@ -462,7 +462,7 @@ def getCPPAlias(self, model):
     for(referringIter = this->referringAliases.begin(), referringEnd = this->referringAliases.end(); referringIter != referringEnd; referringIter++){
         (*referringIter)->referredAliases.erase(this);
     }
-    tihis->referringAliases.clear();
+    this->referringAliases.clear();
     """
     updateBody = cxx_writer.writer_code.Code(updateCode)
     updateParam1 = cxx_writer.writer_code.Parameter('newAlias', registerType.makeRef())
@@ -545,8 +545,8 @@ def getCPPMemoryIf(self, model):
         aliasAttrs.append(cxx_writer.writer_code.Attribute(alias.alias, resourceType[alias.alias].makeRef(), 'pri'))
         aliasParams.append(cxx_writer.writer_code.Parameter(alias.alias, resourceType[alias.alias].makeRef()))
         aliasInit.append(alias.alias + '(' + alias.alias + ')')
-        readMemAliasCode += 'if(address == ' + str(alias.address) + '){\nreturn ' + alias.alias + ';\n}\n'
-        writeMemAliasCode += 'if(address == ' + str(alias.address) + '){\n' + alias.alias + ' = datum;\nreturn;\n}\n'
+        readMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\nreturn ' + alias.alias + ';\n}\n'
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n' + alias.alias + ' = datum;\nreturn;\n}\n'
     if self.memory:
         memoryElements = []
         emptyBody = cxx_writer.writer_code.Code('')
@@ -579,6 +579,8 @@ def getCPPMemoryIf(self, model):
         memoryElements.append(unlockDecl)
         arrayAttribute = cxx_writer.writer_code.Attribute('memory', cxx_writer.writer_code.charPtrType, 'pri')
         memoryElements.append(arrayAttribute)
+        sizeAttribute = cxx_writer.writer_code.Attribute('size', cxx_writer.writer_code.uintType, 'pri')
+        memoryElements.append(sizeAttribute)
         memoryElements += aliasAttrs
         localMemDecl = cxx_writer.writer_code.ClassDeclaration('LocalMemory', memoryElements, [memoryIfDecl.getType()])
         constructorBody = cxx_writer.writer_code.Code('this->memory = new char[size];')
@@ -621,7 +623,7 @@ def getCPPProc(self, model):
             codeString += '+' + str(self.fetchReg[1])
     codeString += ');\n'
     if self.instructionCache:
-        codeString += 'std::map< ' + str(fetchWordType) + ', Instruction * >::iterator cachedInstr = Processor::instrCache.find(bitstring);'
+        codeString += 'std::map< ' + str(fetchWordType) + ', Instruction * >::iterator cachedInstr = Processor::instrCache.find(bitString);'
         codeString += """
         if(cachedInstr != Processor::instrCache.end()){
             // I can call the instruction, I have found it
@@ -639,7 +641,7 @@ def getCPPProc(self, model):
             numCycles = instr->behavior();
             // ... and then add the instruction to the cache
         """
-        codeString += 'instrCache.insert( std::pair< ' + str(fetchWordType) + ', Instruction * >(bitstring, instr) );'
+        codeString += 'instrCache.insert( std::pair< ' + str(fetchWordType) + ', Instruction * >(bitString, instr) );'
         codeString += """
             Processor::INSTRUCTIONS[instrId] = instr->replicate();
         }
@@ -949,7 +951,7 @@ def getMainCode(self, model):
         latency = 1/(vm["frequency"].as<double>());
     }
     //Now we can procede with the actual instantiation of the processor
-    Processor procInst(""" + self.name + """, sc_time(latency, SC_NS));
+    Processor procInst(\"""" + self.name + """\", sc_time(latency, SC_NS));
     //Now we can start the execution
     boost::timer t;
     sc_start();
@@ -961,7 +963,7 @@ def getMainCode(self, model):
     if self.systemc or model.startswith('acc'):
         code += 'std::cout << \"Simulated time \" << sc_simulation_time()/10e3 << \" ns\" << std::endl\n'
     else:
-        code += 'std::cout << \"Elapsed \" << procInst.totalCycles << \" cycles\" << std::endl\n'
+        code += 'std::cout << \"Elapsed \" << procInst.totalCycles << \" cycles\" << std::endl;\n'
     if self.endOp:
         code += '//Ok, simulation has ended: lets call cleanup methods\nprocInst.endOp();\n'
     code += """
