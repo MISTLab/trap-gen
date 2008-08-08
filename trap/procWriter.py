@@ -601,6 +601,7 @@ def getCPPProc(self, model):
     from isa import resolveBitType
     fetchWordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>')
     includes = fetchWordType.getIncludes()
+    interfaceType = cxx_writer.writer_code.Type('ABIIf', 'interface.hpp')
     codeString = 'while(true){\n'
     codeString += 'unsigned int numCycles = 0;\n'
     codeString += str(fetchWordType) + ' bitString = '
@@ -708,6 +709,8 @@ def getCPPProc(self, model):
     processorElements.append(endElabMethod)
     decoderAttribute = cxx_writer.writer_code.Attribute('decoder', cxx_writer.writer_code.Type('Decoder', 'decoder.hpp'), 'pri')
     processorElements.append(decoderAttribute)
+    interfaceAttribute = cxx_writer.writer_code.Attribute('abiIf', interfaceType, 'pu')
+    processorElements.append(interfaceAttribute)
     # Lets now add the registers, the reg banks, the aliases, etc.
     # We also need to add the memory
     initElements = []
@@ -908,7 +911,113 @@ def getCPPProc(self, model):
 def getCPPIf(self, model):
     # creates the interface which is used by the tools
     # to access the processor core
-    return None
+    from isa import resolveBitType
+    wordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>')
+    includes = wordType.getIncludes()
+
+    ifClassElements = []
+    if self.isBigEndian:
+        endianessCode = cxx_writer.writer_code.Code('return false;')
+    else:
+        endianessCode = cxx_writer.writer_code.Code('return true;')
+    endianessCode.addInclude(includes)
+    endianessMethod = cxx_writer.writer_code.Method('isLittleEndian', endianessCode, cxx_writer.writer_code.boolType, 'pu')
+    ifClassElements.append(endianessMethod)
+    for elem in [self.abi.LR, self.abi.PC, self.abi.SP, self.abi.FP, self.abi.retVal]:
+        if not elem:
+            continue
+        readElemBody = 'return this->' + elem
+        if self.abi.offset.has_key(elem):
+            readElemBody += ' + ' + str(self.abi.offset[elem])
+        readElemBody += ';'
+        readElemCode = cxx_writer.writer_code.Code(readElemBody)
+        readElemCode.addInclude(includes)
+        readElemMethod = cxx_writer.writer_code.Method('read' + self.abi.name[elem], readElemCode, wordType, 'pu')
+        ifClassElements.append(readElemMethod)
+        setElemBody = 'this->' + elem + ' = newValue'
+        if self.abi.offset.has_key(elem):
+            readElemBody += ' - ' + str(self.abi.offset[elem])
+        setElemBody += ';'
+        setElemCode = cxx_writer.writer_code.Code(setElemBody)
+        setElemCode.addInclude(includes)
+        setElemParam = cxx_writer.writer_code.Parameter('newValue', wordType.makeRef().makeConst())
+        setElemMethod = cxx_writer.writer_code.Method('set' + self.abi.name[elem], setElemCode, wordType, 'pu', [setElemParam])
+        ifClassElements.append(setElemMethod)
+    vectorType = cxx_writer.writer_code.TemplateType('std::vector', [wordType], 'vector')
+    readArgsBody = str(vectorType) + ' args;\n'
+    for arg in self.abi.args:
+        readArgsBody += 'args.push_back(this->' + arg
+        if self.abi.offset.has_key(arg):
+            readArgsBody += ' + ' + str(self.abi.offset[arg])
+        readArgsBody += ');'
+    readArgsBody += 'return args;'
+    readArgsCode = cxx_writer.writer_code.Code(readArgsBody)
+    readArgsCode.addInclude(includes)
+    readArgsMethod = cxx_writer.writer_code.Method('readArgs', readArgsCode, vectorType, 'pu')
+    ifClassElements.append(readArgsMethod)
+    setArgsBody = 'if(args.size() > ' + str(len(self.abi.args)) + '){\nTHROW_EXCEPTION(\"ABI of processor supports up to ' + str(len(self.abi.args)) + ' arguments: \" << args.size() << \" given\");\n}\n'
+    setArgsBody += str(vectorType) + '::const_iterator argIter = args.begin();\n'
+    for arg in self.abi.args:
+        setArgsBody += 'this->' + arg + ' = *argIter'
+        if self.abi.offset.has_key(arg):
+            setArgsBody += ' - ' + str(self.abi.offset[arg])
+        setArgsBody += ';\nargIter++;\n'
+    setArgsCode = cxx_writer.writer_code.Code(setArgsBody)
+    setArgsParam = cxx_writer.writer_code.Parameter('args', vectorType.makeRef().makeConst())
+    setArgsMethod = cxx_writer.writer_code.Method('setArgs', setArgsCode, cxx_writer.writer_code.voidType, 'pu', [setArgsParam])
+    ifClassElements.append(setArgsMethod)
+    readGDBRegBody = 'switch(gdbId){\n'
+    for reg, gdbId in self.abi.regCorrespondence.items():
+        readGDBRegBody += 'case ' + str(gdbId) + ':{\n'
+        readGDBRegBody += 'return ' + reg
+        if self.abi.offset.has_key(reg):
+            readGDBRegBody += ' + ' + str(self.abi.offset[reg])        
+        readGDBRegBody += ';\nbreak;}\n'
+    readGDBRegBody += 'default:{\nTHROW_EXCEPTION(\"No register corresponding to GDB id\" << gdbId);\nreturn 0;\n}}\n'
+    readGDBRegCode = cxx_writer.writer_code.Code(readGDBRegBody)
+    readGDBRegCode.addInclude(includes)
+    readGDBRegParam = cxx_writer.writer_code.Parameter('gdbId', cxx_writer.writer_code.uintType.makeRef().makeConst())
+    readGDBRegMethod = cxx_writer.writer_code.Method('readGDBReg', readGDBRegCode, wordType, 'pu', [readGDBRegParam])
+    ifClassElements.append(readGDBRegMethod)
+    setGDBRegBody = 'switch(gdbId){\n'
+    for reg, gdbId in self.abi.regCorrespondence.items():
+        setGDBRegBody += 'case ' + str(gdbId) + ':{\n'
+        setGDBRegBody += reg + ' = newValue'
+        if self.abi.offset.has_key(reg):
+            setGDBRegBody += ' - ' + str(self.abi.offset[reg])        
+        setGDBRegBody += ';\nbreak;}\n'
+    setGDBRegBody += 'default:{\nTHROW_EXCEPTION(\"No register corresponding to GDB id\" << gdbId);\n}}\n'
+    setGDBRegCode = cxx_writer.writer_code.Code(setGDBRegBody)
+    setGDBRegCode.addInclude(includes)
+    setGDBRegParam1 = cxx_writer.writer_code.Parameter('newValue', wordType.makeRef().makeConst())
+    setGDBRegParam2 = cxx_writer.writer_code.Parameter('gdbId', cxx_writer.writer_code.uintType.makeRef().makeConst())
+    setGDBRegMethod = cxx_writer.writer_code.Method('setGDBReg', setGDBRegCode, wordType, 'pu', [setGDBRegParam1, setGDBRegParam2])
+    ifClassElements.append(setGDBRegMethod)
+    readMemBody = ''
+    readMemCode = cxx_writer.writer_code.Code(readMemBody)
+    readMemParam = cxx_writer.writer_code.Parameter('address', wordType.makeRef().makeConst())
+    readMemMethod = cxx_writer.writer_code.Method('readMem', readMemCode, wordType, 'pu', [readMemParam])
+    ifClassElements.append(readMemMethod)
+    writeMemBody = ''
+    writeMemCode = cxx_writer.writer_code.Code(readMemBody)
+    writeMemParam1 = cxx_writer.writer_code.Parameter('address', wordType.makeRef().makeConst())
+    writeMemParam2 = cxx_writer.writer_code.Parameter('datum', wordType.makeRef().makeConst())
+    writeMemMethod = cxx_writer.writer_code.Method('writeMem', writeMemCode, cxx_writer.writer_code.voidType, 'pu', [writeMemParam1, writeMemParam2])
+    ifClassElements.append(writeMemMethod)
+    writeMemBody = ''
+    writeMemCode = cxx_writer.writer_code.Code(readMemBody)
+    writeMemParam1 = cxx_writer.writer_code.Parameter('address', wordType.makeRef().makeConst())
+    writeMemParam2 = cxx_writer.writer_code.Parameter('datum', cxx_writer.writer_code.ucharRefType.makeConst())
+    writeMemMethod = cxx_writer.writer_code.Method('writeMem', writeMemCode, cxx_writer.writer_code.voidType, 'pu', [writeMemParam1, writeMemParam2])
+    ifClassElements.append(writeMemMethod)
+
+    ABIIfType = cxx_writer.writer_code.TemplateType('ABIIf', [wordType], 'ABIIf.hpp')
+    ifClassDecl = cxx_writer.writer_code.ClassDeclaration(self.name + '_ABIIf', ifClassElements, [ABIIfType])
+    constructorBody = cxx_writer.writer_code.Code('this->memory = new char[size];')
+    constructorParams = [cxx_writer.writer_code.Parameter('size', cxx_writer.writer_code.uintType)]
+    publicIfConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams)
+    ifClassDecl.addConstructor(publicIfConstr)
+    return ifClassDecl
 
 def getCPPExternalPorts(self, model):
     # creates the processor external ports used for the

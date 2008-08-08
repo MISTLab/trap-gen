@@ -306,7 +306,6 @@ def getCPPClasses(self, processor, modelType):
     # initialize them through the constructor
     initElements = []
     global baseInstrConstrParams
-    baseInstrConstrParams = []
     baseInitElement = 'Instruction('
     from procWriter import resourceType
     for reg in processor.regs:
@@ -370,7 +369,6 @@ def getCPPClasses(self, processor, modelType):
     setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
     setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam])
     invalidInstrElements.append(setparamsDecl)
-    global baseInstrConstrParams
     from procWriter import baseInstrInitElement
     publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, ['Instruction(' + baseInstrInitElement + ')'])
     invalidInstrDecl = cxx_writer.writer_code.ClassDeclaration('InvalidInstr', invalidInstrElements, [instructionDecl.getType()])

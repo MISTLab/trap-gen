@@ -160,15 +160,13 @@ class TemplateType(Type):
         if self.template:
             typeStr += '< '
             for i in self.template:
-                try:
-                    typeStr += str(writer)
-                except AttributeError:
-                    writer.write(str(i))
+                typeStr += str(i)
                 if i != self.template[-1]:
                     typeStr += ', '
             typeStr += ' >'
         for i in currentModifiers:
             typeStr += ' ' + i
+        return typeStr
 
 intType = Type('int')
 shortType = Type('short int')

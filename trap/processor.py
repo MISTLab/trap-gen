@@ -603,7 +603,8 @@ class Processor:
             RegClasses = self.getCPPRegisters(model)
             AliasClass = self.getCPPAlias(model)
             ProcClass = self.getCPPProc(model)
-            IfClass = self.getCPPIf(model)
+            if self.abi:
+                IfClass = self.getCPPIf(model)
             MemClass = self.getCPPMemoryIf(model)
             ExternalIf = self.getCPPExternalPorts(model)
             ISAClasses = self.isa.getCPPClasses(self, model)
@@ -634,11 +635,12 @@ class Processor:
             for i in ISAClasses:
                 implFileInstr.addMember(i)
                 headFileInstr.addMember(i)
-            implFileIf = cxx_writer.writer_code.FileDumper('interface.cpp', False)
-            implFileIf.addInclude('interface.hpp')
-            headFileIf = cxx_writer.writer_code.FileDumper('interface.hpp', True)
-            implFileIf.addMember(IfClass)
-            headFileIf.addMember(IfClass)
+            if self.abi:
+                implFileIf = cxx_writer.writer_code.FileDumper('interface.cpp', False)
+                implFileIf.addInclude('interface.hpp')
+                headFileIf = cxx_writer.writer_code.FileDumper('interface.hpp', True)
+                implFileIf.addMember(IfClass)
+                headFileIf.addMember(IfClass)
             implFileMem = cxx_writer.writer_code.FileDumper('memory.cpp', False)
             implFileMem.addInclude('memory.hpp')
             headFileMem = cxx_writer.writer_code.FileDumper('memory.hpp', True)
@@ -673,8 +675,9 @@ class Processor:
             curFolder.addCode(implFileAlias)
             curFolder.addHeader(headFileProc)
             curFolder.addCode(implFileProc)
-            curFolder.addHeader(headFileIf)
-            curFolder.addCode(implFileIf)
+            if self.abi:
+                curFolder.addHeader(headFileIf)
+                curFolder.addCode(implFileIf)
             curFolder.addHeader(headFileDec)
             curFolder.addCode(implFileDec)
             curFolder.addHeader(headFileMem)
@@ -816,7 +819,7 @@ class ABI:
         self.SP = SP
         self.FP = FP
         # A list of the registers for the I argument, II arg etc.
-        # I do this simply to check the right formatting
+        # TODO: separate the args in a list, one single reg per element
         if isinstance(args, type('')):
             extractRegInterval(args)
         else:
@@ -828,9 +831,22 @@ class ABI:
         self.regCorrespondence = {}
         # offsets which must be taken into consideration when dealing with the
         # functional model
-        self.defValues = {}
+        self.offset = {}
         # Helper variable which keeps track of the already added correspondences
         self.corrReg = []
+        # set the names: to the PC register the name PC, etc.
+        self.name = {self.PC: 'PC'}
+        if self.LR:
+            self.name[self.LR] = 'LR'
+        if self.SP:
+            self.name[self.SP] = 'SP'
+        if self.FP:
+            self.name[self.FP] = 'FP'
+        if self.retVal:
+            self.name[self.retVal] = 'RetVal'
+        # TODO: specifies the memories which can be accessed; if more than one memory is specified,
+        # we have to associate the address range to each of them
+        self.memories = {}
 
     def addVarRegsCorrespondence(self, correspondence):
         for key, value in correspondence.items():
@@ -846,6 +862,7 @@ class ABI:
                     raise Exception('Correspondence for register ' + str(i) + ' already specified')
                 else:
                     self.corrReg.append(i)
+        # TODO: properly compute the correspondence, separating the list of registers
         self.regCorrespondence.update(correspondence)
 
     def setOffset(self, register, offset):
@@ -863,4 +880,4 @@ class ABI:
             for i in range(index[0], index[1] + 1):
                 if not i in rangeToCheck:
                     raise Exception('Register ' + register + ' of which we are specifying the offset is not part of the ABI')
-        self.defValues[register] = offset
+        self.offset[register] = offset
