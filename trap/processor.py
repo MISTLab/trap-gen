@@ -519,6 +519,7 @@ class Processor:
                 # Single register or alias: I check that it exists
                 if not self.isRegExisting(i):
                     raise Exception('Register ' + i + ' used in the ABI does not exists')
+        # TODO: check also the memories
 
     def getCPPRegisters(self, model):
         # This method creates all the classes necessary for declaring
@@ -819,21 +820,34 @@ class ABI:
         self.SP = SP
         self.FP = FP
         # A list of the registers for the I argument, II arg etc.
-        # TODO: separate the args in a list, one single reg per element
+        self.args = []
         if isinstance(args, type('')):
-            extractRegInterval(args)
+            index = extractRegInterval(args)
+            if index:
+                # I'm aliasing part of a register bank or another alias:
+                refName = args[:args.find('[')]
+                for i in range(index[0], index[1] + 1):
+                    self.args.append(refName + '[' + str(i) + ']')
+            else:
+                # Single register or alias
+                self.args.append(args)
         else:
-            for i in args:
-                extractRegInterval(i)
-        self.args = args
+            for j in args:
+                index = extractRegInterval(j)
+                if index:
+                    # I'm aliasing part of a register bank or another alias:
+                    refName = j[:j.find('[')]
+                    for i in range(index[0], index[1] + 1):
+                        self.args.append(refName + '[' + str(i) + ']')
+                else:
+                    # Single register or alias
+                    self.args.append(j)
         # Correspondence between regs as seen by GDB and the architectural
         # variables
         self.regCorrespondence = {}
         # offsets which must be taken into consideration when dealing with the
         # functional model
         self.offset = {}
-        # Helper variable which keeps track of the already added correspondences
-        self.corrReg = []
         # set the names: to the PC register the name PC, etc.
         self.name = {self.PC: 'PC'}
         if self.LR:
@@ -844,12 +858,17 @@ class ABI:
             self.name[self.FP] = 'FP'
         if self.retVal:
             self.name[self.retVal] = 'RetVal'
-        # TODO: specifies the memories which can be accessed; if more than one memory is specified,
+        # Specifies the memories which can be accessed; if more than one memory is specified,
         # we have to associate the address range to each of them
         self.memories = {}
 
     def addVarRegsCorrespondence(self, correspondence):
         for key, value in correspondence.items():
+            try:
+                value[0]
+                value[1]
+            except:
+                value = (value, value)
             index = extractRegInterval(key)
             if index:
                 if index[1] - index[0] != value[1] - value[0]:
@@ -858,12 +877,12 @@ class ABI:
                 if value[1] - value[0]:
                     raise Exception('specifying correspondence for ' + str(value) + ', while ' + str(key) + ' contains a different number of registers')
             for i in range(value[0], value[1] + 1):
-                if i in self.corrReg:
+                if i in self.regCorrespondence.values():
                     raise Exception('Correspondence for register ' + str(i) + ' already specified')
+                if index:
+                    self.regCorrespondence[key[:key.find('[')] + '[' + str(index[0] + i - value[0]) + ']'] = i
                 else:
-                    self.corrReg.append(i)
-        # TODO: properly compute the correspondence, separating the list of registers
-        self.regCorrespondence.update(correspondence)
+                    self.regCorrespondence[key] = value[0]
 
     def setOffset(self, register, offset):
         if not register in [self.LR, self.PC, self.SP, self.FP, self.retVal, self.args] + self.regCorrespondence.keys():
@@ -881,3 +900,14 @@ class ABI:
                 if not i in rangeToCheck:
                     raise Exception('Register ' + register + ' of which we are specifying the offset is not part of the ABI')
         self.offset[register] = offset
+
+    def addMemory(self, memory, addr = ()):
+        if self.memories and not addr:
+            raise Exception('More than one memory specified in the ABI: an address range must be specified for memory ' + memory)
+        for name, savedAddr in self.memories.items():
+            if not savedAddr:
+                raise Exception('More than one memory specified in the ABI: an address range must be specified for memory ' + name)
+            else:
+                if (savedAddr[0] <= addr[0] and savedAddr[1] >= addr[0]) or (savedAddr[0] <= addr[1] and savedAddr[1] >= addr[1]):
+                    raise Exception('Clash between address ranges of memory ' + name + ' and ' + memory)
+        self.memories[memory] = addr

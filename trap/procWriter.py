@@ -520,13 +520,13 @@ def getCPPMemoryIf(self, model):
     readDecl = cxx_writer.writer_code.Method('read_byte', emptyBody, archByteType, 'pu', [addressParam], pure = True)
     memoryIfElements.append(readDecl)
     addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
-    datumParam = cxx_writer.writer_code.Parameter('datum', archWordType.makeRef())
+    datumParam = cxx_writer.writer_code.Parameter('datum', archWordType.makeRef().makeConst())
     writeDecl = cxx_writer.writer_code.Method('write_word', emptyBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], pure = True)
     memoryIfElements.append(writeDecl)
-    datumParam = cxx_writer.writer_code.Parameter('datum', archHWordType.makeRef())
+    datumParam = cxx_writer.writer_code.Parameter('datum', archHWordType.makeRef().makeConst())
     writeDecl = cxx_writer.writer_code.Method('write_half', emptyBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], pure = True)
     memoryIfElements.append(writeDecl)
-    datumParam = cxx_writer.writer_code.Parameter('datum', archByteType.makeRef())
+    datumParam = cxx_writer.writer_code.Parameter('datum', archByteType.makeRef().makeConst())
     writeDecl = cxx_writer.writer_code.Method('write_byte', emptyBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], pure = True)
     memoryIfElements.append(writeDecl)
     lockDecl = cxx_writer.writer_code.Method('lock', emptyBody, cxx_writer.writer_code.voidType, 'pu', pure = True)
@@ -562,15 +562,15 @@ def getCPPMemoryIf(self, model):
         memoryElements.append(readDecl)
         writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + '*(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
         addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
-        datumParam = cxx_writer.writer_code.Parameter('datum', archWordType.makeRef())
+        datumParam = cxx_writer.writer_code.Parameter('datum', archWordType.makeRef().makeConst())
         writeDecl = cxx_writer.writer_code.Method('write_word', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam])
         memoryElements.append(writeDecl)
         writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + '*(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
-        datumParam = cxx_writer.writer_code.Parameter('datum', archHWordType.makeRef())
+        datumParam = cxx_writer.writer_code.Parameter('datum', archHWordType.makeRef().makeConst())
         writeDecl = cxx_writer.writer_code.Method('write_half', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam])
         memoryElements.append(writeDecl)
         writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + '*(' + str(archByteType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
-        datumParam = cxx_writer.writer_code.Parameter('datum', archByteType.makeRef())
+        datumParam = cxx_writer.writer_code.Parameter('datum', archByteType.makeRef().makeConst())
         writeDecl = cxx_writer.writer_code.Method('write_byte', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam])
         memoryElements.append(writeDecl)
         lockDecl = cxx_writer.writer_code.Method('lock', emptyBody, cxx_writer.writer_code.voidType, 'pu')
@@ -628,7 +628,12 @@ def getCPPProc(self, model):
         codeString += """
         if(cachedInstr != Processor::instrCache.end()){
             // I can call the instruction, I have found it
-            numCycles = cachedInstr->second->behavior();
+            try{
+                numCycles = cachedInstr->second->behavior();
+            }
+            catch(flush_exception &etc){
+                numCycles = 0;
+            }
         }
         else{
             // The current instruction is not present in the cache:
@@ -639,7 +644,12 @@ def getCPPProc(self, model):
     """
     if self.instructionCache:
         codeString += """instr->setParams(bitString);
-            numCycles = instr->behavior();
+            try{
+                numCycles = instr->behavior();
+            }
+            catch(flush_exception &etc){
+                numCycles = 0;
+            }        
             // ... and then add the instruction to the cache
         """
         codeString += 'instrCache.insert( std::pair< ' + str(fetchWordType) + ', Instruction * >(bitString, instr) );'
@@ -651,7 +661,7 @@ def getCPPProc(self, model):
     else:
         codeString += 'instr->behavior(bitString)\n';
     if self.systemc or model.startswith('acc'):
-        # Code for keeping time with systemc
+        # TODO: Code for keeping time with systemc
         pass
     else:
         codeString += 'this->totalCycles += numCycles;\n'
@@ -660,6 +670,7 @@ def getCPPProc(self, model):
     processorElements = []
     mainLoopCode = cxx_writer.writer_code.Code(codeString)
     mainLoopCode.addInclude(includes)
+    mainLoopCode.addInclude('customExceptions.hpp')
     mainLoopMethod = cxx_writer.writer_code.Method('mainLoop', mainLoopCode, cxx_writer.writer_code.voidType, 'pu')
     processorElements.append(mainLoopMethod)
     if self.beginOp:
@@ -916,6 +927,32 @@ def getCPPIf(self, model):
     includes = wordType.getIncludes()
 
     ifClassElements = []
+    initElements = []
+    baseInstrConstrParams = []
+    # Lets first of all decalre the variables
+    for memName in self.abi.memories.keys():
+        ifClassElements.append(cxx_writer.writer_code.Attribute(memName, cxx_writer.writer_code.Type('MemoryInterface', 'memory.hpp'), 'pri'))
+    for reg in self.regs:
+        attribute = cxx_writer.writer_code.Attribute(reg.name, resourceType[reg.name].makeRef(), 'pri')
+        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(reg.name, resourceType[reg.name].makeRef()))
+        initElements.append(reg.name + '(' + reg.name + ')')
+        ifClassElements.append(attribute)
+    for regB in self.regBanks:
+        attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name].makePointer().makeRef(), 'pri')
+        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(regB.name, resourceType[regB.name].makePointer().makeRef()))
+        initElements.append(regB.name + '(' + regB.name + ')')
+        ifClassElements.append(attribute)
+    for alias in self.aliasRegs:
+        attribute = cxx_writer.writer_code.Attribute(alias.name, resourceType[alias.name].makeRef(), 'pri')
+        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(alias.name, resourceType[alias.name].makeRef()))
+        initElements.append(alias.name + '(' + alias.name + ')')
+        ifClassElements.append(attribute)
+    for aliasB in self.aliasRegBanks:
+        attribute = cxx_writer.writer_code.Attribute(aliasB.name, resourceType[aliasB.name].makePointer().makeRef(), 'pri')
+        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(aliasB.name, resourceType[aliasB.name].makePointer().makeRef()))
+        initElements.append(aliasB.name + '(' + aliasB.name + ')')
+        ifClassElements.append(attribute)
+    # Now lets declare the methods used to access the variables
     if self.isBigEndian:
         endianessCode = cxx_writer.writer_code.Code('return false;')
     else:
@@ -936,7 +973,7 @@ def getCPPIf(self, model):
         ifClassElements.append(readElemMethod)
         setElemBody = 'this->' + elem + ' = newValue'
         if self.abi.offset.has_key(elem):
-            readElemBody += ' - ' + str(self.abi.offset[elem])
+            setElemBody += ' - ' + str(self.abi.offset[elem])
         setElemBody += ';'
         setElemCode = cxx_writer.writer_code.Code(setElemBody)
         setElemCode.addInclude(includes)
@@ -973,7 +1010,7 @@ def getCPPIf(self, model):
         if self.abi.offset.has_key(reg):
             readGDBRegBody += ' + ' + str(self.abi.offset[reg])        
         readGDBRegBody += ';\nbreak;}\n'
-    readGDBRegBody += 'default:{\nTHROW_EXCEPTION(\"No register corresponding to GDB id\" << gdbId);\nreturn 0;\n}}\n'
+    readGDBRegBody += 'default:{\nTHROW_EXCEPTION(\"No register corresponding to GDB id\" << gdbId);\nreturn 0;\n}\n}\n'
     readGDBRegCode = cxx_writer.writer_code.Code(readGDBRegBody)
     readGDBRegCode.addInclude(includes)
     readGDBRegParam = cxx_writer.writer_code.Parameter('gdbId', cxx_writer.writer_code.uintType.makeRef().makeConst())
@@ -986,7 +1023,7 @@ def getCPPIf(self, model):
         if self.abi.offset.has_key(reg):
             setGDBRegBody += ' - ' + str(self.abi.offset[reg])        
         setGDBRegBody += ';\nbreak;}\n'
-    setGDBRegBody += 'default:{\nTHROW_EXCEPTION(\"No register corresponding to GDB id\" << gdbId);\n}}\n'
+    setGDBRegBody += 'default:{\nTHROW_EXCEPTION(\"No register corresponding to GDB id\" << gdbId);\n}\n}\n'
     setGDBRegCode = cxx_writer.writer_code.Code(setGDBRegBody)
     setGDBRegCode.addInclude(includes)
     setGDBRegParam1 = cxx_writer.writer_code.Parameter('newValue', wordType.makeRef().makeConst())
@@ -994,18 +1031,49 @@ def getCPPIf(self, model):
     setGDBRegMethod = cxx_writer.writer_code.Method('setGDBReg', setGDBRegCode, wordType, 'pu', [setGDBRegParam1, setGDBRegParam2])
     ifClassElements.append(setGDBRegMethod)
     readMemBody = ''
+    if not self.abi.memories:
+        readMemBody += 'THROW_EXCEPTION(\"No memory accessible from the ABI or processor ' + self.name + '\");'
+    else:
+        if len(self.abi.memories) == 1:
+            readMemBody += 'return this->' + self.abi.memories.keys()[0] + '.read_word(address);'
+        else:
+            for memName, range in self.abi.memories.items():
+                readMemBody += 'if(address >= ' + hex(range[0]) + ' && address <= ' + hex(range[1]) + '){\n'
+                readMemBody += 'return this->' + self.abi.memories.keys()[0] + '.read_word(address);\n}\nelse '
+            readMemBody += '{\nTHROW_EXCEPTION(\"Address \" << std::hex << address << \" out of range\");\n}'    
     readMemCode = cxx_writer.writer_code.Code(readMemBody)
     readMemParam = cxx_writer.writer_code.Parameter('address', wordType.makeRef().makeConst())
     readMemMethod = cxx_writer.writer_code.Method('readMem', readMemCode, wordType, 'pu', [readMemParam])
     ifClassElements.append(readMemMethod)
     writeMemBody = ''
-    writeMemCode = cxx_writer.writer_code.Code(readMemBody)
+    if not self.abi.memories:
+        writeMemBody += 'THROW_EXCEPTION(\"No memory accessible from the ABI or processor ' + self.name + '\");'
+    else:
+        if len(self.abi.memories) == 1:
+            writeMemBody += 'this->' + self.abi.memories.keys()[0] + '.write_word(address, datum);'
+        else:
+            for memName, range in self.abi.memories.items():
+                writeMemBody += 'if(address >= ' + hex(range[0]) + ' && address <= ' + hex(range[1]) + '){\n'
+                writeMemBody += 'this->' + self.abi.memories.keys()[0] + '.write_word(address, datum);\n}\nelse '
+            writeMemBody += '{\nTHROW_EXCEPTION(\"Address \" << std::hex << address << \" out of range\");\n}'
+    writeMemCode = cxx_writer.writer_code.Code(writeMemBody)
+    writeMemCode.addInclude('utils.hpp')
     writeMemParam1 = cxx_writer.writer_code.Parameter('address', wordType.makeRef().makeConst())
     writeMemParam2 = cxx_writer.writer_code.Parameter('datum', wordType.makeRef().makeConst())
     writeMemMethod = cxx_writer.writer_code.Method('writeMem', writeMemCode, cxx_writer.writer_code.voidType, 'pu', [writeMemParam1, writeMemParam2])
     ifClassElements.append(writeMemMethod)
     writeMemBody = ''
-    writeMemCode = cxx_writer.writer_code.Code(readMemBody)
+    if not self.abi.memories:
+        writeMemBody += 'THROW_EXCEPTION(\"No memory accessible from the ABI or processor ' + self.name + '\");'
+    else:
+        if len(self.abi.memories) == 1:
+            writeMemBody += 'this->' + self.abi.memories.keys()[0] + '.write_byte(address, datum);'
+        else:
+            for memName, range in self.abi.memories.items():
+                writeMemBody += 'if(address >= ' + hex(range[0]) + ' && address <= ' + hex(range[1]) + '){\n'
+                writeMemBody += 'this->' + self.abi.memories.keys()[0] + '.write_byte(address, datum);\n}\nelse '
+            writeMemBody += '{\nTHROW_EXCEPTION(\"Address \" << std::hex << address << \" out of range\");\n}'    
+    writeMemCode = cxx_writer.writer_code.Code(writeMemBody)
     writeMemParam1 = cxx_writer.writer_code.Parameter('address', wordType.makeRef().makeConst())
     writeMemParam2 = cxx_writer.writer_code.Parameter('datum', cxx_writer.writer_code.ucharRefType.makeConst())
     writeMemMethod = cxx_writer.writer_code.Method('writeMem', writeMemCode, cxx_writer.writer_code.voidType, 'pu', [writeMemParam1, writeMemParam2])
@@ -1013,9 +1081,7 @@ def getCPPIf(self, model):
 
     ABIIfType = cxx_writer.writer_code.TemplateType('ABIIf', [wordType], 'ABIIf.hpp')
     ifClassDecl = cxx_writer.writer_code.ClassDeclaration(self.name + '_ABIIf', ifClassElements, [ABIIfType])
-    constructorBody = cxx_writer.writer_code.Code('this->memory = new char[size];')
-    constructorParams = [cxx_writer.writer_code.Parameter('size', cxx_writer.writer_code.uintType)]
-    publicIfConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams)
+    publicIfConstr = cxx_writer.writer_code.Constructor(cxx_writer.writer_code.Code(''), 'pu', baseInstrConstrParams, initElements)
     ifClassDecl.addConstructor(publicIfConstr)
     return ifClassDecl
 

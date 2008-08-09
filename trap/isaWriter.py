@@ -274,8 +274,8 @@ def getCPPClasses(self, processor, modelType):
     instructionElements.append(setparamsDecl)
 
     # Note how the flush operation also stops the execution of the current operation
-    # TODO: complete
-    flushBody = cxx_writer.writer_code.Code('#error "the method must be completed"')
+    flushBody = cxx_writer.writer_code.Code('throw flush_exception();')
+    flushBody.addInclude('customExceptions.hpp')
     flushDecl = cxx_writer.writer_code.Method('flush', emptyBody, cxx_writer.writer_code.voidType, 'pu')
     instructionElements.append(flushDecl)
     stallParam = cxx_writer.writer_code.Parameter('numCycles', archWordType.makeRef().makeConst())
