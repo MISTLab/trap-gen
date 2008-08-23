@@ -55,6 +55,7 @@ comparisonOps = ['<', '>', '<=', '>=', '==', '!=']
 regMaxType = None
 resourceType = {}
 baseInstrInitElement = ''
+aliasGraph = None
 
 def getCPPRegClass(self, model, regType):
     # returns the class implementing the current register; I have to
@@ -649,7 +650,7 @@ def getCPPProc(self, model):
             }
             catch(flush_exception &etc){
                 numCycles = 0;
-            }        
+            }
             // ... and then add the instruction to the cache
         """
         codeString += 'instrCache.insert( std::pair< ' + str(fetchWordType) + ', Instruction * >(bitString, instr) );'
@@ -746,9 +747,9 @@ def getCPPProc(self, model):
         if index:
             # we are dealing with a member of a register bank
             curIndex = index[0]
-            bodyAliasInit[alias.name] = 'this->' + alias.name + '.updateAlias(' + alias.initAlias[:alias.initAlias.find('[')] + '[' + str(curIndex) + '], ' + str(alias.offset) + ');\n'
+            bodyAliasInit[alias.name] = 'this->' + alias.name + '.updateAlias(this->' + alias.initAlias[:alias.initAlias.find('[')] + '[' + str(curIndex) + '], ' + str(alias.offset) + ');\n'
         else:
-            bodyAliasInit[alias.name] = 'this->' + alias.name + '.updateAlias(' + alias.initAlias + ', ' + str(alias.offset) + ');\n'
+            bodyAliasInit[alias.name] = 'this->' + alias.name + '.updateAlias(this->' + alias.initAlias + ', ' + str(alias.offset) + ');\n'
         processorElements.append(attribute)
     for aliasB in self.aliasRegBanks:
         attribute = cxx_writer.writer_code.Attribute(aliasB.name, resourceType[aliasB.name].makePointer(), 'pu')
@@ -759,7 +760,7 @@ def getCPPProc(self, model):
             index = extractRegInterval(aliasB.initAlias)
             curIndex = index[0]
             for i in range(0, aliasB.numRegs):
-                bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '[' + str(i) + '].updateAlias(' + aliasB.initAlias[:aliasB.initAlias.find('[')] + '[' + str(curIndex) + ']);\n'
+                bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '[' + str(i) + '].updateAlias(this->' + aliasB.initAlias[:aliasB.initAlias.find('[')] + '[' + str(curIndex) + ']);\n'
                 curIndex += 1
         else:
             curIndex = 0
@@ -767,15 +768,16 @@ def getCPPProc(self, model):
                 index = extractRegInterval(curAlias)
                 if index:
                     for curRange in range(index[0], index[1] + 1):
-                        bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '[' + str(curIndex) + '].updateAlias(' + curAlias[:curAlias.find('[')] + '[' + str(curRange) + ']);\n'
+                        bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '[' + str(curIndex) + '].updateAlias(this->' + curAlias[:curAlias.find('[')] + '[' + str(curRange) + ']);\n'
                         curIndex += 1
                 else:
-                    bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '[' + str(curIndex) + '].updateAlias(' + curAlias + ');\n'
+                    bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '[' + str(curIndex) + '].updateAlias(this->' + curAlias + ');\n'
                     curIndex += 1
 
         processorElements.append(attribute)
     # the initialization of the aliases must be chained (we should
     # create an initialization graph since an alias might depend on another one ...)
+    global aliasGraph
     aliasGraph = NX.XDiGraph()
     for alias in self.aliasRegs + self.aliasRegBanks:
         aliasGraph.add_node(alias)
@@ -856,7 +858,7 @@ def getCPPProc(self, model):
     progStarttAttr = cxx_writer.writer_code.Attribute('PROGRAM_START', fetchWordType, 'pu')
     processorElements.append(progStarttAttr)
     bodyInits += 'this->PROGRAM_START = 0;\n'
-    
+
     IntructionType = cxx_writer.writer_code.Type('Instruction', include = 'instructions.hpp')
     IntructionTypePtr = IntructionType.makePointer()
     instructionsAttribute = cxx_writer.writer_code.Attribute('INSTRUCTIONS',
@@ -879,6 +881,10 @@ def getCPPProc(self, model):
         baseInstrInitElement += alias.name + ', '
     for aliasB in self.aliasRegBanks:
         baseInstrInitElement += aliasB.name + ', '
+    if self.memory:
+        baseInstrInitElement += self.memory[0] + ', '
+    for tlmPorts in self.tlmPorts.keys():
+        baseInstrInitElement += tlmPorts + ', '
     baseInstrInitElement = baseInstrInitElement[:-2]
 
     constrCode = 'Processor::numInstances++;\nif(Processor::INSTRUCTIONS == NULL){\n'
@@ -978,7 +984,7 @@ def getCPPIf(self, model):
         setElemCode = cxx_writer.writer_code.Code(setElemBody)
         setElemCode.addInclude(includes)
         setElemParam = cxx_writer.writer_code.Parameter('newValue', wordType.makeRef().makeConst())
-        setElemMethod = cxx_writer.writer_code.Method('set' + self.abi.name[elem], setElemCode, wordType, 'pu', [setElemParam])
+        setElemMethod = cxx_writer.writer_code.Method('set' + self.abi.name[elem], setElemCode, cxx_writer.writer_code.voidType, 'pu', [setElemParam])
         ifClassElements.append(setElemMethod)
     vectorType = cxx_writer.writer_code.TemplateType('std::vector', [wordType], 'vector')
     readArgsBody = str(vectorType) + ' args;\n'
@@ -1008,7 +1014,7 @@ def getCPPIf(self, model):
         readGDBRegBody += 'case ' + str(gdbId) + ':{\n'
         readGDBRegBody += 'return ' + reg
         if self.abi.offset.has_key(reg):
-            readGDBRegBody += ' + ' + str(self.abi.offset[reg])        
+            readGDBRegBody += ' + ' + str(self.abi.offset[reg])
         readGDBRegBody += ';\nbreak;}\n'
     readGDBRegBody += 'default:{\nTHROW_EXCEPTION(\"No register corresponding to GDB id\" << gdbId);\nreturn 0;\n}\n}\n'
     readGDBRegCode = cxx_writer.writer_code.Code(readGDBRegBody)
@@ -1021,14 +1027,14 @@ def getCPPIf(self, model):
         setGDBRegBody += 'case ' + str(gdbId) + ':{\n'
         setGDBRegBody += reg + ' = newValue'
         if self.abi.offset.has_key(reg):
-            setGDBRegBody += ' - ' + str(self.abi.offset[reg])        
+            setGDBRegBody += ' - ' + str(self.abi.offset[reg])
         setGDBRegBody += ';\nbreak;}\n'
     setGDBRegBody += 'default:{\nTHROW_EXCEPTION(\"No register corresponding to GDB id\" << gdbId);\n}\n}\n'
     setGDBRegCode = cxx_writer.writer_code.Code(setGDBRegBody)
     setGDBRegCode.addInclude(includes)
     setGDBRegParam1 = cxx_writer.writer_code.Parameter('newValue', wordType.makeRef().makeConst())
     setGDBRegParam2 = cxx_writer.writer_code.Parameter('gdbId', cxx_writer.writer_code.uintType.makeRef().makeConst())
-    setGDBRegMethod = cxx_writer.writer_code.Method('setGDBReg', setGDBRegCode, wordType, 'pu', [setGDBRegParam1, setGDBRegParam2])
+    setGDBRegMethod = cxx_writer.writer_code.Method('setGDBReg', setGDBRegCode, cxx_writer.writer_code.voidType, 'pu', [setGDBRegParam1, setGDBRegParam2])
     ifClassElements.append(setGDBRegMethod)
     readMemBody = ''
     if not self.abi.memories:
@@ -1040,7 +1046,7 @@ def getCPPIf(self, model):
             for memName, range in self.abi.memories.items():
                 readMemBody += 'if(address >= ' + hex(range[0]) + ' && address <= ' + hex(range[1]) + '){\n'
                 readMemBody += 'return this->' + self.abi.memories.keys()[0] + '.read_word(address);\n}\nelse '
-            readMemBody += '{\nTHROW_EXCEPTION(\"Address \" << std::hex << address << \" out of range\");\n}'    
+            readMemBody += '{\nTHROW_EXCEPTION(\"Address \" << std::hex << address << \" out of range\");\n}'
     readMemCode = cxx_writer.writer_code.Code(readMemBody)
     readMemParam = cxx_writer.writer_code.Parameter('address', wordType.makeRef().makeConst())
     readMemMethod = cxx_writer.writer_code.Method('readMem', readMemCode, wordType, 'pu', [readMemParam])
@@ -1072,7 +1078,7 @@ def getCPPIf(self, model):
             for memName, range in self.abi.memories.items():
                 writeMemBody += 'if(address >= ' + hex(range[0]) + ' && address <= ' + hex(range[1]) + '){\n'
                 writeMemBody += 'this->' + self.abi.memories.keys()[0] + '.write_byte(address, datum);\n}\nelse '
-            writeMemBody += '{\nTHROW_EXCEPTION(\"Address \" << std::hex << address << \" out of range\");\n}'    
+            writeMemBody += '{\nTHROW_EXCEPTION(\"Address \" << std::hex << address << \" out of range\");\n}'
     writeMemCode = cxx_writer.writer_code.Code(writeMemBody)
     writeMemParam1 = cxx_writer.writer_code.Parameter('address', wordType.makeRef().makeConst())
     writeMemParam2 = cxx_writer.writer_code.Parameter('datum', cxx_writer.writer_code.ucharRefType.makeConst())

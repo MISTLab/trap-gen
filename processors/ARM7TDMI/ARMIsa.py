@@ -68,7 +68,7 @@ isa.addMethod(RotateRight_method)
 # instruction, anyway the execution of that code finished before the stall
 # operation has any effect; if that code contains another call to stall(m),
 # the pipeline stages are stalled for a total of n+m
-# -- THROW_ERROR: a macro for throwing C++ exceptions
+# -- THROW_EXCEPTION: a macro for throwing C++ exceptions
 #
 
 #____________________________________________________________________________________________________
@@ -94,6 +94,7 @@ adc_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
 adc_shift_imm_Instr.addBehavior(UpdatePSR, 'execute', False)
 adc_shift_imm_Instr.addBehavior(UpdatePC, 'execute', False)
 adc_shift_imm_Instr.addVariable(('result', 'BIT<64>'))
+adc_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': 3, 'REGS[10]': 3}, {'REGS[8]': 6})
 isa.addInstruction(adc_shift_imm_Instr)
 adc_shift_reg_Instr = trap.Instruction('ADC_sr', True)
 adc_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [0, 1, 0, 1]}, 'TODO')

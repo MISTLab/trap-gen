@@ -12,7 +12,7 @@ extern "C" {
 
 using namespace resp;
 
-ExecLoader::ExecLoader(std::string fileName){
+ExecLoader::ExecLoader(std::string fileName, bool keepEndianess) : keepEndianess(keepEndianess){
     this->programData = NULL;
     this->execImage = NULL;
     this->progDim = 0;
@@ -45,44 +45,34 @@ ExecLoader::~ExecLoader(){
     }
 }
 
-unsigned long ExecLoader::getProgStart(){
-    #ifndef NDEBUG
+unsigned int ExecLoader::getProgStart(){
     if(this->execImage == NULL){
         THROW_EXCEPTION("The binary parser not yet correcly created");
     }
-    #endif
     return bfd_get_start_address(this->execImage);
 }
 
-unsigned long ExecLoader::getProgDim(){
-    #ifndef NDEBUG
+unsigned int ExecLoader::getProgDim(){
     if(this->execImage == NULL){
         THROW_EXCEPTION("The binary parser not yet correcly created");
     }
-    #endif
     return this->progDim;
 }
 
-unsigned long ExecLoader::getProgData(){
-    #ifndef NDEBUG
+unsigned char * ExecLoader::getProgData(){
     if(this->execImage == NULL){
         THROW_EXCEPTION("The binary parser not yet correcly created");
     }
-    #endif
-    #ifndef NDEBUG
     if(this->programData == NULL){
         THROW_EXCEPTION("The program data was not correcly computed");
     }
-    #endif
-    return (unsigned long)this->programData;
+    return this->programData;
 }
 
-unsigned long ExecLoader::getDataStart(){
-    #ifndef NDEBUG
+unsigned int ExecLoader::getDataStart(){
     if(this->execImage == NULL){
         THROW_EXCEPTION("The binary parser not yet correcly created");
     }
-    #endif
     return this->dataStart;
 }
 
@@ -98,6 +88,8 @@ void ExecLoader::loadProgramData(){
     bool swapEndianess = false;
     #endif
     #endif
+    if(this->keepEndianess)
+        swapEndianess = false;
     for (p = this->execImage->sections; p != NULL; p = p->next){
         flagword flags = bfd_get_section_flags(this->execImage, p);
         if((flags & SEC_ALLOC) != 0 && (flags & SEC_DEBUGGING) == 0 && (flags & SEC_THREAD_LOCAL) == 0){

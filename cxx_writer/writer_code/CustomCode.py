@@ -77,9 +77,9 @@ class Code:
         else:
             if self.code:
                 codeStr += '\n'
-        codeStr += self.code
+        codeStr += self.code.rstrip()
         if self.variables:
-            codeStr += '}\n'
+            codeStr += '\n}\n'
         return codeStr
 
     def writeDeclaration(self, writer):
@@ -90,9 +90,9 @@ class Code:
         else:
             if self.code:
                 self.code += '\n'
-        writer.write(self.code)
+        writer.write(self.code.rstrip())
         if self.variables:
-            writer.write('}\n')
+            writer.write('\n}\n')
 
     def writeImplementation(self, writer):
         self.writeDeclaration(writer)

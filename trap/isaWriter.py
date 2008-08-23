@@ -232,24 +232,113 @@ def getCPPInstrTest(self, processor, model):
     # Returns the code testing the current instruction: note that a test
     # consists in setting the instruction variables, performing the instruction
     # behavior and then comparing the registers with what we expect.
+    archElemsDeclStr = ''
+    baseInitElement = '('
+    destrDecls = ''
+    from procWriter import resourceType
+    for reg in processor.regs:
+        archElemsDeclStr += str(resourceType[reg.name]) + ' ' + reg.name + ';\n'
+        baseInitElement += reg.name + ', '
+    for regB in processor.regBanks:
+        archElemsDeclStr += str(resourceType[regB.name].makePointer()) + ' ' + regB.name + ' = new ' + str(resourceType[regB.name]) + '[' + str(regB.numRegs) + '];\n'
+        baseInitElement += regB.name + ', '
+        destrDecls += 'delete [] ' + regB.name + ';\n'
+    for alias in processor.aliasRegs:
+        archElemsDeclStr += str(resourceType[alias.name]) + ' ' + alias.name + ';\n'
+        baseInitElement += alias.name + ', '
+    for aliasB in processor.aliasRegBanks:
+        archElemsDeclStr += str(resourceType[aliasB.name].makePointer()) + ' ' + aliasB.name + ' = new ' + str(resourceType[aliasB.name]) + '[' + str(aliasB.numRegs) + '];\n'
+        baseInitElement += aliasB.name + ', '
+        destrDecls += 'delete [] ' + aliasB.name + ';\n'
+    memAliasInit = ''
+    for alias in processor.memAlias:
+        memAliasInit += ', ' + alias.alias
+    if processor.memory:
+        archElemsDeclStr += 'LocalMemory ' + processor.memory[0] + '(' + str(processor.memory[1]) + memAliasInit + ');\n'
+        baseInitElement += processor.memory[0] + ', '
+    # Note how I declare local memories even for TLM ports. I use 1MB as default dimension
+    for tlmPorts in processor.tlmPorts.keys():
+        archElemsDeclStr += 'LocalMemory ' + tlmPorts + '(' + str(1024*1024) + memAliasInit + ');\n'
+        baseInitElement += tlmPorts + ', '
+    baseInitElement = baseInitElement[:-2] + ')'
+    # Now we perform the alias initialization; note that they need to be initialized according to the initialization graph
+    # (there might be dependences among the aliases)
+    aliasInit = ''
+    import networkx as NX
+    from procWriter import aliasGraph
+    from processor import extractRegInterval
+    orderedNodes = NX.topological_sort(aliasGraph)
+    for alias in orderedNodes:
+        if alias == 'stop':
+            continue
+        if isinstance(alias.initAlias, type('')):
+            index = extractRegInterval(alias.initAlias)
+            if index:
+                curIndex = index[0]
+                try:
+                    for i in range(0, alias.numRegs):
+                        aliasInit += alias.name + '[' + str(i) + '].updateAlias(' + alias.initAlias[:alias.initAlias.find('[')] + '[' + str(curIndex) + ']);\n'
+                        curIndex += 1
+                except AttributeError:
+                    aliasInit += alias.name + '.updateAlias(' + alias.initAlias[:alias.initAlias.find('[')] + '[' + str(curIndex) + '], ' + str(alias.offset) + ');\n'
+            else:
+                aliasInit += alias.name + '.updateAlias(' + alias.initAlias + ', ' + str(alias.offset) + ');\n'
+                
+        else:
+            curIndex = 0
+            for curAlias in alias.initAlias:
+                index = extractRegInterval(curAlias)
+                if index:
+                    for curRange in range(index[0], index[1] + 1):
+                        aliasInit += alias.name + '[' + str(curIndex) + '].updateAlias(' + curAlias[:curAlias.find('[')] + '[' + str(curRange) + ']);\n'
+                        curIndex += 1
+                else:
+                    aliasInit += alias.name + '[' + str(curIndex) + '].updateAlias(' + curAlias + ');\n'
+                    curIndex += 1
     tests = []
     for test in self.tests:
         code = 'BOOST_AUTO_TEST_CASE( test_' + self.name + '_' + str(len(tests)) + ' ){\n'
-        # TODO: first of all I create the instance of the instruction and of all the
+        # First of all I create the instance of the instruction and of all the
         # processor elements
-        for resource, value in test[0]:
-            # I set the initial value of the local resources
-            pass
-        for resource, value in test[1]:
+        code += archElemsDeclStr + '\n' + aliasInit + '\n'
+        code += self.name + ' toTest' + baseInitElement + ';\n'
+        # Now I set the value of the instruction fields
+        instrCode = ['0' for i in range(0, self.machineCode.instrLen)]
+        for name, elemValue in test[0].items():
+            if self.machineCode.bitLen.has_key(name):
+                curBitCode = ['0'] # TODO: create the binary encoding of text[0][name]
+                if len(curBitCode) > self.machineCode.bitLen[name]:
+                    raise Exception('Value ' + hex(elemValue) + ' set for field ' + name + ' in test of instruction ' + self.name + ' cannot be represented in ' + str(self.machineCode.bitLen[name]) + ' bits')
+                for i in range(0, len(curBitCode)):
+                    instrCode[i + self.machineCode.bitPos[name]] = curBitCode[i]
+        for resource, value in test[1].items():
             # I set the initial value of the global resources
-            pass
-        # TODO: I perform the operation
-        for resource, value in test[2]:
+            brackIndex = resource.find('[')
+            memories = processor.tlmPorts.keys()
+            if processor.memory:
+                memories.append(processor.memory[0])
+            if brackIndex > 0 and resource[:brackIndex] in memories:
+                code += resource + '.write_word(' + str(value) + ', ' + hex(resource[brackIndex + 1:-1]) + ');\n'
+            else:
+                code += resource + ' = ' + str(value) + ';\n'
+        code += 'toTest.setParams(' + hex(int(''.join(instrCode), 2)) + ');\n'
+        code += 'toTest.behavior();\n\n'
+        for resource, value in test[2].items():
             # I check the value of the listed resources to make sure that the
             # computation executed correctly
-            pass
-        code += '}\n\n'
-        curTest = cxx_writer.writer_code.Code(code, ['boost/test/auto_unit_test.hpp', 'boost/test/test_tools.hpp'])
+            code += 'BOOST_CHECK_EQUAL('
+            brackIndex = resource.find('[')
+            memories = processor.tlmPorts.keys()
+            if processor.memory:
+                memories.append(processor.memory[0])
+            if brackIndex > 0 and resource[:brackIndex] in memories:
+                code += resource + '.read_word(' + hex(value) + ', ' + hex(resource[brackIndex + 1:-1]) + ')'
+            else:
+                code += resource
+            code += ', ' + hex(value) + ');\n\n'
+        code += destrDecls + '\n}\n\n'
+        curTest = cxx_writer.writer_code.Code(code)
+        curTest.addInclude(['boost/test/auto_unit_test.hpp', 'boost/test/test_tools.hpp', 'memory.hpp'])
         tests.append(curTest)
     return tests
 
@@ -259,6 +348,7 @@ def getCPPClasses(self, processor, modelType):
     from isa import resolveBitType
     global archWordType
     archWordType = resolveBitType('BIT<' + str(processor.wordSize*processor.byteSize) + '>')
+    memoryType = cxx_writer.writer_code.Type('MemoryInterface', 'memory.hpp')
     classes = []
     # First of all I create the base instruction type: note that it contains references
     # to the architectural elements
@@ -332,6 +422,18 @@ def getCPPClasses(self, processor, modelType):
         initElements.append(aliasB.name + '(' + aliasB.name + ')')
         baseInitElement += aliasB.name + ', '
         instructionElements.append(attribute)
+    if processor.memory:
+        attribute = cxx_writer.writer_code.Attribute(processor.memory[0], memoryType.makeRef(), 'pro')
+        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(processor.memory[0], memoryType.makeRef()))
+        initElements.append(processor.memory[0] + '(' + processor.memory[0] + ')')
+        baseInitElement += processor.memory[0] + ', '
+        instructionElements.append(attribute)
+    for tlmPorts in processor.tlmPorts.keys():
+        attribute = cxx_writer.writer_code.Attribute(tlmPorts, memoryType.makeRef(), 'pro')
+        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(tlmPorts, memoryType.makeRef()))
+        initElements.append(tlmPorts + '(' + tlmPorts + ')')
+        baseInitElement += tlmPorts + ', '
+        instructionElements.append(attribute)
     baseInitElement = baseInitElement[:-2]
     baseInitElement += ')'
     instructionElements.append(cxx_writer.writer_code.Attribute('totalInstrCycles', cxx_writer.writer_code.uintType, 'pro'))
@@ -384,8 +486,8 @@ def getCPPTests(self, processor, modelType):
     # code at the beginning in order to being able to access the private
     # part of the instructions
     tests = []
-    includeCode = cxx_writer.writer_code.Code('#define private public\n#include \"instructions.hpp\"\n#undef private\n')
+    includeCode = cxx_writer.writer_code.Code('#define private public\n#define protected public\n#include \"instructions.hpp\"\n#undef private\n#undef protected\n')
     tests.append(includeCode)
     for instr in self.instructions.values():
-        tests.append(instr.getCPPTest(processor, modelType))
+        tests += instr.getCPPTest(processor, modelType)
     return tests

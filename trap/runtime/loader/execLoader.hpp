@@ -7,14 +7,13 @@ extern "C" {
 #include <bfd.h>
 }
 
-namespace resp{
-
 class ExecLoader{
   private:
     bfd * execImage;
     unsigned char * programData;
-    unsigned long progDim;
-    unsigned long dataStart;
+    unsigned int progDim;
+    unsigned int dataStart;
+    bool keepEndianess;
     
     ///examines the bfd in order to find the sections containing data
     ///to be loaded; at the same time it fills the programData
@@ -24,18 +23,16 @@ class ExecLoader{
     ///Initializes the loader of executable files by creating
     ///the corresponding bfd image of the executable file
     ///specified as parameter
-    ExecLoader(std::string fileName);
+    ExecLoader(std::string fileName, bool keepEndianess = true);
     ~ExecLoader();
     ///Returns the entry point of the loaded program
-    unsigned long getProgStart();
+    unsigned int getProgStart();
     ///Returns the start address of the data to load
-    unsigned long getDataStart();
+    unsigned int getDataStart();
     ///Returns the dimensione of the loaded program
-    unsigned long getProgDim();
+    unsigned int getProgDim();
     ///Returns a pointer to the array contianing the program data
-    unsigned long getProgData();
+    unsigned char * getProgData();
 };
-
-}
 
 #endif

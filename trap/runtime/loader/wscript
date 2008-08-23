@@ -1,0 +1,14 @@
+#!/usr/bin/env python
+
+import os
+
+def build(bld):
+    obj = bld.new_task_gen('cxx', 'staticlib')
+    obj.source="""
+        execLoader.cpp
+    """
+    obj.uselib = 'BFD'
+    obj.includes = '.'
+    obj.export_incdirs = '.'
+    obj.name = 'loader'
+    obj.target = 'loader'

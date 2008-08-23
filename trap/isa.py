@@ -360,8 +360,6 @@ class Instruction:
                     behavior.archVars.append(procElem)
             behavior.archElems = newProcElem
 
-
-
     def setCode(self, code, stage):
         # code is simply a string containing the code
         # Code must be an instance of cxx_writer.CustomCode
@@ -399,9 +397,12 @@ class Instruction:
 
     def addTest(self, variables, input, expOut):
         # input and expected output are two maps, each one containing the
-        # register name and its value. There is also a special name (MEM)
-        # used to indicate memory.
-        self.tests.append((variables, input, output))
+        # register name and its value. if the name of the resource corresponds
+        # to one one of the memories, then the value in brackets is the
+        # address
+        # TODO: think about the possbility of also changing what the aliases
+        # point to
+        self.tests.append((variables, input, expOut))
 
     def __repr__(self):
         return self.name + ' coding: ' + str(self.bitstring)
@@ -412,7 +413,7 @@ class Instruction:
     def getCPPClass(self, model):
         return isaWriter.getCPPInstr(self, model)
 
-    def getCPPTest(self,processor,  model):
+    def getCPPTest(self, processor, model):
         return isaWriter.getCPPInstrTest(self, processor, model)
 
 class HelperOperation:
