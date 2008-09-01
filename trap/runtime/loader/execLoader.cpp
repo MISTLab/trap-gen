@@ -10,7 +10,6 @@ extern "C" {
 
 #include "execLoader.hpp"
 
-using namespace resp;
 
 ExecLoader::ExecLoader(std::string fileName, bool keepEndianess) : keepEndianess(keepEndianess){
     this->programData = NULL;

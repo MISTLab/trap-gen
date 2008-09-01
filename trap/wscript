@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
-import os, Params
+import os, Options
 
 def build(bld):
     bld.add_subdirs('runtime')
 
-    obj = bld.new_task_gen('staticlib')
+    obj = bld.new_task_gen('cxx', 'staticlib')
     obj.uselib_local = 'loader'
     obj.name = 'trap'
     obj.target = 'trap'
@@ -13,7 +13,7 @@ def build(bld):
 
     obj = bld.new_task_gen('py')
     obj.find_sources_in_dirs('.', exts=['.py'])
-    if Params.g_options.pyinstalldir:
-        obj.install_path = os.path.join(Params.g_options.pyinstalldir, 'trap')
+    if Options.options.pyinstalldir:
+        obj.install_path = os.path.join(Options.options.pyinstalldir, 'trap')
     else:
         obj.install_path = os.path.join(obj.default_install_path, 'trap')
