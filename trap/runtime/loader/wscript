@@ -12,3 +12,5 @@ def build(bld):
     obj.export_incdirs = '.'
     obj.name = 'loader'
     obj.target = 'loader'
+    obj.install_path = '${PREFIX}/lib'
+    bld.install_files('${PREFIX}/include', 'execLoader.hpp')
