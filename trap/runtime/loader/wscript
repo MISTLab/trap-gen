@@ -3,7 +3,7 @@
 import os, Options
 
 def build(bld):
-    obj = bld.new_task_gen('cxx', 'staticlib')
+    obj = bld.new_task_gen('cxx', 'objects')
     obj.source="""
         execLoader.cpp
     """
@@ -12,4 +12,5 @@ def build(bld):
     obj.export_incdirs = '.'
     obj.name = 'loader'
     obj.target = 'loader'
+    obj.install_path = None
     bld.install_files('${PREFIX}/include', 'execLoader.hpp')
