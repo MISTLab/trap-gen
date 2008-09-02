@@ -9,4 +9,5 @@ def build(bld):
         obj.install_path = os.path.join(Options.options.pyinstalldir, 'cxx_writer')
     else:
         obj.install_path = os.path.join(obj.default_install_path, 'cxx_writer')
+
     bld.add_subdirs('writer_code')

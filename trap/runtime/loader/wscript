@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os
+import os, Options
 
 def build(bld):
     obj = bld.new_task_gen('cxx', 'staticlib')
@@ -12,5 +12,4 @@ def build(bld):
     obj.export_incdirs = '.'
     obj.name = 'loader'
     obj.target = 'loader'
-    obj.install_path = '${PREFIX}/lib'
     bld.install_files('${PREFIX}/include', 'execLoader.hpp')
