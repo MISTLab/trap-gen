@@ -242,7 +242,7 @@ class Folder:
             if self.mainFile:
                 print >> wscriptFile, '    obj = bld.new_task_gen(\'cxx\', \'program\')'
                 print >> wscriptFile, '    obj.source=\'' + self.mainFile + '\''
-                print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK SYSTEMC TLM TRAP\''
+                print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK SYSTEMC TLM BFD TRAP\''
                 print >> wscriptFile, '    obj.uselib_local = \'' + ' '.join(self.uselib_local + [os.path.split(self.path)[-1]]) + '\''
                 print >> wscriptFile, '    obj.name = \'' + os.path.split(self.path)[-1] + '_main\''
                 print >> wscriptFile, '    obj.target = \'' + os.path.split(self.path)[-1] + '\'\n'
@@ -303,8 +303,67 @@ class Folder:
     boostconf = conf.create_boost_configurator()
     #boostconf.lib = ['thread', 'regex', 'date_time', 'program_options', 'system', 'filesystem','unit_test_framework']
     boostconf.lib = ['thread', 'regex', 'date_time', 'program_options', 'filesystem','unit_test_framework']
-    boostconf.min_version = '1.35.0'
+    boostconf.min_version = '1.33.0'
     boostconf.run()
+
+    ##################################################
+    # Check for BFD library and header
+    ##################################################
+    result = os.popen(conf.env['CXX'] + ' -print-search-dirs')
+    curLine = result.readline()
+    while curLine.find('libraries: =') == -1:
+        curLine = result.readline()
+        startFound = curLine.find('libraries: =')
+        searchDirs = []
+        if startFound != -1:
+            curLine = curLine[startFound + 12:-1]
+            searchDirs_ = curLine.split(':')
+            for i in searchDirs_:
+                if not os.path.abspath(i) in searchDirs:
+                    searchDirs.append(os.path.abspath(i))
+            break
+
+    import glob
+    foundStatic = []
+    foundShared = []
+    for directory in config_c.stdlibpath + searchDirs:
+        foundShared += glob.glob(os.path.join(directory, conf.env['shlib_PATTERN'].split('%s')[0] + 'bfd*' + conf.env['shlib_PATTERN'].split('%s')[1]))
+        foundStatic += glob.glob(os.path.join(directory, conf.env['staticlib_PATTERN'].split('%s')[0] + 'bfd*' + conf.env['staticlib_PATTERN'].split('%s')[1]))
+    if not foundStatic and not foundShared:
+        conf.fatal('BFD library not found')
+    tempLibs = []
+    for bfdlib in foundStatic:
+        tempLibs.append(os.path.basename(bfdlib)[3:os.path.basename(bfdlib).rfind('.')])
+    foundStatic = tempLibs
+    tempLibs = []
+    for bfdlib in foundShared:
+        tempLibs.append(os.path.basename(bfdlib)[3:os.path.basename(bfdlib).rfind('.')])
+    foundShared = tempLibs
+    bfd_lib_name = ''
+    for bfdlib in foundStatic:
+        if bfdlib in foundShared:
+            bfd_lib_name = bfdlib
+        break
+    if not bfd_lib_name:
+        if foundShared:
+            bfd_lib_name = foundShared[0]
+        else:
+            bfd_lib_name = foundStatic[0]
+
+    le = conf.create_library_enumerator()
+    le.mandatory = 1
+    le.uselib_store = 'BFD'
+    le.name = bfd_lib_name
+    le.message = 'BFD library not found'
+    le.path = config_c.stdlibpath + searchDirs
+    le.run()
+
+    he = conf.create_header_enumerator()
+    he.mandatory = 1
+    he.name = 'bfd.h'
+    he.message = 'BFD header not found'
+    he.uselib_store = 'BFD'
+    he.run()
 
     ##################################################
     # Check for pthread library/flag

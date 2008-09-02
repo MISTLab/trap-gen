@@ -721,7 +721,7 @@ def getCPPProc(self, model):
     processorElements.append(endElabMethod)
     decoderAttribute = cxx_writer.writer_code.Attribute('decoder', cxx_writer.writer_code.Type('Decoder', 'decoder.hpp'), 'pri')
     processorElements.append(decoderAttribute)
-    interfaceAttribute = cxx_writer.writer_code.Attribute('abiIf', interfaceType, 'pu')
+    interfaceAttribute = cxx_writer.writer_code.Attribute('abiIf', interfaceType.makePointer(), 'pu')
     processorElements.append(interfaceAttribute)
     # Lets now add the registers, the reg banks, the aliases, etc.
     # We also need to add the memory
@@ -730,15 +730,18 @@ def getCPPProc(self, model):
     bodyDestructor = ''
     aliasInit = {}
     bodyAliasInit = {}
+    abiIfInit = ''
     from processor import extractRegInterval
     for reg in self.regs:
         attribute = cxx_writer.writer_code.Attribute(reg.name, resourceType[reg.name], 'pu')
         initElements.append(reg.name + '(\"' + reg.name + '\")')
+        abiIfInit += 'this->' + reg.name + ', '
         processorElements.append(attribute)
     for regB in self.regBanks:
         attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name].makePointer(), 'pu')
         bodyInits += 'this->' + regB.name + ' = new ' + str(resourceType[regB.name]) + '[' + str(regB.numRegs) + '];\n'
         bodyDestructor += 'delete [] this->' + regB.name + ';\n'
+        abiIfInit += 'this->' + regB.name + ', '
         processorElements.append(attribute)
     for alias in self.aliasRegs:
         attribute = cxx_writer.writer_code.Attribute(alias.name, resourceType[alias.name], 'pu')
@@ -750,6 +753,7 @@ def getCPPProc(self, model):
             bodyAliasInit[alias.name] = 'this->' + alias.name + '.updateAlias(this->' + alias.initAlias[:alias.initAlias.find('[')] + '[' + str(curIndex) + '], ' + str(alias.offset) + ');\n'
         else:
             bodyAliasInit[alias.name] = 'this->' + alias.name + '.updateAlias(this->' + alias.initAlias + ', ' + str(alias.offset) + ');\n'
+        abiIfInit += 'this->' + alias.name + ', '
         processorElements.append(attribute)
     for aliasB in self.aliasRegBanks:
         attribute = cxx_writer.writer_code.Attribute(aliasB.name, resourceType[aliasB.name].makePointer(), 'pu')
@@ -773,8 +777,9 @@ def getCPPProc(self, model):
                 else:
                     bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '[' + str(curIndex) + '].updateAlias(this->' + curAlias + ');\n'
                     curIndex += 1
-
+        abiIfInit += 'this->' + aliasB.name + ', '
         processorElements.append(attribute)
+    abiIfInit = abiIfInit[:-2]
     # the initialization of the aliases must be chained (we should
     # create an initialization graph since an alias might depend on another one ...)
     global aliasGraph
@@ -833,6 +838,7 @@ def getCPPProc(self, model):
         for memAl in self.memAlias:
             initMemCode += ', ' + memAl.alias
         initMemCode += ')'
+        abiIfInit = 'this->' + self.memory[0] + ', ' + abiIfInit
         initElements.append(initMemCode)
         processorElements.append(attribute)
     for tlmPortName in self.tlmPorts.keys():
@@ -858,6 +864,7 @@ def getCPPProc(self, model):
     progStarttAttr = cxx_writer.writer_code.Attribute('PROGRAM_START', fetchWordType, 'pu')
     processorElements.append(progStarttAttr)
     bodyInits += 'this->PROGRAM_START = 0;\n'
+    bodyInits += 'this->abiIf = new ' + str(interfaceType) + '(' + abiIfInit + ');\n'
 
     IntructionType = cxx_writer.writer_code.Type('Instruction', include = 'instructions.hpp')
     IntructionTypePtr = IntructionType.makePointer()
@@ -915,6 +922,7 @@ def getCPPProc(self, model):
         for(cacheIter = Processor::instrCache.begin(), cacheEnd = Processor::instrCache.end(); cacheIter != cacheEnd; cacheIter++){
             delete cacheIter->second;
         }
+        delete this->abiIf;
     }
     """
     destrCode += bodyDestructor
@@ -936,8 +944,11 @@ def getCPPIf(self, model):
     initElements = []
     baseInstrConstrParams = []
     # Lets first of all decalre the variables
+    memIfType = cxx_writer.writer_code.Type('MemoryInterface', 'memory.hpp')
     for memName in self.abi.memories.keys():
-        ifClassElements.append(cxx_writer.writer_code.Attribute(memName, cxx_writer.writer_code.Type('MemoryInterface', 'memory.hpp').makeRef(), 'pri'))
+        ifClassElements.append(cxx_writer.writer_code.Attribute(memName, memIfType.makeRef(), 'pri'))
+        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(memName, memIfType.makeRef()))
+        initElements.append(memName + '(' + memName + ')')
     for reg in self.regs:
         attribute = cxx_writer.writer_code.Attribute(reg.name, resourceType[reg.name].makeRef(), 'pri')
         baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(reg.name, resourceType[reg.name].makeRef()))
