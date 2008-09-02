@@ -602,7 +602,7 @@ def getCPPProc(self, model):
     from isa import resolveBitType
     fetchWordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>')
     includes = fetchWordType.getIncludes()
-    interfaceType = cxx_writer.writer_code.Type('ABIIf', 'interface.hpp')
+    interfaceType = cxx_writer.writer_code.Type(self.name + '_ABIIf', 'interface.hpp')
     codeString = 'while(true){\n'
     codeString += 'unsigned int numCycles = 0;\n'
     codeString += str(fetchWordType) + ' bitString = '
@@ -937,7 +937,7 @@ def getCPPIf(self, model):
     baseInstrConstrParams = []
     # Lets first of all decalre the variables
     for memName in self.abi.memories.keys():
-        ifClassElements.append(cxx_writer.writer_code.Attribute(memName, cxx_writer.writer_code.Type('MemoryInterface', 'memory.hpp'), 'pri'))
+        ifClassElements.append(cxx_writer.writer_code.Attribute(memName, cxx_writer.writer_code.Type('MemoryInterface', 'memory.hpp').makeRef(), 'pri'))
     for reg in self.regs:
         attribute = cxx_writer.writer_code.Attribute(reg.name, resourceType[reg.name].makeRef(), 'pri')
         baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(reg.name, resourceType[reg.name].makeRef()))
@@ -1115,6 +1115,7 @@ def getMainCode(self, model):
     desc.add_options()
         ("help,h", "produces the help message")
         ("frequency,f", "processor clock frequency specified in MHz [Default 1MHz]")
+        ("application,a", "application to be executed on the simulator")
     ;
 
     boost::program_options::variables_map vm;
@@ -1126,13 +1127,28 @@ def getMainCode(self, model):
         std::cout << desc << std::endl;
         return 0;
     }
-
+    if(vm.count("application") != 0){
+        std::cerr << "It is necessary to specify the application which has to be simulated using the --application command line option" << std::endl << std::endl;
+        std::cerr << desc << std::endl;
+    }
     double latency = 10e-6; // 1us
     if(vm.count("help") != 0){
         latency = 1/(vm["frequency"].as<double>());
     }
     //Now we can procede with the actual instantiation of the processor
     Processor procInst(\"""" + self.name + """\", sc_time(latency, SC_NS));
+    //And with the loading of the executable code
+    ExecLoader loader(vm["application"].as<std::string>(), false);
+    //Lets copy the binary code into memory
+    unsigned char * programData = loader.getProgData();
+    for(unsigned int i = 0; i < loader.getProgDim(); i++){
+        procInst.dataMem.write_byte(loader.getDataStart() + i, programData[i]);
+    }
+    //Finally I can set the processor variables
+    procInst.ENTRY_POINT = loader.getProgStart();
+    procInst.PROGRAM_LIMIT = loader.getProgDim() + loader.getDataStart();
+    procInst.PROGRAM_START = loader.getDataStart();
+
     //Now we can start the execution
     boost::timer t;
     sc_start();
@@ -1154,6 +1170,7 @@ def getMainCode(self, model):
     mainCode.addInclude('processor.hpp')
     mainCode.addInclude('utils.hpp')
     mainCode.addInclude('systemc.h')
+    mainCode.addInclude('execLoader.hpp')
     mainCode.addInclude('boost/program_options.hpp')
     mainCode.addInclude('boost/timer.hpp')
     parameters = [cxx_writer.writer_code.Parameter('argc', cxx_writer.writer_code.intType), cxx_writer.writer_code.Parameter('argv', cxx_writer.writer_code.charPtrType.makePointer())]

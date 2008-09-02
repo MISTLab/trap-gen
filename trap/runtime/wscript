@@ -4,4 +4,4 @@ import os
 
 def build(bld):
     bld.add_subdirs('loader utils')
-    bld.install_files('${PREFIX}/include', 'ABIIf.hpp')
+    bld.install_files('${PREFIX}/include', 'ABIIf.hpp trap.hpp')

@@ -231,7 +231,7 @@ class Folder:
                     if self.mainFile != codeFile.name:
                         print >> wscriptFile, '        ' + codeFile.name
                 print >> wscriptFile, '    \"\"\"'
-                print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM SYSTEMC TLM\''
+                print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM SYSTEMC TLM TRAP\''
                 print >> wscriptFile, '    obj.includes = \'.\''
                 if self.uselib_local:
                     print >> wscriptFile, '    obj.uselib_local = \'' + ' '.join(self.uselib_local) + '\''
@@ -242,7 +242,7 @@ class Folder:
             if self.mainFile:
                 print >> wscriptFile, '    obj = bld.new_task_gen(\'cxx\', \'program\')'
                 print >> wscriptFile, '    obj.source=\'' + self.mainFile + '\''
-                print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK SYSTEMC TLM\''
+                print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK SYSTEMC TLM TRAP\''
                 print >> wscriptFile, '    obj.uselib_local = \'' + ' '.join(self.uselib_local + [os.path.split(self.path)[-1]]) + '\''
                 print >> wscriptFile, '    obj.name = \'' + os.path.split(self.path)[-1] + '_main\''
                 print >> wscriptFile, '    obj.target = \'' + os.path.split(self.path)[-1] + '\'\n'
@@ -322,6 +322,37 @@ class Folder:
         le.message = 'pthread library'
         pthread_uselib = ['pthread']
         conf.env.append_unique('LIB', le.run())
+
+    ##################################################
+    # Check for TRAP runtime libraries and headers
+    ##################################################
+    le = conf.create_library_configurator()
+    le.mandatory = 1
+    le.uselib_store = 'TRAP'
+    le.name = 'trap'
+    le.message = 'TRAP runtime library'
+    if Options.options.trapdir:
+        le.path = os.path.expandvars(os.path.expanduser(os.path.join(Options.options.trapdir, 'lib')))
+    le.run()
+    he = conf.create_header_configurator()
+    he.mandatory = 1
+    he.uselib_store = 'TRAP'
+    he.name = 'trap.hpp'
+    he.message = 'TRAP runtime headers'
+    if Options.options.trapdir:
+        he.path = os.path.expandvars(os.path.expanduser(os.path.join(Options.options.trapdir, 'include')))
+    he.header_code = \"\"\"
+        #include "trap.hpp"
+
+        #ifndef TRAP_REVISION
+        #error TRAP_REVISION not defined in file trap.hpp
+        #endif
+
+        #if TRAP_REVISION < 63
+        #error Wrong version of the TRAP runtime: too old
+        #endif
+    \"\"\"
+    he.run()
 
     ##################################################
     # Is SystemC compiled? Check for SystemC library
@@ -436,6 +467,7 @@ class Folder:
     # Specify SystemC and TLM path
     opt.add_option('--with-systemc', type='string', help='SystemC installation directory', dest='systemcdir' )
     opt.add_option('--with-tlm', type='string', help='TLM installation directory', dest='tlmdir')
+    opt.add_option('--with-trap', type='string', help='TRAP libraries and headers installation directory', dest='trapdir')
     # Specify the options for the processor creation
     # Specify if GDB integration should be compiled inside processor models
     opt.add_option('-D', '--enable-debug', default=False, action="store_true", help='Enables the debugging functionalities inside the processor (switch)', dest='enable_debug')

@@ -4,9 +4,9 @@
 #include <exception>
 #include <stdexcept>
 
-class flush_exception: public runtime_error{
-    flush_exception() : runtime_error(){}
-    flush_exception(const char * message) : runtime_error(message){}
+class flush_exception: public std::runtime_error{
+    flush_exception() : std::runtime_error(""){}
+    flush_exception(const char * message) : std::runtime_error(message){}
 };
 
 #endif

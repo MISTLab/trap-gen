@@ -141,6 +141,7 @@ class TemplateType(Type):
             writer.write(' >')
         for i in currentModifiers:
             writer.write(' ' + i)
+        self.modifiers = currentModifiers
 
     def getIncludes(self):
         includes = Type.getIncludes(self)
