@@ -1125,8 +1125,8 @@ def getMainCode(self, model):
     boost::program_options::options_description desc("Processor simulator for """ + self.name + """");
     desc.add_options()
         ("help,h", "produces the help message")
-        ("frequency,f", "processor clock frequency specified in MHz [Default 1MHz]")
-        ("application,a", "application to be executed on the simulator")
+        ("frequency,f", boost::program_options::value<double>(), "processor clock frequency specified in MHz [Default 1MHz]")
+        ("application,a", boost::program_options::value<std::string>(), "application to be executed on the simulator")
     ;
 
     boost::program_options::variables_map vm;
@@ -1138,12 +1138,13 @@ def getMainCode(self, model):
         std::cout << desc << std::endl;
         return 0;
     }
-    if(vm.count("application") != 0){
+    if(vm.count("application") == 0){
         std::cerr << "It is necessary to specify the application which has to be simulated using the --application command line option" << std::endl << std::endl;
         std::cerr << desc << std::endl;
+        return -1;
     }
     double latency = 10e-6; // 1us
-    if(vm.count("help") != 0){
+    if(vm.count("frequency") != 0){
         latency = 1/(vm["frequency"].as<double>());
     }
     //Now we can procede with the actual instantiation of the processor

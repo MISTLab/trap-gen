@@ -688,7 +688,7 @@ class Processor:
             curFolder.addCode(mainFile)
             curFolder.setMain(mainFile.name)
             curFolder.create()
-            testFolder.create()
+            testFolder.create(False, True)
             print '\t\tCreated'
         # We create and print the main folder and also add a configuration
         # part to the wscript

@@ -177,14 +177,14 @@ class Folder:
     def addSubFolder(self, subfolder):
         commonPart = os.path.commonprefix((subfolder.path, self.path))
         if commonPart == self.path:
-            subfolder = subfolder.path[subfolder.path.find(commonPart):]
+            subfolder = subfolder.path[subfolder.path.find(commonPart) + 1:]
         else:
             subfolder.path = os.path.join(self.path, os.path.split(subfolder.path)[-1])
             subfolder = subfolder.path
         if subfolder and not subfolder in self.subfolders:
             self.subfolders.append(subfolder)
 
-    def create(self, configure = False):
+    def create(self, configure = False, tests = False):
         # Creates the folder and populates it with files.
         # it also creates the appropriate wscript for the
         # compilation
@@ -201,14 +201,14 @@ class Folder:
         # Now I can finally create the wscript for the compilation
         # of the current folder; note that event though the project is
         # small we need to create the configure part
-        self.createWscript(configure)
+        self.createWscript(configure, tests)
         if configure:
             import shutil, sys
             wafPath = os.path.abspath(os.path.join(os.path.dirname(sys.modules['cxx_writer'].__file__), 'waf'))
             shutil.copy(wafPath, os.path.abspath(os.path.join('.', 'waf')))
         os.chdir(curDir)
 
-    def createWscript(self, configure):
+    def createWscript(self, configure, tests):
         wscriptFile = open('wscript', 'wt')
         print >> wscriptFile, '#!/usr/bin/env python\n'
         if configure:
@@ -231,7 +231,10 @@ class Folder:
                     if self.mainFile != codeFile.name:
                         print >> wscriptFile, '        ' + codeFile.name
                 print >> wscriptFile, '    \"\"\"'
-                print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM SYSTEMC TLM TRAP\''
+                if tests:
+                    print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM SYSTEMC TLM TRAP\''
+                else:
+                    print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM SYSTEMC TLM TRAP\''
                 print >> wscriptFile, '    obj.includes = \'.\''
                 if self.uselib_local:
                     print >> wscriptFile, '    obj.uselib_local = \'' + ' '.join(self.uselib_local) + '\''
@@ -242,7 +245,10 @@ class Folder:
             if self.mainFile:
                 print >> wscriptFile, '    obj = bld.new_task_gen(\'cxx\', \'program\')'
                 print >> wscriptFile, '    obj.source=\'' + self.mainFile + '\''
-                print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK SYSTEMC TLM BFD TRAP\''
+                if tests:
+                    print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK SYSTEMC TLM BFD TRAP\''
+                else:
+                    print >> wscriptFile, '    obj.uselib = \'BOOST SYSTEMC TLM BFD TRAP\''
                 print >> wscriptFile, '    obj.uselib_local = \'' + ' '.join(self.uselib_local + [os.path.split(self.path)[-1]]) + '\''
                 print >> wscriptFile, '    obj.name = \'' + os.path.split(self.path)[-1] + '_main\''
                 print >> wscriptFile, '    obj.target = \'' + os.path.split(self.path)[-1] + '\'\n'
