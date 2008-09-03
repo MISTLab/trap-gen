@@ -44,6 +44,15 @@ archWordType = None
 alreadyDeclared = []
 baseInstrConstrParams = []
 
+def toBinStr(intNum):
+    # Given an integer number it converts it to a bitstring
+    bitStr = []
+    while intNum > 0:
+        bitStr.append(str(intNum % 2))
+        intNum = intNum / 2
+    bitStr.reverse()
+    return bitStr
+
 def getCppMethod(self):
     # Returns the code implementing a helper method
     for var in self.localvars:
@@ -116,7 +125,7 @@ def getCPPInstr(self, model):
                 toInline.append(beh.name)
     if not baseClasses:
         baseClasses.append(instructionType)
-    behaviorCode = 'this->totalInstrCycles = 0;'
+    behaviorCode = 'this->totalInstrCycles = 0;\n'
     for behaviors in self.prebehaviors.values():
         for beh in behaviors:
             if beh.name in toInline:
@@ -182,14 +191,13 @@ def getCPPInstr(self, model):
         classElements.append(cxx_writer.writer_code.Attribute(name, aliasType, 'pri'))
         classElements.append(cxx_writer.writer_code.Attribute(name + '_bit', cxx_writer.writer_code.uintType, 'pri'))
         mask = ''
-        for i in range(0, self.machineCode.instrLen - self.machineCode.bitPos[name] - self.machineCode.bitLen[name]):
+        for i in range(0, self.machineCode.bitPos[name]):
             mask += '0'
         for i in range(0, self.machineCode.bitLen[name]):
             mask += '1'
-        maskLen = len(mask)
-        for i in range(0, self.machineCode.bitPos[name]):
+        for i in range(0, self.machineCode.instrLen - self.machineCode.bitPos[name] - self.machineCode.bitLen[name]):
             mask += '0'
-        shiftAmm = self.machineCode.bitPos[name]
+        shiftAmm = self.machineCode.instrLen - self.machineCode.bitPos[name] - self.machineCode.bitLen[name]
         setParamsCode += 'this->' + name + '_bit = (bitString & ' + hex(int(mask, 2)) + ')'
         if shiftAmm > 0:
             setParamsCode += ' >> ' + str(shiftAmm)
@@ -202,14 +210,13 @@ def getCPPInstr(self, model):
             continue
         classElements.append(cxx_writer.writer_code.Attribute(name, cxx_writer.writer_code.uintType, 'pri'))
         mask = ''
-        for i in range(0, self.machineCode.instrLen - self.machineCode.bitPos[name] - self.machineCode.bitLen[name]):
+        for i in range(0, self.machineCode.bitPos[name]):
             mask += '0'
         for i in range(0, self.machineCode.bitLen[name]):
             mask += '1'
-        maskLen = len(mask)
-        for i in range(0, self.machineCode.bitPos[name]):
+        for i in range(0, self.machineCode.instrLen - self.machineCode.bitPos[name] - self.machineCode.bitLen[name]):
             mask += '0'
-        shiftAmm = self.machineCode.bitPos[name]
+        shiftAmm = self.machineCode.instrLen - self.machineCode.bitPos[name] - self.machineCode.bitLen[name]
         setParamsCode += 'this->' + name + ' = (bitString & ' + hex(int(mask, 2)) + ')'
         if shiftAmm > 0:
             setParamsCode += ' >> ' + str(shiftAmm)
@@ -283,7 +290,6 @@ def getCPPInstrTest(self, processor, model):
                     aliasInit += alias.name + '.updateAlias(' + alias.initAlias[:alias.initAlias.find('[')] + '[' + str(curIndex) + '], ' + str(alias.offset) + ');\n'
             else:
                 aliasInit += alias.name + '.updateAlias(' + alias.initAlias + ', ' + str(alias.offset) + ');\n'
-                
         else:
             curIndex = 0
             for curAlias in alias.initAlias:
@@ -306,7 +312,7 @@ def getCPPInstrTest(self, processor, model):
         instrCode = ['0' for i in range(0, self.machineCode.instrLen)]
         for name, elemValue in test[0].items():
             if self.machineCode.bitLen.has_key(name):
-                curBitCode = ['0'] # TODO: create the binary encoding of text[0][name]
+                curBitCode = toBinStr(elemValue)
                 if len(curBitCode) > self.machineCode.bitLen[name]:
                     raise Exception('Value ' + hex(elemValue) + ' set for field ' + name + ' in test of instruction ' + self.name + ' cannot be represented in ' + str(self.machineCode.bitLen[name]) + ' bits')
                 for i in range(0, len(curBitCode)):

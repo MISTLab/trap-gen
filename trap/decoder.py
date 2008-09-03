@@ -385,6 +385,7 @@ class decoderCreator:
                 expectedId = self.instrNum
             else:
                 expectedId = instrId
+            pattern.reverse()
             if instrId != -1:
                 code += '// Checking Instruction ' + self.instrName[instrId] + '\n'
             else:
