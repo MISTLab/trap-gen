@@ -190,7 +190,7 @@ def getCPPInstr(self, model):
         for i in range(0, self.machineCode.bitPos[name]):
             mask += '0'
         shiftAmm = self.machineCode.bitPos[name]
-        setParamsCode = 'this->' + name + '_bit = (bitString & ' + hex(int(mask, 2)) + ')'
+        setParamsCode += 'this->' + name + '_bit = (bitString & ' + hex(int(mask, 2)) + ')'
         if shiftAmm > 0:
             setParamsCode += ' >> ' + str(shiftAmm)
         setParamsCode += ';\n'
@@ -210,7 +210,7 @@ def getCPPInstr(self, model):
         for i in range(0, self.machineCode.bitPos[name]):
             mask += '0'
         shiftAmm = self.machineCode.bitPos[name]
-        setParamsCode = 'this->' + name + ' = (bitString & ' + hex(int(mask, 2)) + ')'
+        setParamsCode += 'this->' + name + ' = (bitString & ' + hex(int(mask, 2)) + ')'
         if shiftAmm > 0:
             setParamsCode += ' >> ' + str(shiftAmm)
         setParamsCode += ';\n'

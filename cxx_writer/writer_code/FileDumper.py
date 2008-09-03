@@ -286,6 +286,8 @@ class Folder:
     # Check for python
     conf.check_tool('python')
     conf.check_python_version((2,4))
+    conf.gxx_modifier_debug()
+    conf.gcc_modifier_debug()
 
     ########################################
     # Check for special gcc flags

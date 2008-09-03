@@ -362,7 +362,10 @@ class decoderCreator:
         allTests = []
         testCount = 0
         for instrId, instruction in self.instrId.items():
-            code = 'BOOST_AUTO_TEST_CASE( test' + str(testCount) + ' ){\n'
+            if instrId != -1:
+                code = 'BOOST_AUTO_TEST_CASE( test' + str(testCount) + '_' + self.instrName[instrId] + ' ){\n'
+            else:
+                code = 'BOOST_AUTO_TEST_CASE( test' + str(testCount) + '_Invalid ){\n'
             code += 'Decoder dec;\n'
             pattern = instruction[0]
             try:
