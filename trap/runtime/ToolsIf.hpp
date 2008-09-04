@@ -40,23 +40,36 @@
 *
 \***************************************************************************/
 
-#ifndef UTILS_HPP
-#define UTILS_HPP
+#ifndef TOOLSIF_HPP
+#define TOOLSIF_HPP
 
-#include <string>
-#include <iostream>
-#include <sstream>
-#include <exception>
-#include <stdexcept>
+#include <vector>
 
-#ifdef MAKE_STRING
-#undef MAKE_STRING
-#endif
-#define MAKE_STRING( msg )  ( ((std::ostringstream&)((std::ostringstream() << '\x0') << msg)).str().substr(1) )
+///Base class for all the tools (profilers, debugger, etc...)
+class ToolsIf{
+    public:
+    ///The only method which is called to activate the tool
+    ///it signals to the tool that a new instruction issue has been started;
+    ///the tool can then take the appropriate actions.
+    ///the return value specifies whether the processor should skip
+    ///the issue of the current instruction
+    virtual bool newIssue() = 0;
+};
 
-#ifdef THROW_EXCEPTION
-#undef THROW_EXCEPTION
-#endif
-#define THROW_EXCEPTION( msg ) ( throw std::runtime_error(MAKE_STRING( "At: function " << __PRETTY_FUNCTION__ << " file: " << __FILE__ << ":" << __LINE__ << " --> " << msg )) )
+class ToolsManager{
+    private:
+    ///List of the active tools, which are activated at every instruction
+    std::vector<ToolsIf *> activeTools;
+    public:
+    ///Adds a tool to the list of the tool which are activated when there is a new instruction
+    ///issue
+    void addTool(ToolsIf &tool);
+    ///The only method which is called to activate the tool
+    ///it signals to the tool that a new instruction issue has been started;
+    ///the tool can then take the appropriate actions.
+    ///the return value specifies whether the processor should skip
+    ///the issue of the current instruction
+    bool newIssue();
+};
 
 #endif

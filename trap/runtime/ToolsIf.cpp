@@ -40,23 +40,26 @@
 *
 \***************************************************************************/
 
-#ifndef UTILS_HPP
-#define UTILS_HPP
+#include <vector>
 
-#include <string>
-#include <iostream>
-#include <sstream>
-#include <exception>
-#include <stdexcept>
+#include "ToolsIf.hpp"
 
-#ifdef MAKE_STRING
-#undef MAKE_STRING
-#endif
-#define MAKE_STRING( msg )  ( ((std::ostringstream&)((std::ostringstream() << '\x0') << msg)).str().substr(1) )
+///Adds a tool to the list of the tool which are activated when there is a new instruction
+///issue
+void ToolsManager::addTool(ToolsIf &tool){
+    this->activeTools.push_back(&tool);
+}
 
-#ifdef THROW_EXCEPTION
-#undef THROW_EXCEPTION
-#endif
-#define THROW_EXCEPTION( msg ) ( throw std::runtime_error(MAKE_STRING( "At: function " << __PRETTY_FUNCTION__ << " file: " << __FILE__ << ":" << __LINE__ << " --> " << msg )) )
-
-#endif
+///The only method which is called to activate the tool
+///it signals to the tool that a new instruction issue has been started;
+///the tool can then take the appropriate actions.
+///the return value specifies whether the processor should skip
+///the issue of the current instruction
+bool ToolsManager::newIssue(){
+    bool issueInstruction = false;
+    std::vector<ToolsIf *>::iterator toolsIter, toolsEnd;
+    for(toolsIter = this->activeTools.begin(), toolsEnd = this->activeTools.end(); toolsIter != toolsEnd; toolsIter++){
+        issueInstruction |= toolsIter->newIssue();
+    }
+    return issueInstruction;
+}

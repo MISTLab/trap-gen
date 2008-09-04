@@ -1,0 +1,47 @@
+#!/usr/bin/env python
+
+import Options, os, sys
+
+def build(bld):
+    if bld.env['STATIC_PLATFORM']:
+        obj = bld.new_task_gen('cxx', 'staticlib')
+    else:
+        obj = bld.new_task_gen('pypp', 'shlib')
+    if bld.env['STATIC_PLATFORM']:
+        obj.source = """
+            profiler.cpp
+            Interval.cpp
+            Graph.cpp
+        """
+    else:
+        obj.source = """
+            profiler.hpp
+            profiler.cpp
+            Interval.cpp
+            Graph.cpp
+        """
+    obj.target = 'Profiler';
+    obj.uselib = 'SYSTEMC_H TLM_H BOOST OPCODES BFD LIBERTY'
+    obj.uselib_local = 'BFDFrontend'
+    obj.includes = '../bfdFrontend'
+    if sys.platform != 'darwin':
+        obj.env.append_unique('LINKFLAGS', '-Wl,-rpath-link -Wl,' + os.path.abspath('lib' + os.sep + 'binutils-2.18' + os.sep + 'build' + os.sep + 'lib'))
+    obj.env.append_unique('LINKFLAGS', '-Wl,-rpath -Wl,' + os.path.abspath('lib' + os.sep + 'binutils-2.18' + os.sep + 'build' + os.sep + 'lib'))
+    if bld.env['STATIC_PLATFORM']:
+        obj.uselib += ' SYSTEMC BOOST_THREAD_STATIC'
+    else:
+        obj.uselib_local += ' systemc'
+        obj.uselib += ' PYEXT BOOST_PYTHON BOOST_THREAD'
+        obj.start_decls = 'resp'
+        obj.generate_include = True
+        obj.custom_code = """
+mb.global_ns.class_('Function').exclude()
+mb.global_ns.class_('Instruction').exclude()
+mb.global_ns.class_('NodeWriter').exclude()
+mb.global_ns.class_('EdgeWriter').exclude()
+mb.global_ns.class_('node_info_t').exclude()
+mb.global_ns.class_('edge_info_t').exclude()
+mb.variables('nullInterval').exclude()
+mb.global_ns.class_('Interval').exclude()
+mb.global_ns.class_('VertexInfo').exclude()
+"""

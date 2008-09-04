@@ -40,23 +40,40 @@
 *
 \***************************************************************************/
 
-#ifndef UTILS_HPP
-#define UTILS_HPP
+#ifndef OSEMULATOR_HPP
+#define OSEMULATOR_HPP
 
+#include <map>
 #include <string>
-#include <iostream>
-#include <sstream>
-#include <exception>
-#include <stdexcept>
 
-#ifdef MAKE_STRING
-#undef MAKE_STRING
-#endif
-#define MAKE_STRING( msg )  ( ((std::ostringstream&)((std::ostringstream() << '\x0') << msg)).str().substr(1) )
+#include "ABIIf.hpp"
+#include "bfdFrontend.hpp"
+#include "ToolsIf.hpp"
 
-#ifdef THROW_EXCEPTION
-#undef THROW_EXCEPTION
-#endif
-#define THROW_EXCEPTION( msg ) ( throw std::runtime_error(MAKE_STRING( "At: function " << __PRETTY_FUNCTION__ << " file: " << __FILE__ << ":" << __LINE__ << " --> " << msg )) )
+class SyscallCB;
+
+template<class issueWidth> class OSEmulator{
+    extern std::map<unsigned int, SyscallCB*> syscCallbacks;
+    extern unsigned int syscMask;
+    extern std::map<std::string,  std::string> env;
+    extern std::map<std::string, int> sysconfmap;
+    extern std::vector<std::string> programArgs;
+    bool register_syscall(std::string funName, SyscallCB &callBack, std::map<std::string, sc_time> latencies, bool raiseError = true, std::string filename = "");
+    void register_syscall(unsigned int address, SyscallCB &callBack, std::map<unsigned int, sc_time> latencies);
+    void initSysCalls(std::string execName, std::map<std::string, sc_time> latencies);
+    void initSysCalls(std::string execName);
+    void reset();
+    void eliminate_syscall(std::string funName);
+    void eliminate_syscall(unsigned int address);
+    void recreate_syscall_mask();
+    void set_environ(std::string name,  std::string value);
+    void add_program_args(std::vector<std::string> args);
+    std::vector<std::string> getSysCallNames();
+    std::vector<unsigned int> getSysCallAddr();
+    extern int exitValue;
+    extern int initialTime;
+    int getExitValue();
+    void correct_flags( int* val );
+};
 
 #endif
