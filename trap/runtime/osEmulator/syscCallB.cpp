@@ -71,20 +71,10 @@ extern int errno;
 #include "controller.hpp"
 #include "utils.hpp"
 
-#ifndef NDEBUG
-#  define DEBUG_SYSCALL(name) AC_RUN_MSG("@@@@@ syscall: " name " @@@@@\n")
-#else
-#  define DEBUG_SYSCALL(name)
-#endif
-
-using namespace archc;
-
 bool openSysCall::operator()(ac_syscall_base &processorInstance){
-    DEBUG_SYSCALL("open");
     if(this->latency.to_double() > 0)
         wait(this->latency);
 
-    resp::sc_controller::disableLatency = true;
     unsigned char pathname[100];
     processorInstance.get_buffer(0, pathname, 100);
     #ifndef NDEBUG
@@ -96,7 +86,6 @@ bool openSysCall::operator()(ac_syscall_base &processorInstance){
     int ret = ::open((char*)pathname, flags, mode);
     processorInstance.set_retVal(0, ret);
     processorInstance.return_from_syscall();
-    resp::sc_controller::disableLatency = false;
 
     return false;
 }

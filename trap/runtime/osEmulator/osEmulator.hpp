@@ -80,6 +80,9 @@ template<class issueWidth> class OSEmulator{
     std::map<std::string, int> sysconfmap;
     std::vector<std::string> programArgs;
   public:
+    OSEmulator(){
+        this->syscMask = (unsigned int)-1L;
+    }
     bool register_syscall(std::string funName, SyscallCB &callBack){
         bool valid = false;
         unsigned int symAddr = bfdFE->getSymAddr(funName, valid);

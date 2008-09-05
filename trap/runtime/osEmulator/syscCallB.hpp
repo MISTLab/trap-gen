@@ -43,179 +43,203 @@
 #ifndef SYSCCALLB_H
 #define SYSCCALLB_H
 
+#include "ABIIf.hpp"
 #include <systemc.h>
+
+#include <iostream>
+#include <string>
+#include <map>
+#include <systemc.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#if !(defined(__MACOSX__) || defined(__DARWIN__) || defined(__APPLE__))
+#include <error.h>
+#endif
+#include <errno.h>
+#if !defined(errno) && !defined(HAVE_ERRNO_DECL)
+extern int errno;
+#endif
+#include <sstream>
+#include <sys/times.h>
+#include <time.h>
 
 ///Base class for each emulated system call;
 ///Operator () implements the behaviour of the
 ///emulated call
-class SyscallCB{
+template<class wordSize> class SyscallCB{
     public:
     sc_time latency;
     SyscallCB(sc_time latency = SC_ZERO_TIME) : latency(latency){}
     virtual ~SyscallCB(){}
-    virtual bool operator()(ac_syscall_base &processorInstance) = 0;
+    virtual bool operator()(ABIIf<wordSize> &processorInstance) = 0;
 };
 
-class openSysCall : public SyscallCB{
+template<class wordSize> class openSysCall : public SyscallCB<wordSize>{
     public:
-    openSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB(latency){}
-    bool operator()(ac_syscall_base &processorInstance);
+    openSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(latency){}
+    bool operator()(ABIIf<wordSize> &processorInstance);
 };
 
-class creatSysCall : public SyscallCB{
+template<class wordSize> class creatSysCall : public SyscallCB<wordSize>{
     public:
-    creatSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB(latency){}
-    bool operator()(ac_syscall_base &processorInstance);
+    creatSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(latency){}
+    bool operator()(ABIIf<wordSize> &processorInstance);
 };
 
-class closeSysCall : public SyscallCB{
+template<class wordSize> class closeSysCall : public SyscallCB<wordSize>{
     public:
-    closeSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB(latency){}
-    bool operator()(ac_syscall_base &processorInstance);
+    closeSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(latency){}
+    bool operator()(ABIIf<wordSize> &processorInstance);
 };
 
-class readSysCall : public SyscallCB{
+template<class wordSize> class readSysCall : public SyscallCB<wordSize>{
     public:
-    readSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB(latency){}
-    bool operator()(ac_syscall_base &processorInstance);
+    readSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(latency){}
+    bool operator()(ABIIf<wordSize> &processorInstance);
 };
 
-class writeSysCall : public SyscallCB{
+template<class wordSize> class writeSysCall : public SyscallCB<wordSize>{
     public:
-    writeSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB(latency){}
-    bool operator()(ac_syscall_base &processorInstance);
+    writeSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(latency){}
+    bool operator()(ABIIf<wordSize> &processorInstance);
 };
 
-class isattySysCall : public SyscallCB{
+template<class wordSize> class isattySysCall : public SyscallCB<wordSize>{
     public:
-    isattySysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB(latency){}
-    bool operator()(ac_syscall_base &processorInstance);
+    isattySysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(latency){}
+    bool operator()(ABIIf<wordSize> &processorInstance);
 };
 
-class sbrkSysCall : public SyscallCB{
+template<class wordSize> class sbrkSysCall : public SyscallCB<wordSize>{
     public:
-    sbrkSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB(latency){}
-    bool operator()(ac_syscall_base &processorInstance);
+    sbrkSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(latency){}
+    bool operator()(ABIIf<wordSize> &processorInstance);
 };
 
-class lseekSysCall : public SyscallCB{
+template<class wordSize> class lseekSysCall : public SyscallCB<wordSize>{
     public:
-    lseekSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB(latency){}
-    bool operator()(ac_syscall_base &processorInstance);
+    lseekSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(latency){}
+    bool operator()(ABIIf<wordSize> &processorInstance);
 };
 
-class fstatSysCall : public SyscallCB{
+template<class wordSize> class fstatSysCall : public SyscallCB<wordSize>{
     public:
-    fstatSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB(latency){}
-    bool operator()(ac_syscall_base &processorInstance);
+    fstatSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(latency){}
+    bool operator()(ABIIf<wordSize> &processorInstance);
 };
 
-class statSysCall : public SyscallCB{
+template<class wordSize> class statSysCall : public SyscallCB<wordSize>{
     public:
-    statSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB(latency){}
-    bool operator()(ac_syscall_base &processorInstance);
+    statSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(latency){}
+    bool operator()(ABIIf<wordSize> &processorInstance);
 };
 
-class _exitSysCall : public SyscallCB{
+template<class wordSize> class _exitSysCall : public SyscallCB<wordSize>{
     public:
-    _exitSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB(latency){}
-    bool operator()(ac_syscall_base &processorInstance);
+    _exitSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(latency){}
+    bool operator()(ABIIf<wordSize> &processorInstance);
 };
 
-class timesSysCall : public SyscallCB{
+template<class wordSize> class timesSysCall : public SyscallCB<wordSize>{
     public:
-    timesSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB(latency){}
-    bool operator()(ac_syscall_base &processorInstance);
+    timesSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(latency){}
+    bool operator()(ABIIf<wordSize> &processorInstance);
 };
 
-class timeSysCall : public SyscallCB{
+template<class wordSize> class timeSysCall : public SyscallCB<wordSize>{
     public:
-    timeSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB(latency){}
-    bool operator()(ac_syscall_base &processorInstance);
+    timeSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(latency){}
+    bool operator()(ABIIf<wordSize> &processorInstance);
 };
 
-class randomSysCall : public SyscallCB{
+template<class wordSize> class randomSysCall : public SyscallCB<wordSizeABIIf<wordSize>>{
     public:
-    randomSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB(latency){}
-    bool operator()(ac_syscall_base &processorInstance);
+    randomSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(latency){}
+    bool operator()(ABIIf<wordSize> &processorInstance);
 };
 
-class getpidSysCall : public SyscallCB{
+template<class wordSize> class getpidSysCall : public SyscallCB<wordSize>{
     public:
-    getpidSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB(latency){}
-    bool operator()(ac_syscall_base &processorInstance);
+    getpidSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(latency){}
+    bool operator()(ABIIf<wordSize> &processorInstance);
 };
 
-class chmodSysCall : public SyscallCB{
+template<class wordSize> class chmodSysCall : public SyscallCB<wordSize>{
     public:
-    chmodSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB(latency){}
-    bool operator()(ac_syscall_base &processorInstance);
+    chmodSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(latency){}
+    bool operator()(ABIIf<wordSize> &processorInstance);
 };
 
-class dupSysCall : public SyscallCB{
+template<class wordSize> class dupSysCall : public SyscallCB<wordSize>{
     public:
-    dupSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB(latency){}
-    bool operator()(ac_syscall_base &processorInstance);
+    dupSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(latency){}
+    bool operator()(ABIIf<wordSize> &processorInstance);
 };
 
-class dup2SysCall : public SyscallCB{
+template<class wordSize> class dup2SysCall : public SyscallCB<wordSize>{
     public:
-    dup2SysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB(latency){}
-    bool operator()(ac_syscall_base &processorInstance);
+    dup2SysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(latency){}
+    bool operator()(ABIIf<wordSize> &processorInstance);
 };
 
-class getenvSysCall : public SyscallCB{
+template<class wordSize> class getenvSysCall : public SyscallCB<wordSize>{
     public:
-    getenvSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB(latency){}
-    bool operator()(ac_syscall_base &processorInstance);
+    getenvSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(latency){}
+    bool operator()(ABIIf<wordSize> &processorInstance);
 };
 
-class sysconfSysCall : public SyscallCB{
+template<class wordSize> class sysconfSysCall : public SyscallCB<wordSize>{
     public:
-    sysconfSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB(latency){}
-    bool operator()(ac_syscall_base &processorInstance);
+    sysconfSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(latency){}
+    bool operator()(ABIIf<wordSize> &processorInstance);
 };
 
-class gettimeofdaySysCall : public SyscallCB{
+template<class wordSize> class gettimeofdaySysCall : public SyscallCB<wordSize>{
     public:
-    gettimeofdaySysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB(latency){}
-    bool operator()(ac_syscall_base &processorInstance);
+    gettimeofdaySysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(latency){}
+    bool operator()(ABIIf<wordSize> &processorInstance);
 };
 
-class killSysCall : public SyscallCB{
+template<class wordSize> class killSysCall : public SyscallCB<wordSize>{
     public:
-    killSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB(latency){}
-    bool operator()(ac_syscall_base &processorInstance);
+    killSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(latency){}
+    bool operator()(ABIIf<wordSize> &processorInstance);
 };
 
-class errorSysCall : public SyscallCB{
+template<class wordSize> class errorSysCall : public SyscallCB<wordSize>{
     public:
-    errorSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB(latency){}
-    bool operator()(ac_syscall_base &processorInstance);
+    errorSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(latency){}
+    bool operator()(ABIIf<wordSize> &processorInstance);
 };
 
-class chownSysCall : public SyscallCB{
+template<class wordSize> class chownSysCall : public SyscallCB<wordSize>{
     public:
-    chownSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB(latency){}
-    bool operator()(ac_syscall_base &processorInstance);
+    chownSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(latency){}
+    bool operator()(ABIIf<wordSize> &processorInstance);
 };
 
-class unlinkSysCall : public SyscallCB{
+template<class wordSize> class unlinkSysCall : public SyscallCB<wordSize>{
     public:
-    unlinkSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB(latency){}
-    bool operator()(ac_syscall_base &processorInstance);
+    unlinkSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(latency){}
+    bool operator()(ABIIf<wordSize> &processorInstance);
 };
 
-class usleepSysCall : public SyscallCB{
+template<class wordSize> class usleepSysCall : public SyscallCB<wordSize>{
     public:
-    usleepSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB(latency){}
-    bool operator()(ac_syscall_base &processorInstance);
+    usleepSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(latency){}
+    bool operator()(ABIIf<wordSize> &processorInstance);
 };
 
-class mainSysCall : public SyscallCB{
+template<class wordSize> class mainSysCall : public SyscallCB<wordSize>{
     public:
-    mainSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB(latency){}
-    bool operator()(ac_syscall_base &processorInstance);
+    mainSysCall(sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(latency){}
+    bool operator()(ABIIf<wordSize> &processorInstance);
 };
 
 #endif
