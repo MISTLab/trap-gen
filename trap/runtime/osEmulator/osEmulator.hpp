@@ -50,26 +50,6 @@
 #include "bfdFrontend.hpp"
 #include "ToolsIf.hpp"
 
-#define NEWLIB_O_RDONLY          0x0000
-#define NEWLIB_O_WRONLY          0x0001
-#define NEWLIB_O_RDWR            0x0002
-#define NEWLIB_O_APPEND          0x0008
-#define NEWLIB_O_CREAT           0x0200
-#define NEWLIB_O_TRUNC           0x0400
-#define NEWLIB_O_EXCL            0x0800
-#define NEWLIB_O_NOCTTY          0x8000
-#define NEWLIB_O_NONBLOCK        0x4000
-
-#define CORRECT_O_RDONLY             00
-#define CORRECT_O_WRONLY             01
-#define CORRECT_O_RDWR               02
-#define CORRECT_O_CREAT            0100
-#define CORRECT_O_EXCL             0200
-#define CORRECT_O_NOCTTY           0400
-#define CORRECT_O_TRUNC           01000
-#define CORRECT_O_APPEND          02000
-#define CORRECT_O_NONBLOCK        04000
-
 class SyscallCB;
 
 template<class issueWidth> class OSEmulator{
@@ -267,30 +247,6 @@ template<class issueWidth> class OSEmulator{
         archc::programArgs = args;
         mainSysCall * mainCallBack = new mainSysCall();
         archc::register_syscall("main", *mainCallBack, std::map<std::string, sc_time>());
-    }
-    void correct_flags(int &val){
-        int flags = 0;
-
-        if( val &  NEWLIB_O_RDONLY )
-            flags |= CORRECT_O_RDONLY;
-        if( val &  NEWLIB_O_WRONLY )
-            flags |= CORRECT_O_WRONLY;
-        if( val &  NEWLIB_O_RDWR )
-            flags |= CORRECT_O_RDWR;
-        if( val & NEWLIB_O_CREAT )
-            flags |= CORRECT_O_CREAT;
-        if( val & NEWLIB_O_EXCL )
-            flags |= CORRECT_O_EXCL;
-        if( val & NEWLIB_O_NOCTTY )
-            flags |= CORRECT_O_NOCTTY;
-        if( val & NEWLIB_O_TRUNC )
-            flags |= CORRECT_O_TRUNC;
-        if( val & NEWLIB_O_APPEND )
-            flags |= CORRECT_O_APPEND;
-        if( val & NEWLIB_O_NONBLOCK )
-            flags |= CORRECT_O_NONBLOCK;
-
-        val = flags;
     }
 };
 

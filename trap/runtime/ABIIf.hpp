@@ -62,9 +62,11 @@ template<class regWidth> class ABIIf{
     virtual void setArgs( const std::vector< regWidth > & args ) = 0;
     virtual regWidth readGDBReg( const unsigned int & gdbId ) = 0;
     virtual void setGDBReg( const regWidth & newValue, const unsigned int & gdbId ) = 0;
-    virtual regWidth readMem( const regWidth & address ) = 0;
-    virtual void writeMem( const regWidth & address, const regWidth & datum ) = 0;
-    virtual void writeMem( const regWidth & address, const unsigned char & datum ) = 0;
+    virtual regWidth readMem( const regWidth & address, int length = sizeof(regWidth) ) = 0;
+    virtual unsigned char readCharMem( const regWidth & address) = 0;
+    virtual void writeMem( const regWidth & address, const regWidth & datum, int length = sizeof(regWidth) ) = 0;
+    virtual void writeCharMem( const regWidth & address, const unsigned char & datum ) = 0;
+    virtual regWidth getCodeLimit() = 0;
 };
 
 #endif
