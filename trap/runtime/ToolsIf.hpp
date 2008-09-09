@@ -51,7 +51,9 @@ class ToolsIf{
     ///The only method which is called to activate the tool
     ///it signals to the tool that a new instruction issue has been started;
     ///the tool can then take the appropriate actions.
-    virtual void newIssue() = 0;
+    ///the return value specifies whether the processor should skip
+    ///the issue of the current instruction
+    virtual bool newIssue() = 0;
 };
 
 class ToolsManager{
@@ -67,7 +69,7 @@ class ToolsManager{
     ///the tool can then take the appropriate actions.
     ///the return value specifies whether the processor should skip
     ///the issue of the current instruction
-    void newIssue();
+    bool newIssue();
 };
 
 #endif

@@ -55,9 +55,11 @@ void ToolsManager::addTool(ToolsIf &tool){
 ///the tool can then take the appropriate actions.
 ///the return value specifies whether the processor should skip
 ///the issue of the current instruction
-void ToolsManager::newIssue(){
+bool ToolsManager::newIssue(){
+    bool skipInstruction = false;
     std::vector<ToolsIf *>::iterator toolsIter, toolsEnd;
     for(toolsIter = this->activeTools.begin(), toolsEnd = this->activeTools.end(); toolsIter != toolsEnd; toolsIter++){
-        (*toolsIter)->newIssue();
+        skipInstruction |= (*toolsIter)->newIssue();
     }
+    return skipInstruction;
 }

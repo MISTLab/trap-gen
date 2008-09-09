@@ -603,6 +603,7 @@ def getCPPProc(self, model):
     fetchWordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>')
     includes = fetchWordType.getIncludes()
     interfaceType = cxx_writer.writer_code.Type(self.name + '_ABIIf', 'interface.hpp')
+    ToolsManagerType = cxx_writer.writer_code.Type('ToolsManager', 'ToolsIf.hpp')
     codeString = 'while(true){\n'
     codeString += 'unsigned int numCycles = 0;\n'
     codeString += str(fetchWordType) + ' bitString = '
@@ -630,7 +631,13 @@ def getCPPProc(self, model):
         if(cachedInstr != Processor::instrCache.end()){
             // I can call the instruction, I have found it
             try{
+                #ifndef DISABLE_TOOLS
+                if(!(this->toolManager.newIssue())){
+                #endif
                 numCycles = cachedInstr->second->behavior();
+                #ifndef DISABLE_TOOLS
+                }
+                #endif
             }
             catch(flush_exception &etc){
                 numCycles = 0;
@@ -646,7 +653,13 @@ def getCPPProc(self, model):
     if self.instructionCache:
         codeString += """instr->setParams(bitString);
             try{
+                #ifndef DISABLE_TOOLS
+                if(!(this->toolManager.newIssue())){
+                #endif
                 numCycles = instr->behavior();
+                #ifndef DISABLE_TOOLS
+                }
+                #endif
             }
             catch(flush_exception &etc){
                 numCycles = 0;
@@ -723,6 +736,8 @@ def getCPPProc(self, model):
     processorElements.append(decoderAttribute)
     interfaceAttribute = cxx_writer.writer_code.Attribute('abiIf', interfaceType.makePointer(), 'pu')
     processorElements.append(interfaceAttribute)
+    toolManagerAttribute = cxx_writer.writer_code.Attribute('toolManager', ToolsManagerType, 'pu')
+    processorElements.append(toolManagerAttribute)
     # Lets now add the registers, the reg banks, the aliases, etc.
     # We also need to add the memory
     initElements = []
@@ -861,6 +876,7 @@ def getCPPProc(self, model):
     progLimitAttr = cxx_writer.writer_code.Attribute('PROGRAM_LIMIT', fetchWordType, 'pu')
     processorElements.append(progLimitAttr)
     bodyInits += 'this->PROGRAM_LIMIT = 0;\n'
+    abiIfInit = 'this->PROGRAM_LIMIT, ' + abiIfInit
     progStarttAttr = cxx_writer.writer_code.Attribute('PROGRAM_START', fetchWordType, 'pu')
     processorElements.append(progStarttAttr)
     bodyInits += 'this->PROGRAM_START = 0;\n'
@@ -944,6 +960,10 @@ def getCPPIf(self, model):
     initElements = []
     baseInstrConstrParams = []
     # Lets first of all decalre the variables
+    progLimitAttr = cxx_writer.writer_code.Attribute('PROGRAM_LIMIT', wordType.makeRef(), 'pri')
+    ifClassElements.append(progLimitAttr)
+    baseInstrConstrParams.append(cxx_writer.writer_code.Parameter('PROGRAM_LIMIT', wordType.makeRef()))
+    initElements.append('PROGRAM_LIMIT(PROGRAM_LIMIT)')
     memIfType = cxx_writer.writer_code.Type('MemoryInterface', 'memory.hpp')
     for memName in self.abi.memories.keys():
         ifClassElements.append(cxx_writer.writer_code.Attribute(memName, memIfType.makeRef(), 'pri'))
@@ -977,7 +997,7 @@ def getCPPIf(self, model):
     endianessCode.addInclude(includes)
     endianessMethod = cxx_writer.writer_code.Method('isLittleEndian', endianessCode, cxx_writer.writer_code.boolType, 'pu')
     ifClassElements.append(endianessMethod)
-    codeLimitCode = cxx_writer.writer_code.Code('//TODO')
+    codeLimitCode = cxx_writer.writer_code.Code('return this->PROGRAM_LIMIT')
     codeLimitMethod = cxx_writer.writer_code.Method('getCodeLimit', codeLimitCode, wordType, 'pu')
     ifClassElements.append(codeLimitMethod)
     for elem in [self.abi.LR, self.abi.PC, self.abi.SP, self.abi.FP, self.abi.retVal]:
@@ -1142,6 +1162,8 @@ def getTestMainCode(self):
 def getMainCode(self, model):
     # Returns the code which instantiate the processor
     # in order to execute simulations
+    from isa import resolveBitType
+    wordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>')
     code = """
     boost::program_options::options_description desc("Processor simulator for """ + self.name + """");
     desc.add_options()
@@ -1181,7 +1203,9 @@ def getMainCode(self, model):
     procInst.ENTRY_POINT = loader.getProgStart();
     procInst.PROGRAM_LIMIT = loader.getProgDim() + loader.getDataStart();
     procInst.PROGRAM_START = loader.getDataStart();
-
+    //Now I initialize the tools (i.e. debugger, os emulator, ...)
+    OSEmulator< """ + str(wordType) + """ > osEmu(*(procInst.abiIf));
+    procInst.toolManager.addTool(osEmu);
     //Now we can start the execution
     boost::timer t;
     sc_start();
@@ -1204,6 +1228,8 @@ def getMainCode(self, model):
     mainCode.addInclude('utils.hpp')
     mainCode.addInclude('systemc.h')
     mainCode.addInclude('execLoader.hpp')
+    mainCode.addInclude('execLoader.hpp')
+    mainCode.addInclude('osEmulator.hpp')
     mainCode.addInclude('boost/program_options.hpp')
     mainCode.addInclude('boost/timer.hpp')
     parameters = [cxx_writer.writer_code.Parameter('argc', cxx_writer.writer_code.intType), cxx_writer.writer_code.Parameter('argv', cxx_writer.writer_code.charPtrType.makePointer())]

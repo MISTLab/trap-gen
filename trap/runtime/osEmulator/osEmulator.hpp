@@ -237,7 +237,7 @@ template<class issueWidth> class OSEmulator : public ToolsIf{
         if(!this->register_syscall("main", *mainCallBack);)
             THROW_EXCEPTION("Fatal Error, unable to find main function in current application");
     }
-    void newIssue(){
+    bool newIssue(){
         //I have to go over all the registered system calls and check if there is one
         //that matches the current program counter. In case I simply call the corresponding
         //callback.
@@ -249,6 +249,7 @@ template<class issueWidth> class OSEmulator : public ToolsIf{
                 (*(foundSysc->second))();
             }
         }
+        return true;
     }
 };
 
