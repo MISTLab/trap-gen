@@ -997,7 +997,7 @@ def getCPPIf(self, model):
     endianessCode.addInclude(includes)
     endianessMethod = cxx_writer.writer_code.Method('isLittleEndian', endianessCode, cxx_writer.writer_code.boolType, 'pu')
     ifClassElements.append(endianessMethod)
-    codeLimitCode = cxx_writer.writer_code.Code('return this->PROGRAM_LIMIT')
+    codeLimitCode = cxx_writer.writer_code.Code('return this->PROGRAM_LIMIT;')
     codeLimitMethod = cxx_writer.writer_code.Method('getCodeLimit', codeLimitCode, wordType, 'pu')
     ifClassElements.append(codeLimitMethod)
     for elem in [self.abi.LR, self.abi.PC, self.abi.SP, self.abi.FP, self.abi.retVal]:
@@ -1100,7 +1100,7 @@ def getCPPIf(self, model):
     readByteMemCode = cxx_writer.writer_code.Code(readByteMemBody)
     readByteMemParam = cxx_writer.writer_code.Parameter('address', wordType.makeRef().makeConst())
     readByteMemMethod = cxx_writer.writer_code.Method('readCharMem', readByteMemCode, cxx_writer.writer_code.ucharType, 'pu', [readByteMemParam])
-    ifClassElements.append(readMemMethod)
+    ifClassElements.append(readByteMemMethod)
 
     writeMemBody = ''
     if not self.abi.memories:
@@ -1205,6 +1205,7 @@ def getMainCode(self, model):
     procInst.PROGRAM_START = loader.getDataStart();
     //Now I initialize the tools (i.e. debugger, os emulator, ...)
     OSEmulator< """ + str(wordType) + """ > osEmu(*(procInst.abiIf));
+    osEmu.initSysCalls(vm["application"].as<std::string>());
     procInst.toolManager.addTool(osEmu);
     //Now we can start the execution
     boost::timer t;

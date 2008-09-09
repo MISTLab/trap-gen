@@ -77,6 +77,18 @@ extern "C" {
 #define DMGL_GNU_V3      (1 << 14)
 #define DMGL_GNAT        (1 << 15)
 
+BFDFrontend * BFDFrontend::curInstance = NULL;
+
+BFDFrontend & BFDFrontend::getInstance(std::string fileName){
+    if(BFDFrontend::curInstance == NULL){
+        if(fileName != "")
+            BFDFrontend::curInstance = new BFDFrontend(fileName);
+        else
+            THROW_EXCEPTION("An instance of BFDFrontend does not exists yet, so the file name of the binary image must be specified");
+    }
+    return *BFDFrontend::curInstance;
+}
+
 BFDFrontend::BFDFrontend(std::string binaryName){
     char ** matching = NULL;
     this->sy = NULL;

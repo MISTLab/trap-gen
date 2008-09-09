@@ -80,8 +80,8 @@ extern unsigned int heapPointer;
 ///Operator () implements the behaviour of the
 ///emulated call
 template<class wordSize> class SyscallCB{
-    private:
-    ABIIf<wordSize> &processorInstance
+    protected:
+    ABIIf<wordSize> &processorInstance;
     public:
     SyscallCB(ABIIf<wordSize> &processorInstance) : processorInstance(processorInstance){}
     virtual ~SyscallCB(){}
@@ -90,7 +90,7 @@ template<class wordSize> class SyscallCB{
 
 template<class wordSize> class openSysCall : public SyscallCB<wordSize>{
     public:
-    openSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
+    openSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     void operator()(){
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
@@ -105,17 +105,17 @@ template<class wordSize> class openSysCall : public SyscallCB<wordSize>{
         std::cerr << "Opening file -->" << pathname << "<--" << std::endl;
         #endif
         int flags = callArgs[1];
-        ::correct_flags(&flags);
+        ::correct_flags(flags);
         int mode = callArgs[2];
         int ret = ::open(pathname, flags, mode);
         this->processorInstance.setRetVal(ret);
-        this->processorInstance.setPC(processorInstance.readLR());
+        this->processorInstance.setPC(this->processorInstance.readLR());
     }
 };
 
 template<class wordSize> class creatSysCall : public SyscallCB<wordSize>{
     public:
-    creatSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
+    creatSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     void operator()(){
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
@@ -138,7 +138,7 @@ template<class wordSize> class creatSysCall : public SyscallCB<wordSize>{
 
 template<class wordSize> class closeSysCall : public SyscallCB<wordSize>{
     public:
-    closeSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
+    closeSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     void operator()(){
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
@@ -157,7 +157,7 @@ template<class wordSize> class closeSysCall : public SyscallCB<wordSize>{
 
 template<class wordSize> class readSysCall : public SyscallCB<wordSize>{
     public:
-    readSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
+    readSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     void operator()(){
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
@@ -178,7 +178,7 @@ template<class wordSize> class readSysCall : public SyscallCB<wordSize>{
 
 template<class wordSize> class writeSysCall : public SyscallCB<wordSize>{
     public:
-    writeSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
+    writeSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     void operator()(){
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
@@ -198,7 +198,7 @@ template<class wordSize> class writeSysCall : public SyscallCB<wordSize>{
 
 template<class wordSize> class isattySysCall : public SyscallCB<wordSize>{
     public:
-    isattySysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
+    isattySysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     void operator()(){
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
@@ -211,7 +211,7 @@ template<class wordSize> class isattySysCall : public SyscallCB<wordSize>{
 
 template<class wordSize> class sbrkSysCall : public SyscallCB<wordSize>{
     public:
-    sbrkSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
+    sbrkSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     void operator()(){
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
@@ -242,7 +242,7 @@ template<class wordSize> class sbrkSysCall : public SyscallCB<wordSize>{
 
 template<class wordSize> class lseekSysCall : public SyscallCB<wordSize>{
     public:
-    lseekSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
+    lseekSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     void operator()(){
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
@@ -258,7 +258,7 @@ template<class wordSize> class lseekSysCall : public SyscallCB<wordSize>{
 
 template<class wordSize> class fstatSysCall : public SyscallCB<wordSize>{
     public:
-    fstatSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
+    fstatSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     void operator()(){
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
@@ -289,7 +289,7 @@ template<class wordSize> class fstatSysCall : public SyscallCB<wordSize>{
 
 template<class wordSize> class statSysCall : public SyscallCB<wordSize>{
     public:
-    statSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
+    statSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     void operator()(){
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
@@ -326,9 +326,9 @@ template<class wordSize> class statSysCall : public SyscallCB<wordSize>{
 
 template<class wordSize> class _exitSysCall : public SyscallCB<wordSize>{
     public:
-    _exitSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
+    _exitSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     void operator()(){
-        regWidth exitValue = this->processorInstance.readRetVal(0);
+        wordSize exitValue = this->processorInstance.readRetVal(0);
         std::cout << std::endl << "Program exited with value " << exitValue << std::endl << std::endl;
         if(sc_is_running())
             sc_stop();
@@ -337,7 +337,7 @@ template<class wordSize> class _exitSysCall : public SyscallCB<wordSize>{
 
 template<class wordSize> class timesSysCall : public SyscallCB<wordSize>{
     public:
-    timesSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
+    timesSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     void operator()(){
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
@@ -358,20 +358,24 @@ template<class wordSize> class timesSysCall : public SyscallCB<wordSize>{
             timesRetLoc += 4;
             this->processorInstance.writeMem(timesRetLoc, buf.tms_cstime, 4);
         }
-        this->processorInstance.setRetVal(ret);
+        this->processorInstance.setRetVal(curSimTime);
         this->processorInstance.setPC(this->processorInstance.readLR());
     }
 };
 
 template<class wordSize> class timeSysCall : public SyscallCB<wordSize>{
+    private:
+        int initialTime;
     public:
-    timeSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
+    timeSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){
+        this->initialTime = time(0);
+    }
     void operator()(){
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
 
         int t = callArgs[0];
-        int ret = initialTime + (int)(sc_time_stamp().to_double()/1.0e+12);
+        int ret = this->initialTime + (int)(sc_time_stamp().to_double()/1.0e+12);
         if (t != 0)
             this->processorInstance.writeMem(t, ret, 4);
         this->processorInstance.setRetVal(ret);
@@ -379,9 +383,9 @@ template<class wordSize> class timeSysCall : public SyscallCB<wordSize>{
     }
 };
 
-template<class wordSize> class randomSysCall : public SyscallCB<wordSizeABIIf<wordSize>>{
+template<class wordSize> class randomSysCall : public SyscallCB<wordSize>{
     public:
-    randomSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
+    randomSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     void operator()(){
         int ret = ::random();
         this->processorInstance.setRetVal(ret);
@@ -391,7 +395,7 @@ template<class wordSize> class randomSysCall : public SyscallCB<wordSizeABIIf<wo
 
 template<class wordSize> class getpidSysCall : public SyscallCB<wordSize>{
     public:
-    getpidSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
+    getpidSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     void operator()(){
         this->processorInstance.setRetVal(123);
         this->processorInstance.setPC(this->processorInstance.readLR());
@@ -400,7 +404,7 @@ template<class wordSize> class getpidSysCall : public SyscallCB<wordSize>{
 
 template<class wordSize> class chmodSysCall : public SyscallCB<wordSize>{
     public:
-    chmodSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
+    chmodSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     void operator()(){
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
@@ -420,7 +424,7 @@ template<class wordSize> class chmodSysCall : public SyscallCB<wordSize>{
 
 template<class wordSize> class dupSysCall : public SyscallCB<wordSize>{
     public:
-    dupSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
+    dupSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     void operator()(){
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
@@ -434,7 +438,7 @@ template<class wordSize> class dupSysCall : public SyscallCB<wordSize>{
 
 template<class wordSize> class dup2SysCall : public SyscallCB<wordSize>{
     public:
-    dup2SysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
+    dup2SysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     void operator()(){
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
@@ -449,7 +453,7 @@ template<class wordSize> class dup2SysCall : public SyscallCB<wordSize>{
 
 template<class wordSize> class getenvSysCall : public SyscallCB<wordSize>{
     public:
-    getenvSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
+    getenvSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     void operator()(){
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
@@ -466,7 +470,7 @@ template<class wordSize> class getenvSysCall : public SyscallCB<wordSize>{
             std::cerr << "Reading variable -->" << envname << "<--" << std::endl;
             #endif
             std::map<std::string,  std::string>::iterator curEnv = env.find((std::string(envname)));
-            if(curEnv == archc::env.end()){
+            if(curEnv == env.end()){
                 #ifndef NDEBUG
                 std::cerr << "Not Found" << std::endl;
                 #endif
@@ -499,7 +503,7 @@ template<class wordSize> class getenvSysCall : public SyscallCB<wordSize>{
 
 template<class wordSize> class gettimeofdaySysCall : public SyscallCB<wordSize>{
     public:
-    gettimeofdaySysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
+    gettimeofdaySysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     void operator()(){
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
@@ -507,6 +511,7 @@ template<class wordSize> class gettimeofdaySysCall : public SyscallCB<wordSize>{
         int timesRetLoc = callArgs[0];
         if(timesRetLoc != 0){
             struct timeval buf;
+            double curSimTime = sc_time_stamp().to_double();
             buf.tv_sec = (time_t)(curSimTime/1.0e+12);
             buf.tv_usec = (suseconds_t)((curSimTime - buf.tv_sec*1.0e+12)/1.0e+6);
             this->processorInstance.writeMem(timesRetLoc, buf.tv_sec, 4);
@@ -520,7 +525,7 @@ template<class wordSize> class gettimeofdaySysCall : public SyscallCB<wordSize>{
 
 template<class wordSize> class killSysCall : public SyscallCB<wordSize>{
     public:
-    killSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
+    killSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     void operator()(){
         THROW_EXCEPTION("KILL SystemCall not yet implemented");
     }
@@ -528,7 +533,7 @@ template<class wordSize> class killSysCall : public SyscallCB<wordSize>{
 
 template<class wordSize> class errorSysCall : public SyscallCB<wordSize>{
     public:
-    errorSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
+    errorSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     void operator()(){
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
@@ -549,7 +554,7 @@ template<class wordSize> class errorSysCall : public SyscallCB<wordSize>{
 
 template<class wordSize> class chownSysCall : public SyscallCB<wordSize>{
     public:
-    chownSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
+    chownSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     void operator()(){
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
@@ -573,7 +578,7 @@ template<class wordSize> class chownSysCall : public SyscallCB<wordSize>{
 
 template<class wordSize> class unlinkSysCall : public SyscallCB<wordSize>{
     public:
-    unlinkSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
+    unlinkSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     void operator()(){
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
@@ -595,7 +600,7 @@ template<class wordSize> class unlinkSysCall : public SyscallCB<wordSize>{
 
 template<class wordSize> class usleepSysCall : public SyscallCB<wordSize>{
     public:
-    usleepSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
+    usleepSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     void operator()(){
         //Since we have a single process this function doesn't do anything :-)
         this->processorInstance.setPC(this->processorInstance.readLR());
@@ -604,7 +609,7 @@ template<class wordSize> class usleepSysCall : public SyscallCB<wordSize>{
 
 template<class wordSize> class mainSysCall : public SyscallCB<wordSize>{
     public:
-    mainSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
+    mainSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     void operator()(){
         unsigned int argAddr = ((unsigned int)heapPointer) + (programArgs.size() + 1)*4;
         unsigned int argNumAddr = heapPointer;
@@ -623,7 +628,7 @@ template<class wordSize> class mainSysCall : public SyscallCB<wordSize>{
         }
         this->processorInstance.writeMem(argNumAddr, 0, 4);
 
-        std::vector< regWidth > mainArgs;
+        std::vector< wordSize > mainArgs;
         mainArgs.push_back(programArgs.size());
         mainArgs.push_back(heapPointer);
         this->processorInstance.setArgs(mainArgs);
@@ -770,7 +775,7 @@ template<class wordSize> class mainSysCall : public SyscallCB<wordSize>{
 
 template<class wordSize> class sysconfSysCall : public SyscallCB<wordSize>{
     public:
-    sysconfSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
+    sysconfSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     void operator()(){
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();

@@ -96,9 +96,11 @@ class BFDFrontend{
     std::string getMatchingFormats (char **p);
     /// sprintf wrapper with append features
     static void sprintf_wrapper(char *str, const char *format, ...);
+    static BFDFrontend *curInstance;
   public:
     BFDFrontend(std::string binaryName);
     ~BFDFrontend();
+    static BFDFrontend & getInstance(std::string fileName = "");
     ///Given an address, it returns the symbol found there,
     ///"" if no symbol is found at the specified address; note
     ///That if address is in the middle of a function, the symbol
