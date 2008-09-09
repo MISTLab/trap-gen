@@ -977,6 +977,9 @@ def getCPPIf(self, model):
     endianessCode.addInclude(includes)
     endianessMethod = cxx_writer.writer_code.Method('isLittleEndian', endianessCode, cxx_writer.writer_code.boolType, 'pu')
     ifClassElements.append(endianessMethod)
+    codeLimitCode = cxx_writer.writer_code.Code('//TODO')
+    codeLimitMethod = cxx_writer.writer_code.Method('getCodeLimit', codeLimitCode, wordType, 'pu')
+    ifClassElements.append(codeLimitMethod)
     for elem in [self.abi.LR, self.abi.PC, self.abi.SP, self.abi.FP, self.abi.retVal]:
         if not elem:
             continue
@@ -1059,9 +1062,26 @@ def getCPPIf(self, model):
                 readMemBody += 'return this->' + self.abi.memories.keys()[0] + '.read_word(address);\n}\nelse '
             readMemBody += '{\nTHROW_EXCEPTION(\"Address \" << std::hex << address << \" out of range\");\n}'
     readMemCode = cxx_writer.writer_code.Code(readMemBody)
-    readMemParam = cxx_writer.writer_code.Parameter('address', wordType.makeRef().makeConst())
-    readMemMethod = cxx_writer.writer_code.Method('readMem', readMemCode, wordType, 'pu', [readMemParam])
+    readMemParam1 = cxx_writer.writer_code.Parameter('address', wordType.makeRef().makeConst())
+    readMemParam2 = cxx_writer.writer_code.Parameter('length', cxx_writer.writer_code.intType, initValue = 'sizeof(' + str(wordType) + ')')
+    readMemMethod = cxx_writer.writer_code.Method('readMem', readMemCode, wordType, 'pu', [readMemParam1, readMemParam2])
     ifClassElements.append(readMemMethod)
+    readByteMemBody = ''
+    if not self.abi.memories:
+        readByteMemBody += 'THROW_EXCEPTION(\"No memory accessible from the ABI or processor ' + self.name + '\");'
+    else:
+        if len(self.abi.memories) == 1:
+            readByteMemBody += 'return this->' + self.abi.memories.keys()[0] + '.read_byte(address);'
+        else:
+            for memName, range in self.abi.memories.items():
+                readByteMemBody += 'if(address >= ' + hex(range[0]) + ' && address <= ' + hex(range[1]) + '){\n'
+                readByteMemBody += 'return this->' + self.abi.memories.keys()[0] + '.read_byte(address);\n}\nelse '
+            readByteMemBody += '{\nTHROW_EXCEPTION(\"Address \" << std::hex << address << \" out of range\");\n}'
+    readByteMemCode = cxx_writer.writer_code.Code(readByteMemBody)
+    readByteMemParam = cxx_writer.writer_code.Parameter('address', wordType.makeRef().makeConst())
+    readByteMemMethod = cxx_writer.writer_code.Method('readCharMem', readByteMemCode, cxx_writer.writer_code.ucharType, 'pu', [readByteMemParam])
+    ifClassElements.append(readMemMethod)
+
     writeMemBody = ''
     if not self.abi.memories:
         writeMemBody += 'THROW_EXCEPTION(\"No memory accessible from the ABI or processor ' + self.name + '\");'
@@ -1077,7 +1097,8 @@ def getCPPIf(self, model):
     writeMemCode.addInclude('utils.hpp')
     writeMemParam1 = cxx_writer.writer_code.Parameter('address', wordType.makeRef().makeConst())
     writeMemParam2 = cxx_writer.writer_code.Parameter('datum', wordType.makeRef().makeConst())
-    writeMemMethod = cxx_writer.writer_code.Method('writeMem', writeMemCode, cxx_writer.writer_code.voidType, 'pu', [writeMemParam1, writeMemParam2])
+    writeMemParam3 = cxx_writer.writer_code.Parameter('length', cxx_writer.writer_code.intType, initValue = 'sizeof(' + str(wordType) + ')')
+    writeMemMethod = cxx_writer.writer_code.Method('writeMem', writeMemCode, cxx_writer.writer_code.voidType, 'pu', [writeMemParam1, writeMemParam2, writeMemParam3])
     ifClassElements.append(writeMemMethod)
     writeMemBody = ''
     if not self.abi.memories:
@@ -1093,7 +1114,7 @@ def getCPPIf(self, model):
     writeMemCode = cxx_writer.writer_code.Code(writeMemBody)
     writeMemParam1 = cxx_writer.writer_code.Parameter('address', wordType.makeRef().makeConst())
     writeMemParam2 = cxx_writer.writer_code.Parameter('datum', cxx_writer.writer_code.ucharRefType.makeConst())
-    writeMemMethod = cxx_writer.writer_code.Method('writeMem', writeMemCode, cxx_writer.writer_code.voidType, 'pu', [writeMemParam1, writeMemParam2])
+    writeMemMethod = cxx_writer.writer_code.Method('writeCharMem', writeMemCode, cxx_writer.writer_code.voidType, 'pu', [writeMemParam1, writeMemParam2])
     ifClassElements.append(writeMemMethod)
 
     ABIIfType = cxx_writer.writer_code.TemplateType('ABIIf', [wordType], 'ABIIf.hpp')

@@ -40,6 +40,10 @@
 *
 \***************************************************************************/
 
+#include <map>
+#include <string>
+#include <vector>
+
 #define NEWLIB_O_RDONLY          0x0000
 #define NEWLIB_O_WRONLY          0x0001
 #define NEWLIB_O_RDWR            0x0002
@@ -84,3 +88,8 @@ void correct_flags(int &val){
 
     val = flags;
 }
+
+std::map<std::string,  std::string> env;
+std::map<std::string, int> sysconfmap;
+std::vector<std::string> programArgs;
+unsigned int heapPointer;

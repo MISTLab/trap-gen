@@ -50,35 +50,36 @@
 #include "bfdFrontend.hpp"
 #include "ToolsIf.hpp"
 
+extern unsigned int heapPointer;
+extern std::map<std::string,  std::string> env;
+extern std::map<std::string, int> sysconfmap;
+extern std::vector<std::string> programArgs;
+
 class SyscallCB;
 
-template<class issueWidth> class OSEmulator{
+template<class issueWidth> class OSEmulator : public ToolsIf{
   private:
     std::map<unsigned int, SyscallCB*> syscCallbacks;
     unsigned int syscMask;
-    std::map<std::string,  std::string> env;
-    std::map<std::string, int> sysconfmap;
-    std::vector<std::string> programArgs;
+    ABIIf<issueWidth> &processorInstance
   public:
-    OSEmulator(){
+    OSEmulator(ABIIf<issueWidth> &processorInstance) : processorInstance(processorInstance){
         this->syscMask = (unsigned int)-1L;
+        heapPointer = (unsigned int)this->processorInstance.getCodeLimit();
     }
     bool register_syscall(std::string funName, SyscallCB &callBack){
+        BFDFrontend &bfdFE = BFDFrontend::getInstance(execName);
         bool valid = false;
-        unsigned int symAddr = bfdFE->getSymAddr(funName, valid);
+        unsigned int symAddr = bfdFE.getSymAddr(funName, valid);
         if(!valid){
-            if(raiseError){
-                THROW_EXCEPTION("No symbol " << funName << " found in executable " << bfdFE->getExecName());
-            }
-            else
-                return false;
+            return false;
         }
 
-        std::map<unsigned int, SyscallCB*>::iterator foundSysc = archc::syscCallbacks.find(symAddr);
-        if(foundSysc != archc::syscCallbacks.end()){
+        std::map<unsigned int, SyscallCB*>::iterator foundSysc = this->syscCallbacks.find(symAddr);
+        if(foundSysc != this->syscCallbacks.end()){
             int numMatch = 0;
             std::map<unsigned int, SyscallCB*>::iterator allCallIter, allCallEnd;
-            for(allCallIter = archc::syscCallbacks.begin(), allCallEnd = archc::syscCallbacks.end(); allCallIter != allCallEnd; allCallIter++){
+            for(allCallIter = this->syscCallbacks.begin(), allCallEnd = this->syscCallbacks.end(); allCallIter != allCallEnd; allCallIter++){
                 if(allCallIter->second == foundSysc->second)
                     numMatch++;
             }
@@ -87,19 +88,8 @@ template<class issueWidth> class OSEmulator{
             }
         }
 
-        std::map<std::string, sc_time>::iterator latIter, latEnd;
-        for(latIter = latencies.begin(), latEnd = latencies.end(); latIter != latEnd; latIter++){
-            if(latIter->first != ""){
-                boost::regex regExp(latIter->first);
-                if(boost::regex_match(funName, regExp)){
-                    callBack.latency = latIter->second;
-                }
-            }
-        }
-
-        archc::syscCallbacks[symAddr] = &callBack;
-        archc::syscMask &= symAddr;
-        regsSysCalls[funName] = symAddr;
+        this->syscCallbacks[symAddr] = &callBack;
+        this->syscMask &= symAddr;
 
         return true;
     }
@@ -109,144 +99,156 @@ template<class issueWidth> class OSEmulator{
         //Now I perform the registration of the basic System Calls
         bool registered = false;
 
-        openSysCall *a = new openSysCall();
-        registered = this->register_syscall("open", *a, latencies, false);
-        registered |= this->register_syscall("_open", *a, latencies, false);
+        openSysCall *a = new openSysCall(this->processorInstance);
+        registered = this->register_syscall("open", *a);
+        registered |= this->register_syscall("_open", *a);
         if(!registered)
             delete a;
-        creatSysCall *b = new creatSysCall();
-        registered = this->register_syscall("creat", *b, latencies, false);
-        registered |= this->register_syscall("_creat", *b, latencies, false);
+        creatSysCall *b = new creatSysCall(this->processorInstance);
+        registered = this->register_syscall("creat", *b);
+        registered |= this->register_syscall("_creat", *b);
         if(!registered)
             delete b;
-        closeSysCall *c = new closeSysCall();
-        registered = this->register_syscall("close", *c, latencies, false);
-        registered |= this->register_syscall("_close", *c, latencies, false);
+        closeSysCall *c = new closeSysCall(this->processorInstance);
+        registered = this->register_syscall("close", *c);
+        registered |= this->register_syscall("_close", *c);
         if(!registered)
             delete c;
-        readSysCall *d = new readSysCall();
-        registered = this->register_syscall("read", *d, latencies, false);
-        registered |= this->register_syscall("_read", *d, latencies, false);
+        readSysCall *d = new readSysCall(this->processorInstance);
+        registered = this->register_syscall("read", *d);
+        registered |= this->register_syscall("_read", *d);
         if(!registered)
             delete d;
-        writeSysCall *e = new writeSysCall();
-        registered = this->register_syscall("write", *e, latencies, false);
-        registered |= this->register_syscall("_write", *e, latencies, false);
+        writeSysCall *e = new writeSysCall(this->processorInstance);
+        registered = this->register_syscall("write", *e);
+        registered |= this->register_syscall("_write", *e);
         if(!registered)
             delete e;
-        isattySysCall *f = new isattySysCall();
-        registered = this->register_syscall("isatty", *f, latencies, false);
-        registered |= this->register_syscall("_isatty", *f, latencies, false);
+        isattySysCall *f = new isattySysCall(this->processorInstance);
+        registered = this->register_syscall("isatty", *f);
+        registered |= this->register_syscall("_isatty", *f);
         if(!registered)
             delete f;
-        sbrkSysCall *g = new sbrkSysCall();
-        registered = this->register_syscall("sbrk", *g, latencies, false);
-        registered |= this->register_syscall("_sbrk", *g, latencies, false);
+        sbrkSysCall *g = new sbrkSysCall(this->processorInstance);
+        registered = this->register_syscall("sbrk", *g);
+        registered |= this->register_syscall("_sbrk", *g);
         if(!registered)
             delete g;
-        lseekSysCall *h = new lseekSysCall();
-        registered = this->register_syscall("lseek", *h, latencies, false);
-        registered |= this->register_syscall("_lseek", *h, latencies, false);
+        lseekSysCall *h = new lseekSysCall(this->processorInstance);
+        registered = this->register_syscall("lseek", *h);
+        registered |= this->register_syscall("_lseek", *h);
         if(!registered)
             delete h;
-        fstatSysCall *i = new fstatSysCall();
-        registered = this->register_syscall("fstat", *i, latencies, false);
-        registered |= this->register_syscall("_fstat", *i, latencies, false);
+        fstatSysCall *i = new fstatSysCall(this->processorInstance);
+        registered = this->register_syscall("fstat", *i);
+        registered |= this->register_syscall("_fstat", *i);
         if(!registered)
             delete i;
-        _exitSysCall *j = new _exitSysCall();
-        if(!this->register_syscall("_exit", *j, latencies, false))
+        _exitSysCall *j = new _exitSysCall(this->processorInstance);
+        if(!this->register_syscall("_exit", *j))
             delete j;
-        timesSysCall *k = new timesSysCall();
-        registered = this->register_syscall("times", *k, latencies, false);
-        registered |= this->register_syscall("_times", *k, latencies, false);
+        timesSysCall *k = new timesSysCall(this->processorInstance);
+        registered = this->register_syscall("times", *k);
+        registered |= this->register_syscall("_times", *k);
         if(!registered)
             delete k;
-        timeSysCall *l = new timeSysCall();
-        registered = this->register_syscall("time", *l, latencies, false);
-        registered |= this->register_syscall("_time", *l, latencies, false);
+        timeSysCall *l = new timeSysCall(this->processorInstance);
+        registered = this->register_syscall("time", *l);
+        registered |= this->register_syscall("_time", *l);
         if(!registered)
             delete l;
-        randomSysCall *m = new randomSysCall();
-        registered = this->register_syscall("random", *m, latencies, false);
-        registered |= this->register_syscall("_random", *m, latencies, false);
+        randomSysCall *m = new randomSysCall(this->processorInstance);
+        registered = this->register_syscall("random", *m);
+        registered |= this->register_syscall("_random", *m);
         if(!registered)
             delete m;
-        getpidSysCall * n = new getpidSysCall();
-        registered = this->register_syscall("getpid", *n, latencies, false);
-        registered |= this->register_syscall("_getpid", *n, latencies, false);
+        getpidSysCall * n = new getpidSysCall(this->processorInstance);
+        registered = this->register_syscall("getpid", *n);
+        registered |= this->register_syscall("_getpid", *n);
         if(!registered)
             delete n;
-        chmodSysCall * o = new chmodSysCall();
-        registered = this->register_syscall("chmod", *o, latencies, false);
-        registered |= this->register_syscall("_chmod", *o, latencies, false);
+        chmodSysCall * o = new chmodSysCall(this->processorInstance);
+        registered = this->register_syscall("chmod", *o);
+        registered |= this->register_syscall("_chmod", *o);
         if(!registered)
             delete o;
-        dupSysCall * p = new dupSysCall();
-        registered = this->register_syscall("dup", *p, latencies, false);
-        registered |= this->register_syscall("_dup", *p, latencies, false);
+        dupSysCall * p = new dupSysCall(this->processorInstance);
+        registered = this->register_syscall("dup", *p);
+        registered |= this->register_syscall("_dup", *p);
         if(!registered)
             delete p;
-        dup2SysCall * q = new dup2SysCall();
-        registered = this->register_syscall("dup2", *q, latencies, false);
-        registered |= this->register_syscall("_dup2", *q, latencies, false);
+        dup2SysCall * q = new dup2SysCall(this->processorInstance);
+        registered = this->register_syscall("dup2", *q);
+        registered |= this->register_syscall("_dup2", *q);
         if(!registered)
             delete q;
-        getenvSysCall *r = new getenvSysCall();
-        registered = this->register_syscall("getenv", *r, latencies, false);
-        registered |= this->register_syscall("_getenv", *r, latencies, false);
+        getenvSysCall *r = new getenvSysCall(this->processorInstance);
+        registered = this->register_syscall("getenv", *r);
+        registered |= this->register_syscall("_getenv", *r);
         if(!registered)
             delete r;
-        sysconfSysCall *s = new sysconfSysCall();
-        if(!this->register_syscall("sysconf", *s, latencies, false))
+        sysconfSysCall *s = new sysconfSysCall(this->processorInstance);
+        if(!this->register_syscall("sysconf", *s))
             delete s;
-        gettimeofdaySysCall *t = new gettimeofdaySysCall();
-        registered = this->register_syscall("gettimeofday", *t, latencies, false);
-        registered |= this->register_syscall("_gettimeofday", *t, latencies, false);
+        gettimeofdaySysCall *t = new gettimeofdaySysCall(this->processorInstance);
+        registered = this->register_syscall("gettimeofday", *t);
+        registered |= this->register_syscall("_gettimeofday", *t);
         if(!registered)
             delete t;
-        killSysCall *u = new killSysCall();
-        registered = this->register_syscall("kill", *u, latencies, false);
-        registered |= this->register_syscall("_kill", *u, latencies, false);
+        killSysCall *u = new killSysCall(this->processorInstance);
+        registered = this->register_syscall("kill", *u);
+        registered |= this->register_syscall("_kill", *u);
         if(!registered)
             delete u;
-        errorSysCall *v = new errorSysCall();
-        registered = this->register_syscall("error", *v, latencies, false);
-        registered |= this->register_syscall("_error", *v, latencies, false);
+        errorSysCall *v = new errorSysCall(this->processorInstance);
+        registered = this->register_syscall("error", *v);
+        registered |= this->register_syscall("_error", *v);
         if(!registered)
             delete v;
-        chownSysCall *w = new chownSysCall();
-        registered = this->register_syscall("chown", *w, latencies, false);
-        registered |= this->register_syscall("_chown", *w, latencies, false);
+        chownSysCall *w = new chownSysCall(this->processorInstance);
+        registered = this->register_syscall("chown", *w);
+        registered |= this->register_syscall("_chown", *w);
         if(!registered)
             delete w;
-        unlinkSysCall *x = new unlinkSysCall();
-        registered = this->register_syscall("unlink", *x, latencies, false);
-        registered |= this->register_syscall("_unlink", *x, latencies, false);
+        unlinkSysCall *x = new unlinkSysCall(this->processorInstance);
+        registered = this->register_syscall("unlink", *x);
+        registered |= this->register_syscall("_unlink", *x);
         if(!registered)
             delete x;
-        usleepSysCall *y = new usleepSysCall();
-        registered = this->register_syscall("usleep", *y, latencies, false);
-        registered |= this->register_syscall("_usleep", *y, latencies, false);
+        usleepSysCall *y = new usleepSysCall(this->processorInstance);
+        registered = this->register_syscall("usleep", *y);
+        registered |= this->register_syscall("_usleep", *y);
         if(!registered)
             delete y;
-        statSysCall *z = new statSysCall();
-        registered = this->register_syscall("stat", *z, latencies, false);
-        registered |= this->register_syscall("_stat", *z, latencies, false);
+        statSysCall *z = new statSysCall(this->processorInstance);
+        registered = this->register_syscall("stat", *z);
+        registered |= this->register_syscall("_stat", *z);
         if(!registered)
             delete z;
     }
     void set_environ(std::string name,  std::string value){
-        archc::env[name] = value;
+        env[name] = value;
     }
     void set_program_args(std::vector<std::string> args){
-        if(bfdFE == NULL){
-            THROW_EXCEPTION("Please specify the executable name using the \"initSysCalls\" function before calling " << __PRETTY_FUNCTION__);
-        }
+        BFDFrontend &bfdFE = BFDFrontend::getInstance();
 
-        archc::programArgs = args;
-        mainSysCall * mainCallBack = new mainSysCall();
-        archc::register_syscall("main", *mainCallBack, std::map<std::string, sc_time>());
+        programArgs = args;
+        mainSysCall * mainCallBack = new mainSysCall(this->processorInstance);
+        if(!this->register_syscall("main", *mainCallBack);)
+            THROW_EXCEPTION("Fatal Error, unable to find main function in current application");
+    }
+    void newIssue(){
+        //I have to go over all the registered system calls and check if there is one
+        //that matches the current program counter. In case I simply call the corresponding
+        //callback.
+        regWidth curPC = this->processorInstance.readPC();
+        if((this->syscMask & curPC) == this->syscMask){
+
+            std::map<unsigned int, SyscallCB*>::iterator foundSysc = this->syscCallbacks.find(curPC);
+            if(foundSysc != this->syscCallbacks.end()){
+                (*(foundSysc->second))();
+            }
+        }
     }
 };
 

@@ -47,7 +47,6 @@
 
 extern "C" {
 #include <bfd.h>
-#include <dis-asm.h>
 }
 
 #include <map>
@@ -78,8 +77,6 @@ class BFDFrontend{
     std::map<unsigned int, std::list<std::string> > addrToSym;
     std::map<unsigned int, std::string> addrToFunction;
     std::map<std::string, unsigned int> symToAddr;
-    std::map<unsigned int, std::pair<std::string, unsigned int> > addrToSrc;
-    std::map<unsigned int, std::string> addrToAssembly;
 
     //end address and start address (not necessarily the entry point) of the loadable part of the binary file
     std::pair<unsigned int, unsigned int> codeSize;
@@ -100,7 +97,7 @@ class BFDFrontend{
     /// sprintf wrapper with append features
     static void sprintf_wrapper(char *str, const char *format, ...);
   public:
-    BFDFrontend(std::string binaryName, bool readSrc = false);
+    BFDFrontend(std::string binaryName);
     ~BFDFrontend();
     ///Given an address, it returns the symbol found there,
     ///"" if no symbol is found at the specified address; note
@@ -113,13 +110,6 @@ class BFDFrontend{
     ///valid is set to false if no symbol with the specified
     ///name is found
     unsigned int getSymAddr(std::string symbol, bool &valid);
-    ///Given an address, it sets fileName to the name of the source file
-    ///which contains the code and line to the line in that file. Returns
-    ///false if the address is not valid
-    bool getSrcFile(unsigned int address, std::string &fileName, unsigned int &line);
-    ///Given an address it returns the assembly code at that
-    ///address, "" if there is none or address is not valid
-    std::string getAssembly(unsigned int address);
     ///Returns the name of the executable file
     std::string getExecName();
     ///Returns the end address of the loadable code

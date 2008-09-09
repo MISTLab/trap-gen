@@ -42,7 +42,6 @@
 
 extern "C" {
 #include <bfd.h>
-#include <dis-asm.h>
 }
 
 #include <sys/types.h>
@@ -78,7 +77,7 @@ extern "C" {
 #define DMGL_GNU_V3      (1 << 14)
 #define DMGL_GNAT        (1 << 15)
 
-BFDFrontend::BFDFrontend(std::string binaryName, bool readSrc){
+BFDFrontend::BFDFrontend(std::string binaryName){
     char ** matching = NULL;
     this->sy = NULL;
 
@@ -149,8 +148,6 @@ BFDFrontend::BFDFrontend(std::string binaryName, bool readSrc){
     //Now I call the various functions which extract all the necessary information form the BFD
     this->readDisass();
     this->readSyms();
-    if(readSrc)
-        this->readSrc();
 
     //Finally I deallocate part of the memory
     std::vector<Section>::iterator sectionsIter, sectionsEnd;
@@ -223,117 +220,11 @@ unsigned int BFDFrontend::getSymAddr(std::string symbol, bool &valid){
     }
 }
 
-///Given an address, it sets fileName to the name of the source file
-///which contains the code and line to the line in that file. Returns
-///false if the address is not valid
-bool BFDFrontend::getSrcFile(unsigned int address, std::string &fileName, unsigned int &line){
-    std::map<unsigned int, std::pair<std::string, unsigned int> >::iterator srcMap = this->addrToSrc.find(address);
-    if(srcMap == this->addrToSrc.end()){
-        return false;
-    }
-    else{
-        fileName = srcMap->second.first;
-        line = srcMap->second.second;
-        return true;
-    }
-}
-
-///Given an address it returns the assembly code at that
-///address, "" if there is none or address is not valid
-std::string BFDFrontend::getAssembly(unsigned int address){
-    std::map<unsigned int, std::string>::iterator assMap = this->addrToAssembly.find(address);
-    if(assMap == this->addrToAssembly.end())
-        return "";
-    else
-        return assMap->second;
-}
-
-
 void BFDFrontend::sprintf_wrapper(char *str, const char *format, ...) {
     va_list ap;
     va_start(ap, format);
     vsprintf(str+strlen(str),format, ap);
     va_end(ap);
-}
-
-///Accesses the BFD internal structures in order to get the dissassbly of the instructions
-void BFDFrontend::readDisass(){
-    char myMemStream[100];
-    myMemStream[0] = '\0';
-
-    disassembler_ftype disassFun = disassembler(this->execImage);
-    if(!disassFun){
-        THROW_EXCEPTION("Error in initializing the disassembler for " << bfd_get_filename(this->execImage) << " --> " << bfd_errmsg(bfd_get_error()));
-    }
-
-    disassemble_info disasm_info;
-    init_disassemble_info(&disasm_info, myMemStream, (fprintf_ftype) BFDFrontend::sprintf_wrapper);
-
-    disasm_info.flavour = bfd_get_flavour(this->execImage);
-    disasm_info.arch = bfd_get_arch(this->execImage);
-    disasm_info.mach = bfd_get_mach(this->execImage);
-    disasm_info.disassembler_options = (char *)"";
-    disasm_info.octets_per_byte = bfd_octets_per_byte(this->execImage);
-    disasm_info.skip_zeroes = 8;
-    disasm_info.skip_zeroes_at_end = 3;
-    disasm_info.disassembler_needs_relocs = FALSE;
-    if (bfd_big_endian(this->execImage))
-        disasm_info.display_endian = disasm_info.endian = BFD_ENDIAN_BIG;
-    else if (bfd_little_endian(this->execImage))
-        disasm_info.display_endian = disasm_info.endian = BFD_ENDIAN_LITTLE;
-    else
-        disasm_info.endian = BFD_ENDIAN_UNKNOWN;
-
-    disassemble_init_for_target(&disasm_info);
-
-    disasm_info.symbols = NULL;
-    disasm_info.num_symbols = 0;
-    disasm_info.symtab_pos = -1;
-
-    //Finally I can iterate all over the sections and get the disassembly of each instruction
-    std::vector<Section>::iterator sectionsIter, sectionsEnd;
-    for(sectionsIter = this->secList.begin(), sectionsEnd = this->secList.end(); sectionsIter != sectionsEnd; sectionsIter++){
-        disasm_info.buffer = sectionsIter->data;
-        disasm_info.buffer_vma = sectionsIter->startAddr;
-        disasm_info.buffer_length = sectionsIter->datasize;
-        disasm_info.section = sectionsIter->descriptor;
-        for(bfd_vma i = 0; i < sectionsIter->datasize; i += this->wordsize){
-            (*disassFun)(i + sectionsIter->startAddr, &disasm_info);
-            this->addrToAssembly[i + sectionsIter->startAddr] = myMemStream;
-            myMemStream[0] = '\0';
-        }
-    }
-}
-
-///Accesses the BFD internal structures in order to get correspondence among machine code and
-///the source code
-void BFDFrontend::readSrc(){
-    std::vector<Section>::iterator sectionsIter, sectionsEnd;
-    for(sectionsIter = this->secList.begin(), sectionsEnd = this->secList.end(); sectionsIter != sectionsEnd; sectionsIter++){
-        for(bfd_vma i = 0; i < sectionsIter->datasize; i += this->wordsize){
-            const char *filename = NULL;
-            const char *functionname = NULL;
-            unsigned int line = 0;
-
-            if(!bfd_find_nearest_line (this->execImage, sectionsIter->descriptor, this->sy, i + sectionsIter->startAddr, &filename,
-                        &functionname, &line))
-                continue;
-
-            if (filename != NULL && *filename == '\0')
-                filename = NULL;
-            if (functionname != NULL && *functionname == '\0')
-                functionname = NULL;
-
-            if (functionname != NULL && this->addrToFunction.find(i + sectionsIter->startAddr) == this->addrToFunction.end()){
-                char *name = bfd_demangle (this->execImage, functionname, DMGL_ANSI | DMGL_PARAMS);
-                if(name == NULL)
-                    name = (char *)functionname;
-                this->addrToFunction[i + sectionsIter->startAddr] = name;
-            }
-            if (line > 0 && this->addrToSrc.find(i + sectionsIter->startAddr) == this->addrToSrc.end())
-                this->addrToSrc[i + sectionsIter->startAddr] = std::pair<std::string, unsigned int>(filename == NULL ? "???" : filename, line);
-        }
-    }
 }
 
 ///Accesses the BFD internal structures in order to get the dissassbly of the symbols
@@ -378,14 +269,6 @@ void BFDFrontend::readSyms(){
 
         this->addrToSym[syminfo.value].push_back(name);
         this->symToAddr[name] = syminfo.value;
-
-        const char *filename = NULL;
-        unsigned int line = 0;
-
-        if(!bfd_find_line (this->execImage, this->sy, sym, &filename, &line))
-            continue;
-        if (line > 0)
-            this->addrToSrc[syminfo.value] = std::pair<std::string, unsigned int>(filename == NULL ? "???" : filename, line);
     }
 }
 

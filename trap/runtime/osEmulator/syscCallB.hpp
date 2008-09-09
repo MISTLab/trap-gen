@@ -70,6 +70,11 @@ extern int errno;
 #include <time.h>
 
 extern void correct_flags(int &val);
+extern std::map<std::string,  std::string> env;
+extern std::map<std::string, int> sysconfmap;
+extern std::vector<std::string> programArgs;
+extern unsigned int heapPointer;
+
 
 ///Base class for each emulated system call;
 ///Operator () implements the behaviour of the
@@ -211,19 +216,19 @@ template<class wordSize> class sbrkSysCall : public SyscallCB<wordSize>{
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
 
-        wordSize base = this->processorInstance.getCodeLimit();
+        wordSize base = heapPointer;
         wordSize increment = callArgs[0];
 
         #ifndef NDEBUG
         std::cerr << "Allocating " << increment << " bytes starting at address " << std::showbase << std::hex << base << std::dec << std::endl;
         #endif
 
-        ac_heap_ptr += increment;
+        heapPointer += increment;
 
         //I try to read from meory to see if it is possible to access the just allocated address;
         //In case it is not it means that I'm out of memory and I signal the error
         try{
-            this->processorInstance.readMem(ac_heap_ptr);
+            this->processorInstance.readMem(heapPointer);
             this->processorInstance.setRetVal(base);
         }
         catch(...){
@@ -272,10 +277,10 @@ template<class wordSize> class fstatSysCall : public SyscallCB<wordSize>{
             this->processorInstance.writeMem(retAddr + 14, buf_stat.st_rdev, 2);
             this->processorInstance.writeMem(retAddr + 16, buf_stat.st_size, 4);
             this->processorInstance.writeMem(retAddr + 20, buf_stat.st_atime, 4);
-            this->processorInstance.writeMem(retAddr + 24, buf_stat.st_mtime, 4);
-            this->processorInstance.writeMem(retAddr + 28, buf_stat.st_ctime, 4);
-            this->processorInstance.writeMem(retAddr + 32, buf_stat.st_blksize, 4);
-            this->processorInstance.writeMem(retAddr + 36, buf_stat.st_blocks, 4);
+            this->processorInstance.writeMem(retAddr + 28, buf_stat.st_mtime, 4);
+            this->processorInstance.writeMem(retAddr + 36, buf_stat.st_ctime, 4);
+            this->processorInstance.writeMem(retAddr + 44, buf_stat.st_blksize, 4);
+            this->processorInstance.writeMem(retAddr + 48, buf_stat.st_blocks, 4);
         }
         this->processorInstance.setRetVal(ret);
         this->processorInstance.setPC(this->processorInstance.readLR());
@@ -286,43 +291,36 @@ template<class wordSize> class statSysCall : public SyscallCB<wordSize>{
     public:
     statSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
     void operator()(){
+        //Lets get the system call arguments
+        std::vector< wordSize > callArgs = this->processorInstance.readArgs();
+
         struct stat buf_stat;
 
-        unsigned char pathname[100];
-        processorInstance.get_buffer(0, pathname, 100);
-        int retAddr = processorInstance.get_arg(1);
+        char pathname[256];
+        for(int i = 0; i < 256; i++){
+            pathname[i] = (char)this->processorInstance.readCharMem(callArgs[0] + i);
+            if(pathname[i] == '\x0')
+                break;
+        }
+        int retAddr = callArgs[1];
         int ret = ::stat((char *)pathname, &buf_stat);
         if(ret >= 0 && retAddr != 0){
-            processorInstance.set_buffer_endian(1, (unsigned char *)&(buf_stat.st_dev), 2);
-            processorInstance.set_arg(1, processorInstance.get_arg(1) + 2);
-            processorInstance.set_buffer_endian(1, (unsigned char *)&(buf_stat.st_ino), 2);
-            processorInstance.set_arg(1, processorInstance.get_arg(1) + 2);
-            processorInstance.set_buffer_endian(1, (unsigned char *)&(buf_stat.st_mode), 4);
-            processorInstance.set_arg(1, processorInstance.get_arg(1) + 4);
-            processorInstance.set_buffer_endian(1, (unsigned char *)&(buf_stat.st_nlink), 2);
-            processorInstance.set_arg(1, processorInstance.get_arg(1) + 2);
-            processorInstance.set_buffer_endian(1, (unsigned char *)&(buf_stat.st_uid), 2);
-            processorInstance.set_arg(1, processorInstance.get_arg(1) + 2);
-            processorInstance.set_buffer_endian(1, (unsigned char *)&(buf_stat.st_gid), 2);
-            processorInstance.set_arg(1, processorInstance.get_arg(1) + 2);
-            processorInstance.set_buffer_endian(1, (unsigned char *)&(buf_stat.st_rdev), 2);
-            processorInstance.set_arg(1, processorInstance.get_arg(1) + 2);
-            processorInstance.set_buffer_endian(1, (unsigned char *)&(buf_stat.st_size), 4);
-            processorInstance.set_arg(1, processorInstance.get_arg(1) + 4);
-            processorInstance.set_buffer_endian(1, (unsigned char *)&(buf_stat.st_atime), 4);
-            processorInstance.set_arg(1, processorInstance.get_arg(1) + 8);
-            processorInstance.set_buffer_endian(1, (unsigned char *)&(buf_stat.st_mtime), 4);
-            processorInstance.set_arg(1, processorInstance.get_arg(1) + 8);
-            processorInstance.set_buffer_endian(1, (unsigned char *)&(buf_stat.st_ctime), 4);
-            processorInstance.set_arg(1, processorInstance.get_arg(1) + 8);
-            processorInstance.set_buffer_endian(1, (unsigned char *)&(buf_stat.st_blksize), 4);
-            processorInstance.set_arg(1, processorInstance.get_arg(1) + 4);
-            processorInstance.set_buffer_endian(1, (unsigned char *)&(buf_stat.st_blocks), 4);
-            processorInstance.set_arg(1, processorInstance.get_arg(1) + 4);
-            processorInstance.set_arg(1, retAddr);
+            this->processorInstance.writeMem(retAddr, buf_stat.st_dev, 2);
+            this->processorInstance.writeMem(retAddr + 2, buf_stat.st_ino, 2);
+            this->processorInstance.writeMem(retAddr + 4, buf_stat.st_mode, 4);
+            this->processorInstance.writeMem(retAddr + 8, buf_stat.st_nlink, 2);
+            this->processorInstance.writeMem(retAddr + 10, buf_stat.st_uid, 2);
+            this->processorInstance.writeMem(retAddr + 12, buf_stat.st_gid, 2);
+            this->processorInstance.writeMem(retAddr + 14, buf_stat.st_rdev, 2);
+            this->processorInstance.writeMem(retAddr + 16, buf_stat.st_size, 4);
+            this->processorInstance.writeMem(retAddr + 20, buf_stat.st_atime, 4);
+            this->processorInstance.writeMem(retAddr + 28, buf_stat.st_mtime, 4);
+            this->processorInstance.writeMem(retAddr + 36, buf_stat.st_ctime, 4);
+            this->processorInstance.writeMem(retAddr + 44, buf_stat.st_blksize, 4);
+            this->processorInstance.writeMem(retAddr + 48, buf_stat.st_blocks, 4);
         }
-        processorInstance.set_retVal(0, ret);
-        processorInstance.return_from_syscall();
+        this->processorInstance.setRetVal(ret);
+        this->processorInstance.setPC(this->processorInstance.readLR());
     }
 };
 
@@ -330,7 +328,7 @@ template<class wordSize> class _exitSysCall : public SyscallCB<wordSize>{
     public:
     _exitSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
     void operator()(){
-        int exitValue = processorInstance.get_arg(0);
+        regWidth exitValue = this->processorInstance.readRetVal(0);
         std::cout << std::endl << "Program exited with value " << exitValue << std::endl << std::endl;
         if(sc_is_running())
             sc_stop();
@@ -341,28 +339,27 @@ template<class wordSize> class timesSysCall : public SyscallCB<wordSize>{
     public:
     timesSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
     void operator()(){
+        //Lets get the system call arguments
+        std::vector< wordSize > callArgs = this->processorInstance.readArgs();
+
         unsigned int curSimTime = (unsigned int)(sc_time_stamp().to_double()/1.0e+6);
-        int timesRetLoc = processorInstance.get_arg(0);
+        wordSize timesRetLoc = callArgs[0];
         if(timesRetLoc != 0){
             struct tms buf;
             buf.tms_utime = curSimTime;
             buf.tms_stime = curSimTime;
             buf.tms_cutime = curSimTime;
             buf.tms_cstime = curSimTime;
-            processorInstance.set_buffer_endian(0, (unsigned char *)&(buf.tms_utime), 4);
+            this->processorInstance.writeMem(timesRetLoc, buf.tms_utime, 4);
             timesRetLoc += 4;
-            processorInstance.set_arg(0, timesRetLoc);
-            processorInstance.set_buffer_endian(0, (unsigned char *)&(buf.tms_stime), 4);
+            this->processorInstance.writeMem(timesRetLoc, buf.tms_stime, 4);
             timesRetLoc += 4;
-            processorInstance.set_arg(0, timesRetLoc);
-            processorInstance.set_buffer_endian(0, (unsigned char *)&(buf.tms_cutime), 4);
+            this->processorInstance.writeMem(timesRetLoc, buf.tms_cutime, 4);
             timesRetLoc += 4;
-            processorInstance.set_arg(0, timesRetLoc);
-            processorInstance.set_buffer_endian(0, (unsigned char *)&(buf.tms_cstime), 4);
-            processorInstance.set_arg(0, timesRetLoc - 12);
+            this->processorInstance.writeMem(timesRetLoc, buf.tms_cstime, 4);
         }
-        processorInstance.set_retVal(0, curSimTime);
-        processorInstance.return_from_syscall();
+        this->processorInstance.setRetVal(ret);
+        this->processorInstance.setPC(this->processorInstance.readLR());
     }
 };
 
@@ -370,12 +367,15 @@ template<class wordSize> class timeSysCall : public SyscallCB<wordSize>{
     public:
     timeSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
     void operator()(){
-        int t = processorInstance.get_arg(0);
+        //Lets get the system call arguments
+        std::vector< wordSize > callArgs = this->processorInstance.readArgs();
+
+        int t = callArgs[0];
         int ret = initialTime + (int)(sc_time_stamp().to_double()/1.0e+12);
         if (t != 0)
-            processorInstance.set_buffer_endian(0, (unsigned char *)&ret, 4);
-        processorInstance.set_retVal(0, ret);
-        processorInstance.return_from_syscall();
+            this->processorInstance.writeMem(t, ret, 4);
+        this->processorInstance.setRetVal(ret);
+        this->processorInstance.setPC(this->processorInstance.readLR());
     }
 };
 
@@ -384,8 +384,8 @@ template<class wordSize> class randomSysCall : public SyscallCB<wordSizeABIIf<wo
     randomSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
     void operator()(){
         int ret = ::random();
-        processorInstance.set_retVal(0, ret);
-        processorInstance.return_from_syscall();
+        this->processorInstance.setRetVal(ret);
+        this->processorInstance.setPC(this->processorInstance.readLR());
     }
 };
 
@@ -393,8 +393,8 @@ template<class wordSize> class getpidSysCall : public SyscallCB<wordSize>{
     public:
     getpidSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
     void operator()(){
-        processorInstance.set_retVal(0, 123);
-        processorInstance.return_from_syscall();
+        this->processorInstance.setRetVal(123);
+        this->processorInstance.setPC(this->processorInstance.readLR());
     }
 };
 
@@ -402,13 +402,19 @@ template<class wordSize> class chmodSysCall : public SyscallCB<wordSize>{
     public:
     chmodSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
     void operator()(){
-        unsigned char pathname[100];
+        //Lets get the system call arguments
+        std::vector< wordSize > callArgs = this->processorInstance.readArgs();
 
-        processorInstance.get_buffer(0, pathname, 100);
-        int mode = processorInstance.get_arg(0);
+        char pathname[256];
+        for(int i = 0; i < 256; i++){
+            pathname[i] = (char)this->processorInstance.readCharMem(callArgs[0] + i);
+            if(pathname[i] == '\x0')
+                break;
+        }
+        int mode = callArgs[1];
         int ret = ::chmod((char*)pathname, mode);
-        processorInstance.set_retVal(0, ret);
-        processorInstance.return_from_syscall();
+        this->processorInstance.setRetVal(ret);
+        this->processorInstance.setPC(this->processorInstance.readLR());
     }
 };
 
@@ -416,10 +422,13 @@ template<class wordSize> class dupSysCall : public SyscallCB<wordSize>{
     public:
     dupSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
     void operator()(){
-        int fd = processorInstance.get_arg(0);
+        //Lets get the system call arguments
+        std::vector< wordSize > callArgs = this->processorInstance.readArgs();
+
+        int fd = callArgs[0];
         int ret = ::dup(fd);
-        processorInstance.set_retVal(0, ret);
-        processorInstance.return_from_syscall();
+        this->processorInstance.setRetVal(ret);
+        this->processorInstance.setPC(this->processorInstance.readLR());
     }
 };
 
@@ -427,11 +436,14 @@ template<class wordSize> class dup2SysCall : public SyscallCB<wordSize>{
     public:
     dup2SysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
     void operator()(){
-        int fd = processorInstance.get_arg(0);
-        int newfd = processorInstance.get_arg(1);
+        //Lets get the system call arguments
+        std::vector< wordSize > callArgs = this->processorInstance.readArgs();
+
+        int fd = callArgs[0];
+        int newfd = callArgs[1];
         int ret = ::dup2(fd,  newfd);
-        processorInstance.set_retVal(0, ret);
-        processorInstance.return_from_syscall();
+        this->processorInstance.setRetVal(ret);
+        this->processorInstance.setPC(this->processorInstance.readLR());
     }
 };
 
@@ -439,21 +451,27 @@ template<class wordSize> class getenvSysCall : public SyscallCB<wordSize>{
     public:
     getenvSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
     void operator()(){
-        char envname[100];
+        //Lets get the system call arguments
+        std::vector< wordSize > callArgs = this->processorInstance.readArgs();
 
-        int envNameAddr = processorInstance.get_arg(0);
+        char envname[256];
+        int envNameAddr = callArgs[0];
         if(envNameAddr != 0){
-            processorInstance.get_buffer(0, (unsigned char *)envname, 100);
+            for(int i = 0; i < 256; i++){
+                envname[i] = (char)this->processorInstance.readCharMem(envNameAddr + i);
+                if(envname[i] == '\x0')
+                    break;
+            }
             #ifndef NDEBUG
             std::cerr << "Reading variable -->" << envname << "<--" << std::endl;
             #endif
-            std::map<std::string,  std::string>::iterator curEnv = archc::env.find((std::string(envname)));
+            std::map<std::string,  std::string>::iterator curEnv = env.find((std::string(envname)));
             if(curEnv == archc::env.end()){
                 #ifndef NDEBUG
                 std::cerr << "Not Found" << std::endl;
                 #endif
-                processorInstance.set_retVal(0, 0);
-                processorInstance.return_from_syscall();
+                this->processorInstance.setRetVal(0);
+                this->processorInstance.setPC(this->processorInstance.readLR());
             }
             else{
                 //I have to allocate memory for the result on the simulated memory;
@@ -462,18 +480,19 @@ template<class wordSize> class getenvSysCall : public SyscallCB<wordSize>{
                 #ifndef NDEBUG
                 std::cerr << "Found with value -->" << curEnv->second << "<--" << std::endl;
                 #endif
-                unsigned int base = ac_heap_ptr;
-                ac_heap_ptr += curEnv->second.size();
-                processorInstance.set_arg(0, base);
-                processorInstance.set_buffer(0, (unsigned char *)curEnv->second.c_str(), curEnv->second.size() + 1);
-                processorInstance.set_arg(0, envNameAddr);
-                processorInstance.set_retVal(0, base);
-                processorInstance.return_from_syscall();
+                unsigned int base = heapPointer;
+                heapPointer += curEnv->second.size();
+                for(int i = 0; i < curEnv->second.size(); i++){
+                    this->processorInstance.writeCharMem(base, curEnv->second[i]);
+                }
+                this->processorInstance.writeCharMem(base + curEnv->second.size(), 0);
+                this->processorInstance.setRetVal(base);
+                this->processorInstance.setPC(this->processorInstance.readLR());
             }
         }
         else{
-                processorInstance.set_retVal(0, 0);
-                processorInstance.return_from_syscall();
+            this->processorInstance.setRetVal(0);
+            this->processorInstance.setPC(this->processorInstance.readLR());
         }
     }
 };
@@ -482,19 +501,20 @@ template<class wordSize> class gettimeofdaySysCall : public SyscallCB<wordSize>{
     public:
     gettimeofdaySysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
     void operator()(){
-        int timesRetLoc = processorInstance.get_arg(0);
+        //Lets get the system call arguments
+        std::vector< wordSize > callArgs = this->processorInstance.readArgs();
+
+        int timesRetLoc = callArgs[0];
         if(timesRetLoc != 0){
             struct timeval buf;
             buf.tv_sec = (time_t)(curSimTime/1.0e+12);
             buf.tv_usec = (suseconds_t)((curSimTime - buf.tv_sec*1.0e+12)/1.0e+6);
-            processorInstance.set_buffer_endian(0, (unsigned char *)&(buf.tv_sec), 4);
+            this->processorInstance.writeMem(timesRetLoc, buf.tv_sec, 4);
             timesRetLoc += 4;
-            processorInstance.set_arg(0, timesRetLoc);
-            processorInstance.set_buffer_endian(0, (unsigned char *)&(buf.tv_usec), 4);
-            processorInstance.set_arg(0, timesRetLoc - 4);
+            this->processorInstance.writeMem(timesRetLoc, buf.tv_usec, 4);
         }
-        processorInstance.set_retVal(0, 0);
-        processorInstance.return_from_syscall();
+        this->processorInstance.setRetVal(0);
+        this->processorInstance.setPC(this->processorInstance.readLR());
     }
 };
 
@@ -510,12 +530,14 @@ template<class wordSize> class errorSysCall : public SyscallCB<wordSize>{
     public:
     errorSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
     void operator()(){
-        int status = processorInstance.get_arg(0);
-        int errnum = processorInstance.get_arg(1);
+        //Lets get the system call arguments
+        std::vector< wordSize > callArgs = this->processorInstance.readArgs();
+
+        int status = callArgs[0];
+        int errnum = callArgs[1];
         char*  errorString = ::strerror(errnum);
         if(status != 0){
-            archc::exitValue = status;
-            std::cerr << std::endl << "Program exited with value " << exitValue << std::endl << " Error message: " << errorString << std::endl;
+            std::cerr << std::endl << "Program exited with value " << status << std::endl << " Error message: " << errorString << std::endl;
             if(sc_is_running())
                 sc_stop();
         }
@@ -529,16 +551,23 @@ template<class wordSize> class chownSysCall : public SyscallCB<wordSize>{
     public:
     chownSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
     void operator()(){
-        unsigned char pathname[100];
-        processorInstance.get_buffer(0, pathname, 100);
-        uid_t owner = processorInstance.get_arg(1);
-        gid_t group = processorInstance.get_arg(2);
+        //Lets get the system call arguments
+        std::vector< wordSize > callArgs = this->processorInstance.readArgs();
+
+        char pathname[256];
+        for(int i = 0; i < 256; i++){
+            pathname[i] = (char)this->processorInstance.readCharMem(callArgs[0] + i);
+            if(pathname[i] == '\x0')
+                break;
+        }
+        uid_t owner = callArgs[1];
+        gid_t group = callArgs[2];
         #ifndef NDEBUG
         std::cerr << "Chowning file -->" << pathname << "<--" << std::endl;
         #endif
         int ret = ::chown((char*)pathname, owner, group);
-        processorInstance.set_retVal(0, ret);
-        processorInstance.return_from_syscall();
+        this->processorInstance.setRetVal(ret);
+        this->processorInstance.setPC(this->processorInstance.readLR());
     }
 };
 
@@ -546,14 +575,21 @@ template<class wordSize> class unlinkSysCall : public SyscallCB<wordSize>{
     public:
     unlinkSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
     void operator()(){
-        unsigned char pathname[100];
-        processorInstance.get_buffer(0, pathname, 100);
+        //Lets get the system call arguments
+        std::vector< wordSize > callArgs = this->processorInstance.readArgs();
+
+        char pathname[256];
+        for(int i = 0; i < 256; i++){
+            pathname[i] = (char)this->processorInstance.readCharMem(callArgs[0] + i);
+            if(pathname[i] == '\x0')
+                break;
+        }
         #ifndef NDEBUG
         std::cerr << "Unlinking file -->" << pathname << "<--" << std::endl;
         #endif
         int ret = ::unlink((char*)pathname);
-        processorInstance.set_retVal(0, ret);
-        processorInstance.return_from_syscall();
+        this->processorInstance.setRetVal(ret);
+        this->processorInstance.setPC(this->processorInstance.readLR());
     }
 };
 
@@ -562,7 +598,7 @@ template<class wordSize> class usleepSysCall : public SyscallCB<wordSize>{
     usleepSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
     void operator()(){
         //Since we have a single process this function doesn't do anything :-)
-        processorInstance.return_from_syscall();
+        this->processorInstance.setPC(this->processorInstance.readLR());
     }
 };
 
@@ -570,30 +606,28 @@ template<class wordSize> class mainSysCall : public SyscallCB<wordSize>{
     public:
     mainSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
     void operator()(){
-        unsigned int argAddr = ((unsigned int)ac_heap_ptr) + (archc::programArgs.size() + 1)*4;
-        unsigned int argNumAddr = ac_heap_ptr;
-        unsigned char zero = '\x0';
+        unsigned int argAddr = ((unsigned int)heapPointer) + (programArgs.size() + 1)*4;
+        unsigned int argNumAddr = heapPointer;
         std::vector<std::string>::iterator argsIter, argsEnd;
-        for(argsIter = archc::programArgs.begin(), argsEnd = archc::programArgs.end(); argsIter != argsEnd; argsIter++){
+        for(argsIter = programArgs.begin(), argsEnd = programArgs.end(); argsIter != argsEnd; argsIter++){
             #ifndef NDEBUG
             std::cerr << "Setting argument --> " << *argsIter << std::endl;
             #endif
-            processorInstance.set_arg(0, argNumAddr);
+            this->processorInstance.writeMem(argNumAddr, argAddr, 4);
             argNumAddr += 4;
-            processorInstance.set_buffer_endian(0, (unsigned char *)&argAddr, 4);
-            processorInstance.set_arg(0, argAddr);
-            processorInstance.set_buffer(0, (unsigned char *)argsIter->c_str(), argsIter->size());
-            argAddr += argsIter->size();
-            processorInstance.set_arg(0, argAddr);
-            processorInstance.set_buffer(0, &zero, 1);
-            argAddr++;
+            for(int i = 0; i < argsIter->size(); i++){
+                this->processorInstance.writeCharMem(argAddr, argsIter->c_str()[i]);
+            }
+            this->processorInstance.writeCharMem(argAddr + argsIter->size(), 0);
+            argAddr += argsIter->size() + 1;
         }
-        processorInstance.set_arg(0, argNumAddr);
-        processorInstance.set_buffer_endian(0, &zero, 4);
+        this->processorInstance.writeMem(argNumAddr, 0, 4);
 
-        processorInstance.set_arg(0, archc::programArgs.size());
-        processorInstance.set_arg(1, ac_heap_ptr);
-        ac_heap_ptr = argAddr;
+        std::vector< regWidth > mainArgs;
+        mainArgs.push_back(programArgs.size());
+        mainArgs.push_back(heapPointer);
+        this->processorInstance.setArgs(mainArgs);
+        heapPointer = argAddr;
     }
 };
 
@@ -738,7 +772,10 @@ template<class wordSize> class sysconfSysCall : public SyscallCB<wordSize>{
     public:
     sysconfSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB(processorInstance){}
     void operator()(){
-        int argId = processorInstance.get_arg(0);
+        //Lets get the system call arguments
+        std::vector< wordSize > callArgs = this->processorInstance.readArgs();
+
+        int argId = callArgs[0];
         int ret = -1;
         switch(argId){
             case NEWLIB_SC_NPROCESSORS_ONLN:
@@ -757,8 +794,8 @@ template<class wordSize> class sysconfSysCall : public SyscallCB<wordSize>{
                 ret = -1;
             break;
         }
-        processorInstance.set_retVal(0, ret);
-        processorInstance.return_from_syscall();
+        this->processorInstance.setRetVal(ret);
+        this->processorInstance.setPC(this->processorInstance.readLR());
     }
 };
 

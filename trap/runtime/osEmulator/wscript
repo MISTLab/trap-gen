@@ -7,7 +7,7 @@ def build(bld):
     obj.source="""
         syscCallB.cpp
     """
-    obj.includes = '.'
+    obj.includes = '. ../bfdFontend ../utils'
     obj.export_incdirs = '.'
     obj.name = 'syscall'
     obj.target = 'syscall'
