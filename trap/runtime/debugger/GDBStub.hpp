@@ -1,8 +1,8 @@
 /**
-* This file contains the methods necessary to communicate with GDB in
-* order to debug software running on simulators. Source code takes inspiration
-* from the linux kernel (sparc-stub.c) and from ac_gdb.H in the ArchC sources
-*/
+ * This file contains the methods necessary to communicate with GDB in
+ * order to debug software running on simulators. Source code takes inspiration
+ * from the linux kernel (sparc-stub.c) and from ac_gdb.H in the ArchC sources
+ */
 
 #ifndef GDBSTUB_HPP
 #define GDBSTUB_HPP

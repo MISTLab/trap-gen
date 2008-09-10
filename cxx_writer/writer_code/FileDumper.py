@@ -99,18 +99,18 @@ class FileDumper:
         #inside self.members
         fileHnd = open(self.name, 'wt')
         print >> fileHnd, '/***************************************************************************\\'
-        print >> fileHnd, '*'
+        print >> fileHnd, ' *'
         for line in banner.split('\n'):
-            print >> fileHnd, '*   ' + line
-        print >> fileHnd, '*'
-        print >> fileHnd, '*'
+            print >> fileHnd, ' *   ' + line
+        print >> fileHnd, ' *'
+        print >> fileHnd, ' *'
         for line in license.split('\n'):
-            print >> fileHnd, '*   ' + line
-        print >> fileHnd, '*'
-        print >> fileHnd, '*'
+            print >> fileHnd, ' *   ' + line
+        print >> fileHnd, ' *'
+        print >> fileHnd, ' *'
         for line in copyright.split('\n'):
-            print >> fileHnd, '*   ' + line
-        print >> fileHnd, '*'
+            print >> fileHnd, ' *   ' + line
+        print >> fileHnd, ' *'
         print >> fileHnd, '\\***************************************************************************/\n\n'
         # Now I can start priting the actual code: lets create the writer
         writer = Writer.CodeWriter(fileHnd)
