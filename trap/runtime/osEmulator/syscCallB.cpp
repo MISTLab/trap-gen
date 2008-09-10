@@ -40,6 +40,9 @@
 *
 \***************************************************************************/
 
+#include "bfdFrontend.hpp"
+#include "syscCallB.hpp"
+
 #include <map>
 #include <string>
 #include <vector>
@@ -64,7 +67,7 @@
 #define CORRECT_O_APPEND          02000
 #define CORRECT_O_NONBLOCK        04000
 
-void correct_flags(int &val){
+void OSEmulatorBase::correct_flags(int &val){
     int flags = 0;
 
     if( val &  NEWLIB_O_RDONLY )
@@ -89,7 +92,16 @@ void correct_flags(int &val){
     val = flags;
 }
 
-std::map<std::string,  std::string> env;
-std::map<std::string, int> sysconfmap;
-std::vector<std::string> programArgs;
-unsigned int heapPointer;
+void OSEmulatorBase::set_environ(std::string name,  std::string value){
+    OSEmulatorBase::env[name] = value;
+}
+
+void OSEmulatorBase::set_program_args(std::vector<std::string> args){
+    BFDFrontend &bfdFE = BFDFrontend::getInstance();
+    OSEmulatorBase::programArgs = args;
+}
+
+std::map<std::string,  std::string> OSEmulatorBase::env;
+std::map<std::string, int> OSEmulatorBase::sysconfmap;
+std::vector<std::string> OSEmulatorBase::programArgs;
+unsigned int OSEmulatorBase::heapPointer = 0;

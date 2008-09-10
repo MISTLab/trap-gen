@@ -158,7 +158,6 @@ BFDFrontend::BFDFrontend(std::string binaryName){
     }
 
     //Now I call the various functions which extract all the necessary information form the BFD
-    this->readDisass();
     this->readSyms();
 
     //Finally I deallocate part of the memory
@@ -189,15 +188,15 @@ BFDFrontend::~BFDFrontend(){
 }
 
 ///It returns all the symbols that match the given regular expression
-std::map<std::string,  unsigned int> BFDFrontend::findFunction(boost::regex &regEx){
-    std::map<std::string,  unsigned int> foundSyms;
-    std::map<std::string, unsigned int>::iterator addrMap, addrMapEnd;
-    for(addrMap = this->symToAddr.begin(), addrMapEnd = this->symToAddr.end(); addrMap != addrMapEnd; addrMap++){
-        if(boost::regex_match(addrMap->first, regEx))
-            foundSyms.insert(*addrMap);
-    }
-    return foundSyms;
-}
+// std::map<std::string,  unsigned int> BFDFrontend::findFunction(boost::regex &regEx){
+//     std::map<std::string,  unsigned int> foundSyms;
+//     std::map<std::string, unsigned int>::iterator addrMap, addrMapEnd;
+//     for(addrMap = this->symToAddr.begin(), addrMapEnd = this->symToAddr.end(); addrMap != addrMapEnd; addrMap++){
+//         if(boost::regex_match(addrMap->first, regEx))
+//             foundSyms.insert(*addrMap);
+//     }
+//     return foundSyms;
+// }
 
 ///Given an address, it returns the symbol found there,
 ///"" if no symbol is found at the specified address; note

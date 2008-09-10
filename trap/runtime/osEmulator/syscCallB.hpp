@@ -43,6 +43,8 @@
 #ifndef SYSCCALLB_H
 #define SYSCCALLB_H
 
+#include "utils.hpp"
+
 #include "ABIIf.hpp"
 #include <systemc.h>
 
@@ -69,12 +71,17 @@ extern int errno;
 #include <sys/times.h>
 #include <time.h>
 
-extern void correct_flags(int &val);
-extern std::map<std::string,  std::string> env;
-extern std::map<std::string, int> sysconfmap;
-extern std::vector<std::string> programArgs;
-extern unsigned int heapPointer;
+class OSEmulatorBase{
+    public:
+    static void correct_flags(int &val);
+    static void set_environ(std::string name,  std::string value);
+    static void set_program_args(std::vector<std::string> args);
 
+    static std::map<std::string,  std::string> env;
+    static std::map<std::string, int> sysconfmap;
+    static std::vector<std::string> programArgs;
+    static unsigned int heapPointer;
+};
 
 ///Base class for each emulated system call;
 ///Operator () implements the behaviour of the
@@ -105,7 +112,7 @@ template<class wordSize> class openSysCall : public SyscallCB<wordSize>{
         std::cerr << "Opening file -->" << pathname << "<--" << std::endl;
         #endif
         int flags = callArgs[1];
-        ::correct_flags(flags);
+        OSEmulatorBase::correct_flags(flags);
         int mode = callArgs[2];
         int ret = ::open(pathname, flags, mode);
         this->processorInstance.setRetVal(ret);
@@ -216,19 +223,19 @@ template<class wordSize> class sbrkSysCall : public SyscallCB<wordSize>{
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
 
-        wordSize base = heapPointer;
+        wordSize base = OSEmulatorBase::heapPointer;
         wordSize increment = callArgs[0];
 
         #ifndef NDEBUG
         std::cerr << "Allocating " << increment << " bytes starting at address " << std::showbase << std::hex << base << std::dec << std::endl;
         #endif
 
-        heapPointer += increment;
+        OSEmulatorBase::heapPointer += increment;
 
         //I try to read from meory to see if it is possible to access the just allocated address;
         //In case it is not it means that I'm out of memory and I signal the error
         try{
-            this->processorInstance.readMem(heapPointer);
+            this->processorInstance.readMem(OSEmulatorBase::heapPointer);
             this->processorInstance.setRetVal(base);
         }
         catch(...){
@@ -469,8 +476,8 @@ template<class wordSize> class getenvSysCall : public SyscallCB<wordSize>{
             #ifndef NDEBUG
             std::cerr << "Reading variable -->" << envname << "<--" << std::endl;
             #endif
-            std::map<std::string,  std::string>::iterator curEnv = env.find((std::string(envname)));
-            if(curEnv == env.end()){
+            std::map<std::string,  std::string>::iterator curEnv = OSEmulatorBase::env.find((std::string(envname)));
+            if(curEnv == OSEmulatorBase::env.end()){
                 #ifndef NDEBUG
                 std::cerr << "Not Found" << std::endl;
                 #endif
@@ -484,8 +491,8 @@ template<class wordSize> class getenvSysCall : public SyscallCB<wordSize>{
                 #ifndef NDEBUG
                 std::cerr << "Found with value -->" << curEnv->second << "<--" << std::endl;
                 #endif
-                unsigned int base = heapPointer;
-                heapPointer += curEnv->second.size();
+                unsigned int base = OSEmulatorBase::heapPointer;
+                OSEmulatorBase::heapPointer += curEnv->second.size();
                 for(int i = 0; i < curEnv->second.size(); i++){
                     this->processorInstance.writeCharMem(base, curEnv->second[i]);
                 }
@@ -611,10 +618,12 @@ template<class wordSize> class mainSysCall : public SyscallCB<wordSize>{
     public:
     mainSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     void operator()(){
-        unsigned int argAddr = ((unsigned int)heapPointer) + (programArgs.size() + 1)*4;
-        unsigned int argNumAddr = heapPointer;
+        if(OSEmulatorBase::programArgs.size() == 0)
+            return;
+        unsigned int argAddr = ((unsigned int)OSEmulatorBase::heapPointer) + (OSEmulatorBase::programArgs.size() + 1)*4;
+        unsigned int argNumAddr = OSEmulatorBase::heapPointer;
         std::vector<std::string>::iterator argsIter, argsEnd;
-        for(argsIter = programArgs.begin(), argsEnd = programArgs.end(); argsIter != argsEnd; argsIter++){
+        for(argsIter = OSEmulatorBase::programArgs.begin(), argsEnd = OSEmulatorBase::programArgs.end(); argsIter != argsEnd; argsIter++){
             #ifndef NDEBUG
             std::cerr << "Setting argument --> " << *argsIter << std::endl;
             #endif
@@ -629,10 +638,10 @@ template<class wordSize> class mainSysCall : public SyscallCB<wordSize>{
         this->processorInstance.writeMem(argNumAddr, 0, 4);
 
         std::vector< wordSize > mainArgs;
-        mainArgs.push_back(programArgs.size());
-        mainArgs.push_back(heapPointer);
+        mainArgs.push_back(OSEmulatorBase::programArgs.size());
+        mainArgs.push_back(OSEmulatorBase::heapPointer);
         this->processorInstance.setArgs(mainArgs);
-        heapPointer = argAddr;
+        OSEmulatorBase::heapPointer = argAddr;
     }
 };
 
@@ -784,16 +793,16 @@ template<class wordSize> class sysconfSysCall : public SyscallCB<wordSize>{
         int ret = -1;
         switch(argId){
             case NEWLIB_SC_NPROCESSORS_ONLN:
-                if(sysconfmap.find("_SC_NPROCESSORS_ONLN") == sysconfmap.end())
+                if(OSEmulatorBase::sysconfmap.find("_SC_NPROCESSORS_ONLN") == OSEmulatorBase::sysconfmap.end())
                     ret = 1;
                 else
-                    ret = sysconfmap["_SC_NPROCESSORS_ONLN"];
+                    ret = OSEmulatorBase::sysconfmap["_SC_NPROCESSORS_ONLN"];
             break;
             case NEWLIB_SC_CLK_TCK:
-                if(sysconfmap.find("_SC_CLK_TCK") == sysconfmap.end())
+                if(OSEmulatorBase::sysconfmap.find("_SC_CLK_TCK") == OSEmulatorBase::sysconfmap.end())
                     ret = 1000000;
                 else
-                    ret = sysconfmap["_SC_CLK_TCK"];
+                    ret = OSEmulatorBase::sysconfmap["_SC_CLK_TCK"];
             break;
             default:
                 ret = -1;

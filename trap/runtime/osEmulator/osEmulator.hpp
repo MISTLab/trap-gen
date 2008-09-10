@@ -52,12 +52,7 @@
 
 #include "syscCallB.hpp"
 
-extern unsigned int heapPointer;
-extern std::map<std::string,  std::string> env;
-extern std::map<std::string, int> sysconfmap;
-extern std::vector<std::string> programArgs;
-
-template<class issueWidth> class OSEmulator : public ToolsIf{
+template<class issueWidth> class OSEmulator : public ToolsIf, OSEmulatorBase{
   private:
     std::map<unsigned int, SyscallCB<issueWidth>* > syscCallbacks;
     unsigned int syscMask;
@@ -93,7 +88,7 @@ template<class issueWidth> class OSEmulator : public ToolsIf{
   public:
     OSEmulator(ABIIf<issueWidth> &processorInstance) : processorInstance(processorInstance){
         this->syscMask = (unsigned int)-1L;
-        heapPointer = (unsigned int)this->processorInstance.getCodeLimit();
+        OSEmulatorBase::heapPointer = (unsigned int)this->processorInstance.getCodeLimit();
     }
     void initSysCalls(std::string execName){
         BFDFrontend &bfdFE = BFDFrontend::getInstance(execName);
@@ -227,14 +222,6 @@ template<class issueWidth> class OSEmulator : public ToolsIf{
         registered |= this->register_syscall("_stat", *z);
         if(!registered)
             delete z;
-    }
-    void set_environ(std::string name,  std::string value){
-        env[name] = value;
-    }
-    void set_program_args(std::vector<std::string> args){
-        BFDFrontend &bfdFE = BFDFrontend::getInstance();
-
-        programArgs = args;
         mainSysCall<issueWidth> * mainCallBack = new mainSysCall<issueWidth>(this->processorInstance);
         if(!this->register_syscall("main", *mainCallBack))
             THROW_EXCEPTION("Fatal Error, unable to find main function in current application");

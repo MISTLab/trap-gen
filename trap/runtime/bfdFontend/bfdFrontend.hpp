@@ -84,8 +84,6 @@ class BFDFrontend{
     ///Contains a list of the sections which contain executable code
     std::vector<Section> secList;
 
-    ///Accesses the BFD internal structures in order to get the dissassbly of the instructions
-    void readDisass();
     ///Accesses the BFD internal structures in order to get correspondence among machine code and
     ///the source code
     void readSrc();
@@ -116,8 +114,8 @@ class BFDFrontend{
     std::string getExecName();
     ///Returns the end address of the loadable code
     unsigned int getBinaryEnd();
-    ///It returns all the symbols that match the given regular expression
-    std::map<std::string,  unsigned int> findFunction(boost::regex &regEx);
+//    ///It returns all the symbols that match the given regular expression
+//    std::map<std::string,  unsigned int> findFunction(boost::regex &regEx);
 };
 
 #endif

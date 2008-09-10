@@ -130,80 +130,77 @@ def configure(conf):
     ##################################################
     # Check for pthread library/flag
     ##################################################
-#    if conf.check_flags('-pthread'):
-#        conf.env.append_unique('LINKFLAGS', '-pthread')
-#        conf.env.append_unique('CXXFLAGS', '-pthread')
-#        conf.env.append_unique('CFLAGS', '-pthread')
-#        conf.env.append_unique('CCFLAGS', '-pthread')
-#        pthread_uselib = []
-#    else:
-#        le = conf.create_library_enumerator()
-#        le.mandatory = 1
-#        le.name = 'pthread'
-#        le.message = 'pthread library'
-#        pthread_uselib = ['pthread']
-#        conf.env.append_unique('LIB', le.run())
+    if conf.check_flags('-pthread'):
+        conf.env.append_unique('LINKFLAGS', '-pthread')
+        conf.env.append_unique('CXXFLAGS', '-pthread')
+        conf.env.append_unique('CFLAGS', '-pthread')
+        conf.env.append_unique('CCFLAGS', '-pthread')
+        pthread_uselib = []
+    else:
+        le = conf.create_library_enumerator()
+        le.mandatory = 1
+        le.name = 'pthread'
+        le.message = 'pthread library'
+        pthread_uselib = ['pthread']
+        conf.env.append_unique('LIB', le.run())
 
     ##################################################
     # Is SystemC compiled? Check for SystemC library
     # Notice that we can't rely on lib-linux, therefore I have to find the actual platform...
     ##################################################
-    # First I set the clafgs needed by TLM 2.0 for including systemc dynamic process
-    # creation
-#    conf.env.append_unique('CPPFLAGS','-DSC_INCLUDE_DYNAMIC_PROCESSES')
-#    syscpath = None
-#    if Options.options.systemcdir:
-#        syscpath = ([os.path.abspath(os.path.join(Options.options.systemcdir, 'include'))])
-#    elif 'SYSTEMC' in os.environ:
-#        syscpath = ([os.path.abspath(os.path.join(os.environ['SYSTEMC'], 'include'))])
-#
-#    le = conf.create_library_enumerator()
-#    le.mandatory = 1
-#    le.uselib_store = 'SYSTEMC'
-#    le.name = 'systemc'
-#    le.message = 'Library SystemC ver. 2.2.0 not found'
-#    le.nosystem = 1
-#    import glob
-#    if syscpath:
-#        sysclib = le.path = glob.glob(os.path.join(os.path.abspath(os.path.join(syscpath[0], '..')), 'lib-*'))
-#    le.run()
+    syscpath = None
+    if Options.options.systemcdir:
+        syscpath = ([os.path.abspath(os.path.join(Options.options.systemcdir, 'include'))])
+    elif 'SYSTEMC' in os.environ:
+        syscpath = ([os.path.abspath(os.path.join(os.environ['SYSTEMC'], 'include'))])
+
+    le = conf.create_library_enumerator()
+    le.mandatory = 1
+    le.uselib_store = 'SYSTEMC'
+    le.name = 'systemc'
+    le.message = 'Library SystemC ver. 2.2.0 not found'
+    le.nosystem = 1
+    import glob
+    if syscpath:
+        sysclib = le.path = glob.glob(os.path.join(os.path.abspath(os.path.join(syscpath[0], '..')), 'lib-*'))
+    le.run()
     ######################################################
     # Check if systemc is compiled with quick threads or not
     ######################################################
-#    if not os.path.exists(os.path.join(syscpath[0] , 'sysc' , 'qt')):
-#        conf.env.append_unique('CPPFLAGS', '-DSC_USE_PTHREADS')
+    if not os.path.exists(os.path.join(syscpath[0] , 'sysc' , 'qt')):
+        conf.env.append_unique('CPPFLAGS', '-DSC_USE_PTHREADS')
 
     ##################################################
     # Check for SystemC header and test the library
     ##################################################
-#    he = conf.create_header_configurator()
-#    he.mandatory = 1
-#    he.header_code = """
-#        #include <systemc.h>
-#
-#        #ifndef SYSTEMC_VERSION
-#        #error SYSTEMC_VERSION not defined in file sc_ver.h
-#        #endif
-#
-#        #if SYSTEMC_VERSION < 20070314
-#        #error Wrong SystemC version
-#        #endif
-#
-#        extern "C" {
-#            int sc_main(int argc, char** argv) {
-#                wif_trace_file trace("");
-#                trace.set_time_unit(1, SC_NS);
-#                return 0;
-#            };
-#        }
-#    """
-#    he.path = syscpath
-#    he.name = "systemc.h"
-#    he.message = 'Library and Headers for SystemC ver. 2.2.0 or greater not found'
-#    he.uselib = 'SYSTEMC'
-#    he.uselib_store = 'SYSTEMC'
-#    he.lib_paths = sysclib
-#    he.run()
+    he = conf.create_header_configurator()
+    he.mandatory = 1
+    he.header_code = """
+        #include <systemc.h>
+
+        #ifndef SYSTEMC_VERSION
+        #error SYSTEMC_VERSION not defined in file sc_ver.h
+        #endif
+
+        #if SYSTEMC_VERSION < 20070314
+        #error Wrong SystemC version
+        #endif
+
+        extern "C" {
+            int sc_main(int argc, char** argv) {
+                wif_trace_file trace("");
+                trace.set_time_unit(1, SC_NS);
+                return 0;
+            };
+        }
+    """
+    he.path = syscpath
+    he.name = "systemc.h"
+    he.message = 'Library and Headers for SystemC ver. 2.2.0 or greater not found'
+    he.uselib = 'SYSTEMC'
+    he.uselib_store = 'SYSTEMC'
+    he.lib_paths = sysclib
+    he.run()
 
     ##################################################
     # Check for TLM header
@@ -255,5 +252,5 @@ def set_options(opt):
     opt.add_option('--py-install-dir', type='string', help='Folder where the python files will be installed', dest='pyinstalldir')
 #    opt.tool_options('boost', option_group=build_options)
     # Specify SystemC and TLM path
-#    opt.add_option('--with-systemc', type='string', help='SystemC installation directory', dest='systemcdir' )
+    opt.add_option('--with-systemc', type='string', help='SystemC installation directory', dest='systemcdir' )
 #    opt.add_option('--with-tlm', type='string', help='TLM installation directory', dest='tlmdir')
