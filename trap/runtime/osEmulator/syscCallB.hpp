@@ -193,7 +193,7 @@ template<class wordSize> class writeSysCall : public SyscallCB<wordSize>{
         unsigned count = callArgs[2];
         wordSize destAddress = callArgs[1];
         unsigned char *buf = new unsigned char[count];
-        for(int i = 0; i < count; i++){
+        for(unsigned int i = 0; i < count; i++){
             buf[i] = this->processorInstance.readCharMem(destAddress + i);
         }
         int ret = ::write(fd, buf, count);
@@ -493,7 +493,7 @@ template<class wordSize> class getenvSysCall : public SyscallCB<wordSize>{
                 #endif
                 unsigned int base = OSEmulatorBase::heapPointer;
                 OSEmulatorBase::heapPointer += curEnv->second.size();
-                for(int i = 0; i < curEnv->second.size(); i++){
+                for(unsigned int i = 0; i < curEnv->second.size(); i++){
                     this->processorInstance.writeCharMem(base, curEnv->second[i]);
                 }
                 this->processorInstance.writeCharMem(base + curEnv->second.size(), 0);
@@ -629,7 +629,7 @@ template<class wordSize> class mainSysCall : public SyscallCB<wordSize>{
             #endif
             this->processorInstance.writeMem(argNumAddr, argAddr, 4);
             argNumAddr += 4;
-            for(int i = 0; i < argsIter->size(); i++){
+            for(unsigned int i = 0; i < argsIter->size(); i++){
                 this->processorInstance.writeCharMem(argAddr, argsIter->c_str()[i]);
             }
             this->processorInstance.writeCharMem(argAddr + argsIter->size(), 0);

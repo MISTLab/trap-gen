@@ -91,8 +91,6 @@ template<class issueWidth> class OSEmulator : public ToolsIf, OSEmulatorBase{
         OSEmulatorBase::heapPointer = (unsigned int)this->processorInstance.getCodeLimit();
     }
     void initSysCalls(std::string execName){
-        BFDFrontend &bfdFE = BFDFrontend::getInstance(execName);
-        bool valid = false;
         //Now I perform the registration of the basic System Calls
         bool registered = false;
 
