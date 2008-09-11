@@ -224,7 +224,7 @@ template<class wordSize> class sbrkSysCall : public SyscallCB<wordSize>{
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
 
         wordSize base = OSEmulatorBase::heapPointer;
-        wordSize increment = callArgs[0];
+        long long increment = callArgs[0];
 
         #ifndef NDEBUG
         std::cerr << "Allocating " << increment << " bytes starting at address " << std::showbase << std::hex << base << std::dec << std::endl;

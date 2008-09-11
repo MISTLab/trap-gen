@@ -529,9 +529,6 @@ DPI_imm_Op.addUserInstructionElement('rotate')
 DPI_imm_Op.addUserInstructionElement('immediate')
 # Now I define the behavior used by most of the data processing operations
 # for the update of the program status register
-# TODO: check carry and overflow operations; in particular, are they valid for
-# each operation or there is a version for the addition and one for the
-# subraction ops?
 opCode = cxx_writer.Code("""
 if (s == 0x1){
     if(rd_bit == 15){
@@ -546,19 +543,46 @@ if (s == 0x1){
         //Update flag Z if the result is 0
         CPSR["Z"] = (result == 0);
         //Update the C flag if a carry occurred in the operation
-        CPSR["C"] = (((((rn >> 31) & 0x01) ^ ((operand >> 31) & 0x01)) ^ (result & 0x0000000100000000LL)) != 0);
+        CPSR["C"] = (((~result & operand) | (~result & rn) | (result & rn & operand)) & 0x0000000080000000LL) != 0);
         //Update the V flag if an overflow occurred in the operation
-        CPSR["V"] = ((rn & operand & ~result & 0x0000000080000000LL) != 0 ||
-                     (~rn & ~operand & result & 0x0000000080000000LL) != 0);
+        CPSR["V"] = (((rn & operand & ~result) | (~rn & ~operand & result)) & 0x0000000080000000LL) != 0);
     }
 }
 """)
-UpdatePSR = trap.HelperOperation('UpdatePSR', opCode)
-UpdatePSR.addInstuctionVar(('result', 'BIT<64>'))
-UpdatePSR.addUserInstructionElement('s')
-UpdatePSR.addUserInstructionElement('rn')
-UpdatePSR.addUserInstructionElement('rd')
-UpdatePSR.addInstuctionVar(('operand', 'BIT<32>'))
+UpdatePSRSum = trap.HelperOperation('UpdatePSRSum', opCode)
+UpdatePSRSum.addInstuctionVar(('result', 'BIT<64>'))
+UpdatePSRSum.addUserInstructionElement('s')
+UpdatePSRSum.addUserInstructionElement('rn')
+UpdatePSRSum.addUserInstructionElement('rd')
+UpdatePSRSum.addInstuctionVar(('operand', 'BIT<32>'))
+# Now I define the behavior used by most of the data processing operations
+# for the update of the program status register
+opCode = cxx_writer.Code("""
+if (s == 0x1){
+    if(rd_bit == 15){
+        // In case the destination register is the program counter,
+        // I have to switch to the saved program status register
+        restoreSPSR();
+    }
+    else{
+        //Here I have to normally update the flags
+        // N flag if the results is negative
+        CPSR["N"] = ((result & 0x0000000080000000LL) != 0);
+        //Update flag Z if the result is 0
+        CPSR["Z"] = (result == 0);
+        //Update the C flag if a carry occurred in the operation
+        CPSR["C"] = (((~result & ~operand) | (~result & rn) | (result & rn & ~operand)) & 0x0000000080000000LL) != 0);
+        //Update the V flag if an overflow occurred in the operation
+        CPSR["V"] = (((rn & ~operand & ~result) | (~rn & operand & result)) & 0x0000000080000000LL) != 0);
+    }
+}
+""")
+UpdatePSRSub = trap.HelperOperation('UpdatePSRSub', opCode)
+UpdatePSRSub.addInstuctionVar(('result', 'BIT<64>'))
+UpdatePSRSub.addUserInstructionElement('s')
+UpdatePSRSub.addUserInstructionElement('rn')
+UpdatePSRSub.addUserInstructionElement('rd')
+UpdatePSRSub.addInstuctionVar(('operand', 'BIT<32>'))
 # In case the program counter is the updated register I have
 # to increment the latency of the operation
 opCode = cxx_writer.Code("""

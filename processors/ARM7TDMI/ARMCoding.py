@@ -79,7 +79,10 @@ branch.setBitfield('opcode', [1, 0, 1])
 swi = trap.MachineCode([('cond', 4), ('one', 4), ('swi_number', 1)])
 
 # Co-Processor Instructions
-# TODO: complete this part
-#cp_ls = trap.MachineCode()
-#cp_dataProc = trap.MachineCode()
-#cp_regMove = trap.MachineCode()
+cp_ls = trap.MachineCode([('cond', 4), ('opcode', 3), ('p', 1), ('u', 1), ('n', 1), ('w', 1), ('l', 1), ('rn', 4), ('crd', 4), ('cpnum', 4), ('offset', 8)])
+cp_ls.setBitfield('opcode', [1, 1, 0])
+cp_ls.setVarField('rn', ('REGS', 0))
+cp_dataProc = trap.MachineCode([('cond', 4), ('opcode0', 4), ('opcode1', 4), ('crn', 4), ('crd', 4), ('cpnum', 4), ('opcode2', 4), ('zero', 1), ('crm', 4)])
+cp_dataProc.setBitfield('opcode', [1, 1, 1, 0])
+cp_regMove = trap.MachineCode([('cond', 4), ('opcode0', 4), ('opcode1', 3), ('l', 1), ('crn', 4), ('crd', 4), ('cpnum', 4), ('opcode2', 4), ('one', 1), ('crm', 4)])
+cp_regMove.setBitfield('opcode', [1, 1, 1, 0])
