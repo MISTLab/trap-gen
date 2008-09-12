@@ -157,9 +157,8 @@ and_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [0, 0, 0, 0]},
 and_shift_imm_Instr.setCode(opCode, 'execute')
 and_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
 and_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
-and_shift_imm_Instr.addBehavior(UpdatePSR, 'execute', False)
+and_shift_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 and_shift_imm_Instr.addBehavior(UpdatePC, 'execute', False)
-and_shift_imm_Instr.addVariable(('result', 'BIT<64>'))
 and_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 6})
 isa.addInstruction(and_shift_imm_Instr)
 and_shift_reg_Instr = trap.Instruction('AND_sr', True)
@@ -167,16 +166,29 @@ and_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [0, 0, 0, 0]},
 and_shift_reg_Instr.setCode(opCode, 'execute')
 and_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
 and_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
-and_shift_reg_Instr.addBehavior(UpdatePSR, 'execute', False)
+and_shift_reg_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 and_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
-and_shift_reg_Instr.addVariable(('result', 'BIT<64>'))
 isa.addInstruction(and_shift_reg_Instr)
 and_imm_Instr = trap.Instruction('AND_i', True)
 and_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [0, 0, 0, 0]}, 'TODO')
 and_imm_Instr.setCode(opCode, 'execute')
 and_imm_Instr.addBehavior(condCheckOp, 'execute')
 and_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
-and_imm_Instr.addBehavior(UpdatePSR, 'execute', False)
+and_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 and_imm_Instr.addBehavior(UpdatePC, 'execute', False)
-and_imm_Instr.addVariable(('result', 'BIT<64>'))
 isa.addInstruction(and_imm_Instr)
+
+# BRANCH instruction family
+opCode = cxx_writer.Code("""
+if(l == 1) {
+    LR = PC - 4;
+}
+PC += ((SignExtend(offset, 24) << 2);
+stall(2);
+""")
+branch_Instr = trap.Instruction('BRANCH', True)
+branch_Instr.setMachineCode(branch, {}, 'TODO')
+branch_Instr.setCode(opCode, 'execute')
+branch_Instr.addBehavior(condCheckOp, 'execute')
+branch_Instr.addBehavior(IncrementPC, 'execute', False)
+isa.addInstruction(branch_Instr)

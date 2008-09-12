@@ -119,6 +119,14 @@ AShiftRight_method.setSignature(('BIT<32>'), [cxx_writer.Parameter('shift_amm', 
 AShiftRight_method.addVariable(('shifted', 'BIT<32>'))
 
 opCode = cxx_writer.Code("""
+if((bitSeq & (1 << (bitSeq_length - 1))) != 0)
+    bitSeq |= (((unsigned int)0xFFFFFFFF) << bitSeq_length);
+return bitSeq;
+""")
+SignExtend_method = trap.HelperMethod('SignExtend', opCode)
+SignExtend_method.setSignature(('BIT<32>'), [('bitSeq', 'BIT<32>'), cxx_writer.Parameter('bitSeq_length', cxx_writer.uintType)])
+
+opCode = cxx_writer.Code("""
 //value which must be glued to the left of the shifted quantity
 toGlue = toRotate & (((unsigned int)0xFFFFFFFF) >> (32 - rotate_amm));
 rotated = ((toRotate >> rotate_amm) & (((unsigned int)0xFFFFFFFF) >> rotate_amm));
@@ -583,6 +591,34 @@ UpdatePSRSub.addUserInstructionElement('s')
 UpdatePSRSub.addUserInstructionElement('rn')
 UpdatePSRSub.addUserInstructionElement('rd')
 UpdatePSRSub.addInstuctionVar(('operand', 'BIT<32>'))
+# Now I define the behavior used by most of the data processing operations
+# for the update of the program status register
+opCode = cxx_writer.Code("""
+if (s == 0x1){
+    if(rd_bit == 15){
+        // In case the destination register is the program counter,
+        // I have to switch to the saved program status register
+        restoreSPSR();
+    }
+    else{
+        //Here I have to normally update the flags
+        // N flag if the results is negative
+        CPSR["N"] = ((result & 0x0000000080000000LL) != 0);
+        //Update flag Z if the result is 0
+        CPSR["Z"] = (result == 0);
+        //Update the C flag if a carry occurred in the operation
+        CPSR["C"] = (carry != 0);
+        //No updates performed to the V flag.
+    }
+}
+""")
+UpdatePSRBit = trap.HelperOperation('UpdatePSRBit', opCode)
+UpdatePSRBit.addInstuctionVar(('result', 'BIT<64>'))
+UpdatePSRBit.addUserInstructionElement('s')
+UpdatePSRBit.addUserInstructionElement('rn')
+UpdatePSRBit.addUserInstructionElement('rd')
+UpdatePSRBit.addInstuctionVar(('operand', 'BIT<32>'))
+UpdatePSRBit.addInstuctionVar(('carry', 'BIT<1>'))
 # In case the program counter is the updated register I have
 # to increment the latency of the operation
 opCode = cxx_writer.Code("""
@@ -597,6 +633,14 @@ if(rd_bit == 15){
     //specify that I have a latency of two clock cycles
     stall(2);
 }
+else{
+    PC += 4;
+}
 """)
 UpdatePC = trap.HelperOperation('UpdatePC', opCode, False)
 UpdatePC.addUserInstructionElement('rd')
+# Normal PC increment
+opCode = cxx_writer.Code("""
+PC += 4;
+""")
+IncrementPC = trap.HelperOperation('IncrementPC', opCode, False)
