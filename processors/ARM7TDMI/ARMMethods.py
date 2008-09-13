@@ -233,6 +233,7 @@ if(cond != 0xE){
         case 0x0:{
             // EQ
             if (CPSR["Z"] == 0x0){
+                PC += 4;
                 flush();
             }
             break;
@@ -240,6 +241,7 @@ if(cond != 0xE){
         case 0x1:{
             // NE
             if (CPSR["Z"] != 0x0){
+                PC += 4;
                 flush();
             }
             break;
@@ -247,6 +249,7 @@ if(cond != 0xE){
         case 0x2:{
             // CS/HS
             if (CPSR["C"] == 0x0){
+                PC += 4;
                 flush();
             }
             break;
@@ -254,6 +257,7 @@ if(cond != 0xE){
         case 0x3:{
             // CC/LO
             if (CPSR["C"] != 0x0){
+                PC += 4;
                 flush();
             }
             break;
@@ -261,6 +265,7 @@ if(cond != 0xE){
         case 0x4:{
             // MI
             if (CPSR["N"] == 0x0){
+                PC += 4;
                 flush();
             }
             break;
@@ -268,6 +273,7 @@ if(cond != 0xE){
         case 0x5:{
             // PL
             if (CPSR["N"] != 0x0){
+                PC += 4;
                 flush();
             }
             break;
@@ -275,6 +281,7 @@ if(cond != 0xE){
         case 0x6:{
             // VS
             if (CPSR["V"] == 0x0){
+                PC += 4;
                 flush();
             }
             break;
@@ -282,6 +289,7 @@ if(cond != 0xE){
         case 0x7:{
             // VC
             if (CPSR["V"] != 0x0){
+                PC += 4;
                 flush();
             }
             break;
@@ -289,6 +297,7 @@ if(cond != 0xE){
         case 0x8:{
             // HI
             if ((CPSR & 0x60000000) != 0x20000000){
+                PC += 4;
                 flush();
             }
             break;
@@ -296,6 +305,7 @@ if(cond != 0xE){
         case 0x9:{
             // LS
             if ((CPSR & 0x60000000) == 0x20000000){
+                PC += 4;
                 flush();
             }
             break;
@@ -303,6 +313,7 @@ if(cond != 0xE){
         case 0xA:{
             // GE
             if (CPSR["V"] != CPSR["N"]){
+                PC += 4;
                 flush();
             }
             break;
@@ -310,6 +321,7 @@ if(cond != 0xE){
         case 0xB:{
             // LT
             if (CPSR["V"] == CPSR["N"]){
+                PC += 4;
                 flush();
             }
             break;
@@ -317,6 +329,7 @@ if(cond != 0xE){
         case 0xC:{
             // GT
             if ((CPSR["Z"] != 0x0) || (CPSR["V"] != CPSR["N"])){
+                PC += 4;
                 flush();
             }
             break;
@@ -324,6 +337,7 @@ if(cond != 0xE){
         case 0xD:{
             // LE
             if ((CPSR["Z"] == 0x0) && (CPSR["V"] == CPSR["N"])){
+                PC += 4;
                 flush();
             }
             break;
@@ -334,7 +348,7 @@ if(cond != 0xE){
         }
         default:{
             // Not recognized condition code
-            THROW_EXCEPTION("Unpredictable condition code: " << cond);
+            THROW_EXCEPTION("Unrecognized condition code: " << cond);
             break;
         }
     }
@@ -603,9 +617,9 @@ if (s == 0x1){
     else{
         //Here I have to normally update the flags
         // N flag if the results is negative
-        CPSR["N"] = ((result & 0x0000000080000000LL) != 0);
+        CPSR["N"] = ((rd & 0x80000000) != 0);
         //Update flag Z if the result is 0
-        CPSR["Z"] = (result == 0);
+        CPSR["Z"] = (rd == 0);
         //Update the C flag if a carry occurred in the operation
         CPSR["C"] = (carry != 0);
         //No updates performed to the V flag.
@@ -613,11 +627,9 @@ if (s == 0x1){
 }
 """)
 UpdatePSRBit = trap.HelperOperation('UpdatePSRBit', opCode)
-UpdatePSRBit.addInstuctionVar(('result', 'BIT<64>'))
 UpdatePSRBit.addUserInstructionElement('s')
 UpdatePSRBit.addUserInstructionElement('rn')
 UpdatePSRBit.addUserInstructionElement('rd')
-UpdatePSRBit.addInstuctionVar(('operand', 'BIT<32>'))
 UpdatePSRBit.addInstuctionVar(('carry', 'BIT<1>'))
 # In case the program counter is the updated register I have
 # to increment the latency of the operation

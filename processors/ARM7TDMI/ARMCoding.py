@@ -74,8 +74,14 @@ ls_regOff.setVarField('rm', ('REGS', 0))
 ls_multiple = trap.MachineCode([('cond', 4), ('opcode', 3), ('p', 1), ('u', 1), ('s', 1), ('w', 1), ('l', 1), ('rn', 4), ('reg_list', 16)])
 ls_multiple.setBitfield('opcode', [1, 0, 0])
 ls_multiple.setVarField('rn', ('REGS', 0))
+
 branch = trap.MachineCode([('cond', 4), ('opcode', 3), ('l', 1), ('offset', 24)])
 branch.setBitfield('opcode', [1, 0, 1])
+branch_thumb = trap.MachineCode([('cond', 4), ('opcode0', 8), ('zero', 12), ('opcode1', 4), ('rm', 4)])
+branch_thumb.setBitfield('opcode0', [0, 0, 0, 1, 0, 0, 1, 0])
+branch_thumb.setBitfield('opcode1', [0, 0, 0, 1])
+branch_thumb.setVarField('rm', ('REGS', 0))
+
 swi = trap.MachineCode([('cond', 4), ('one', 4), ('swi_number', 1)])
 
 # Co-Processor Instructions

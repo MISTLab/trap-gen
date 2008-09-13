@@ -117,7 +117,8 @@ isa.addInstruction(adc_imm_Instr)
 
 # ADD instruction family
 opCode = cxx_writer.Code("""
-rd = (long long) ((long long)rn + (long long)operand);
+result = (long long) ((long long)rn + (long long)operand);
+rd = result;
 """)
 add_shift_imm_Instr = trap.Instruction('ADD_si', True)
 add_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [0, 1, 0, 0]}, 'TODO')
@@ -190,5 +191,105 @@ branch_Instr = trap.Instruction('BRANCH', True)
 branch_Instr.setMachineCode(branch, {}, 'TODO')
 branch_Instr.setCode(opCode, 'execute')
 branch_Instr.addBehavior(condCheckOp, 'execute')
-branch_Instr.addBehavior(IncrementPC, 'execute', False)
 isa.addInstruction(branch_Instr)
+opCode = cxx_writer.Code("""
+// Note how the T bit is not considered since we do not bother with
+// thumb mode
+PC = rm & 0xFFFFFFFC;
+stall(2);
+""")
+branch_thumb_Instr = trap.Instruction('BRANCHX', True)
+branch_thumb_Instr.setMachineCode(branch_thumb, {}, 'TODO')
+branch_thumb_Instr.setCode(opCode, 'execute')
+branch_thumb_Instr.addBehavior(condCheckOp, 'execute')
+isa.addInstruction(branch_thumb_Instr)
+
+# BIC instruction family
+opCode = cxx_writer.Code("""
+rd = rn & ~operand;
+""")
+bic_shift_imm_Instr = trap.Instruction('BIC_si', True)
+bic_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [1, 1, 1, 0]}, 'TODO')
+bic_shift_imm_Instr.setCode(opCode, 'execute')
+bic_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
+bic_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
+bic_shift_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
+bic_shift_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+bic_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 6})
+isa.addInstruction(bic_shift_imm_Instr)
+bic_shift_reg_Instr = trap.Instruction('BIC_sr', True)
+bic_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [1, 1, 1, 0]}, 'TODO')
+bic_shift_reg_Instr.setCode(opCode, 'execute')
+bic_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
+bic_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
+bic_shift_reg_Instr.addBehavior(UpdatePSRBit, 'execute', False)
+bic_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
+isa.addInstruction(bic_shift_reg_Instr)
+bic_imm_Instr = trap.Instruction('BIC_i', True)
+bic_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [1, 1, 1, 0]}, 'TODO')
+bic_imm_Instr.setCode(opCode, 'execute')
+bic_imm_Instr.addBehavior(condCheckOp, 'execute')
+bic_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
+bic_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
+bic_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+isa.addInstruction(bic_imm_Instr)
+
+# CMN instruction family
+opCode = cxx_writer.Code("""
+result = (long long) ((long long)rn + (long long)operand);
+""")
+cmn_shift_imm_Instr = trap.Instruction('CMN_si', True)
+cmn_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [1, 0, 1, 1]}, 'TODO')
+cmn_shift_imm_Instr.setCode(opCode, 'execute')
+cmn_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
+cmn_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
+cmn_shift_imm_Instr.addBehavior(UpdatePSRSum, 'execute', False)
+cmn_shift_imm_Instr.addVariable(('result', 'BIT<64>'))
+cmn_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 6})
+isa.addInstruction(cmn_shift_imm_Instr)
+cmn_shift_reg_Instr = trap.Instruction('CMN_sr', True)
+cmn_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [1, 0, 1, 1]}, 'TODO')
+cmn_shift_reg_Instr.setCode(opCode, 'execute')
+cmn_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
+cmn_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
+cmn_shift_reg_Instr.addBehavior(UpdatePSRSum, 'execute', False)
+cmn_shift_reg_Instr.addVariable(('result', 'BIT<64>'))
+isa.addInstruction(cmn_shift_reg_Instr)
+cmn_imm_Instr = trap.Instruction('CMN_i', True)
+cmn_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [1, 0, 1, 1]}, 'TODO')
+cmn_imm_Instr.setCode(opCode, 'execute')
+cmn_imm_Instr.addBehavior(condCheckOp, 'execute')
+cmn_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
+cmn_imm_Instr.addBehavior(UpdatePSRSum, 'execute', False)
+cmn_imm_Instr.addVariable(('result', 'BIT<64>'))
+isa.addInstruction(cmn_imm_Instr)
+
+# CMP instruction family
+opCode = cxx_writer.Code("""
+result = (long long) ((long long)rn - (long long)operand);
+""")
+cmp_shift_imm_Instr = trap.Instruction('CMP_si', True)
+cmp_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [1, 0, 1, 0]}, 'TODO')
+cmp_shift_imm_Instr.setCode(opCode, 'execute')
+cmp_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
+cmp_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
+cmp_shift_imm_Instr.addBehavior(UpdatePSRSub, 'execute', False)
+cmp_shift_imm_Instr.addVariable(('result', 'BIT<64>'))
+cmp_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 6})
+isa.addInstruction(cmp_shift_imm_Instr)
+cmp_shift_reg_Instr = trap.Instruction('CMP_sr', True)
+cmp_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [1, 0, 1, 0]}, 'TODO')
+cmp_shift_reg_Instr.setCode(opCode, 'execute')
+cmp_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
+cmp_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
+cmp_shift_reg_Instr.addBehavior(UpdatePSRSub, 'execute', False)
+cmp_shift_reg_Instr.addVariable(('result', 'BIT<64>'))
+isa.addInstruction(cmp_shift_reg_Instr)
+cmp_imm_Instr = trap.Instruction('CMP_i', True)
+cmp_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [1, 0, 1, 0]}, 'TODO')
+cmp_imm_Instr.setCode(opCode, 'execute')
+cmp_imm_Instr.addBehavior(condCheckOp, 'execute')
+cmp_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
+cmp_imm_Instr.addBehavior(UpdatePSRSub, 'execute', False)
+cmp_imm_Instr.addVariable(('result', 'BIT<64>'))
+isa.addInstruction(cmp_imm_Instr)

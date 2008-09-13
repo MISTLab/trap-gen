@@ -316,10 +316,10 @@ class decoderCreator:
             raise Exception('subtree ' + str(subtree) + ' should have three out edges, while it has ' + str(self.decodingTree.out_degree(subtree)))
         outEdges = self.decodingTree.out_edges(subtree)
         mask = subtree.splitFunction.toCode()
-        outEdges = sorted(outEdges, lambda x, y: cmq(y[-1][-1], x[-1][-1]))
+        outEdges = sorted(outEdges, lambda x, y: cmp(y[-1][-1], x[-1][-1]))
         code = 'switch((instrCode & ' + mask + '){\n'
         for edge in outEdges:
-            code += 'case ' + edge[-1][0] + ':\n'
+            code += 'case ' + str(edge[-1][0]) + ':\n'
             if edge[1].instrId != None:
                 if edge[1].instrId != -1:
                     code += '// Instruction ' + self.instrName[edge[1].instrId] + '\nreturn ' + str(edge[1].instrId) + ';\n'
