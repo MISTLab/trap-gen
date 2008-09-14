@@ -139,6 +139,60 @@ RotateRight_method.addVariable(('rotated', 'BIT<32>'))
 RotateRight_method.addVariable(('toGlue', 'BIT<32>'))
 
 opCode = cxx_writer.Code("""
+//Case on the type of shift
+switch(shift_type){
+    case 0:{
+        // Shift left
+        if(shift_amm == 0){
+            return toShift;
+        }
+        else
+            return (toShift << shift_amm);
+        break;}
+    case 1:{
+        // logical shift right
+        if(shift_amm == 0){
+            // represents a 32 bit shift
+            return 0;
+        }
+        else{
+            return ((unsigned int) toShift) >> shift_amm;
+        }
+        break;}
+    case 2:{
+        // arithmetic shift right
+        if(shift_amm == 0){
+            if ((toShift & 0x80000000) != 0){
+                return 0xFFFFFFFF;
+            }
+            else{
+                return 0;
+            }
+        }
+        else{
+            return ArithmeticShiftRight(shift_amm, toShift);
+        }
+        break;}
+    case 3:{
+        if(shift_amm == 0){
+            return (((unsigned int)toShift) >> 1) | ((CPSR["C"]) << 31);
+        }
+        else{
+            // rotate right
+            return RotateRight(shift_amm, toShift);
+        }
+        break;}
+    default:{
+        THROW_EXCEPTION("Unknown Shift Type in Load/Store register shift");
+        break;}
+}
+
+return index.entire;
+""")
+LSRegShift_method = trap.HelperMethod('LSRegShift', opCode)
+LSRegShift_method.setSignature(('BIT<32>'), [cxx_writer.Parameter('shift_type', cxx_writer.uintType), cxx_writer.Parameter('shift_amm', cxx_writer.uintType), ('toShift', 'BIT<32>')])
+
+opCode = cxx_writer.Code("""
 unsigned int curMode = CPSR["mode"];
 switch(curMode){
     case 0x1:{
@@ -656,3 +710,134 @@ opCode = cxx_writer.Code("""
 PC += 4;
 """)
 IncrementPC = trap.HelperOperation('IncrementPC', opCode, False)
+# Now I define the behavior for the Load/Store with immediate offset/index
+opCode = cxx_writer.Code("""
+address = 0;
+if((p == 1) && (w == 0)) {
+    // immediate offset
+    if(u == 1){
+        address = rn + immediate;
+    }
+    else{
+        address = rn - immediate;
+    }
+}
+else if((p == 1) && (w == 1)) {
+    // immediate pre-indexed
+    if(u == 1){
+        address = rn + immediate;
+    }
+    else{
+        address = rn - immediate;
+    }
+    rn = address;
+}
+else if(p == 0) {
+    // immediate post-indexed
+    //Post-index means that the address calculated doesn't include the
+    //offset
+    address = rn
+
+    if(u == 1){
+        rn += immediate;
+    }
+    else{
+        rn -= immediate;
+    }
+}
+else{
+    THROW_EXCEPTION("Load/Store immediate --> Unknown indexing mode");
+}
+""")
+ls_imm_Op = trap.HelperOperation('LS_imm', opCode)
+ls_imm_Op.addInstuctionVar(('address', 'BIT<32>'))
+ls_imm_Op.addUserInstructionElement('p')
+ls_imm_Op.addUserInstructionElement('w')
+ls_imm_Op.addUserInstructionElement('u')
+ls_imm_Op.addUserInstructionElement('rn')
+ls_imm_Op.addUserInstructionElement('immediate')
+# Now I define the behavior for the Load/Store with register offset/index
+opCode = cxx_writer.Code("""
+if ((p == 1) && (w == 0)) {
+    // offset
+    if(u == 1){
+        address = rn + LSRegShift(shift_op, shift_amm, rm);
+    }
+    else{
+        address = rn - LSRegShift(shift_op, shift_amm, rm);
+    }
+}
+else if((p == 1) && (w == 1)){
+    // pre-indexed
+    if(u == 1){
+        address = rn + LSRegShift(shift_op, shift_amm, rm);
+    }
+    else{
+        address = rn - LSRegShift(shift_op, shift_amm, rm);
+    }
+    rn = address;
+}
+else if(p == 0) {
+    // post-indexed
+    address = rn;
+    if(u == 1){
+        rn += LSRegShift(shift_op, shift_amm, rm);
+    }
+    else{
+        rn -= LSRegShift(shift_op, shift_amm, rm);
+    }
+}
+else{
+    THROW_EXCEPTION("Load/Store register --> Unknown indexing mode");
+}
+""")
+ls_reg_Op = trap.HelperOperation('LS_reg', opCode)
+ls_reg_Op.addInstuctionVar(('address', 'BIT<32>'))
+ls_reg_Op.addUserInstructionElement('p')
+ls_reg_Op.addUserInstructionElement('w')
+ls_reg_Op.addUserInstructionElement('u')
+ls_reg_Op.addUserInstructionElement('rn')
+ls_reg_Op.addUserInstructionElement('rm')
+ls_reg_Op.addUserInstructionElement('shift_amm')
+ls_reg_Op.addUserInstructionElement('shift_op')
+# Now I define the behavior for the Load/Store of multiple registers
+opCode = cxx_writer.Code("""
+//Now I calculate the start and end addresses of the mem area where I will save the registers.
+unsigned int setbits = 0
+for (unsigned i = 0; i < 16; i++) {
+    if ((reg_list & (1 << i)) != 0)
+        count++;
+}
+if((p == 0) && (u == 1)) {
+    // increment after
+    start_address = rn;
+    wb_address = start_address + (setbits * 4);
+}
+else if((p == 1) && (u == 1)) {
+    // increment before
+    start_address = rn + 4;
+    wb_address = start_address - 4 + (setbits * 4);
+}
+else if((p == 0) && (u == 0)) {
+    // decrement after
+    start_address = rn - (setbits * 4) + 4;
+    wb_address = start_address + 4;
+}
+else {
+    // decrement before
+    start_address = rn - (setbits * 4);
+    wb_address = start_address;
+}
+
+//Note that the addresses considered are word aligned, so the last 2 bit
+//of the addresses are not considered.
+start_address &= 0xFFFFFFFC;
+wb_address &= 0xFFFFFFFC;
+""")
+LSM_reglist_Op = trap.HelperOperation('LSM_reglist', opCode)
+LSM_reglist_Op.addInstuctionVar(('start_address', 'BIT<32>'))
+LSM_reglist_Op.addInstuctionVar(('wb_address', 'BIT<32>'))
+LSM_reglist_Op.addUserInstructionElement('p')
+LSM_reglist_Op.addUserInstructionElement('u')
+LSM_reglist_Op.addUserInstructionElement('rn')
+LSM_reglist_Op.addUserInstructionElement('reg_list')

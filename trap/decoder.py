@@ -317,9 +317,9 @@ class decoderCreator:
         outEdges = self.decodingTree.out_edges(subtree)
         mask = subtree.splitFunction.toCode()
         outEdges = sorted(outEdges, lambda x, y: cmp(y[-1][-1], x[-1][-1]))
-        code = 'switch((instrCode & ' + mask + '){\n'
+        code = 'switch(instrCode & ' + mask + '){\n'
         for edge in outEdges:
-            code += 'case ' + str(edge[-1][0]) + ':\n'
+            code += 'case ' + hex(edge[-1][0]) + ':\n'
             if edge[1].instrId != None:
                 if edge[1].instrId != -1:
                     code += '// Instruction ' + self.instrName[edge[1].instrId] + '\nreturn ' + str(edge[1].instrId) + ';\n'
@@ -329,8 +329,8 @@ class decoderCreator:
                 code += self.createPatternDecoder(edge[1])
             else:
                 code += self.createTableDecoder(edge[1])
-            code += 'break;'
-        code += 'default:\nTHROW_EXCEPTION(\"Pattern \" << instrCode << \" not recognized\");\n'
+            code += 'break;\n'
+        code += 'default:\nTHROW_EXCEPTION(\"Fatal Error, pattern \" << instrCode << \" not recognized by the decoder\");\n'
         code += '}\n'
         return code
 

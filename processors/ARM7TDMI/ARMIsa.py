@@ -293,3 +293,102 @@ cmp_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
 cmp_imm_Instr.addBehavior(UpdatePSRSub, 'execute', False)
 cmp_imm_Instr.addVariable(('result', 'BIT<64>'))
 isa.addInstruction(cmp_imm_Instr)
+
+# EOR instruction family
+opCode = cxx_writer.Code("""
+rd = rn ^ operand;
+""")
+eor_shift_imm_Instr = trap.Instruction('EOR_si', True)
+eor_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [0, 0, 0, 1]}, 'TODO')
+eor_shift_imm_Instr.setCode(opCode, 'execute')
+eor_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
+eor_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
+eor_shift_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
+eor_shift_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+eor_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 6})
+isa.addInstruction(eor_shift_imm_Instr)
+eor_shift_reg_Instr = trap.Instruction('EOR_sr', True)
+eor_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [0, 0, 0, 1]}, 'TODO')
+eor_shift_reg_Instr.setCode(opCode, 'execute')
+eor_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
+eor_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
+eor_shift_reg_Instr.addBehavior(UpdatePSRBit, 'execute', False)
+eor_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
+isa.addInstruction(eor_shift_reg_Instr)
+eor_imm_Instr = trap.Instruction('EOR_i', True)
+eor_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [0, 0, 0, 1]}, 'TODO')
+eor_imm_Instr.setCode(opCode, 'execute')
+eor_imm_Instr.addBehavior(condCheckOp, 'execute')
+eor_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
+eor_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
+eor_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+isa.addInstruction(eor_imm_Instr)
+
+# LDM instruction family
+opCode = cxx_writer.Code("""
+int i = 0;
+int modeBits = 0;
+int numRegsToLoad = 0;
+
+ls_address = lsm_startaddress;
+
+//First of all I have to check that I'm not dealing with user mode registers:
+if((s == 1) && ((rlist & 0x00008000) == 0)){
+    //I'm dealing with user-mode registers: LDM type two
+    modeBits = PSR.read(0) & 0x0000000F;
+
+    //Load the registers common to all modes
+    for(i = 0; i < 8; i++){
+        if((rlist & (0x00000001 << i)) != 0) {
+            RB.write(i, DATA_MEM.read(ls_address.entire));
+            ls_address.entire += 4;
+            numRegsToLoad++;
+        }
+    }
+
+    //Read the User Mode registers.
+    for(i = 0; i < 7; i++){
+        if((rlist & (0x00000001 << (8 + i))) != 0) {
+            BANKED_REGS.write(i, DATA_MEM.read(ls_address.entire));
+            ls_address.entire += 4;
+            numRegsToLoad++;
+        }
+    }
+}
+else{
+    //I'm dealing just with the current registers: LDM type one or three
+    // First of all if it is necessary I perform the writeback
+    if(w != 0){
+        RB.write(rn, lsm_wbAddress.entire);
+    }
+
+    //First af all I read the memory in the register I in the register list.
+    for(i = 0; i < 15; i++){
+        if((rlist & (0x00000001 << i)) != 0) {
+            RB.write(i, DATA_MEM.read(ls_address.entire));
+            ls_address.entire += 4;
+            numRegsToLoad++;
+        }
+    }
+
+    //I tread in a special way the PC, since loading a value in the PC is like performing a branch.
+    if((rlist & 0x00008000) != 0){
+        //I have to load also the PC: it is like a branch; since I don't bother with
+        //Thumb mode, bits 0 and 1 of the PC are ignored
+        ac_pc = DATA_MEM.read(ls_address.entire) & 0xFFFFFFFC;
+        RB.write(PC, (ac_pc + 4));
+        if(s == 1) //LDM type three: in this type of operation I also have to restore the PSR.
+            copySPSR();
+        numRegsToLoad++;
+        setInstrLatency(2);
+    }
+}
+setInstrLatency(numRegsToLoad + 1);
+""")
+ldm_Instr = trap.Instruction('LDM', True)
+ldm_Instr.setMachineCode(ls_multiple, {}, 'TODO')
+ldm_Instr.setCode(opCode, 'execute')
+ldm_Instr.addBehavior(condCheckOp, 'execute')
+ldm_Instr.addBehavior(LSM_reglist_Op, 'execute')
+ldm_Instr.addBehavior(IncrementPC, 'execute', False)
+isa.addInstruction(ldm_Instr)
