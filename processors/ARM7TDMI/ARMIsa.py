@@ -326,69 +326,316 @@ isa.addInstruction(eor_imm_Instr)
 
 # LDM instruction family
 opCode = cxx_writer.Code("""
-int i = 0;
-int modeBits = 0;
-int numRegsToLoad = 0;
-
-ls_address = lsm_startaddress;
-
+unsigned int numRegsToLoad = 0;
 //First of all I have to check that I'm not dealing with user mode registers:
-if((s == 1) && ((rlist & 0x00008000) == 0)){
+if((s == 1) && ((reg_list & 0x00008000) == 0)){
     //I'm dealing with user-mode registers: LDM type two
-    modeBits = PSR.read(0) & 0x0000000F;
-
     //Load the registers common to all modes
-    for(i = 0; i < 8; i++){
-        if((rlist & (0x00000001 << i)) != 0) {
-            RB.write(i, DATA_MEM.read(ls_address.entire));
-            ls_address.entire += 4;
+    for(int i = 0; i < 16; i++){
+        if((reg_list & (0x00000001 << i)) != 0){
+            RB[i] = dataMem.read_word(start_address);
+            start_address += 4;
             numRegsToLoad++;
         }
     }
-
-    //Read the User Mode registers.
-    for(i = 0; i < 7; i++){
-        if((rlist & (0x00000001 << (8 + i))) != 0) {
-            BANKED_REGS.write(i, DATA_MEM.read(ls_address.entire));
-            ls_address.entire += 4;
-            numRegsToLoad++;
-        }
-    }
+    loadLatency = numRegsToLoad + 1;
 }
 else{
     //I'm dealing just with the current registers: LDM type one or three
     // First of all if it is necessary I perform the writeback
     if(w != 0){
-        RB.write(rn, lsm_wbAddress.entire);
+        rn = wb_address;
     }
 
     //First af all I read the memory in the register I in the register list.
-    for(i = 0; i < 15; i++){
-        if((rlist & (0x00000001 << i)) != 0) {
-            RB.write(i, DATA_MEM.read(ls_address.entire));
-            ls_address.entire += 4;
+    for(int i = 0; i < 15; i++){
+        if((reg_list & (0x00000001 << i)) != 0){
+            REGS[i] = dataMem.read_word(start_address);
+            start_address += 4;
             numRegsToLoad++;
         }
     }
+    loadLatency = numRegsToLoad + 1;
 
     //I tread in a special way the PC, since loading a value in the PC is like performing a branch.
-    if((rlist & 0x00008000) != 0){
+    if((reg_list & 0x00008000) != 0){
         //I have to load also the PC: it is like a branch; since I don't bother with
         //Thumb mode, bits 0 and 1 of the PC are ignored
-        ac_pc = DATA_MEM.read(ls_address.entire) & 0xFFFFFFFC;
-        RB.write(PC, (ac_pc + 4));
-        if(s == 1) //LDM type three: in this type of operation I also have to restore the PSR.
-            copySPSR();
+        PC = dataMem.read_word(start_address) & 0xFFFFFFFC;
+        if(s == 1){
+            //LDM type three: in this type of operation I also have to restore the PSR.
+            restoreSPSR();
+        }
         numRegsToLoad++;
-        setInstrLatency(2);
+        loadLatency += 2;
     }
 }
-setInstrLatency(numRegsToLoad + 1);
+if((reg_list & 0x00008000) == 0){
+    PC += 4;
+}
+stall(loadLatency);
 """)
 ldm_Instr = trap.Instruction('LDM', True)
 ldm_Instr.setMachineCode(ls_multiple, {}, 'TODO')
 ldm_Instr.setCode(opCode, 'execute')
 ldm_Instr.addBehavior(condCheckOp, 'execute')
 ldm_Instr.addBehavior(LSM_reglist_Op, 'execute')
-ldm_Instr.addBehavior(IncrementPC, 'execute', False)
 isa.addInstruction(ldm_Instr)
+
+# LDR instruction family
+# Normal load instruction
+opCode = cxx_writer.Code("""
+memLastBits = address & 0x00000003;
+// if the memory address is not word aligned I have to rotate the loaded value
+if(memLastBits == 0)
+    value = dateMem.read_word(address);
+else{
+    value = RotateRight(8*memLastBits, dateMem.read_word(address));
+}
+
+//Perform the writeback; as usual I have to behave differently
+//if a load a value to the PC
+if(rd_bit == 15){
+    //I don't consider the 2 less significant bits since I don't bother with
+    //thumb mode.
+    PC = value & 0xFFFFFFFC;
+    stall(4);
+}
+else{
+    rd = value;
+    PC += 4;
+    stall(2);
+}
+""")
+ldr_imm_Instr = trap.Instruction('LDR_imm', True)
+ldr_imm_Instr.setMachineCode(ls_immOff, {'b': [0], 'l': [1]}, 'TODO')
+ldr_imm_Instr.setCode(opCode, 'execute')
+ldr_imm_Instr.addBehavior(condCheckOp, 'execute')
+ldr_imm_Instr.addBehavior(ls_imm_Op, 'execute')
+ldr_imm_Instr.addVariable(('memLastBits', 'BIT<32>'))
+ldr_imm_Instr.addVariable(('value', 'BIT<32>'))
+isa.addInstruction(ldr_imm_Instr)
+ldr_off_Instr = trap.Instruction('LDR_off', True)
+ldr_off_Instr.setMachineCode(ls_regOff, {'b': [0], 'l': [1]}, 'TODO')
+ldr_off_Instr.setCode(opCode, 'execute')
+ldr_off_Instr.addBehavior(condCheckOp, 'execute')
+ldr_off_Instr.addBehavior(ls_reg_Op, 'execute')
+ldr_off_Instr.addVariable(('memLastBits', 'BIT<32>'))
+ldr_off_Instr.addVariable(('value', 'BIT<32>'))
+isa.addInstruction(ldr_off_Instr)
+# LDRB instruction family
+# Normal load instruction
+opCode = cxx_writer.Code("""
+rd = dateMem.read_word(address);
+stall(2);
+""")
+ldrb_imm_Instr = trap.Instruction('LDRB_imm', True)
+ldrb_imm_Instr.setMachineCode(ls_immOff, {'b': [1], 'l': [1]}, 'TODO')
+ldrb_imm_Instr.setCode(opCode, 'execute')
+ldrb_imm_Instr.addBehavior(condCheckOp, 'execute')
+ldrb_imm_Instr.addBehavior(ls_imm_Op, 'execute')
+ldrb_imm_Instr.addBehavior(IncrementPC, 'execute', False)
+isa.addInstruction(ldrb_imm_Instr)
+ldrb_off_Instr = trap.Instruction('LDRB_off', True)
+ldrb_off_Instr.setMachineCode(ls_regOff, {'b': [1], 'l': [1]}, 'TODO')
+ldrb_off_Instr.setCode(opCode, 'execute')
+ldrb_off_Instr.addBehavior(condCheckOp, 'execute')
+ldrb_off_Instr.addBehavior(ls_reg_Op, 'execute')
+ldrb_off_Instr.addBehavior(IncrementPC, 'execute', False)
+isa.addInstruction(ldrb_off_Instr)
+# LDRH instruction family
+opCode = cxx_writer.Code("""
+rd = dateMem.read_half(address);
+stall(2);
+""")
+ldrh_off_Instr = trap.Instruction('LDRH_off', True)
+ldrh_off_Instr.setMachineCode(lsshb_regOff, {'opcode1': [1, 0, 1, 1]}, 'TODO')
+ldrh_off_Instr.setCode(opCode, 'execute')
+ldrh_off_Instr.addBehavior(condCheckOp, 'execute')
+ldrh_off_Instr.addBehavior(ls_sh_Op, 'execute')
+ldrh_off_Instr.addBehavior(IncrementPC, 'execute', False)
+isa.addInstruction(ldrh_off_Instr)
+# LDRS H/B instruction family
+opCode = cxx_writer.Code("""
+rd = dateMem.read_half(address);
+stall(2);
+""")
+ldrsh_off_Instr = trap.Instruction('LDRSH_off', True)
+ldrsh_off_Instr.setMachineCode(lsshb_regOff, {'opcode1': [1, 1, 1, 1]}, 'TODO')
+ldrsh_off_Instr.setCode(opCode, 'execute')
+ldrsh_off_Instr.addBehavior(condCheckOp, 'execute')
+ldrsh_off_Instr.addBehavior(ls_sh_Op, 'execute')
+ldrsh_off_Instr.addBehavior(IncrementPC, 'execute', False)
+isa.addInstruction(ldrsh_off_Instr)
+opCode = cxx_writer.Code("""
+rd = dateMem.read_byte(address);
+stall(2);
+""")
+ldrsb_off_Instr = trap.Instruction('LDRSB_off', True)
+ldrsb_off_Instr.setMachineCode(lsshb_regOff, {'opcode1': [1, 1, 0, 1]}, 'TODO')
+ldrsb_off_Instr.setCode(opCode, 'execute')
+ldrsb_off_Instr.addBehavior(condCheckOp, 'execute')
+ldrsb_off_Instr.addBehavior(ls_sh_Op, 'execute')
+ldrsb_off_Instr.addBehavior(IncrementPC, 'execute', False)
+isa.addInstruction(ldrsb_off_Instr)
+
+# Mutiply instruction family
+opCode = cxx_writer.Code("""
+rd = (int)((rm * rs) + REGS[rn]);
+
+if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
+    stall(2);
+}
+else if((rs & 0xFFFF0000) == 0x0 || (rs & 0xFFFF0000) == 0xFFFF0000){
+    stall(3);
+}
+else if((rs & 0xFF000000) == 0x0 || (rs & 0xFF000000) == 0xFF000000)7
+    stall(4);
+}
+else{
+    stall(5);
+}
+""")
+mla_Instr = trap.Instruction('mla_Instr', True)
+mla_Instr.setMachineCode(multiply, {'opcode0': [0, 0, 0, 0, 0, 0, 1]}, 'TODO')
+mla_Instr.setCode(opCode, 'execute')
+mla_Instr.addBehavior(condCheckOp, 'execute')
+mla_Instr.addBehavior(UpdatePSRmul, 'execute', False)
+mla_Instr.addBehavior(IncrementPC, 'execute', False)
+isa.addInstruction(mla_Instr)
+
+opCode = cxx_writer.Code("""
+rd = (int)(rm * rs);
+
+if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
+    stall(1);
+}
+else if((rs & 0xFFFF0000) == 0x0 || (rs & 0xFFFF0000) == 0xFFFF0000){
+    stall(2);
+}
+else if((rs & 0xFF000000) == 0x0 || (rs & 0xFF000000) == 0xFF000000)7
+    stall(3);
+}
+else{
+    stall(4);
+}
+""")
+mul_Instr = trap.Instruction('mul_Instr', True)
+mul_Instr.setMachineCode(multiply, {'opcode0': [0, 0, 0, 0, 0, 0, 0]}, 'TODO')
+mul_Instr.setCode(opCode, 'execute')
+mul_Instr.addBehavior(condCheckOp, 'execute')
+mul_Instr.addBehavior(UpdatePSRmul, 'execute', False)
+mul_Instr.addBehavior(IncrementPC, 'execute', False)
+isa.addInstruction(mul_Instr)
+
+opCode = cxx_writer.Code("""
+//Perform the operation
+long long result = (long long)(((long long)rm * (long long)rs) + (((long long)rd) << 32) + (long long)REGS[rn]);
+//Check if I have to update the processor flags
+rd = result >> 32;
+REGS[rn] = result 0xFFFFFFFF;
+
+if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
+    stall(3);
+}
+else if((rs & 0xFFFF0000) == 0x0 || (rs & 0xFFFF0000) == 0xFFFF0000){
+    stall(4);
+}
+else if((rs & 0xFF000000) == 0x0 || (rs & 0xFF000000) == 0xFF000000){
+    stall(5);
+}
+else{
+    stall(6);
+}
+""")
+smlal_Instr = trap.Instruction('smlal_Instr', True)
+smlal_Instr.setMachineCode(multiply, {'opcode0': [0, 0, 0, 0, 1, 1, 1]}, 'TODO')
+smlal_Instr.setCode(opCode, 'execute')
+smlal_Instr.addBehavior(condCheckOp, 'execute')
+smlal_Instr.addBehavior(UpdatePSRmul, 'execute', False)
+smlal_Instr.addBehavior(IncrementPC, 'execute', False)
+isa.addInstruction(smlal_Instr)
+
+opCode = cxx_writer.Code("""
+//Perform the operation
+long long result = (long long)((long long)rm * (long long)rs);
+//Check if I have to update the processor flags
+rd = result >> 32;
+REGS[rn] = result 0xFFFFFFFF;
+
+if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
+    stall(3);
+}
+else if((rs & 0xFFFF0000) == 0x0 || (rs & 0xFFFF0000) == 0xFFFF0000){
+    stall(4);
+}
+else if((rs & 0xFF000000) == 0x0 || (rs & 0xFF000000) == 0xFF000000){
+    stall(5);
+}
+else{
+    stall(6);
+}
+""")
+smull_Instr = trap.Instruction('smull_Instr', True)
+smull_Instr.setMachineCode(multiply, {'opcode0': [0, 0, 0, 0, 1, 1, 0]}, 'TODO')
+smull_Instr.setCode(opCode, 'execute')
+smull_Instr.addBehavior(condCheckOp, 'execute')
+smull_Instr.addBehavior(UpdatePSRmul, 'execute', False)
+smull_Instr.addBehavior(IncrementPC, 'execute', False)
+isa.addInstruction(smull_Instr)
+
+opCode = cxx_writer.Code("""
+//Perform the operation
+unsigned long long result = (unsigned long long)(((unsigned long long)rm * (unsigned long long)rs) + (((unsigned long long)rd) << 32) + (unsigned long long)REGS[rn]);
+//Check if I have to update the processor flags
+rd = result >> 32;
+REGS[rn] = result 0xFFFFFFFF;
+
+if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
+    stall(3);
+}
+else if((rs & 0xFFFF0000) == 0x0 || (rs & 0xFFFF0000) == 0xFFFF0000){
+    stall(4);
+}
+else if((rs & 0xFF000000) == 0x0 || (rs & 0xFF000000) == 0xFF000000){
+    stall(5);
+}
+else{
+    stall(6);
+}
+""")
+umlal_Instr = trap.Instruction('umlal_Instr', True)
+umlal_Instr.setMachineCode(multiply, {'opcode0': [0, 0, 0, 0, 1, 0, 1]}, 'TODO')
+umlal_Instr.setCode(opCode, 'execute')
+umlal_Instr.addBehavior(condCheckOp, 'execute')
+umlal_Instr.addBehavior(UpdatePSRmul, 'execute', False)
+umlal_Instr.addBehavior(IncrementPC, 'execute', False)
+isa.addInstruction(umlal_Instr)
+
+opCode = cxx_writer.Code("""
+//Perform the operation
+unsigned long long result = (unsigned long long)((unsigned long long)rm * (unsigned long long)rs);
+//Check if I have to update the processor flags
+rd = result >> 32;
+REGS[rn] = result 0xFFFFFFFF;
+
+if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
+    stall(3);
+}
+else if((rs & 0xFFFF0000) == 0x0 || (rs & 0xFFFF0000) == 0xFFFF0000){
+    stall(4);
+}
+else if((rs & 0xFF000000) == 0x0 || (rs & 0xFF000000) == 0xFF000000){
+    stall(5);
+}
+else{
+    stall(6);
+}
+""")
+umull_Instr = trap.Instruction('umull_Instr', True)
+umull_Instr.setMachineCode(multiply, {'opcode0': [0, 0, 0, 0, 1, 0, 0]}, 'TODO')
+umull_Instr.setCode(opCode, 'execute')
+umull_Instr.addBehavior(condCheckOp, 'execute')
+umull_Instr.addBehavior(UpdatePSRmul, 'execute', False)
+umull_Instr.addBehavior(IncrementPC, 'execute', False)
+isa.addInstruction(umull_Instr)

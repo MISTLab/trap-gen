@@ -685,6 +685,28 @@ UpdatePSRBit.addUserInstructionElement('s')
 UpdatePSRBit.addUserInstructionElement('rn')
 UpdatePSRBit.addUserInstructionElement('rd')
 UpdatePSRBit.addInstuctionVar(('carry', 'BIT<1>'))
+
+opCode = cxx_writer.Code("""
+if (s == 0x1){
+    if(rd_bit == 15){
+        // In case the destination register is the program counter,
+        // I have to switch to the saved program status register
+        restoreSPSR();
+    }
+    else{
+        //Here I have to normally update the flags
+        // N flag if the results is negative
+        CPSR["N"] = ((rd & 0x80000000) != 0);
+        //Update flag Z if the result is 0
+        CPSR["Z"] = (rd == 0);
+        //No updates performed to the C flag.
+        //No updates performed to the V flag.
+    }
+}
+""")
+UpdatePSRmul = trap.HelperOperation('UpdatePSRmul', opCode)
+UpdatePSRmul.addUserInstructionElement('s')
+UpdatePSRmul.addUserInstructionElement('rd')
 # In case the program counter is the updated register I have
 # to increment the latency of the operation
 opCode = cxx_writer.Code("""
@@ -841,3 +863,82 @@ LSM_reglist_Op.addUserInstructionElement('p')
 LSM_reglist_Op.addUserInstructionElement('u')
 LSM_reglist_Op.addUserInstructionElement('rn')
 LSM_reglist_Op.addUserInstructionElement('reg_list')
+# Now I define the behavior for the Load/Store half word
+opCode = cxx_writer.Code("""
+address = 0;
+//First of all I check whether this instruction uses an immediate or a register offset
+if(i == 1){ //Immediate offset
+    off8 = (addr_mode0 << 4 | addr_mode1);
+    if((p == 1) && (w == 0)){ //immediate offset normal mode
+        if(u == 1){
+            address = rn + off8;
+        }
+        else{
+            address = rn - off8;
+        }
+    }
+    else if((p == 1) && (w == 1)){ //immediate pre-indexing
+        if(u == 1){
+            address = rn + off8;
+        }
+        else{
+            address = rn - off8;
+        }
+        rn = address;
+    }
+    else if((p == 0) && (w == 0)){ // Immediate post indexing
+        address = rn;
+
+        if(u == 1){
+            rn = address + off8;
+        }
+        else{
+            rn = address - off8;
+        }
+    }
+}
+else{ //register offset
+    unsigned int regVal = REGS[addr_mode1];
+
+    if((p == 1) && (w == 0)){
+        //register normal mode
+        if(u == 1){
+            address = rn + regVal;
+        }
+        else{
+            address = rn - regVal;
+        }
+    }
+    else if((p == 1) && (w == 1)){
+        //register pre-indexing
+        if(u == 1){
+            address = rn + regVal;
+        }
+        else{
+            address = rn - regVal;
+        }
+        rn = address;
+    }
+    else if((p == 0) && (w == 0)){
+        // register post indexing
+        address = rn;
+
+        if(u == 1){
+            rn += regVal;
+        }
+        else{
+            rn -= regVal;
+        }
+    }
+}
+""")
+ls_sh_Op = trap.HelperOperation('LS_sh', opCode)
+ls_sh_Op.addInstuctionVar(('address', 'BIT<32>'))
+ls_sh_Op.addVariable(('off8', 'BIT<32>'))
+ls_sh_Op.addUserInstructionElement('p')
+ls_sh_Op.addUserInstructionElement('w')
+ls_sh_Op.addUserInstructionElement('u')
+ls_sh_Op.addUserInstructionElement('i')
+ls_sh_Op.addUserInstructionElement('rn')
+ls_sh_Op.addUserInstructionElement('addr_mode0')
+ls_sh_Op.addUserInstructionElement('addr_mode1')

@@ -71,6 +71,10 @@ ls_regOff.setBitfield('opcode', [0, 1, 1])
 ls_regOff.setVarField('rn', ('REGS', 0))
 ls_regOff.setVarField('rd', ('REGS', 0))
 ls_regOff.setVarField('rm', ('REGS', 0))
+lsshb_regOff = trap.MachineCode([('cond', 4), ('opcode0', 3), ('p', 1), ('u', 1), ('i', 1), ('w', 1), ('one', 1), ('rn', 4), ('rd', 4), ('addr_mode0', 4), ('opcode1', 4), ('addr_mode1', 4)])
+lsshb_regOff.setBitfield('opcode0', [0, 0, 0])
+lsshb_regOff.setVarField('rn', ('REGS', 0))
+lsshb_regOff.setVarField('rd', ('REGS', 0))
 ls_multiple = trap.MachineCode([('cond', 4), ('opcode', 3), ('p', 1), ('u', 1), ('s', 1), ('w', 1), ('l', 1), ('rn', 4), ('reg_list', 16)])
 ls_multiple.setBitfield('opcode', [1, 0, 0])
 ls_multiple.setVarField('rn', ('REGS', 0))
@@ -81,6 +85,12 @@ branch_thumb = trap.MachineCode([('cond', 4), ('opcode0', 8), ('zero', 12), ('op
 branch_thumb.setBitfield('opcode0', [0, 0, 0, 1, 0, 0, 1, 0])
 branch_thumb.setBitfield('opcode1', [0, 0, 0, 1])
 branch_thumb.setVarField('rm', ('REGS', 0))
+
+multiply = trap.MachineCode([('cond', 4), ('opcode0', 7), ('s', 1), ('rd', 4), ('rn', 4), ('rs', 4), ('opcode1', 4), ('rm', 4)])
+multiply.setVarField('rd', ('REGS', 0))
+multiply.setVarField('rs', ('REGS', 0))
+multiply.setVarField('rm', ('REGS', 0))
+multiply.setBitfield('opcode1', [1, 0, 0, 1])
 
 swi = trap.MachineCode([('cond', 4), ('one', 4), ('swi_number', 1)])
 
