@@ -532,8 +532,8 @@ opCode = cxx_writer.Code("""
 //Perform the operation
 long long result = (long long)(((long long)rm * (long long)rs) + (((long long)rd) << 32) + (long long)REGS[rn]);
 //Check if I have to update the processor flags
-rd = result >> 32;
-REGS[rn] = result 0xFFFFFFFF;
+rd = (unsigned int)(result >> 32);
+REGS[rn] = result & 0xFFFFFFFF;
 
 if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
     stall(3);
@@ -560,8 +560,8 @@ opCode = cxx_writer.Code("""
 //Perform the operation
 long long result = (long long)((long long)rm * (long long)rs);
 //Check if I have to update the processor flags
-rd = result >> 32;
-REGS[rn] = result 0xFFFFFFFF;
+rd = (unsigned int)(result >> 32);
+REGS[rn] = result & 0xFFFFFFFF;
 
 if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
     stall(3);
@@ -588,8 +588,8 @@ opCode = cxx_writer.Code("""
 //Perform the operation
 unsigned long long result = (unsigned long long)(((unsigned long long)rm * (unsigned long long)rs) + (((unsigned long long)rd) << 32) + (unsigned long long)REGS[rn]);
 //Check if I have to update the processor flags
-rd = result >> 32;
-REGS[rn] = result 0xFFFFFFFF;
+rd = (unsigned int)(result >> 32);
+REGS[rn] = result & 0xFFFFFFFF;
 
 if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
     stall(3);
@@ -616,8 +616,8 @@ opCode = cxx_writer.Code("""
 //Perform the operation
 unsigned long long result = (unsigned long long)((unsigned long long)rm * (unsigned long long)rs);
 //Check if I have to update the processor flags
-rd = result >> 32;
-REGS[rn] = result 0xFFFFFFFF;
+rd = (unsigned int)(result >> 32);
+REGS[rn] = result & 0xFFFFFFFF;
 
 if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
     stall(3);
@@ -639,3 +639,146 @@ umull_Instr.addBehavior(condCheckOp, 'execute')
 umull_Instr.addBehavior(UpdatePSRmul, 'execute', False)
 umull_Instr.addBehavior(IncrementPC, 'execute', False)
 isa.addInstruction(umull_Instr)
+
+# MOV instruction family
+opCode = cxx_writer.Code("""
+rd = operand;
+""")
+mov_shift_imm_Instr = trap.Instruction('MOV_si', True)
+mov_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [1, 1, 0, 1]}, 'TODO')
+mov_shift_imm_Instr.setCode(opCode, 'execute')
+mov_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
+mov_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
+mov_shift_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
+mov_shift_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+mov_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 6})
+isa.addInstruction(mov_shift_imm_Instr)
+mov_shift_reg_Instr = trap.Instruction('MOV_sr', True)
+mov_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [1, 1, 0, 1]}, 'TODO')
+mov_shift_reg_Instr.setCode(opCode, 'execute')
+mov_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
+mov_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
+mov_shift_reg_Instr.addBehavior(UpdatePSRBit, 'execute', False)
+mov_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
+isa.addInstruction(mov_shift_reg_Instr)
+mov_imm_Instr = trap.Instruction('MOV_i', True)
+mov_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [1, 1, 0, 1]}, 'TODO')
+mov_imm_Instr.setCode(opCode, 'execute')
+mov_imm_Instr.addBehavior(condCheckOp, 'execute')
+mov_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
+mov_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
+mov_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+isa.addInstruction(mov_imm_Instr)
+
+# MRS instruction
+opCode = cxx_writer.Code("""
+if(r == 1){ // I have to save the SPSR
+    switch(PSR.read(0) & 0x0000000F){
+        case 0x1: //I'm in FIQ mode
+            RB.write(rd, PSR.read(1));
+            break;
+        case 0x2: //I'm in IRQ mode
+            RB.write(rd, PSR.read(2));
+            break;
+        case 0x3: //I'm in SVC mode
+            RB.write(rd, PSR.read(3));
+            break;
+        case 0x7: //I'm in ABT mode
+            RB.write(rd, PSR.read(4));
+            break;
+        case 0xB: //I'm in UND mode
+            RB.write(rd, PSR.read(5));
+            break;
+        default:
+            #ifdef WARNING
+            printf("Impossible to read the SPSR in User or System Mode\n");
+            #endif
+            return;
+            break;
+    }
+}
+else{ // I have to save the CPSR
+    RB.write(rd, PSR.read(0));
+}
+""")
+mrs_Instr = trap.Instruction('mrs_Instr', True)
+mrs_Instr.setMachineCode(move_imm2psr, {'opcode1': [0, 0, 0, 1, 0], 'opcode2': [0, 0], 'mask': [1, 1, 1, 1], 'rotate': [0, 0, 0, 0], 'immediate': [0, 0, 0, 0, 0, 0, 0, 0]}, 'TODO')
+mrs_Instr.setCode(opCode, 'execute')
+mrs_Instr.addBehavior(condCheckOp, 'execute')
+mrs_Instr.addBehavior(IncrementPC, 'execute', False)
+isa.addInstruction(mrs_Instr)
+
+# MSR instruction family
+opCode = cxx_writer.Code("""
+if(r == 1){ // I have to save the SPSR
+    switch(PSR.read(0) & 0x0000000F){
+        case 0x1: //I'm in FIQ mode
+            RB.write(rd, PSR.read(1));
+            break;
+        case 0x2: //I'm in IRQ mode
+            RB.write(rd, PSR.read(2));
+            break;
+        case 0x3: //I'm in SVC mode
+            RB.write(rd, PSR.read(3));
+            break;
+        case 0x7: //I'm in ABT mode
+            RB.write(rd, PSR.read(4));
+            break;
+        case 0xB: //I'm in UND mode
+            RB.write(rd, PSR.read(5));
+            break;
+        default:
+            #ifdef WARNING
+            printf("Impossible to read the SPSR in User or System Mode\n");
+            #endif
+            return;
+            break;
+    }
+}
+else{ // I have to save the CPSR
+    RB.write(rd, PSR.read(0));
+}
+""")
+msr_imm_Instr = trap.Instruction('msr_imm_Instr', True)
+msr_imm_Instr.setMachineCode(move_imm2psr, {'opcode1': [0, 0, 1, 1, 0], 'opcode2': [1, 0], 'rd': [1, 1, 1, 1]}, 'TODO')
+msr_imm_Instr.setCode(opCode, 'execute')
+msr_imm_Instr.addBehavior(condCheckOp, 'execute')
+msr_imm_Instr.addBehavior(IncrementPC, 'execute', False)
+isa.addInstruction(msr_imm_Instr)
+
+opCode = cxx_writer.Code("""
+if(r == 1){ // I have to save the SPSR
+    switch(PSR.read(0) & 0x0000000F){
+        case 0x1: //I'm in FIQ mode
+            RB.write(rd, PSR.read(1));
+            break;
+        case 0x2: //I'm in IRQ mode
+            RB.write(rd, PSR.read(2));
+            break;
+        case 0x3: //I'm in SVC mode
+            RB.write(rd, PSR.read(3));
+            break;
+        case 0x7: //I'm in ABT mode
+            RB.write(rd, PSR.read(4));
+            break;
+        case 0xB: //I'm in UND mode
+            RB.write(rd, PSR.read(5));
+            break;
+        default:
+            #ifdef WARNING
+            printf("Impossible to read the SPSR in User or System Mode\n");
+            #endif
+            return;
+            break;
+    }
+}
+else{ // I have to save the CPSR
+    RB.write(rd, PSR.read(0));
+}
+""")
+msr_reg_Instr = trap.Instruction('msr_reg_Instr', True)
+msr_reg_Instr.setMachineCode(move_imm2psr, {'opcode1': [0, 0, 1, 0, 0], 'opcode2': [1, 0], 'rd': [1, 1, 1, 1], 'rotate': [0, 0, 0, 0]}, 'TODO')
+msr_reg_Instr.setCode(opCode, 'execute')
+msr_reg_Instr.addBehavior(condCheckOp, 'execute')
+msr_reg_Instr.addBehavior(IncrementPC, 'execute', False)
+isa.addInstruction(msr_reg_Instr)
