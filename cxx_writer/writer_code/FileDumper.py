@@ -366,7 +366,7 @@ class Folder:
     le.path = config_c.stdlibpath + searchDirs
     le.run()
 
-    he = conf.create_header_enumerator()
+    he = conf.create_header_configurator()
     he.mandatory = 1
     he.name = 'bfd.h'
     he.message = 'BFD header not found'

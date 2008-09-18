@@ -272,9 +272,7 @@ void BFDFrontend::readSyms(){
             continue;
         }
 
-        name = bfd_demangle (this->execImage, syminfo.name, DMGL_ANSI | DMGL_PARAMS);
-        if(name == NULL)
-            name = (char *)syminfo.name;
+        name = (char *)syminfo.name;
         if(name[0] == '$')
             continue;
 

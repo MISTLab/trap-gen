@@ -619,9 +619,9 @@ if (s == 0x1){
         //Update flag Z if the result is 0
         CPSR["Z"] = (result == 0);
         //Update the C flag if a carry occurred in the operation
-        CPSR["C"] = (((~result & operand) | (~result & rn) | (result & rn & operand)) & 0x0000000080000000LL) != 0);
+        CPSR["C"] = (((~result & operand) | (~result & rn) | (result & rn & operand)) & 0x0000000080000000LL) != 0;
         //Update the V flag if an overflow occurred in the operation
-        CPSR["V"] = (((rn & operand & ~result) | (~rn & ~operand & result)) & 0x0000000080000000LL) != 0);
+        CPSR["V"] = (((rn & operand & ~result) | (~rn & ~operand & result)) & 0x0000000080000000LL) != 0;
     }
 }
 """)
@@ -647,9 +647,9 @@ if (s == 0x1){
         //Update flag Z if the result is 0
         CPSR["Z"] = (result == 0);
         //Update the C flag if a carry occurred in the operation
-        CPSR["C"] = (((~result & ~operand) | (~result & rn) | (result & rn & ~operand)) & 0x0000000080000000LL) != 0);
+        CPSR["C"] = (((~result & ~operand) | (~result & rn) | (result & rn & ~operand)) & 0x0000000080000000LL) != 0;
         //Update the V flag if an overflow occurred in the operation
-        CPSR["V"] = (((rn & ~operand & ~result) | (~rn & operand & result)) & 0x0000000080000000LL) != 0);
+        CPSR["V"] = (((rn & ~operand & ~result) | (~rn & operand & result)) & 0x0000000080000000LL) != 0;
     }
 }
 """)
@@ -758,7 +758,7 @@ else if(p == 0) {
     // immediate post-indexed
     //Post-index means that the address calculated doesn't include the
     //offset
-    address = rn
+    address = rn;
 
     if(u == 1){
         rn += immediate;
@@ -825,8 +825,8 @@ ls_reg_Op.addUserInstructionElement('shift_op')
 # Now I define the behavior for the Load/Store of multiple registers
 opCode = cxx_writer.Code("""
 //Now I calculate the start and end addresses of the mem area where I will save the registers.
-unsigned int setbits = 0
-for (unsigned i = 0; i < 16; i++) {
+unsigned int setbits = 0;
+for (unsigned int i = 0; i < 16; i++) {
     if ((reg_list & (1 << i)) != 0)
         count++;
 }
