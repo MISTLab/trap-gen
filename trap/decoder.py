@@ -714,7 +714,21 @@ class decoderCreator:
         bestPattern, leavesPattern, costPattern = self.findBestPattern(subtree)
         bestTable, leavesTable, costTable = self.findBestTable(subtree)
         if not bestTable and not bestPattern:
-            raise Exception('Error, more than one instruction in the current decoder but no table or patter found')
+            curInstrNames = []
+            for instr in subtree.patterns:
+                for instrId, instrVals in self.instrId.items():
+                    if instrVals[0] == instr[0]:
+                        curInstrNames.append(self.instrName[instrId])
+                        break
+            raise Exception('Error, more than one instruction in the current decoder but no table or pattern decoder found --> ' + str(curInstrNames))
+        if bestTable and not bestPattern:
+            curInstrNames = []
+            for instr in subtree.patterns:
+                for instrId, instrVals in self.instrId.items():
+                    if instrVals[0] == instr[0]:
+                        curInstrNames.append(self.instrName[instrId])
+                        break
+            raise Exception('Error, more than one instruction in the current decoder but no pattern decoder found --> ' + str(curInstrNames))
         if bestTable and costPattern > costTable and len(leavesTable) > 1:
             # It is better to split on the table
             subtree.splitFunction = bestTable
@@ -725,7 +739,7 @@ class decoderCreator:
         else:
             # It is better to split on the pattern
             subtree.splitFunction = bestPattern
-            if(len(leavesPattern) > 1):
+            if len(leavesPattern) > 1:
                 for i in leavesPattern:
                     self.decodingTree.add_node(i[0])
                     self.decodingTree.add_edge(subtree, i[0], i[1])

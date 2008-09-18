@@ -239,7 +239,7 @@ opCode = cxx_writer.Code("""
 result = (long long) ((long long)rn + (long long)operand);
 """)
 cmn_shift_imm_Instr = trap.Instruction('CMN_si', True)
-cmn_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [1, 0, 1, 1]}, 'TODO')
+cmn_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [1, 0, 1, 1], 's': [1]}, 'TODO')
 cmn_shift_imm_Instr.setCode(opCode, 'execute')
 cmn_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
 cmn_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
@@ -248,7 +248,7 @@ cmn_shift_imm_Instr.addVariable(('result', 'BIT<64>'))
 cmn_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 6})
 isa.addInstruction(cmn_shift_imm_Instr)
 cmn_shift_reg_Instr = trap.Instruction('CMN_sr', True)
-cmn_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [1, 0, 1, 1]}, 'TODO')
+cmn_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [1, 0, 1, 1], 's': [1]}, 'TODO')
 cmn_shift_reg_Instr.setCode(opCode, 'execute')
 cmn_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
 cmn_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
@@ -256,7 +256,7 @@ cmn_shift_reg_Instr.addBehavior(UpdatePSRSum, 'execute', False)
 cmn_shift_reg_Instr.addVariable(('result', 'BIT<64>'))
 isa.addInstruction(cmn_shift_reg_Instr)
 cmn_imm_Instr = trap.Instruction('CMN_i', True)
-cmn_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [1, 0, 1, 1]}, 'TODO')
+cmn_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [1, 0, 1, 1], 's': [1]}, 'TODO')
 cmn_imm_Instr.setCode(opCode, 'execute')
 cmn_imm_Instr.addBehavior(condCheckOp, 'execute')
 cmn_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
@@ -269,7 +269,7 @@ opCode = cxx_writer.Code("""
 result = (long long) ((long long)rn - (long long)operand);
 """)
 cmp_shift_imm_Instr = trap.Instruction('CMP_si', True)
-cmp_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [1, 0, 1, 0]}, 'TODO')
+cmp_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [1, 0, 1, 0], 's': [1]}, 'TODO')
 cmp_shift_imm_Instr.setCode(opCode, 'execute')
 cmp_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
 cmp_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
@@ -278,7 +278,7 @@ cmp_shift_imm_Instr.addVariable(('result', 'BIT<64>'))
 cmp_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 6})
 isa.addInstruction(cmp_shift_imm_Instr)
 cmp_shift_reg_Instr = trap.Instruction('CMP_sr', True)
-cmp_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [1, 0, 1, 0]}, 'TODO')
+cmp_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [1, 0, 1, 0], 's': [1]}, 'TODO')
 cmp_shift_reg_Instr.setCode(opCode, 'execute')
 cmp_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
 cmp_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
@@ -286,7 +286,7 @@ cmp_shift_reg_Instr.addBehavior(UpdatePSRSub, 'execute', False)
 cmp_shift_reg_Instr.addVariable(('result', 'BIT<64>'))
 isa.addInstruction(cmp_shift_reg_Instr)
 cmp_imm_Instr = trap.Instruction('CMP_i', True)
-cmp_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [1, 0, 1, 0]}, 'TODO')
+cmp_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [1, 0, 1, 0], 's': [1]}, 'TODO')
 cmp_imm_Instr.setCode(opCode, 'execute')
 cmp_imm_Instr.addBehavior(condCheckOp, 'execute')
 cmp_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
@@ -673,32 +673,34 @@ isa.addInstruction(mov_imm_Instr)
 # MRS instruction
 opCode = cxx_writer.Code("""
 if(r == 1){ // I have to save the SPSR
-    switch(PSR.read(0) & 0x0000000F){
-        case 0x1: //I'm in FIQ mode
-            RB.write(rd, PSR.read(1));
-            break;
-        case 0x2: //I'm in IRQ mode
-            RB.write(rd, PSR.read(2));
-            break;
-        case 0x3: //I'm in SVC mode
-            RB.write(rd, PSR.read(3));
-            break;
-        case 0x7: //I'm in ABT mode
-            RB.write(rd, PSR.read(4));
-            break;
-        case 0xB: //I'm in UND mode
-            RB.write(rd, PSR.read(5));
-            break;
+    switch(CPSR["mode"]){
+        case 0x1:{
+            //I'm in FIQ mode
+            rd = SPSR[0];
+            break;}
+        case 0x2:{
+            //I'm in IRQ mode
+            rd = SPSR[1];
+            break;}
+        case 0x3:{
+            //I'm in SVC mode
+            rd = SPSR[2];
+            break;}
+        case 0x7:{
+            //I'm in ABT mode
+            rd = SPSR[3];
+            break;}
+        case 0xB:{
+            //I'm in UND mode
+            rd = SPSR[4];
+            break;}
         default:
-            #ifdef WARNING
-            printf("Impossible to read the SPSR in User or System Mode\n");
-            #endif
-            return;
             break;
     }
 }
-else{ // I have to save the CPSR
-    RB.write(rd, PSR.read(0));
+else{
+    // I have to save the CPSR
+    rd = CPSR;
 }
 """)
 mrs_Instr = trap.Instruction('mrs_Instr', True)
@@ -710,33 +712,138 @@ isa.addInstruction(mrs_Instr)
 
 # MSR instruction family
 opCode = cxx_writer.Code("""
-if(r == 1){ // I have to save the SPSR
-    switch(PSR.read(0) & 0x0000000F){
-        case 0x1: //I'm in FIQ mode
-            RB.write(rd, PSR.read(1));
-            break;
-        case 0x2: //I'm in IRQ mode
-            RB.write(rd, PSR.read(2));
-            break;
-        case 0x3: //I'm in SVC mode
-            RB.write(rd, PSR.read(3));
-            break;
-        case 0x7: //I'm in ABT mode
-            RB.write(rd, PSR.read(4));
-            break;
-        case 0xB: //I'm in UND mode
-            RB.write(rd, PSR.read(5));
-            break;
-        default:
-            #ifdef WARNING
-            printf("Impossible to read the SPSR in User or System Mode\n");
-            #endif
-            return;
-            break;
+value = RotateRight(rotate*2, immediate);
+//Checking for unvalid bits
+if((value & 0x00000010) == 0){
+    THROW_EXCEPTION("MSR called with unvalid mode " << std::hex << std::showbase << value << ": we are trying to switch to 26 bit PC");
+}
+unsigned int currentMode = CPSR["mode"];
+//Firs of all I check whether I have to modify the CPSR or the SPSR
+if(r == 0){
+    //CPSR
+    //Now I modify the fields; note that in user mode I can just update the flags.
+    if((mask & 0x1) != 0 && currentMode != 0){
+        CPSR &= 0xFFFFFF00;
+        CPSR |= value & 0x000000FF;
+        //Now if I change mode I also have to update the registry bank
+        if(currentMode != (CPSR & 0x0000000F)){
+            restoreSPSR();
+        }
+    }
+    if((mask & 0x2) != 0 && currentMode != 0){
+        CPSR &= 0xFFFF00FF;
+        CPSR |= value & 0x0000FF00;
+    }
+    if((mask & 0x4) != 0 && currentMode != 0){
+        CPSR &= 0xFF00FFFF;
+        CPSR |= value & 0x00FF0000;
+    }
+    if((mask & 0x8) != 0){
+        CPSR &= 0x00FFFFFF;
+        CPSR |= value & 0xFF000000;
     }
 }
-else{ // I have to save the CPSR
-    RB.write(rd, PSR.read(0));
+else{
+    //SPSR
+    switch(currentMode){
+        case 0x1:{
+            //I'm in FIQ mode
+            if((mask & 0x1) != 0){
+                SPSR[0] &= 0xFFFFFF00;
+                SPSR[0] |= value & 0x000000FF;
+            }
+            if((mask & 0x2) != 0){
+                SPSR[0] &= 0xFFFF00FF;
+                SPSR[0] |= value & 0x0000FF00;
+            }
+            if((mask & 0x4) != 0){
+                SPSR[0] &= 0xFF00FFFF;
+                SPSR[0] |= value & 0x00FF0000;
+            }
+            if((mask & 0x8) != 0){
+                SPSR[0] &= 0x00FFFFFF;
+                SPSR[0] |= value & 0xFF000000;
+            }
+            break;}
+        case 0x2:{
+            //I'm in IRQ mode
+            if((mask & 0x1) != 0){
+                SPSR[1] &= 0xFFFFFF00;
+                SPSR[1] |= value & 0x000000FF;
+            }
+            if((mask & 0x2) != 0){
+                SPSR[1] &= 0xFFFF00FF;
+                SPSR[1] |= value & 0x0000FF00;
+            }
+            if((mask & 0x4) != 0){
+                SPSR[1] &= 0xFF00FFFF;
+                SPSR[1] |= value & 0x00FF0000;
+            }
+            if((mask & 0x8) != 0){
+                SPSR[1] &= 0x00FFFFFF;
+                SPSR[1] |= value & 0xFF000000;
+            }
+            break;}
+        case 0x3:{
+            //I'm in SVC mode
+            if((mask & 0x1) != 0){
+                SPSR[2] &= 0xFFFFFF00;
+                SPSR[2] |= value & 0x000000FF;
+            }
+            if((mask & 0x2) != 0){
+                SPSR[2] &= 0xFFFF00FF;
+                SPSR[2] |= value & 0x0000FF00;
+            }
+            if((mask & 0x4) != 0){
+                SPSR[2] &= 0xFF00FFFF;
+                SPSR[2] |= value & 0x00FF0000;
+            }
+            if((mask & 0x8) != 0){
+                SPSR[2] &= 0x00FFFFFF;
+                SPSR[2] |= value & 0xFF000000;
+            }
+            break;}
+        case 0x7:{
+            //I'm in ABT mode
+            if((mask & 0x1) != 0){
+                SPSR[3] &= 0xFFFFFF00;
+                SPSR[3] |= value & 0x000000FF;
+            }
+            if((mask & 0x2) != 0){
+                SPSR[3] &= 0xFFFF00FF;
+                SPSR[3] |= value & 0x0000FF00;
+            }
+            if((mask & 0x4) != 0){
+                SPSR[3] &= 0xFF00FFFF;
+                SPSR[3] |= value & 0x00FF0000;
+            }
+            if((mask & 0x8) != 0){
+                SPSR[3] &= 0x00FFFFFF;
+                SPSR[3] |= value & 0xFF000000;
+            }
+            break;}
+        case 0xB:{
+            //I'm in UND mode
+            if((mask & 0x1) != 0){
+                SPSR[4] &= 0xFFFFFF00;
+                SPSR[4] |= value & 0x000000FF;
+            }
+            if((mask & 0x2) != 0){
+                SPSR[4] &= 0xFFFF00FF;
+                SPSR[4] |= value & 0x0000FF00;
+            }
+            if((mask & 0x4) != 0){
+                SPSR[4] &= 0xFF00FFFF;
+                SPSR[4] |= value & 0x00FF0000;
+            }
+            if((mask & 0x8) != 0){
+                SPSR[4] &= 0x00FFFFFF;
+                SPSR[4] |= value & 0xFF000000;
+            }
+            break;}
+        default:
+            break;
+    }
 }
 """)
 msr_imm_Instr = trap.Instruction('msr_imm_Instr', True)
@@ -744,40 +851,146 @@ msr_imm_Instr.setMachineCode(move_imm2psr, {'opcode1': [0, 0, 1, 1, 0], 'opcode2
 msr_imm_Instr.setCode(opCode, 'execute')
 msr_imm_Instr.addBehavior(condCheckOp, 'execute')
 msr_imm_Instr.addBehavior(IncrementPC, 'execute', False)
+msr_imm_Instr.addVariable(('value', 'BIT<32>'))
 isa.addInstruction(msr_imm_Instr)
 
 opCode = cxx_writer.Code("""
-if(r == 1){ // I have to save the SPSR
-    switch(PSR.read(0) & 0x0000000F){
-        case 0x1: //I'm in FIQ mode
-            RB.write(rd, PSR.read(1));
-            break;
-        case 0x2: //I'm in IRQ mode
-            RB.write(rd, PSR.read(2));
-            break;
-        case 0x3: //I'm in SVC mode
-            RB.write(rd, PSR.read(3));
-            break;
-        case 0x7: //I'm in ABT mode
-            RB.write(rd, PSR.read(4));
-            break;
-        case 0xB: //I'm in UND mode
-            RB.write(rd, PSR.read(5));
-            break;
+value = REGS[immediate];
+//Checking for unvalid bits
+if((value & 0x00000010) == 0){
+    THROW_EXCEPTION("MSR called with unvalid mode " << std::hex << std::showbase << value << ": we are trying to switch to 26 bit PC");
+}
+unsigned int currentMode = CPSR["mode"];
+//Firs of all I check whether I have to modify the CPSR or the SPSR
+if(r == 0){
+    //CPSR
+    //Now I modify the fields; note that in user mode I can just update the flags.
+    if((mask & 0x1) != 0 && currentMode != 0){
+        CPSR &= 0xFFFFFF00;
+        CPSR |= value & 0x000000FF;
+        //Now if I change mode I also have to update the registry bank
+        if(currentMode != (CPSR & 0x0000000F)){
+            restoreSPSR();
+        }
+    }
+    if((mask & 0x2) != 0 && currentMode != 0){
+        CPSR &= 0xFFFF00FF;
+        CPSR |= value & 0x0000FF00;
+    }
+    if((mask & 0x4) != 0 && currentMode != 0){
+        CPSR &= 0xFF00FFFF;
+        CPSR |= value & 0x00FF0000;
+    }
+    if((mask & 0x8) != 0){
+        CPSR &= 0x00FFFFFF;
+        CPSR |= value & 0xFF000000;
+    }
+}
+else{
+    //SPSR
+    switch(currentMode){
+        case 0x1:{
+            //I'm in FIQ mode
+            if((mask & 0x1) != 0){
+                SPSR[0] &= 0xFFFFFF00;
+                SPSR[0] |= value & 0x000000FF;
+            }
+            if((mask & 0x2) != 0){
+                SPSR[0] &= 0xFFFF00FF;
+                SPSR[0] |= value & 0x0000FF00;
+            }
+            if((mask & 0x4) != 0){
+                SPSR[0] &= 0xFF00FFFF;
+                SPSR[0] |= value & 0x00FF0000;
+            }
+            if((mask & 0x8) != 0){
+                SPSR[0] &= 0x00FFFFFF;
+                SPSR[0] |= value & 0xFF000000;
+            }
+            break;}
+        case 0x2:{
+            //I'm in IRQ mode
+            if((mask & 0x1) != 0){
+                SPSR[1] &= 0xFFFFFF00;
+                SPSR[1] |= value & 0x000000FF;
+            }
+            if((mask & 0x2) != 0){
+                SPSR[1] &= 0xFFFF00FF;
+                SPSR[1] |= value & 0x0000FF00;
+            }
+            if((mask & 0x4) != 0){
+                SPSR[1] &= 0xFF00FFFF;
+                SPSR[1] |= value & 0x00FF0000;
+            }
+            if((mask & 0x8) != 0){
+                SPSR[1] &= 0x00FFFFFF;
+                SPSR[1] |= value & 0xFF000000;
+            }
+            break;}
+        case 0x3:{
+            //I'm in SVC mode
+            if((mask & 0x1) != 0){
+                SPSR[2] &= 0xFFFFFF00;
+                SPSR[2] |= value & 0x000000FF;
+            }
+            if((mask & 0x2) != 0){
+                SPSR[2] &= 0xFFFF00FF;
+                SPSR[2] |= value & 0x0000FF00;
+            }
+            if((mask & 0x4) != 0){
+                SPSR[2] &= 0xFF00FFFF;
+                SPSR[2] |= value & 0x00FF0000;
+            }
+            if((mask & 0x8) != 0){
+                SPSR[2] &= 0x00FFFFFF;
+                SPSR[2] |= value & 0xFF000000;
+            }
+            break;}
+        case 0x7:{
+            //I'm in ABT mode
+            if((mask & 0x1) != 0){
+                SPSR[3] &= 0xFFFFFF00;
+                SPSR[3] |= value & 0x000000FF;
+            }
+            if((mask & 0x2) != 0){
+                SPSR[3] &= 0xFFFF00FF;
+                SPSR[3] |= value & 0x0000FF00;
+            }
+            if((mask & 0x4) != 0){
+                SPSR[3] &= 0xFF00FFFF;
+                SPSR[3] |= value & 0x00FF0000;
+            }
+            if((mask & 0x8) != 0){
+                SPSR[3] &= 0x00FFFFFF;
+                SPSR[3] |= value & 0xFF000000;
+            }
+            break;}
+        case 0xB:{
+            //I'm in UND mode
+            if((mask & 0x1) != 0){
+                SPSR[4] &= 0xFFFFFF00;
+                SPSR[4] |= value & 0x000000FF;
+            }
+            if((mask & 0x2) != 0){
+                SPSR[4] &= 0xFFFF00FF;
+                SPSR[4] |= value & 0x0000FF00;
+            }
+            if((mask & 0x4) != 0){
+                SPSR[4] &= 0xFF00FFFF;
+                SPSR[4] |= value & 0x00FF0000;
+            }
+            if((mask & 0x8) != 0){
+                SPSR[4] &= 0x00FFFFFF;
+                SPSR[4] |= value & 0xFF000000;
+            }
+            break;}
         default:
-            #ifdef WARNING
-            printf("Impossible to read the SPSR in User or System Mode\n");
-            #endif
-            return;
             break;
     }
 }
-else{ // I have to save the CPSR
-    RB.write(rd, PSR.read(0));
-}
 """)
 msr_reg_Instr = trap.Instruction('msr_reg_Instr', True)
-msr_reg_Instr.setMachineCode(move_imm2psr, {'opcode1': [0, 0, 1, 0, 0], 'opcode2': [1, 0], 'rd': [1, 1, 1, 1], 'rotate': [0, 0, 0, 0]}, 'TODO')
+msr_reg_Instr.setMachineCode(move_imm2psr, {'opcode1': [0, 0, 0, 1, 0], 'opcode2': [1, 0], 'rd': [1, 1, 1, 1], 'rotate': [0, 0, 0, 0]}, 'TODO')
 msr_reg_Instr.setCode(opCode, 'execute')
 msr_reg_Instr.addBehavior(condCheckOp, 'execute')
 msr_reg_Instr.addBehavior(IncrementPC, 'execute', False)
