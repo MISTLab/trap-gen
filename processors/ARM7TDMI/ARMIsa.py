@@ -704,7 +704,7 @@ else{
 }
 """)
 mrs_Instr = trap.Instruction('mrs_Instr', True)
-mrs_Instr.setMachineCode(move_imm2psr, {'opcode1': [0, 0, 0, 1, 0], 'opcode2': [0, 0], 'mask': [1, 1, 1, 1], 'rotate': [0, 0, 0, 0], 'immediate': [0, 0, 0, 0, 0, 0, 0, 0]}, 'TODO')
+mrs_Instr.setMachineCode(move_imm2psr, {'opcode0': [0, 0, 0, 1, 0], 'opcode1': [0, 0], 'mask': [1, 1, 1, 1], 'rotate': [0, 0, 0, 0], 'immediate': [0, 0, 0, 0, 0, 0, 0, 0]}, 'TODO')
 mrs_Instr.setCode(opCode, 'execute')
 mrs_Instr.addBehavior(condCheckOp, 'execute')
 mrs_Instr.addBehavior(IncrementPC, 'execute', False)
@@ -847,7 +847,7 @@ else{
 }
 """)
 msr_imm_Instr = trap.Instruction('msr_imm_Instr', True)
-msr_imm_Instr.setMachineCode(move_imm2psr, {'opcode1': [0, 0, 1, 1, 0], 'opcode2': [1, 0], 'rd': [1, 1, 1, 1]}, 'TODO')
+msr_imm_Instr.setMachineCode(move_imm2psr, {'opcode0': [0, 0, 1, 1, 0], 'opcode1': [1, 0], 'rd': [1, 1, 1, 1]}, 'TODO')
 msr_imm_Instr.setCode(opCode, 'execute')
 msr_imm_Instr.addBehavior(condCheckOp, 'execute')
 msr_imm_Instr.addBehavior(IncrementPC, 'execute', False)
@@ -855,9 +855,8 @@ msr_imm_Instr.addVariable(('value', 'BIT<32>'))
 isa.addInstruction(msr_imm_Instr)
 
 opCode = cxx_writer.Code("""
-value = REGS[immediate];
 //Checking for unvalid bits
-if((value & 0x00000010) == 0){
+if((rm & 0x00000010) == 0){
     THROW_EXCEPTION("MSR called with unvalid mode " << std::hex << std::showbase << value << ": we are trying to switch to 26 bit PC");
 }
 unsigned int currentMode = CPSR["mode"];
@@ -867,7 +866,7 @@ if(r == 0){
     //Now I modify the fields; note that in user mode I can just update the flags.
     if((mask & 0x1) != 0 && currentMode != 0){
         CPSR &= 0xFFFFFF00;
-        CPSR |= value & 0x000000FF;
+        CPSR |= rm & 0x000000FF;
         //Now if I change mode I also have to update the registry bank
         if(currentMode != (CPSR & 0x0000000F)){
             restoreSPSR();
@@ -875,15 +874,15 @@ if(r == 0){
     }
     if((mask & 0x2) != 0 && currentMode != 0){
         CPSR &= 0xFFFF00FF;
-        CPSR |= value & 0x0000FF00;
+        CPSR |= rm & 0x0000FF00;
     }
     if((mask & 0x4) != 0 && currentMode != 0){
         CPSR &= 0xFF00FFFF;
-        CPSR |= value & 0x00FF0000;
+        CPSR |= rm & 0x00FF0000;
     }
     if((mask & 0x8) != 0){
         CPSR &= 0x00FFFFFF;
-        CPSR |= value & 0xFF000000;
+        CPSR |= rm & 0xFF000000;
     }
 }
 else{
@@ -893,95 +892,95 @@ else{
             //I'm in FIQ mode
             if((mask & 0x1) != 0){
                 SPSR[0] &= 0xFFFFFF00;
-                SPSR[0] |= value & 0x000000FF;
+                SPSR[0] |= rm & 0x000000FF;
             }
             if((mask & 0x2) != 0){
                 SPSR[0] &= 0xFFFF00FF;
-                SPSR[0] |= value & 0x0000FF00;
+                SPSR[0] |= rm & 0x0000FF00;
             }
             if((mask & 0x4) != 0){
                 SPSR[0] &= 0xFF00FFFF;
-                SPSR[0] |= value & 0x00FF0000;
+                SPSR[0] |= rm & 0x00FF0000;
             }
             if((mask & 0x8) != 0){
                 SPSR[0] &= 0x00FFFFFF;
-                SPSR[0] |= value & 0xFF000000;
+                SPSR[0] |= rm & 0xFF000000;
             }
             break;}
         case 0x2:{
             //I'm in IRQ mode
             if((mask & 0x1) != 0){
                 SPSR[1] &= 0xFFFFFF00;
-                SPSR[1] |= value & 0x000000FF;
+                SPSR[1] |= rm & 0x000000FF;
             }
             if((mask & 0x2) != 0){
                 SPSR[1] &= 0xFFFF00FF;
-                SPSR[1] |= value & 0x0000FF00;
+                SPSR[1] |= rm & 0x0000FF00;
             }
             if((mask & 0x4) != 0){
                 SPSR[1] &= 0xFF00FFFF;
-                SPSR[1] |= value & 0x00FF0000;
+                SPSR[1] |= rm & 0x00FF0000;
             }
             if((mask & 0x8) != 0){
                 SPSR[1] &= 0x00FFFFFF;
-                SPSR[1] |= value & 0xFF000000;
+                SPSR[1] |= rm & 0xFF000000;
             }
             break;}
         case 0x3:{
             //I'm in SVC mode
             if((mask & 0x1) != 0){
                 SPSR[2] &= 0xFFFFFF00;
-                SPSR[2] |= value & 0x000000FF;
+                SPSR[2] |= rm & 0x000000FF;
             }
             if((mask & 0x2) != 0){
                 SPSR[2] &= 0xFFFF00FF;
-                SPSR[2] |= value & 0x0000FF00;
+                SPSR[2] |= rm & 0x0000FF00;
             }
             if((mask & 0x4) != 0){
                 SPSR[2] &= 0xFF00FFFF;
-                SPSR[2] |= value & 0x00FF0000;
+                SPSR[2] |= rm & 0x00FF0000;
             }
             if((mask & 0x8) != 0){
                 SPSR[2] &= 0x00FFFFFF;
-                SPSR[2] |= value & 0xFF000000;
+                SPSR[2] |= rm & 0xFF000000;
             }
             break;}
         case 0x7:{
             //I'm in ABT mode
             if((mask & 0x1) != 0){
                 SPSR[3] &= 0xFFFFFF00;
-                SPSR[3] |= value & 0x000000FF;
+                SPSR[3] |= rm & 0x000000FF;
             }
             if((mask & 0x2) != 0){
                 SPSR[3] &= 0xFFFF00FF;
-                SPSR[3] |= value & 0x0000FF00;
+                SPSR[3] |= rm & 0x0000FF00;
             }
             if((mask & 0x4) != 0){
                 SPSR[3] &= 0xFF00FFFF;
-                SPSR[3] |= value & 0x00FF0000;
+                SPSR[3] |= rm & 0x00FF0000;
             }
             if((mask & 0x8) != 0){
                 SPSR[3] &= 0x00FFFFFF;
-                SPSR[3] |= value & 0xFF000000;
+                SPSR[3] |= rm & 0xFF000000;
             }
             break;}
         case 0xB:{
             //I'm in UND mode
             if((mask & 0x1) != 0){
                 SPSR[4] &= 0xFFFFFF00;
-                SPSR[4] |= value & 0x000000FF;
+                SPSR[4] |= rm & 0x000000FF;
             }
             if((mask & 0x2) != 0){
                 SPSR[4] &= 0xFFFF00FF;
-                SPSR[4] |= value & 0x0000FF00;
+                SPSR[4] |= rm & 0x0000FF00;
             }
             if((mask & 0x4) != 0){
                 SPSR[4] &= 0xFF00FFFF;
-                SPSR[4] |= value & 0x00FF0000;
+                SPSR[4] |= rm & 0x00FF0000;
             }
             if((mask & 0x8) != 0){
                 SPSR[4] &= 0x00FFFFFF;
-                SPSR[4] |= value & 0xFF000000;
+                SPSR[4] |= rm & 0xFF000000;
             }
             break;}
         default:
@@ -990,7 +989,7 @@ else{
 }
 """)
 msr_reg_Instr = trap.Instruction('msr_reg_Instr', True)
-msr_reg_Instr.setMachineCode(move_imm2psr, {'opcode1': [0, 0, 0, 1, 0], 'opcode2': [1, 0], 'rd': [1, 1, 1, 1], 'rotate': [0, 0, 0, 0]}, 'TODO')
+msr_reg_Instr.setMachineCode(move_imm2psr_reg, {'opcode0': [0, 0, 0, 1, 0], 'opcode1': [1, 0]}, 'TODO')
 msr_reg_Instr.setCode(opCode, 'execute')
 msr_reg_Instr.addBehavior(condCheckOp, 'execute')
 msr_reg_Instr.addBehavior(IncrementPC, 'execute', False)

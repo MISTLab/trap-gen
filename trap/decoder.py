@@ -73,12 +73,12 @@ def bitStringUnion(bitString, noCare = None):
                 validPattern.append(curPattern[i])
     return validPattern
 
-def bitStringValid(bitString, noCare = None):
+def bitStringValid(bitStrings, noCare = None):
     """Given a list of bitstring it computes
-    which bits are different from don't-case in
+    which bits are different from don't-care in
     every bitstring; I associate 1 to that bit"""
     validPattern = []
-    for curPattern in bitString:
+    for curPattern in bitStrings:
         for i in range(0, len(curPattern)):
             if len(validPattern) > i:
                 if validPattern[i] is None or curPattern[i] is None:
