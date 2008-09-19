@@ -186,8 +186,7 @@ switch(shift_type){
         THROW_EXCEPTION("Unknown Shift Type in Load/Store register shift");
         break;}
 }
-
-return index.entire;
+return toShift;
 """)
 LSRegShift_method = trap.HelperMethod('LSRegShift', opCode)
 LSRegShift_method.setSignature(('BIT<32>'), [cxx_writer.Parameter('shift_type', cxx_writer.uintType), cxx_writer.Parameter('shift_amm', cxx_writer.uintType), ('toShift', 'BIT<32>')])
@@ -627,10 +626,10 @@ if (s == 0x1){
 """)
 UpdatePSRSum = trap.HelperOperation('UpdatePSRSum', opCode)
 UpdatePSRSum.addInstuctionVar(('result', 'BIT<64>'))
+UpdatePSRSum.addInstuctionVar(('operand', 'BIT<32>'))
 UpdatePSRSum.addUserInstructionElement('s')
 UpdatePSRSum.addUserInstructionElement('rn')
 UpdatePSRSum.addUserInstructionElement('rd')
-UpdatePSRSum.addInstuctionVar(('operand', 'BIT<32>'))
 # Now I define the behavior used by most of the data processing operations
 # for the update of the program status register
 opCode = cxx_writer.Code("""
@@ -824,11 +823,12 @@ ls_reg_Op.addUserInstructionElement('shift_amm')
 ls_reg_Op.addUserInstructionElement('shift_op')
 # Now I define the behavior for the Load/Store of multiple registers
 opCode = cxx_writer.Code("""
-//Now I calculate the start and end addresses of the mem area where I will save the registers.
+//Now I calculate the start and end addresses of the
+//mem area where I will save the registers.
 unsigned int setbits = 0;
 for (unsigned int i = 0; i < 16; i++) {
     if ((reg_list & (1 << i)) != 0)
-        count++;
+        setbits++;
 }
 if((p == 0) && (u == 1)) {
     // increment after
@@ -869,7 +869,8 @@ address = 0;
 //First of all I check whether this instruction uses an immediate or a register offset
 if(i == 1){ //Immediate offset
     off8 = (addr_mode0 << 4 | addr_mode1);
-    if((p == 1) && (w == 0)){ //immediate offset normal mode
+    if((p == 1) && (w == 0)){
+        //immediate offset normal mode
         if(u == 1){
             address = rn + off8;
         }
@@ -877,7 +878,8 @@ if(i == 1){ //Immediate offset
             address = rn - off8;
         }
     }
-    else if((p == 1) && (w == 1)){ //immediate pre-indexing
+    else if((p == 1) && (w == 1)){
+        //immediate pre-indexing
         if(u == 1){
             address = rn + off8;
         }
@@ -886,7 +888,8 @@ if(i == 1){ //Immediate offset
         }
         rn = address;
     }
-    else if((p == 0) && (w == 0)){ // Immediate post indexing
+    else if((p == 0) && (w == 0)){
+        // Immediate post indexing
         address = rn;
 
         if(u == 1){

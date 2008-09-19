@@ -53,6 +53,8 @@ isa.addMethod(restoreSPSR_method)
 isa.addMethod(updateAlias_method)
 isa.addMethod(AShiftRight_method)
 isa.addMethod(RotateRight_method)
+isa.addMethod(LSRegShift_method)
+isa.addMethod(SignExtend_method)
 
 #-------------------------------------------------------------------------------------
 # Let's now procede to set the behavior of the instructions
@@ -184,7 +186,7 @@ opCode = cxx_writer.Code("""
 if(l == 1) {
     LR = PC - 4;
 }
-PC += ((SignExtend(offset, 24) << 2);
+PC += (SignExtend(offset, 24) << 2);
 stall(2);
 """)
 branch_Instr = trap.Instruction('BRANCH', True)
@@ -237,13 +239,21 @@ isa.addInstruction(bic_imm_Instr)
 # CMN instruction family
 opCode = cxx_writer.Code("""
 result = (long long) ((long long)rn + (long long)operand);
+//Here I have to normally update the flags
+// N flag if the results is negative
+CPSR["N"] = ((result & 0x0000000080000000LL) != 0);
+//Update flag Z if the result is 0
+CPSR["Z"] = (result == 0);
+//Update the C flag if a carry occurred in the operation
+CPSR["C"] = (((~result & operand) | (~result & rn) | (result & rn & operand)) & 0x0000000080000000LL) != 0;
+//Update the V flag if an overflow occurred in the operation
+CPSR["V"] = (((rn & operand & ~result) | (~rn & ~operand & result)) & 0x0000000080000000LL) != 0;
 """)
 cmn_shift_imm_Instr = trap.Instruction('CMN_si', True)
 cmn_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [1, 0, 1, 1], 's': [1]}, 'TODO')
 cmn_shift_imm_Instr.setCode(opCode, 'execute')
 cmn_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
 cmn_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
-cmn_shift_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 cmn_shift_imm_Instr.addVariable(('result', 'BIT<64>'))
 cmn_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 6})
 isa.addInstruction(cmn_shift_imm_Instr)
@@ -252,7 +262,6 @@ cmn_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [1, 0, 1, 1], 
 cmn_shift_reg_Instr.setCode(opCode, 'execute')
 cmn_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
 cmn_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
-cmn_shift_reg_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 cmn_shift_reg_Instr.addVariable(('result', 'BIT<64>'))
 isa.addInstruction(cmn_shift_reg_Instr)
 cmn_imm_Instr = trap.Instruction('CMN_i', True)
@@ -260,20 +269,27 @@ cmn_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [1, 0, 1, 1], 's': [1]}, '
 cmn_imm_Instr.setCode(opCode, 'execute')
 cmn_imm_Instr.addBehavior(condCheckOp, 'execute')
 cmn_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
-cmn_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 cmn_imm_Instr.addVariable(('result', 'BIT<64>'))
 isa.addInstruction(cmn_imm_Instr)
 
 # CMP instruction family
 opCode = cxx_writer.Code("""
 result = (long long) ((long long)rn - (long long)operand);
+//Here I have to normally update the flags
+// N flag if the results is negative
+CPSR["N"] = ((result & 0x0000000080000000LL) != 0);
+//Update flag Z if the result is 0
+CPSR["Z"] = (result == 0);
+//Update the C flag if a carry occurred in the operation
+CPSR["C"] = (((~result & ~operand) | (~result & rn) | (result & rn & ~operand)) & 0x0000000080000000LL) != 0;
+//Update the V flag if an overflow occurred in the operation
+CPSR["V"] = (((rn & ~operand & ~result) | (~rn & operand & result)) & 0x0000000080000000LL) != 0;
 """)
 cmp_shift_imm_Instr = trap.Instruction('CMP_si', True)
 cmp_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [1, 0, 1, 0], 's': [1]}, 'TODO')
 cmp_shift_imm_Instr.setCode(opCode, 'execute')
 cmp_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
 cmp_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
-cmp_shift_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 cmp_shift_imm_Instr.addVariable(('result', 'BIT<64>'))
 cmp_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 6})
 isa.addInstruction(cmp_shift_imm_Instr)
@@ -282,7 +298,6 @@ cmp_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [1, 0, 1, 0], 
 cmp_shift_reg_Instr.setCode(opCode, 'execute')
 cmp_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
 cmp_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
-cmp_shift_reg_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 cmp_shift_reg_Instr.addVariable(('result', 'BIT<64>'))
 isa.addInstruction(cmp_shift_reg_Instr)
 cmp_imm_Instr = trap.Instruction('CMP_i', True)
@@ -290,7 +305,6 @@ cmp_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [1, 0, 1, 0], 's': [1]}, '
 cmp_imm_Instr.setCode(opCode, 'execute')
 cmp_imm_Instr.addBehavior(condCheckOp, 'execute')
 cmp_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
-cmp_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 cmp_imm_Instr.addVariable(('result', 'BIT<64>'))
 isa.addInstruction(cmp_imm_Instr)
 
@@ -327,6 +341,7 @@ isa.addInstruction(eor_imm_Instr)
 # LDM instruction family
 opCode = cxx_writer.Code("""
 unsigned int numRegsToLoad = 0;
+unsigned int loadLatency = 0;
 //First of all I have to check that I'm not dealing with user mode registers:
 if((s == 1) && ((reg_list & 0x00008000) == 0)){
     //I'm dealing with user-mode registers: LDM type two
@@ -357,7 +372,8 @@ else{
     }
     loadLatency = numRegsToLoad + 1;
 
-    //I tread in a special way the PC, since loading a value in the PC is like performing a branch.
+    //I tread in a special way the PC, since loading a value
+    //in the PC is like performing a branch.
     if((reg_list & 0x00008000) != 0){
         //I have to load also the PC: it is like a branch; since I don't bother with
         //Thumb mode, bits 0 and 1 of the PC are ignored
@@ -388,9 +404,9 @@ opCode = cxx_writer.Code("""
 memLastBits = address & 0x00000003;
 // if the memory address is not word aligned I have to rotate the loaded value
 if(memLastBits == 0)
-    value = dateMem.read_word(address);
+    value = dataMem.read_word(address);
 else{
-    value = RotateRight(8*memLastBits, dateMem.read_word(address));
+    value = RotateRight(8*memLastBits, dataMem.read_word(address));
 }
 
 //Perform the writeback; as usual I have to behave differently
@@ -426,7 +442,7 @@ isa.addInstruction(ldr_off_Instr)
 # LDRB instruction family
 # Normal load instruction
 opCode = cxx_writer.Code("""
-rd = dateMem.read_word(address);
+rd = dataMem.read_word(address);
 stall(2);
 """)
 ldrb_imm_Instr = trap.Instruction('LDRB_imm', True)
@@ -445,7 +461,7 @@ ldrb_off_Instr.addBehavior(IncrementPC, 'execute', False)
 isa.addInstruction(ldrb_off_Instr)
 # LDRH instruction family
 opCode = cxx_writer.Code("""
-rd = dateMem.read_half(address);
+rd = dataMem.read_half(address);
 stall(2);
 """)
 ldrh_off_Instr = trap.Instruction('LDRH_off', True)
@@ -457,7 +473,7 @@ ldrh_off_Instr.addBehavior(IncrementPC, 'execute', False)
 isa.addInstruction(ldrh_off_Instr)
 # LDRS H/B instruction family
 opCode = cxx_writer.Code("""
-rd = dateMem.read_half(address);
+rd = dataMem.read_half(address);
 stall(2);
 """)
 ldrsh_off_Instr = trap.Instruction('LDRSH_off', True)
@@ -468,7 +484,7 @@ ldrsh_off_Instr.addBehavior(ls_sh_Op, 'execute')
 ldrsh_off_Instr.addBehavior(IncrementPC, 'execute', False)
 isa.addInstruction(ldrsh_off_Instr)
 opCode = cxx_writer.Code("""
-rd = dateMem.read_byte(address);
+rd = dataMem.read_byte(address);
 stall(2);
 """)
 ldrsb_off_Instr = trap.Instruction('LDRSB_off', True)
@@ -489,7 +505,7 @@ if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
 else if((rs & 0xFFFF0000) == 0x0 || (rs & 0xFFFF0000) == 0xFFFF0000){
     stall(3);
 }
-else if((rs & 0xFF000000) == 0x0 || (rs & 0xFF000000) == 0xFF000000)7
+else if((rs & 0xFF000000) == 0x0 || (rs & 0xFF000000) == 0xFF000000){
     stall(4);
 }
 else{
@@ -513,7 +529,7 @@ if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
 else if((rs & 0xFFFF0000) == 0x0 || (rs & 0xFFFF0000) == 0xFFFF0000){
     stall(2);
 }
-else if((rs & 0xFF000000) == 0x0 || (rs & 0xFF000000) == 0xFF000000)7
+else if((rs & 0xFF000000) == 0x0 || (rs & 0xFF000000) == 0xFF000000){
     stall(3);
 }
 else{
@@ -857,7 +873,7 @@ isa.addInstruction(msr_imm_Instr)
 opCode = cxx_writer.Code("""
 //Checking for unvalid bits
 if((rm & 0x00000010) == 0){
-    THROW_EXCEPTION("MSR called with unvalid mode " << std::hex << std::showbase << value << ": we are trying to switch to 26 bit PC");
+    THROW_EXCEPTION("MSR called with unvalid mode " << std::hex << std::showbase << rm << ": we are trying to switch to 26 bit PC");
 }
 unsigned int currentMode = CPSR["mode"];
 //Firs of all I check whether I have to modify the CPSR or the SPSR
@@ -1200,13 +1216,20 @@ isa.addInstruction(sub_imm_Instr)
 # TEQ instruction family
 opCode = cxx_writer.Code("""
 result = (long long) ((long long)rn ^ (long long)operand);
+//Here I have to normally update the flags
+// N flag if the results is negative
+CPSR["N"] = ((rd & 0x80000000) != 0);
+//Update flag Z if the result is 0
+CPSR["Z"] = (rd == 0);
+//Update the C flag if a carry occurred in the operation
+CPSR["C"] = (carry != 0);
+//No updates performed to the V flag.
 """)
 teq_shift_imm_Instr = trap.Instruction('TEQ_si', True)
 teq_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [1, 0, 0, 1], 's': [1]}, 'TODO')
 teq_shift_imm_Instr.setCode(opCode, 'execute')
 teq_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
 teq_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
-teq_shift_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 teq_shift_imm_Instr.addVariable(('result', 'BIT<64>'))
 teq_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 6})
 isa.addInstruction(teq_shift_imm_Instr)
@@ -1215,7 +1238,6 @@ teq_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [1, 0, 0, 1], 
 teq_shift_reg_Instr.setCode(opCode, 'execute')
 teq_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
 teq_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
-teq_shift_reg_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 teq_shift_reg_Instr.addVariable(('result', 'BIT<64>'))
 isa.addInstruction(teq_shift_reg_Instr)
 teq_imm_Instr = trap.Instruction('TEQ_i', True)
@@ -1223,20 +1245,26 @@ teq_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [1, 0, 0, 1], 's': [1]}, '
 teq_imm_Instr.setCode(opCode, 'execute')
 teq_imm_Instr.addBehavior(condCheckOp, 'execute')
 teq_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
-teq_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 teq_imm_Instr.addVariable(('result', 'BIT<64>'))
 isa.addInstruction(teq_imm_Instr)
 
 # TST instruction family
 opCode = cxx_writer.Code("""
 result = (long long) ((long long)rn & (long long)operand);
+//Here I have to normally update the flags
+// N flag if the results is negative
+CPSR["N"] = ((rd & 0x80000000) != 0);
+//Update flag Z if the result is 0
+CPSR["Z"] = (rd == 0);
+//Update the C flag if a carry occurred in the operation
+CPSR["C"] = (carry != 0);
+//No updates performed to the V flag.
 """)
 tst_shift_imm_Instr = trap.Instruction('TST_si', True)
 tst_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [1, 0, 0, 0], 's': [1]}, 'TODO')
 tst_shift_imm_Instr.setCode(opCode, 'execute')
 tst_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
 tst_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
-tst_shift_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 tst_shift_imm_Instr.addVariable(('result', 'BIT<64>'))
 tst_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 6})
 isa.addInstruction(tst_shift_imm_Instr)
@@ -1245,7 +1273,6 @@ tst_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [1, 0, 0, 0], 
 tst_shift_reg_Instr.setCode(opCode, 'execute')
 tst_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
 tst_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
-tst_shift_reg_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 tst_shift_reg_Instr.addVariable(('result', 'BIT<64>'))
 isa.addInstruction(tst_shift_reg_Instr)
 tst_imm_Instr = trap.Instruction('TST_i', True)
@@ -1253,11 +1280,10 @@ tst_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [1, 0, 0, 0], 's': [1]}, '
 tst_imm_Instr.setCode(opCode, 'execute')
 tst_imm_Instr.addBehavior(condCheckOp, 'execute')
 tst_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
-tst_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 tst_imm_Instr.addVariable(('result', 'BIT<64>'))
 isa.addInstruction(tst_imm_Instr)
 
-# LDM instruction family
+# STM instruction family
 opCode = cxx_writer.Code("""
 int numRegsToStore = 0;
 //I use word aligned addresses
@@ -1310,6 +1336,7 @@ stm_Instr.setMachineCode(ls_multiple, {'l' : [0]}, 'TODO')
 stm_Instr.setCode(opCode, 'execute')
 stm_Instr.addBehavior(condCheckOp, 'execute')
 stm_Instr.addBehavior(LSM_reglist_Op, 'execute')
+stm_Instr.addBehavior(IncrementPC, 'execute', False)
 isa.addInstruction(stm_Instr)
 
 # STR instruction family
@@ -1323,6 +1350,7 @@ str_imm_Instr.setMachineCode(ls_immOff, {'b': [0], 'l': [0]}, 'TODO')
 str_imm_Instr.setCode(opCode, 'execute')
 str_imm_Instr.addBehavior(condCheckOp, 'execute')
 str_imm_Instr.addBehavior(ls_imm_Op, 'execute')
+str_imm_Instr.addBehavior(IncrementPC, 'execute', False)
 str_imm_Instr.addVariable(('memLastBits', 'BIT<32>'))
 str_imm_Instr.addVariable(('value', 'BIT<32>'))
 isa.addInstruction(str_imm_Instr)
@@ -1331,10 +1359,11 @@ str_off_Instr.setMachineCode(ls_regOff, {'b': [0], 'l': [0]}, 'TODO')
 str_off_Instr.setCode(opCode, 'execute')
 str_off_Instr.addBehavior(condCheckOp, 'execute')
 str_off_Instr.addBehavior(ls_reg_Op, 'execute')
+str_off_Instr.addBehavior(IncrementPC, 'execute', False)
 str_off_Instr.addVariable(('memLastBits', 'BIT<32>'))
 str_off_Instr.addVariable(('value', 'BIT<32>'))
 isa.addInstruction(str_off_Instr)
-# LDRB instruction family
+# STRB instruction family
 # Normal load instruction
 opCode = cxx_writer.Code("""
 dataMem.write_byte(address, (unsigned char)(rd & 0x000000FF));
@@ -1354,7 +1383,7 @@ strb_off_Instr.addBehavior(condCheckOp, 'execute')
 strb_off_Instr.addBehavior(ls_reg_Op, 'execute')
 strb_off_Instr.addBehavior(IncrementPC, 'execute', False)
 isa.addInstruction(strb_off_Instr)
-# LDRH instruction family
+# STRH instruction family
 opCode = cxx_writer.Code("""
 dataMem.write_half(address, (unsigned short)(rd & 0x0000FFFF));
 stall(1);
@@ -1372,7 +1401,7 @@ opCode = cxx_writer.Code("""
 memLastBits = rn & 0x00000003;
 //Depending whether the address is word aligned or not I have to rotate the
 //read word.
-temp = dataMem.read_word(memAddr.entire);
+temp = dataMem.read_word(rn);
 if(memLastBits != 0){
     temp = RotateRight(8*memLastBits, temp);
 }

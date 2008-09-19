@@ -162,9 +162,10 @@ class Constructor(ClassMember, Function):
         writer.write('}\n\n')
 
 class Destructor(ClassMember, Function):
-    def __init__(self, body, visibility):
+    def __init__(self, body, visibility, virtual = False):
         ClassMember.__init__(self, visibility)
         Function.__init__(self, '', body, Type(''), [], False)
+        self.virtual = virtual
 
     def writeImplementation(self, writer, className = ''):
         if self.docstring:

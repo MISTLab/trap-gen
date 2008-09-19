@@ -61,6 +61,7 @@ def getCPPRegClass(self, model, regType):
     # returns the class implementing the current register; I have to
     # define all the operators;
     # TODO: think about the clocked registers
+    emptyBody = cxx_writer.writer_code.Code('')
     regWidthType = regMaxType
     registerType = cxx_writer.writer_code.Type('Register')
     registerElements = []
@@ -197,6 +198,8 @@ def getCPPRegClass(self, model, regType):
         publicConstr = cxx_writer.writer_code.Constructor(cxx_writer.writer_code.Code(''), 'pu', constructorParams, ['value(value)'])
         InnerFieldClass = cxx_writer.writer_code.ClassDeclaration('InnerField_' + field, [operatorEqualDecl, operatorIntDecl, fieldAttribute], [cxx_writer.writer_code.Type('InnerField')])
         InnerFieldClass.addConstructor(publicConstr)
+        publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
+        InnerFieldClass.addDestructor(publicDestr)    
         innerClasses.append(InnerFieldClass)
         fieldAttribute = cxx_writer.writer_code.Attribute('field_' + field, InnerFieldClass.getType(), 'pri')
         attrs.append(fieldAttribute)
@@ -208,6 +211,8 @@ def getCPPRegClass(self, model, regType):
     publicConstr = cxx_writer.writer_code.Constructor(cxx_writer.writer_code.Code(''), 'pu')
     InnerFieldClass = cxx_writer.writer_code.ClassDeclaration('InnerField_Empty', [operatorEqualDecl, operatorIntDecl], [cxx_writer.writer_code.Type('InnerField')])
     InnerFieldClass.addConstructor(publicConstr)
+    publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
+    InnerFieldClass.addDestructor(publicDestr)        
     innerClasses.append(InnerFieldClass)
     fieldAttribute = cxx_writer.writer_code.Attribute('field_empty', InnerFieldClass.getType(), 'pri')
     attrs.append(fieldAttribute)
@@ -263,6 +268,8 @@ def getCPPRegisters(self, model):
     operatorEqualDecl = cxx_writer.writer_code.MemberOperator('=', emptyBody, cxx_writer.writer_code.Type('InnerField').makeRef(), 'pu', [operatorParam], pure = True)
     operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), emptyBody, cxx_writer.writer_code.Type(''), 'pu', const = True, pure = True)
     InnerFieldClass = cxx_writer.writer_code.ClassDeclaration('InnerField', [operatorEqualDecl, operatorIntDecl])
+    publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
+    InnerFieldClass.addDestructor(publicDestr)    
 
     # Now lets procede with the members of the main class
     operatorParam = cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.stringRefType.makeConst())
@@ -382,11 +389,11 @@ def getCPPAlias(self, model):
         operatorParam = cxx_writer.writer_code.Parameter('other', aliasType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True)
         aliasElements.append(operatorDecl)
-    for i in comparisonOps:
-        operatorBody = cxx_writer.writer_code.Code('return ((*this->reg + this->offset) ' + i + ' *other.reg);')
-        operatorParam = cxx_writer.writer_code.Parameter('other', aliasType.makeRef().makeConst())
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
-        aliasElements.append(operatorDecl)
+#    for i in comparisonOps:
+#        operatorBody = cxx_writer.writer_code.Code('return ((*this->reg + this->offset) ' + i + ' *other.reg);')
+#        operatorParam = cxx_writer.writer_code.Parameter('other', aliasType.makeRef().makeConst())
+#        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
+#        aliasElements.append(operatorDecl)
     for i in assignmentOps:
         operatorBody = cxx_writer.writer_code.Code(str(regMaxType) + ' result = *this->reg;\nresult ' + i + ' *other.reg;\n*this->reg = (result - this->offset);\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', aliasType.makeRef().makeConst())
@@ -535,6 +542,8 @@ def getCPPMemoryIf(self, model):
     unlockDecl = cxx_writer.writer_code.Method('unlock', emptyBody, cxx_writer.writer_code.voidType, 'pu', pure = True)
     memoryIfElements.append(unlockDecl)
     memoryIfDecl = cxx_writer.writer_code.ClassDeclaration('MemoryInterface', memoryIfElements)
+    publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
+    memoryIfDecl.addDestructor(publicDestr)    
     classes.append(memoryIfDecl)
     # Now I check if it is the case of creating a local memory
     readMemAliasCode = ''
@@ -589,7 +598,7 @@ def getCPPMemoryIf(self, model):
         publicMemConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams + aliasParams, ['size(size)'] + aliasInit)
         localMemDecl.addConstructor(publicMemConstr)
         destructorBody = cxx_writer.writer_code.Code('delete [] this->memory;')
-        publicMemDestr = cxx_writer.writer_code.Destructor(destructorBody, 'pu')
+        publicMemDestr = cxx_writer.writer_code.Destructor(destructorBody, 'pu', True)
         localMemDecl.addDestructor(publicMemDestr)
         classes.append(localMemDecl)
     # Finally I create all the necessary TLM memory ports

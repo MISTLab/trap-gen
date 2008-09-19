@@ -84,6 +84,7 @@ def getCppOpClass(self):
     # method corresponding to the current operation
     aliasType = cxx_writer.writer_code.Type('Alias', 'alias.hpp')
     instructionType = cxx_writer.writer_code.Type('Instruction', 'instructions.hpp')
+    emptyBody = cxx_writer.writer_code.Code('')
     for var in self.localvars:
         self.code.addVariable(var)
     self.code.addInclude('utils.hpp')
@@ -100,6 +101,8 @@ def getCppOpClass(self):
     methodDecl = cxx_writer.writer_code.Method(self.name, self.code, cxx_writer.writer_code.voidType, 'pro', metodParams, inline = True)
     classElements.append(methodDecl)
     opDecl = cxx_writer.writer_code.ClassDeclaration(self.name + '_op', classElements, virtual_superclasses = [instructionType])
+    opDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
+    opDecl.addDestructor(opDestr)
     return opDecl
 
 def getCPPInstr(self, model):
@@ -112,6 +115,7 @@ def getCPPInstr(self, model):
     classElements = []
     baseClasses = []
     toInline = []
+    behVars = []
     global alreadyDeclared
     for behaviors in self.postbehaviors.values() + self.prebehaviors.values():
         for beh in behaviors:
@@ -119,10 +123,12 @@ def getCPPInstr(self, model):
                 baseClasses.append(behClass[beh.name].getType())
             elif beh.inline and not beh.name in alreadyDeclared:
                 classElements.append(beh.getCppOperation())
-                for var in beh.instrvars:
-                    classElements.append(cxx_writer.writer_code.Attribute(var.name, var.type, 'pro',  var.static))
             elif not beh.name in alreadyDeclared:
                 toInline.append(beh.name)
+            for var in beh.instrvars:
+                if not var.name in behVars:
+                    classElements.append(cxx_writer.writer_code.Attribute(var.name, var.type, 'pro',  var.static))
+                    behVars.append(var.name)
     if not baseClasses:
         baseClasses.append(instructionType)
     behaviorCode = 'this->totalInstrCycles = 0;\n'
@@ -226,13 +232,16 @@ def getCPPInstr(self, model):
     setparamsDecl = cxx_writer.writer_code.Method('setParams', setParamsBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam])
     classElements.append(setparamsDecl)
     for var in self.variables:
-        classElements.append(cxx_writer.writer_code.Attribute(var.name, var.type, 'pro',  var.static))
+        if not var.name in behVars:
+            classElements.append(cxx_writer.writer_code.Attribute(var.name, var.type, 'pro',  var.static))
     # Now I have to declare the constructor
     global baseInstrConstrParams
     from procWriter import baseInstrInitElement
     publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, ['Instruction(' + baseInstrInitElement + ')'])
     instructionDecl = cxx_writer.writer_code.ClassDeclaration(self.name, classElements, superclasses = baseClasses)
     instructionDecl.addConstructor(publicConstr)
+    publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
+    instructionDecl.addDestructor(publicDestr)
     return instructionDecl
 
 def getCPPInstrTest(self, processor, model):
@@ -341,7 +350,8 @@ def getCPPInstrTest(self, processor, model):
                 code += resource + '.read_word(' + hex(value) + ', ' + hex(resource[brackIndex + 1:-1]) + ')'
             else:
                 code += resource
-            code += ', ' + hex(value) + ');\n\n'
+            global archWordType
+            code += ', (' + str(archWordType) + ')' + hex(value) + ');\n\n'
         code += destrDecls + '\n}\n\n'
         curTest = cxx_writer.writer_code.Code(code)
         curTest.addInclude(['boost/test/auto_unit_test.hpp', 'boost/test/test_tools.hpp', 'memory.hpp'])
@@ -447,6 +457,8 @@ def getCPPClasses(self, processor, modelType):
     publicConstr = cxx_writer.writer_code.Constructor(cxx_writer.writer_code.Code(constrBody), 'pu', baseInstrConstrParams, initElements)
     instructionDecl = cxx_writer.writer_code.ClassDeclaration('Instruction', instructionElements)
     instructionDecl.addConstructor(publicConstr)
+    publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
+    instructionDecl.addDestructor(publicDestr)    
     classes.append(instructionDecl)
 
     # we now have to check all the operation and the behaviors of the instructions and create
@@ -481,6 +493,8 @@ def getCPPClasses(self, processor, modelType):
     publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, ['Instruction(' + baseInstrInitElement + ')'])
     invalidInstrDecl = cxx_writer.writer_code.ClassDeclaration('InvalidInstr', invalidInstrElements, [instructionDecl.getType()])
     invalidInstrDecl.addConstructor(publicConstr)
+    publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
+    invalidInstrDecl.addDestructor(publicDestr)    
     classes.append(invalidInstrDecl)
     # Now I go over all the other instructions and I declare them
     for instr in self.instructions.values():
