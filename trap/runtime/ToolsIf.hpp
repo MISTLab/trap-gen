@@ -54,6 +54,7 @@ class ToolsIf{
     ///the return value specifies whether the processor should skip
     ///the issue of the current instruction
     virtual bool newIssue() = 0;
+    virtual ~ToolsIf(){}
 };
 
 class ToolsManager{

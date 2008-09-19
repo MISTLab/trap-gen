@@ -1149,6 +1149,9 @@ def getCPPIf(self, model):
     ABIIfType = cxx_writer.writer_code.TemplateType('ABIIf', [wordType], 'ABIIf.hpp')
     ifClassDecl = cxx_writer.writer_code.ClassDeclaration(self.name + '_ABIIf', ifClassElements, [ABIIfType])
     publicIfConstr = cxx_writer.writer_code.Constructor(cxx_writer.writer_code.Code(''), 'pu', baseInstrConstrParams, initElements)
+    emptyBody = cxx_writer.writer_code.Code('')
+    opDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
+    ifClassDecl.addDestructor(opDestr)    
     ifClassDecl.addConstructor(publicIfConstr)
     return ifClassDecl
 

@@ -238,6 +238,7 @@ template<class issueWidth> class OSEmulator : public ToolsIf, OSEmulatorBase{
         }
         return true;
     }
+    virtual ~OSEmulator(){}
 };
 
 #endif

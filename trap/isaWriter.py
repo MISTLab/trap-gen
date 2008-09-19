@@ -82,6 +82,7 @@ def getCppOperation(self, parameters = False):
 def getCppOpClass(self):
     # Returns a class (directly deriving from instruction) implementing the
     # method corresponding to the current operation
+    from procWriter import baseInstrInitElement
     aliasType = cxx_writer.writer_code.Type('Alias', 'alias.hpp')
     instructionType = cxx_writer.writer_code.Type('Instruction', 'instructions.hpp')
     emptyBody = cxx_writer.writer_code.Code('')
@@ -100,9 +101,11 @@ def getCppOpClass(self):
         metodParams.append(cxx_writer.writer_code.Parameter(var.name, var.type.makeRef()))
     methodDecl = cxx_writer.writer_code.Method(self.name, self.code, cxx_writer.writer_code.voidType, 'pro', metodParams, inline = True)
     classElements.append(methodDecl)
+    opConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, ['Instruction(' + baseInstrInitElement + ')'])
     opDecl = cxx_writer.writer_code.ClassDeclaration(self.name + '_op', classElements, virtual_superclasses = [instructionType])
     opDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
     opDecl.addDestructor(opDestr)
+    opDecl.addConstructor(opConstr)
     return opDecl
 
 def getCPPInstr(self, model):
@@ -116,11 +119,15 @@ def getCPPInstr(self, model):
     baseClasses = []
     toInline = []
     behVars = []
+    from procWriter import baseInstrInitElement
+    global baseInstrConstrParams
+    constrInitList = ['Instruction(' + baseInstrInitElement + ')']
     global alreadyDeclared
     for behaviors in self.postbehaviors.values() + self.prebehaviors.values():
         for beh in behaviors:
             if behClass.has_key(beh.name):
                 baseClasses.append(behClass[beh.name].getType())
+                constrInitList.append(beh.name + '_op(' + baseInstrInitElement + ')')
             elif beh.inline and not beh.name in alreadyDeclared:
                 classElements.append(beh.getCppOperation())
             elif not beh.name in alreadyDeclared:
@@ -182,7 +189,6 @@ def getCPPInstr(self, model):
     behaviorBody = cxx_writer.writer_code.Code(behaviorCode)
     behaviorDecl = cxx_writer.writer_code.Method('behavior', behaviorBody, cxx_writer.writer_code.uintType, 'pu')
     classElements.append(behaviorDecl)
-    from procWriter import baseInstrInitElement
     replicateBody = cxx_writer.writer_code.Code('return new ' + self.name + '(' + baseInstrInitElement + ');')
     replicateDecl = cxx_writer.writer_code.Method('replicate', replicateBody, instructionType.makePointer(), 'pu')
     classElements.append(replicateDecl)
@@ -235,9 +241,8 @@ def getCPPInstr(self, model):
         if not var.name in behVars:
             classElements.append(cxx_writer.writer_code.Attribute(var.name, var.type, 'pro',  var.static))
     # Now I have to declare the constructor
-    global baseInstrConstrParams
     from procWriter import baseInstrInitElement
-    publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, ['Instruction(' + baseInstrInitElement + ')'])
+    publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, constrInitList)
     instructionDecl = cxx_writer.writer_code.ClassDeclaration(self.name, classElements, superclasses = baseClasses)
     instructionDecl.addConstructor(publicConstr)
     publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)

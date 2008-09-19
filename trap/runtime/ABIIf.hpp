@@ -67,6 +67,7 @@ template<class regWidth> class ABIIf{
     virtual void writeMem( const regWidth & address, const regWidth & datum, int length = sizeof(regWidth) ) = 0;
     virtual void writeCharMem( const regWidth & address, const unsigned char & datum ) = 0;
     virtual regWidth getCodeLimit() = 0;
+    virtual ~ABIIf(){}
 };
 
 #endif
