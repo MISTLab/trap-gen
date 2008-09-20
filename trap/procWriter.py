@@ -705,18 +705,6 @@ def getCPPProc(self, model):
     if not self.resetOp:
         self.resetOp = cxx_writer.writer_code.Code('')
     initString = ''
-    for elem in self.regs + self.aliasRegs:
-        if elem.defValue != None:
-            try:
-                enumerate(elem.defValue)
-                # ok, the element is iterable, so it is an initialization
-                # with a constant and an offset
-                initString += elem.name + ' = ' + str(elem.defValue[0]) + ' + ' + str(elem.defValue[1]) + ';\n'
-            except TypeError:
-                try:
-                    initString += elem.name + ' = ' + hex(elem.defValue) + ';\n'
-                except TypeError:
-                    initString += elem.name + ' = ' + str(elem.defValue) + ';\n'
     for elem in self.regBanks + self.aliasRegBanks:
         curId = 0
         for defValue in elem.defValues:
@@ -732,6 +720,18 @@ def getCPPProc(self, model):
                     except TypeError:
                         initString += elem.name + '[' + str(curId) + '] = ' + str(defValue) + ';\n'
             curId += 1
+    for elem in self.regs + self.aliasRegs:
+        if elem.defValue != None:
+            try:
+                enumerate(elem.defValue)
+                # ok, the element is iterable, so it is an initialization
+                # with a constant and an offset
+                initString += elem.name + ' = ' + str(elem.defValue[0]) + ' + ' + str(elem.defValue[1]) + ';\n'
+            except TypeError:
+                try:
+                    initString += elem.name + ' = ' + hex(elem.defValue) + ';\n'
+                except TypeError:
+                    initString += elem.name + ' = ' + str(elem.defValue) + ';\n'
     self.resetOp.prependCode(initString)
     if self.beginOp:
         self.resetOp.appendCode('//user-defined initialization\nthis->beginOp();\n')
