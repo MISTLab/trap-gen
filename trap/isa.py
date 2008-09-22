@@ -195,8 +195,8 @@ class ISA:
                 if not checkerMethod(reg):
                     raise Exception('Register ' + reg + ' used in the MachineCode description does not exists')
 
-    def getCPPClasses(self, processor, modelType):
-        return isaWriter.getCPPClasses(self, processor, modelType)
+    def getCPPClasses(self, processor, modelType, trace):
+        return isaWriter.getCPPClasses(self, processor, modelType, trace)
 
     def getCPPTests(self, processor, modelType):
         return isaWriter.getCPPTests(self, processor, modelType)
@@ -410,8 +410,8 @@ class Instruction:
     def __str__(self):
         return repr(self)
 
-    def getCPPClass(self, model):
-        return isaWriter.getCPPInstr(self, model)
+    def getCPPClass(self, model, trace):
+        return isaWriter.getCPPInstr(self, model, trace)
 
     def getCPPTest(self, processor, model):
         return isaWriter.getCPPInstrTest(self, processor, model)

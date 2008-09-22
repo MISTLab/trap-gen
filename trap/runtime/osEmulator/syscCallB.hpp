@@ -555,6 +555,8 @@ template<class wordSize> class errorSysCall : public SyscallCB<wordSize>{
         }
         else{
             std::cerr << "An error occurred in the execution of the program: message = " << errorString << std::endl;
+            this->processorInstance.setRetVal(0);
+            this->processorInstance.setPC(this->processorInstance.readLR());
         }
     }
 };

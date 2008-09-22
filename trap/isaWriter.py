@@ -108,7 +108,7 @@ def getCppOpClass(self):
     opDecl.addConstructor(opConstr)
     return opDecl
 
-def getCPPInstr(self, model):
+def getCPPInstr(self, model, trace):
     # Returns the code implementing the current instruction: we have to provide the
     # implementation of all the abstract methods and call from the behavior method
     # all the different behaviors contained in the type hierarchy of this class
@@ -192,6 +192,10 @@ def getCPPInstr(self, model):
     replicateBody = cxx_writer.writer_code.Code('return new ' + self.name + '(' + baseInstrInitElement + ');')
     replicateDecl = cxx_writer.writer_code.Method('replicate', replicateBody, instructionType.makePointer(), 'pu')
     classElements.append(replicateDecl)
+    if trace:
+        getIstructionNameBody = cxx_writer.writer_code.Code('return \"' + self.name + '\"\n;')
+        getIstructionNameDecl = cxx_writer.writer_code.Method('getIstructionName', getIstructionNameBody, cxx_writer.writer_code.stringType, 'pu')
+        classElements.append(getIstructionNameDecl)
 
     # We need to create the attribute for the variables referenced by the non-constant parts of the instruction;
     # they are the bitCorrespondence variable of the machine code (they establish the correspondence with either registers
@@ -338,7 +342,7 @@ def getCPPInstrTest(self, processor, model):
             if processor.memory:
                 memories.append(processor.memory[0])
             if brackIndex > 0 and resource[:brackIndex] in memories:
-                code += resource + '.write_word(' + str(value) + ', ' + hex(resource[brackIndex + 1:-1]) + ');\n'
+                code += resource + '.write_word(' + hex(resource[brackIndex + 1:-1] + ', ' + str(value)) + ');\n'
             else:
                 code += resource + ' = ' + str(value) + ';\n'
         code += 'toTest.setParams(' + hex(int(''.join(instrCode), 2)) + ');\n'
@@ -363,9 +367,8 @@ def getCPPInstrTest(self, processor, model):
         tests.append(curTest)
     return tests
 
-def getCPPClasses(self, processor, modelType):
-    # I go over each instruction and print the class representing it;
-    # note how the instruction base class is part of the runtime
+def getCPPClasses(self, processor, modelType, trace):
+    # I go over each instruction and print the class representing it
     from isa import resolveBitType
     global archWordType
     archWordType = resolveBitType('BIT<' + str(processor.wordSize*processor.byteSize) + '>')
@@ -383,11 +386,24 @@ def getCPPClasses(self, processor, modelType):
     setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
     setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam], pure = True)
     instructionElements.append(setparamsDecl)
+    if trace:
+        getIstructionNameDecl = cxx_writer.writer_code.Method('getIstructionName', emptyBody, cxx_writer.writer_code.stringType, 'pu', pure = True)
+        instructionElements.append(getIstructionNameDecl)
+        # I have to print the value of all the registers in the processor
+        printTraceCode = 'std::cerr << \"Instruction: \" << this->getIstructionName() << std::endl;\n'
+        for reg in processor.regs:
+            printTraceCode += 'std::cerr << \"' + reg.name + '\ = " << this->' + reg.name + ' << std::endl;\n'
+        for regB in processor.regBanks:
+            printTraceCode += 'for(int regNum = 0; regNum < ' + str(regB.numRegs) + '; regNum++){\n'
+            printTraceCode += 'std::cerr << \"' + regB.name + '[\" << regNum << \"] = \" << this->' + regB.name + '[regNum] << std::endl;\n}\n'
+        printTraceBody = cxx_writer.writer_code.Code(printTraceCode + 'std::cerr << std::endl;\n')
+        printTraceDecl = cxx_writer.writer_code.Method('printTrace', printTraceBody, cxx_writer.writer_code.voidType, 'pu')
+        instructionElements.append(printTraceDecl)
 
     # Note how the flush operation also stops the execution of the current operation
     flushBody = cxx_writer.writer_code.Code('throw flush_exception();')
     flushBody.addInclude('customExceptions.hpp')
-    flushDecl = cxx_writer.writer_code.Method('flush', emptyBody, cxx_writer.writer_code.voidType, 'pu')
+    flushDecl = cxx_writer.writer_code.Method('flush', flushBody, cxx_writer.writer_code.voidType, 'pu')
     instructionElements.append(flushDecl)
     stallParam = cxx_writer.writer_code.Parameter('numCycles', archWordType.makeRef().makeConst())
     stallBody = cxx_writer.writer_code.Code('this->totalInstrCycles += numCycles;')
@@ -494,6 +510,10 @@ def getCPPClasses(self, processor, modelType):
     setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
     setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam])
     invalidInstrElements.append(setparamsDecl)
+    if trace:
+        getIstructionNameBody = cxx_writer.writer_code.Code('return \"InvalidInstruction\"\n;')
+        getIstructionNameDecl = cxx_writer.writer_code.Method('getIstructionName', getIstructionNameBody, cxx_writer.writer_code.stringType, 'pu')
+        invalidInstrElements.append(getIstructionNameDecl)
     from procWriter import baseInstrInitElement
     publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, ['Instruction(' + baseInstrInitElement + ')'])
     invalidInstrDecl = cxx_writer.writer_code.ClassDeclaration('InvalidInstr', invalidInstrElements, [instructionDecl.getType()])
@@ -503,7 +523,7 @@ def getCPPClasses(self, processor, modelType):
     classes.append(invalidInstrDecl)
     # Now I go over all the other instructions and I declare them
     for instr in self.instructions.values():
-        classes.append(instr.getCPPClass(modelType))
+        classes.append(instr.getCPPClass(modelType, trace))
     return classes
 
 def getCPPTests(self, processor, modelType):

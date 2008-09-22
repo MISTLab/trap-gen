@@ -68,11 +68,7 @@ REGS[14].updateAlias(RB[22]);
 //Create the new PSR
 CPSR = (CPSR & 0xFFFFFFD0) | 0x00000092;
 //Finally I update the PC
-#ifdef CYCLE_ACCURATE
 PC = 0x18;
-#else
-PC = 0x20;
-#endif
 """)
 triggerIRQ = trap.HelperMethod('triggerIRQ', opCode)
 opCode = cxx_writer.Code("""
@@ -92,11 +88,7 @@ REGS[14].updateAlias(RB[29]);
 //Create the new PSR
 CPSR = (CPSR & 0xFFFFFFD0) | 0x000000D1;
 //Finally I update the PC
-#ifdef CYCLE_ACCURATE
 PC = 0x1C;
-#else
-PC = 0x24;
-#endif
 """)
 triggerFIQ = trap.HelperMethod('triggerFIQ', opCode)
 # *******

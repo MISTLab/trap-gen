@@ -379,7 +379,7 @@ def getCPPAlias(self, model):
 #         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
 #         aliasElements.append(operatorDecl)
     for i in assignmentOps:
-        operatorBody = cxx_writer.writer_code.Code(str(regMaxType) + ' result = *this->reg;\nresult ' + i + ' other;\n*this->reg = (result - this->offset);\nreturn *this;')
+        operatorBody = cxx_writer.writer_code.Code('*this->reg ' + i + ' other;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam])
         aliasElements.append(operatorDecl)
@@ -395,7 +395,7 @@ def getCPPAlias(self, model):
 #        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
 #        aliasElements.append(operatorDecl)
     for i in assignmentOps:
-        operatorBody = cxx_writer.writer_code.Code(str(regMaxType) + ' result = *this->reg;\nresult ' + i + ' *other.reg;\n*this->reg = (result - this->offset);\nreturn *this;')
+        operatorBody = cxx_writer.writer_code.Code('*this->reg ' + i + ' *other.reg;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', aliasType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam])
         aliasElements.append(operatorDecl)
@@ -411,7 +411,7 @@ def getCPPAlias(self, model):
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
         aliasElements.append(operatorDecl)
     for i in assignmentOps:
-        operatorBody = cxx_writer.writer_code.Code(str(regMaxType) + ' result = *this->reg;\nresult ' + i + ' other;\n*this->reg = (result - this->offset);\nreturn *this;')
+        operatorBody = cxx_writer.writer_code.Code('*this->reg ' + i + ' other;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam])
         aliasElements.append(operatorDecl)
@@ -557,29 +557,31 @@ def getCPPMemoryIf(self, model):
         aliasInit.append(alias.alias + '(' + alias.alias + ')')
         readMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\nreturn ' + alias.alias + ';\n}\n'
         writeMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n' + alias.alias + ' = datum;\nreturn;\n}\n'
+    checkAddressCode = 'if(address > this->size){\nTHROW_EXCEPTION("Address " << std::hex << std::showbase << address << " out of memory");\n}\n'
     if self.memory:
         memoryElements = []
         emptyBody = cxx_writer.writer_code.Code('')
-        readBody = cxx_writer.writer_code.Code(readMemAliasCode + 'return *(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
+        readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + 'return *(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
+        readBody.addInclude('utils.hpp')
         addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
         readDecl = cxx_writer.writer_code.Method('read_word', readBody, archWordType, 'pu', [addressParam])
         memoryElements.append(readDecl)
-        readBody = cxx_writer.writer_code.Code(readMemAliasCode + 'return *(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
+        readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + 'return *(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
         readDecl = cxx_writer.writer_code.Method('read_half', readBody, archHWordType, 'pu', [addressParam])
         memoryElements.append(readDecl)
-        readBody = cxx_writer.writer_code.Code(readMemAliasCode + 'return *(' + str(archByteType.makePointer()) + ')(this->memory + (unsigned long)address);')
+        readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + 'return *(' + str(archByteType.makePointer()) + ')(this->memory + (unsigned long)address);')
         readDecl = cxx_writer.writer_code.Method('read_byte', readBody, archByteType, 'pu', [addressParam])
         memoryElements.append(readDecl)
-        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + '*(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
+        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '*(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
         addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
         datumParam = cxx_writer.writer_code.Parameter('datum', archWordType.makeRef().makeConst())
         writeDecl = cxx_writer.writer_code.Method('write_word', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam])
         memoryElements.append(writeDecl)
-        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + '*(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
+        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '*(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
         datumParam = cxx_writer.writer_code.Parameter('datum', archHWordType.makeRef().makeConst())
         writeDecl = cxx_writer.writer_code.Method('write_half', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam])
         memoryElements.append(writeDecl)
-        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + '*(' + str(archByteType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
+        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '*(' + str(archByteType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
         datumParam = cxx_writer.writer_code.Parameter('datum', archByteType.makeRef().makeConst())
         writeDecl = cxx_writer.writer_code.Method('write_byte', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam])
         memoryElements.append(writeDecl)
@@ -606,7 +608,7 @@ def getCPPMemoryIf(self, model):
     # to consider endianess issues
     return classes
 
-def getCPPProc(self, model):
+def getCPPProc(self, model, trace):
     # creates the class describing the processor
     from isa import resolveBitType
     fetchWordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>')
@@ -627,13 +629,16 @@ def getCPPProc(self, model):
                 codeString += name
         if codeString.endswith('= '):
             raise Exception('No TLM port was chosen for the instruction fetch')
-    codeString += '.read_word(this->' + self.fetchReg[0]
+    codeString += '.read_word(this->'
+    fetchAddress = self.fetchReg[0]
     if model.startswith('func'):
         if self.fetchReg[1] < 0:
-            codeString += str(self.fetchReg[1])
+            fetchAddress += str(self.fetchReg[1])
         else:
-            codeString += '+' + str(self.fetchReg[1])
-    codeString += ');\n'
+            fetchAddress += ' + ' + str(self.fetchReg[1])
+    codeString += fetchAddress + ');\n'
+    if trace:
+        codeString += """std::cerr << "Current PC: " << std::hex << std::showbase << """ + fetchAddress + """ << std::endl;"""
     if self.instructionCache:
         codeString += 'std::map< ' + str(fetchWordType) + ', Instruction * >::iterator cachedInstr = Processor::instrCache.find(bitString);'
         codeString += """
@@ -644,6 +649,7 @@ def getCPPProc(self, model):
                 if(!(this->toolManager.newIssue())){
                 #endif
                 numCycles = cachedInstr->second->behavior();
+                cachedInstr->second->printTrace();
                 #ifndef DISABLE_TOOLS
                 }
                 #endif
@@ -666,6 +672,7 @@ def getCPPProc(self, model):
                 if(!(this->toolManager.newIssue())){
                 #endif
                 numCycles = instr->behavior();
+                instr->printTrace();
                 #ifndef DISABLE_TOOLS
                 }
                 #endif
@@ -710,28 +717,34 @@ def getCPPProc(self, model):
         for defValue in elem.defValues:
             if defValue != None:
                 try:
-                    enumerate(defValue)
-                    # ok, the element is iterable, so it is an initialization
-                    # with a constant and an offset
-                    initString += elem.name + '[' + str(curId) + '] = ' + str(defValue[0]) + ' + ' + str(defValue[1]) + ';\n'
+                    if not type(defValue) == type(''):
+                        enumerate(defValue)
+                        # ok, the element is iterable, so it is an initialization
+                        # with a constant and an offset
+                        initString += elem.name + '[' + str(curId) + '] = ' + str(defValue[0]) + ' + ' + str(defValue[1]) + ';\n'
+                        continue
                 except TypeError:
-                    try:
-                        initString += elem.name + '[' + str(curId) + '] = ' + hex(defValue) + ';\n'
-                    except TypeError:
-                        initString += elem.name + '[' + str(curId) + '] = ' + str(defValue) + ';\n'
+                    pass
+                try:
+                    initString += elem.name + '[' + str(curId) + '] = ' + hex(defValue) + ';\n'
+                except TypeError:
+                    initString += elem.name + '[' + str(curId) + '] = ' + str(defValue) + ';\n'
             curId += 1
     for elem in self.regs + self.aliasRegs:
         if elem.defValue != None:
             try:
-                enumerate(elem.defValue)
-                # ok, the element is iterable, so it is an initialization
-                # with a constant and an offset
-                initString += elem.name + ' = ' + str(elem.defValue[0]) + ' + ' + str(elem.defValue[1]) + ';\n'
+                if not type(elem.defValue) == type(''):
+                    enumerate(elem.defValue)
+                    # ok, the element is iterable, so it is an initialization
+                    # with a constant and an offset
+                    initString += elem.name + ' = ' + str(elem.defValue[0]) + ' + ' + str(elem.defValue[1]) + ';\n'
+                    continue
             except TypeError:
-                try:
-                    initString += elem.name + ' = ' + hex(elem.defValue) + ';\n'
-                except TypeError:
-                    initString += elem.name + ' = ' + str(elem.defValue) + ';\n'
+                pass
+            try:
+                initString += elem.name + ' = ' + hex(elem.defValue) + ';\n'
+            except TypeError:
+                initString += elem.name + ' = ' + str(elem.defValue) + ';\n'
     self.resetOp.prependCode(initString)
     if self.beginOp:
         self.resetOp.appendCode('//user-defined initialization\nthis->beginOp();\n')

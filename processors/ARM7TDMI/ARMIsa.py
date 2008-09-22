@@ -186,7 +186,7 @@ opCode = cxx_writer.Code("""
 if(l == 1) {
     LR = PC - 4;
 }
-PC += (SignExtend(offset, 24) << 2);
+PC = PC + (SignExtend(offset, 24) << 2);
 stall(2);
 """)
 branch_Instr = trap.Instruction('BRANCH', True)

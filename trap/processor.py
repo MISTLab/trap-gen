@@ -532,9 +532,9 @@ class Processor:
         # alias
         return procWriter.getCPPAlias(self, model)
 
-    def getCPPProc(self, model):
+    def getCPPProc(self, model, trace):
         # creates the class describing the processor
-        return procWriter.getCPPProc(self, model)
+        return procWriter.getCPPProc(self, model, trace)
 
     def getCPPMemoryIf(self, model):
         # creates the class describing the processor
@@ -564,7 +564,7 @@ class Processor:
         # in order to execute simulations
         return procWriter.getMainCode(self, model)
 
-    def write(self, folder = '', models = validModels, dumpDecoderName = ''):
+    def write(self, folder = '', models = validModels, dumpDecoderName = '', trace = True):
         # Ok: this method does two things: first of all it performs all
         # the possible checks to ensure that the processor description is
         # coherent. Second it actually calls the write method of the
@@ -603,12 +603,12 @@ class Processor:
                 raise Exception(model + ' is not a valid model type')
             RegClasses = self.getCPPRegisters(model)
             AliasClass = self.getCPPAlias(model)
-            ProcClass = self.getCPPProc(model)
+            ProcClass = self.getCPPProc(model, trace)
             if self.abi:
                 IfClass = self.getCPPIf(model)
             MemClass = self.getCPPMemoryIf(model)
             ExternalIf = self.getCPPExternalPorts(model)
-            ISAClasses = self.isa.getCPPClasses(self, model)
+            ISAClasses = self.isa.getCPPClasses(self, model, trace)
             ISATests = self.isa.getCPPTests(self, model)
             # Ok, now that we have all the classes it is time to write
             # them to file
