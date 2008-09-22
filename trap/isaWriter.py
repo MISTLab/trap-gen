@@ -392,10 +392,10 @@ def getCPPClasses(self, processor, modelType, trace):
         # I have to print the value of all the registers in the processor
         printTraceCode = 'std::cerr << \"Instruction: \" << this->getIstructionName() << std::endl;\n'
         for reg in processor.regs:
-            printTraceCode += 'std::cerr << \"' + reg.name + '\ = " << this->' + reg.name + ' << std::endl;\n'
+            printTraceCode += 'std::cerr << \"' + reg.name + ' = \" << std::dec << this->' + reg.name + ' << std::endl;\n'
         for regB in processor.regBanks:
             printTraceCode += 'for(int regNum = 0; regNum < ' + str(regB.numRegs) + '; regNum++){\n'
-            printTraceCode += 'std::cerr << \"' + regB.name + '[\" << regNum << \"] = \" << this->' + regB.name + '[regNum] << std::endl;\n}\n'
+            printTraceCode += 'std::cerr << \"' + regB.name + '[\" << regNum << \"] = \" << std::dec << this->' + regB.name + '[regNum] << std::endl;\n}\n'
         printTraceBody = cxx_writer.writer_code.Code(printTraceCode + 'std::cerr << std::endl;\n')
         printTraceDecl = cxx_writer.writer_code.Method('printTrace', printTraceBody, cxx_writer.writer_code.voidType, 'pu')
         instructionElements.append(printTraceDecl)
@@ -479,7 +479,7 @@ def getCPPClasses(self, processor, modelType, trace):
     instructionDecl = cxx_writer.writer_code.ClassDeclaration('Instruction', instructionElements)
     instructionDecl.addConstructor(publicConstr)
     publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
-    instructionDecl.addDestructor(publicDestr)    
+    instructionDecl.addDestructor(publicDestr)
     classes.append(instructionDecl)
 
     # we now have to check all the operation and the behaviors of the instructions and create
@@ -519,7 +519,7 @@ def getCPPClasses(self, processor, modelType, trace):
     invalidInstrDecl = cxx_writer.writer_code.ClassDeclaration('InvalidInstr', invalidInstrElements, [instructionDecl.getType()])
     invalidInstrDecl.addConstructor(publicConstr)
     publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
-    invalidInstrDecl.addDestructor(publicDestr)    
+    invalidInstrDecl.addDestructor(publicDestr)
     classes.append(invalidInstrDecl)
     # Now I go over all the other instructions and I declare them
     for instr in self.instructions.values():
