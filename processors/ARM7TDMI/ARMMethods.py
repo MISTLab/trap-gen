@@ -580,14 +580,17 @@ DPI_reg_shift_Op.addUserInstructionElement('rs')
 # Now I define the behavior for the rotate immediate operation: all data processing instructions with
 # an immediate value and a rotation use it
 opCode = cxx_writer.Code("""
+std::cerr << "rotate " << rotate << std::endl;
+std::cerr << "immediate " << immediate << std::endl;
 if (rotate == 0){
-    operand = 0;
+    operand = immediate;
     carry = (CPSR["C"] != 0);
 }
 else{
     operand = RotateRight(rotate*2, immediate);
     carry = (operand & 0x80000000) != 0 ;
 }
+std::cerr << "operand " << operand << std::endl;
 """)
 DPI_imm_Op = trap.HelperOperation('DPI_imm', opCode)
 DPI_imm_Op.addInstuctionVar(('operand', 'BIT<32>'))

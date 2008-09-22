@@ -96,6 +96,7 @@ processor.addRegister(mp_id)
 # to access the registers more easily. Note that, in general, it is
 # responsibility of the programmer keeping the alias updated
 regs = trap.AliasRegBank('REGS', 16, 'RB[0-15]')
+regs.setOffset(15, 8)
 processor.addAliasRegBank(regs)
 FP = trap.AliasRegister('FP', 'REGS[12]')
 processor.addAliasReg(FP)
@@ -111,7 +112,7 @@ SP_FIQ = trap.AliasRegister('SP_FIQ', 'RB[28]')
 processor.addAliasReg(SP_FIQ)
 LR_FIQ = trap.AliasRegister('LR_FIQ', 'RB[29]')
 processor.addAliasReg(LR_FIQ)
-PC = trap.AliasRegister('PC', 'REGS[15]', 8)
+PC = trap.AliasRegister('PC', 'REGS[15]')
 # Special default value, others are PROGRAM_LIMIT ...
 # I also set the offset
 #PC.setDefaultValue(('ENTRY_POINT', 8))

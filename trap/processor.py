@@ -182,6 +182,10 @@ class AliasRegBank:
                 raise Exception('Aliasing a register bank of width ' + str(numRegs) + ', while ' + str(initAlias) + ' contains a different number of registers')
         self.initAlias = initAlias
         self.defValues = [None for i in range(0, numRegs)]
+        self.offsets = {}
+
+    def setOffset(self, regId, offset):
+        self.offsets[regId] = offset
 
     def setDefaultValues(self, values):
         if len(values) != self.numRegs:

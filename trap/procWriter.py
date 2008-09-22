@@ -655,6 +655,12 @@ def getCPPProc(self, model, trace):
                 #endif
             }
             catch(flush_exception &etc){
+        """
+        if trace:
+            codeString += """
+                    std::cerr << "Skipped Instruction" << std::endl << std::endl;
+            """
+        codeString += """
                 numCycles = 0;
             }
         }
@@ -678,6 +684,12 @@ def getCPPProc(self, model, trace):
                 #endif
             }
             catch(flush_exception &etc){
+        """
+        if trace:
+            codeString += """
+                    std::cerr << "Skipped Instruction" << std::endl << std::endl;
+            """
+        codeString += """
                 numCycles = 0;
             }
             // ... and then add the instruction to the cache
@@ -801,7 +813,10 @@ def getCPPProc(self, model, trace):
             index = extractRegInterval(aliasB.initAlias)
             curIndex = index[0]
             for i in range(0, aliasB.numRegs):
-                bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '[' + str(i) + '].updateAlias(this->' + aliasB.initAlias[:aliasB.initAlias.find('[')] + '[' + str(curIndex) + ']);\n'
+                bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '[' + str(i) + '].updateAlias(this->' + aliasB.initAlias[:aliasB.initAlias.find('[')] + '[' + str(curIndex) + ']'
+                if aliasB.offsets.has_key(i):
+                    bodyAliasInit[aliasB.name] += ', ' + str(aliasB.offsets[i])
+                bodyAliasInit[aliasB.name] += ');\n'
                 curIndex += 1
         else:
             curIndex = 0
@@ -809,10 +824,16 @@ def getCPPProc(self, model, trace):
                 index = extractRegInterval(curAlias)
                 if index:
                     for curRange in range(index[0], index[1] + 1):
-                        bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '[' + str(curIndex) + '].updateAlias(this->' + curAlias[:curAlias.find('[')] + '[' + str(curRange) + ']);\n'
+                        bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '[' + str(curIndex) + '].updateAlias(this->' + curAlias[:curAlias.find('[')] + '[' + str(curRange) + ']'
+                        if aliasB.offsets.has_key(curIndex):
+                            bodyAliasInit[aliasB.name] += ', ' + str(aliasB.offsets[curIndex])
+                        bodyAliasInit[aliasB.name] += ');\n'
                         curIndex += 1
                 else:
-                    bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '[' + str(curIndex) + '].updateAlias(this->' + curAlias + ');\n'
+                    bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '[' + str(curIndex) + '].updateAlias(this->' + curAlias + ')'
+                    if aliasB.offsets.has_key(curIndex):
+                        bodyAliasInit[aliasB.name] += ', ' + str(aliasB.offsets[curIndex])
+                    bodyAliasInit[aliasB.name] += ');\n'
                     curIndex += 1
         abiIfInit += 'this->' + aliasB.name + ', '
         processorElements.append(attribute)

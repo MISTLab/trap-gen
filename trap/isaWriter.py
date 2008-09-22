@@ -392,10 +392,10 @@ def getCPPClasses(self, processor, modelType, trace):
         # I have to print the value of all the registers in the processor
         printTraceCode = 'std::cerr << \"Instruction: \" << this->getIstructionName() << std::endl;\n'
         for reg in processor.regs:
-            printTraceCode += 'std::cerr << \"' + reg.name + ' = \" << std::dec << this->' + reg.name + ' << std::endl;\n'
+            printTraceCode += 'std::cerr << \"' + reg.name + ' = \" << std::hex << std::showbase << this->' + reg.name + ' << std::endl;\n'
         for regB in processor.regBanks:
             printTraceCode += 'for(int regNum = 0; regNum < ' + str(regB.numRegs) + '; regNum++){\n'
-            printTraceCode += 'std::cerr << \"' + regB.name + '[\" << regNum << \"] = \" << std::dec << this->' + regB.name + '[regNum] << std::endl;\n}\n'
+            printTraceCode += 'std::cerr << \"' + regB.name + '[\" << std::dec << regNum << \"] = \" << std::hex << std::showbase << this->' + regB.name + '[regNum] << std::endl;\n}\n'
         printTraceBody = cxx_writer.writer_code.Code(printTraceCode + 'std::cerr << std::endl;\n')
         printTraceDecl = cxx_writer.writer_code.Method('printTrace', printTraceBody, cxx_writer.writer_code.voidType, 'pu')
         instructionElements.append(printTraceDecl)

@@ -120,7 +120,12 @@ isa.addInstruction(adc_imm_Instr)
 # ADD instruction family
 opCode = cxx_writer.Code("""
 result = (long long) ((long long)rn + (long long)operand);
-rd = result;
+rd = (unsigned int)result;
+std::cerr << "operand = " << operand << std::endl;
+std::cerr << "rn = " << rn << std::endl;
+std::cerr << "rn_bit = " << rn_bit << std::endl;
+std::cerr << "rd = " << rd << std::endl;
+std::cerr << "rd_bit = " << rd_bit << std::endl;
 """)
 add_shift_imm_Instr = trap.Instruction('ADD_si', True)
 add_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [0, 1, 0, 0]}, 'TODO')
@@ -197,7 +202,7 @@ isa.addInstruction(branch_Instr)
 opCode = cxx_writer.Code("""
 // Note how the T bit is not considered since we do not bother with
 // thumb mode
-PC = rm & 0xFFFFFFFC;
+PC = (rm & 0xFFFFFFFC);
 stall(2);
 """)
 branch_thumb_Instr = trap.Instruction('BRANCHX', True)
