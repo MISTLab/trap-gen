@@ -417,17 +417,8 @@ else{
     switch(shift_op) {
         case 0x0:{
             // Logical shift left
-            #ifndef NDEBUG
-            if (shift_amm == 0){
-                THROW_EXCEPTION("Shift ammunt " << shift_amm << " and logical shift left not valid: this situation should have already been cheched");
-            }
-            else{
-            #endif
-                operand = rm << shift_amm;
-                carry = ((rm & (0x01 << (32 - shift_amm))) != 0);
-            #ifndef NDEBUG
-            }
-            #endif
+            operand = rm << shift_amm;
+            carry = ((rm & (0x01 << (32 - shift_amm))) != 0);
             break;}
         case 0x1:{
             // Logical shift right
