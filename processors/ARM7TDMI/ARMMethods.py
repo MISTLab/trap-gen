@@ -405,15 +405,11 @@ condCheckOp.addUserInstructionElement('cond')
 # an immediate value and a shift use it
 opCode = cxx_writer.Code("""
 if(shift_op == 0 && shift_amm == 0){
+    std::cerr << "no shift" << std::endl;
     operand = rm;
     carry = (CPSR["C"] != 0);
 }
 else{
-#ifndef NDEBUG
-    if ((shift_amm < 0) || (shift_amm > 31)){
-        THROW_EXCEPTION("Shift ammunt " << shift_amm << " not valid");
-    }
-#endif
     switch(shift_op) {
         case 0x0:{
             // Logical shift left

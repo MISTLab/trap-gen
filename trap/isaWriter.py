@@ -331,10 +331,12 @@ def getCPPInstrTest(self, processor, model):
         for name, elemValue in test[0].items():
             if self.machineCode.bitLen.has_key(name):
                 curBitCode = toBinStr(elemValue)
+                curBitCode.reverse()
+                #print 'element ' + name + ' int value ' + str(elemValue) + ' bits ' + str(curBitCode)
                 if len(curBitCode) > self.machineCode.bitLen[name]:
                     raise Exception('Value ' + hex(elemValue) + ' set for field ' + name + ' in test of instruction ' + self.name + ' cannot be represented in ' + str(self.machineCode.bitLen[name]) + ' bits')
                 for i in range(0, len(curBitCode)):
-                    instrCode[i + self.machineCode.bitPos[name]] = curBitCode[i]
+                    instrCode[self.machineCode.bitLen[name] + self.machineCode.bitPos[name] - i -1] = curBitCode[i]
         for resource, value in test[1].items():
             # I set the initial value of the global resources
             brackIndex = resource.find('[')
@@ -346,7 +348,7 @@ def getCPPInstrTest(self, processor, model):
             else:
                 code += resource + ' = ' + str(value) + ';\n'
         code += 'toTest.setParams(' + hex(int(''.join(instrCode), 2)) + ');\n'
-        code += 'toTest.behavior();\n\n'
+        code += 'try{\ntoTest.behavior();\n}\ncatch(flush_exception &etc){\n}\n\n'
         for resource, value in test[2].items():
             # I check the value of the listed resources to make sure that the
             # computation executed correctly
@@ -363,7 +365,7 @@ def getCPPInstrTest(self, processor, model):
             code += ', (' + str(archWordType) + ')' + hex(value) + ');\n\n'
         code += destrDecls + '\n}\n\n'
         curTest = cxx_writer.writer_code.Code(code)
-        curTest.addInclude(['boost/test/auto_unit_test.hpp', 'boost/test/test_tools.hpp', 'memory.hpp'])
+        curTest.addInclude(['boost/test/auto_unit_test.hpp', 'boost/test/test_tools.hpp', 'memory.hpp', 'customExceptions.hpp'])
         tests.append(curTest)
     return tests
 
