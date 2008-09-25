@@ -131,6 +131,31 @@ RotateRight_method.addVariable(('rotated', 'BIT<32>'))
 RotateRight_method.addVariable(('toGlue', 'BIT<32>'))
 
 opCode = cxx_writer.Code("""
+// N flag if the results is negative
+CPSR["N"] = ((result & 0x0000000080000000LL) != 0);
+//Update flag Z if the result is 0
+CPSR["Z"] = (result == 0);
+//Update the C flag if a carry occurred in the operation
+CPSR["C"] = (((~result & operand2) | (~result & operand1) | (result & operand1 & operand2)) & 0x0000000080000000LL) != 0;
+//Update the V flag if an overflow occurred in the operation
+CPSR["V"] = (((operand1 & operand2 & ~result) | (~operand1 & ~operand2 & result)) & 0x0000000080000000LL) != 0;
+""")
+UpdatePSRAS_method = trap.HelperMethod('UpdatePSRAS', opCode)
+UpdatePSRAS_method.setSignature(parameters = [('operand1', 'BIT<32>'), ('operand2', 'BIT<32>'), ('result', 'BIT<64>')])
+
+opCode = cxx_writer.Code("""
+// N flag if the results is negative
+CPSR["N"] = ((result & 0x80000000) != 0);
+//Update flag Z if the result is 0
+CPSR["Z"] = (result == 0);
+//Update the C flag if a carry occurred in the operation
+CPSR["C"] = (carry != 0);
+//No updates performed to the V flag.
+""")
+UpdatePSRBitM_method = trap.HelperMethod('UpdatePSRBitM', opCode)
+UpdatePSRBitM_method.setSignature(parameters = [('result', 'BIT<32>'), ('carry', 'BIT<1>')])
+
+opCode = cxx_writer.Code("""
 //Case on the type of shift
 switch(shift_type){
     case 0:{
@@ -405,7 +430,6 @@ condCheckOp.addUserInstructionElement('cond')
 # an immediate value and a shift use it
 opCode = cxx_writer.Code("""
 if(shift_op == 0 && shift_amm == 0){
-    std::cerr << "no shift" << std::endl;
     operand = rm;
     carry = (CPSR["C"] != 0);
 }
@@ -592,14 +616,7 @@ if (s == 0x1){
     }
     else{
         //Here I have to normally update the flags
-        // N flag if the results is negative
-        CPSR["N"] = ((result & 0x0000000080000000LL) != 0);
-        //Update flag Z if the result is 0
-        CPSR["Z"] = (result == 0);
-        //Update the C flag if a carry occurred in the operation
-        CPSR["C"] = (((~result & operand) | (~result & rn) | (result & rn & operand)) & 0x0000000080000000LL) != 0;
-        //Update the V flag if an overflow occurred in the operation
-        CPSR["V"] = (((rn & operand & ~result) | (~rn & ~operand & result)) & 0x0000000080000000LL) != 0;
+        UpdatePSRAS(rn, operand, result);
     }
 }
 """)
@@ -620,14 +637,7 @@ if (s == 0x1){
     }
     else{
         //Here I have to normally update the flags
-        // N flag if the results is negative
-        CPSR["N"] = ((result & 0x0000000080000000LL) != 0);
-        //Update flag Z if the result is 0
-        CPSR["Z"] = (result == 0);
-        //Update the C flag if a carry occurred in the operation
-        CPSR["C"] = (((~result & ~operand) | (~result & rn) | (result & rn & ~operand)) & 0x0000000080000000LL) != 0;
-        //Update the V flag if an overflow occurred in the operation
-        CPSR["V"] = (((rn & ~operand & ~result) | (~rn & operand & result)) & 0x0000000080000000LL) != 0;
+        UpdatePSRAS(rn, -operand, result);
     }
 }
 """)
@@ -648,13 +658,7 @@ if (s == 0x1){
     }
     else{
         //Here I have to normally update the flags
-        // N flag if the results is negative
-        CPSR["N"] = ((rd & 0x80000000) != 0);
-        //Update flag Z if the result is 0
-        CPSR["Z"] = (rd == 0);
-        //Update the C flag if a carry occurred in the operation
-        CPSR["C"] = (carry != 0);
-        //No updates performed to the V flag.
+        UpdatePSRBitM(result, carry);
     }
 }
 """)
@@ -663,6 +667,7 @@ UpdatePSRBit.addUserInstructionElement('s')
 UpdatePSRBit.addUserInstructionElement('rn')
 UpdatePSRBit.addUserInstructionElement('rd')
 UpdatePSRBit.addInstuctionVar(('carry', 'BIT<1>'))
+UpdatePSRBit.addInstuctionVar(('result', 'BIT<32>'))
 
 opCode = cxx_writer.Code("""
 if (s == 0x1){

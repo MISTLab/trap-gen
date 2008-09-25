@@ -55,6 +55,8 @@ isa.addMethod(AShiftRight_method)
 isa.addMethod(RotateRight_method)
 isa.addMethod(LSRegShift_method)
 isa.addMethod(SignExtend_method)
+isa.addMethod(UpdatePSRBitM_method)
+isa.addMethod(UpdatePSRAS_method)
 
 #-------------------------------------------------------------------------------------
 # Let's now procede to set the behavior of the instructions
@@ -193,7 +195,8 @@ isa.addInstruction(add_imm_Instr)
 
 # AND instruction family
 opCode = cxx_writer.Code("""
-rd = rn & operand;
+result = rn & operand;
+rd = result;
 """)
 and_shift_imm_Instr = trap.Instruction('AND_si', True)
 and_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [0, 0, 0, 0]}, 'TODO')
@@ -202,6 +205,7 @@ and_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
 and_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
 and_shift_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 and_shift_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+and_shift_imm_Instr.addVariable(('result', 'BIT<32>'))
 and_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 3})
 and_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 3, 'CPSR': 0x20000000})
 and_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 3})
@@ -222,6 +226,7 @@ and_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
 and_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
 and_shift_reg_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 and_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
+and_shift_reg_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(and_shift_reg_Instr)
 and_imm_Instr = trap.Instruction('AND_i', True)
 and_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [0, 0, 0, 0]}, 'TODO')
@@ -230,6 +235,7 @@ and_imm_Instr.addBehavior(condCheckOp, 'execute')
 and_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
 and_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 and_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+and_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(and_imm_Instr)
 
 # BRANCH instruction family
@@ -259,7 +265,8 @@ isa.addInstruction(branch_thumb_Instr)
 
 # BIC instruction family
 opCode = cxx_writer.Code("""
-rd = rn & ~operand;
+result = rn & ~operand;
+rd = result;
 """)
 bic_shift_imm_Instr = trap.Instruction('BIC_si', True)
 bic_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [1, 1, 1, 0]}, 'TODO')
@@ -268,8 +275,9 @@ bic_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
 bic_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
 bic_shift_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 bic_shift_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+bic_shift_imm_Instr.addVariable(('result', 'BIT<32>'))
 bic_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 0})
-bic_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 0, 'CPSR': 0x00000000})
+bic_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 0, 'CPSR': 0x60000000})
 bic_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 0})
 bic_shift_imm_Instr.addTest({'cond': 0x0, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x0, 'REGS[10]': 123, 'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 123})
 bic_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 1, 'shift_op': 0}, {'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 1})
@@ -288,6 +296,7 @@ bic_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
 bic_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
 bic_shift_reg_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 bic_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
+bic_shift_reg_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(bic_shift_reg_Instr)
 bic_imm_Instr = trap.Instruction('BIC_i', True)
 bic_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [1, 1, 1, 0]}, 'TODO')
@@ -296,20 +305,13 @@ bic_imm_Instr.addBehavior(condCheckOp, 'execute')
 bic_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
 bic_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 bic_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+bic_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(bic_imm_Instr)
 
 # CMN instruction family
 opCode = cxx_writer.Code("""
 result = (long long) ((long long)rn + (long long)operand);
-//Here I have to normally update the flags
-// N flag if the results is negative
-CPSR["N"] = ((result & 0x0000000080000000LL) != 0);
-//Update flag Z if the result is 0
-CPSR["Z"] = (result == 0);
-//Update the C flag if a carry occurred in the operation
-CPSR["C"] = (((~result & operand) | (~result & rn) | (result & rn & operand)) & 0x0000000080000000LL) != 0;
-//Update the V flag if an overflow occurred in the operation
-CPSR["V"] = (((rn & operand & ~result) | (~rn & ~operand & result)) & 0x0000000080000000LL) != 0;
+UpdatePSRAS(rn, operand, result);
 """)
 cmn_shift_imm_Instr = trap.Instruction('CMN_si', True)
 cmn_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [1, 0, 1, 1], 's': [1]}, 'TODO')
@@ -353,15 +355,7 @@ isa.addInstruction(cmn_imm_Instr)
 # CMP instruction family
 opCode = cxx_writer.Code("""
 result = (long long) ((long long)rn - (long long)operand);
-//Here I have to normally update the flags
-// N flag if the results is negative
-CPSR["N"] = ((result & 0x0000000080000000LL) != 0);
-//Update flag Z if the result is 0
-CPSR["Z"] = (result == 0);
-//Update the C flag if a carry occurred in the operation
-CPSR["C"] = (((~result & ~operand) | (~result & rn) | (result & rn & ~operand)) & 0x0000000080000000LL) != 0;
-//Update the V flag if an overflow occurred in the operation
-CPSR["V"] = (((rn & ~operand & ~result) | (~rn & operand & result)) & 0x0000000080000000LL) != 0;
+UpdatePSRAS(rn, -operand, result);
 """)
 cmp_shift_imm_Instr = trap.Instruction('CMP_si', True)
 cmp_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [1, 0, 1, 0], 's': [1]}, 'TODO')
@@ -370,20 +364,20 @@ cmp_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
 cmp_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
 cmp_shift_imm_Instr.addBehavior(IncrementPC, 'execute', False)
 cmp_shift_imm_Instr.addVariable(('result', 'BIT<64>'))
-cmn_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[9]': 0xfffffffd, 'REGS[8]': 3}, {'CPSR': 0x80000000})
-cmn_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': 0, 'REGS[8]': 0xffffffff}, {'CPSR': 0x00000000})
-cmn_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': 0x7fffffff, 'REGS[8]': 0x7fffffff}, {'CPSR': 0x40000000})
-cmn_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': 0xc0000000, 'REGS[8]': 0xc0000000}, {'CPSR': 0x20000000})
-cmn_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': 0, 'REGS[8]': 1}, {'CPSR': 0x80000000})
-cmn_shift_imm_Instr.addTest({'cond': 0x0, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x0, 'REGS[9]': 3, 'REGS[8]': 0}, {'CPSR': 0x00000000})
-cmn_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 1, 'shift_op': 0}, {'REGS[9]': 3, 'REGS[8]': 3}, {'CPSR': 0x00000000})
-cmn_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 1}, {'REGS[9]': 3, 'REGS[8]': 3}, {'CPSR': 0x00000000})
-cmn_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 1, 'shift_op': 1}, {'REGS[9]': 0x80000000, 'REGS[8]': 3}, {'CPSR': 0x30000000})
-cmn_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 2}, {'REGS[9]': 3, 'REGS[8]': 3}, {'CPSR': 0x00000000})
-cmn_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 2}, {'REGS[9]': 3, 'REGS[8]': 0x80000000}, {'CPSR': 0x00000000})
-cmn_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 1, 'shift_op': 2}, {'REGS[9]': 3, 'REGS[8]': 3}, {'CPSR': 0x00000000})
-cmn_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 3}, {'CPSR' : 0x20000000, 'REGS[9]': 3, 'REGS[8]': 0xffffffff}, {'CPSR': 0x00000000})
-cmn_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 16, 'shift_op': 3}, {'REGS[9]': 3, 'REGS[8]': 0x00020020}, {'CPSR': 0x00000000})
+cmp_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[9]': 0xfffffffd, 'REGS[8]': 3}, {'CPSR': 0x80000000})
+cmp_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': 0, 'REGS[8]': 0xffffffff}, {'CPSR': 0x00000000})
+cmp_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': 0x7fffffff, 'REGS[8]': 0x7fffffff}, {'CPSR': 0x40000000})
+cmp_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': 0xc0000000, 'REGS[8]': 0xc0000000}, {'CPSR': 0x20000000})
+cmp_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': 0, 'REGS[8]': 1}, {'CPSR': 0x80000000})
+cmp_shift_imm_Instr.addTest({'cond': 0x0, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x0, 'REGS[9]': 3, 'REGS[8]': 0}, {'CPSR': 0x00000000})
+cmp_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 1, 'shift_op': 0}, {'REGS[9]': 3, 'REGS[8]': 3}, {'CPSR': 0x00000000})
+cmp_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 1}, {'REGS[9]': 3, 'REGS[8]': 3}, {'CPSR': 0x00000000})
+cmp_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 1, 'shift_op': 1}, {'REGS[9]': 0x80000000, 'REGS[8]': 3}, {'CPSR': 0x30000000})
+cmp_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 2}, {'REGS[9]': 3, 'REGS[8]': 3}, {'CPSR': 0x00000000})
+cmp_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 2}, {'REGS[9]': 3, 'REGS[8]': 0x80000000}, {'CPSR': 0x00000000})
+cmp_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 1, 'shift_op': 2}, {'REGS[9]': 3, 'REGS[8]': 3}, {'CPSR': 0x00000000})
+cmp_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 3}, {'CPSR' : 0x20000000, 'REGS[9]': 3, 'REGS[8]': 0xffffffff}, {'CPSR': 0x00000000})
+cmp_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 16, 'shift_op': 3}, {'REGS[9]': 3, 'REGS[8]': 0x00020020}, {'CPSR': 0x00000000})
 isa.addInstruction(cmp_shift_imm_Instr)
 cmp_shift_reg_Instr = trap.Instruction('CMP_sr', True)
 cmp_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [1, 0, 1, 0], 's': [1]}, 'TODO')
@@ -404,7 +398,8 @@ isa.addInstruction(cmp_imm_Instr)
 
 # EOR instruction family
 opCode = cxx_writer.Code("""
-rd = rn ^ operand;
+result = rn ^ operand;
+rd = result;
 """)
 eor_shift_imm_Instr = trap.Instruction('EOR_si', True)
 eor_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [0, 0, 0, 1]}, 'TODO')
@@ -413,6 +408,7 @@ eor_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
 eor_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
 eor_shift_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 eor_shift_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+eor_shift_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(eor_shift_imm_Instr)
 eor_shift_reg_Instr = trap.Instruction('EOR_sr', True)
 eor_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [0, 0, 0, 1]}, 'TODO')
@@ -421,6 +417,7 @@ eor_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
 eor_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
 eor_shift_reg_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 eor_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
+eor_shift_reg_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(eor_shift_reg_Instr)
 eor_imm_Instr = trap.Instruction('EOR_i', True)
 eor_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [0, 0, 0, 1]}, 'TODO')
@@ -429,6 +426,7 @@ eor_imm_Instr.addBehavior(condCheckOp, 'execute')
 eor_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
 eor_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 eor_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+eor_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(eor_imm_Instr)
 
 # LDM instruction family
@@ -752,6 +750,7 @@ isa.addInstruction(umull_Instr)
 # MOV instruction family
 opCode = cxx_writer.Code("""
 rd = operand;
+result = operand;
 """)
 mov_shift_imm_Instr = trap.Instruction('MOV_si', True)
 mov_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [1, 1, 0, 1]}, 'TODO')
@@ -760,6 +759,7 @@ mov_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
 mov_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
 mov_shift_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 mov_shift_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+mov_shift_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(mov_shift_imm_Instr)
 mov_shift_reg_Instr = trap.Instruction('MOV_sr', True)
 mov_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [1, 1, 0, 1]}, 'TODO')
@@ -768,6 +768,7 @@ mov_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
 mov_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
 mov_shift_reg_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 mov_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
+mov_shift_reg_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(mov_shift_reg_Instr)
 mov_imm_Instr = trap.Instruction('MOV_i', True)
 mov_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [1, 1, 0, 1]}, 'TODO')
@@ -776,6 +777,7 @@ mov_imm_Instr.addBehavior(condCheckOp, 'execute')
 mov_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
 mov_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 mov_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+mov_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(mov_imm_Instr)
 
 # MRS instruction
@@ -1105,7 +1107,8 @@ isa.addInstruction(msr_reg_Instr)
 
 # MVN instruction family
 opCode = cxx_writer.Code("""
-rd = ~operand;
+result = ~operand;
+rd = result;
 """)
 mvn_shift_imm_Instr = trap.Instruction('MVN_si', True)
 mvn_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [1, 1, 1, 1]}, 'TODO')
@@ -1114,6 +1117,7 @@ mvn_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
 mvn_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
 mvn_shift_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 mvn_shift_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+mvn_shift_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(mvn_shift_imm_Instr)
 mvn_shift_reg_Instr = trap.Instruction('MVN_sr', True)
 mvn_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [1, 1, 1, 1]}, 'TODO')
@@ -1122,6 +1126,7 @@ mvn_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
 mvn_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
 mvn_shift_reg_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 mvn_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
+mvn_shift_reg_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(mvn_shift_reg_Instr)
 mvn_imm_Instr = trap.Instruction('MVN_i', True)
 mvn_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [1, 1, 1, 1]}, 'TODO')
@@ -1130,11 +1135,13 @@ mvn_imm_Instr.addBehavior(condCheckOp, 'execute')
 mvn_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
 mvn_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 mvn_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+mvn_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(mvn_imm_Instr)
 
 # ORR instruction family
 opCode = cxx_writer.Code("""
-rd = rn | operand;
+result = rn | operand;
+rd = result;
 """)
 orr_shift_imm_Instr = trap.Instruction('ORR_si', True)
 orr_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [1, 1, 0, 0]}, 'TODO')
@@ -1143,6 +1150,7 @@ orr_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
 orr_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
 orr_shift_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 orr_shift_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+orr_shift_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(orr_shift_imm_Instr)
 orr_shift_reg_Instr = trap.Instruction('ORR_sr', True)
 orr_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [1, 1, 0, 0]}, 'TODO')
@@ -1151,6 +1159,7 @@ orr_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
 orr_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
 orr_shift_reg_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 orr_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
+orr_shift_reg_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(orr_shift_reg_Instr)
 orr_imm_Instr = trap.Instruction('ORR_i', True)
 orr_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [1, 1, 0, 0]}, 'TODO')
@@ -1159,6 +1168,7 @@ orr_imm_Instr.addBehavior(condCheckOp, 'execute')
 orr_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
 orr_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 orr_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+orr_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(orr_imm_Instr)
 
 # RSB instruction family
@@ -1301,15 +1311,8 @@ isa.addInstruction(sub_imm_Instr)
 
 # TEQ instruction family
 opCode = cxx_writer.Code("""
-result = (long long) ((long long)rn ^ (long long)operand);
-//Here I have to normally update the flags
-// N flag if the results is negative
-CPSR["N"] = ((rd & 0x80000000) != 0);
-//Update flag Z if the result is 0
-CPSR["Z"] = (rd == 0);
-//Update the C flag if a carry occurred in the operation
-CPSR["C"] = (carry != 0);
-//No updates performed to the V flag.
+result = rn ^ operand;
+UpdatePSRBitM(result, carry);
 """)
 teq_shift_imm_Instr = trap.Instruction('TEQ_si', True)
 teq_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [1, 0, 0, 1], 's': [1]}, 'TODO')
@@ -1317,7 +1320,7 @@ teq_shift_imm_Instr.setCode(opCode, 'execute')
 teq_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
 teq_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
 teq_shift_imm_Instr.addBehavior(IncrementPC, 'execute', False)
-teq_shift_imm_Instr.addVariable(('result', 'BIT<64>'))
+teq_shift_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(teq_shift_imm_Instr)
 teq_shift_reg_Instr = trap.Instruction('TEQ_sr', True)
 teq_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [1, 0, 0, 1], 's': [1]}, 'TODO')
@@ -1325,7 +1328,7 @@ teq_shift_reg_Instr.setCode(opCode, 'execute')
 teq_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
 teq_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
 teq_shift_reg_Instr.addBehavior(IncrementPC, 'execute', False)
-teq_shift_reg_Instr.addVariable(('result', 'BIT<64>'))
+teq_shift_reg_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(teq_shift_reg_Instr)
 teq_imm_Instr = trap.Instruction('TEQ_i', True)
 teq_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [1, 0, 0, 1], 's': [1]}, 'TODO')
@@ -1333,20 +1336,13 @@ teq_imm_Instr.setCode(opCode, 'execute')
 teq_imm_Instr.addBehavior(condCheckOp, 'execute')
 teq_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
 teq_imm_Instr.addBehavior(IncrementPC, 'execute', False)
-teq_imm_Instr.addVariable(('result', 'BIT<64>'))
+teq_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(teq_imm_Instr)
 
 # TST instruction family
 opCode = cxx_writer.Code("""
-result = (long long) ((long long)rn & (long long)operand);
-//Here I have to normally update the flags
-// N flag if the results is negative
-CPSR["N"] = ((rd & 0x80000000) != 0);
-//Update flag Z if the result is 0
-CPSR["Z"] = (rd == 0);
-//Update the C flag if a carry occurred in the operation
-CPSR["C"] = (carry != 0);
-//No updates performed to the V flag.
+result = rn & operand;
+UpdatePSRBitM(result, carry);
 """)
 tst_shift_imm_Instr = trap.Instruction('TST_si', True)
 tst_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [1, 0, 0, 0], 's': [1]}, 'TODO')
@@ -1354,7 +1350,7 @@ tst_shift_imm_Instr.setCode(opCode, 'execute')
 tst_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
 tst_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
 tst_shift_imm_Instr.addBehavior(IncrementPC, 'execute', False)
-tst_shift_imm_Instr.addVariable(('result', 'BIT<64>'))
+tst_shift_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(tst_shift_imm_Instr)
 tst_shift_reg_Instr = trap.Instruction('TST_sr', True)
 tst_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [1, 0, 0, 0], 's': [1]}, 'TODO')
@@ -1362,7 +1358,7 @@ tst_shift_reg_Instr.setCode(opCode, 'execute')
 tst_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
 tst_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
 tst_shift_reg_Instr.addBehavior(IncrementPC, 'execute', False)
-tst_shift_reg_Instr.addVariable(('result', 'BIT<64>'))
+tst_shift_reg_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(tst_shift_reg_Instr)
 tst_imm_Instr = trap.Instruction('TST_i', True)
 tst_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [1, 0, 0, 0], 's': [1]}, 'TODO')
@@ -1370,7 +1366,7 @@ tst_imm_Instr.setCode(opCode, 'execute')
 tst_imm_Instr.addBehavior(condCheckOp, 'execute')
 tst_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
 tst_imm_Instr.addBehavior(IncrementPC, 'execute', False)
-tst_imm_Instr.addVariable(('result', 'BIT<64>'))
+tst_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(tst_imm_Instr)
 
 # STM instruction family
