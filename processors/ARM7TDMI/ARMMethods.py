@@ -131,17 +131,35 @@ RotateRight_method.addVariable(('rotated', 'BIT<32>'))
 RotateRight_method.addVariable(('toGlue', 'BIT<32>'))
 
 opCode = cxx_writer.Code("""
+long long resultSign = (long long)((long long)(int)operand1 + (long long)(int)operand2);
+unsigned long long resultUnSign = (unsigned long long)((unsigned long long)operand1 + (unsigned long long)operand2);
 // N flag if the results is negative
-CPSR["N"] = ((result & 0x0000000080000000LL) != 0);
+CPSR["N"] = ((resultSign & 0x0000000080000000LL) != 0);
 //Update flag Z if the result is 0
-CPSR["Z"] = (result == 0);
-//Update the C flag if a carry occurred in the operation
-CPSR["C"] = (((~result & operand2) | (~result & operand1) | (result & operand1 & operand2)) & 0x0000000080000000LL) != 0;
+CPSR["Z"] = (resultUnSign == 0);
+//Update the C resultUnSign if a carry occurred in the operation
+CPSR["C"] = (((~resultUnSign & (operand2 | operand1)) | (resultUnSign & operand1 & operand2)) & 0x0000000080000000LL) != 0;
 //Update the V flag if an overflow occurred in the operation
-CPSR["V"] = (((operand1 & operand2 & ~result) | (~operand1 & ~operand2 & result)) & 0x0000000080000000LL) != 0;
+CPSR["V"] = (((operand1 & operand2 & ~resultSign) | (~operand1 & ~operand2 & resultSign)) & 0x0000000080000000LL) != 0;
 """)
-UpdatePSRAS_method = trap.HelperMethod('UpdatePSRAS', opCode)
-UpdatePSRAS_method.setSignature(parameters = [('operand1', 'BIT<32>'), ('operand2', 'BIT<32>'), ('result', 'BIT<64>')])
+UpdatePSRAdd_method = trap.HelperMethod('UpdatePSRAddInner', opCode)
+UpdatePSRAdd_method.setSignature(parameters = [('operand1', 'BIT<32>'), ('operand2', 'BIT<32>')])
+
+opCode = cxx_writer.Code("""
+long long resultSign = (long long)((long long)(int)operand1 - (long long)(int)operand2);
+unsigned long long resultUnSign = (unsigned long long)((unsigned long long)operand1 - (unsigned long long)operand2);
+operand2 = -(int)operand2;
+// N flag if the results is negative
+CPSR["N"] = ((resultSign & 0x0000000080000000LL) != 0);
+//Update flag Z if the result is 0
+CPSR["Z"] = (resultUnSign == 0);
+//Update the C flag if a carry occurred in the operation
+CPSR["C"] = (((~resultUnSign & (operand2 | operand1)) | (resultUnSign & operand1 & operand2)) & 0x0000000080000000LL) == 0;
+//Update the V flag if an overflow occurred in the operation
+CPSR["V"] = (((operand1 & operand2 & ~resultSign) | (~operand1 & ~operand2 & resultSign)) & 0x0000000080000000LL) != 0;
+""")
+UpdatePSRSub_method = trap.HelperMethod('UpdatePSRSubInner', opCode)
+UpdatePSRSub_method.setSignature(parameters = [('operand1', 'BIT<32>'), ('operand2', 'BIT<32>')])
 
 opCode = cxx_writer.Code("""
 // N flag if the results is negative
@@ -616,12 +634,11 @@ if (s == 0x1){
     }
     else{
         //Here I have to normally update the flags
-        UpdatePSRAS(rn, operand, result);
+        UpdatePSRAddInner(rn, operand);
     }
 }
 """)
 UpdatePSRSum = trap.HelperOperation('UpdatePSRSum', opCode)
-UpdatePSRSum.addInstuctionVar(('result', 'BIT<64>'))
 UpdatePSRSum.addInstuctionVar(('operand', 'BIT<32>'))
 UpdatePSRSum.addUserInstructionElement('s')
 UpdatePSRSum.addUserInstructionElement('rn')
@@ -637,12 +654,11 @@ if (s == 0x1){
     }
     else{
         //Here I have to normally update the flags
-        UpdatePSRAS(rn, -operand, result);
+        UpdatePSRSubInner(rn, operand);
     }
 }
 """)
 UpdatePSRSub = trap.HelperOperation('UpdatePSRSub', opCode)
-UpdatePSRSub.addInstuctionVar(('result', 'BIT<64>'))
 UpdatePSRSub.addUserInstructionElement('s')
 UpdatePSRSub.addUserInstructionElement('rn')
 UpdatePSRSub.addUserInstructionElement('rd')
