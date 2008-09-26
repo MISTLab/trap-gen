@@ -136,7 +136,7 @@ unsigned long long resultUnSign = (unsigned long long)((unsigned long long)opera
 // N flag if the results is negative
 CPSR["N"] = ((resultSign & 0x0000000080000000LL) != 0);
 //Update flag Z if the result is 0
-CPSR["Z"] = (resultUnSign == 0);
+CPSR["Z"] = (resultSign == 0);
 //Update the C resultUnSign if a carry occurred in the operation
 CPSR["C"] = (((~resultUnSign & (operand2 | operand1)) | (resultUnSign & operand1 & operand2)) & 0x0000000080000000LL) != 0;
 //Update the V flag if an overflow occurred in the operation
@@ -152,7 +152,7 @@ operand2 = -(int)operand2;
 // N flag if the results is negative
 CPSR["N"] = ((resultSign & 0x0000000080000000LL) != 0);
 //Update flag Z if the result is 0
-CPSR["Z"] = (resultUnSign == 0);
+CPSR["Z"] = (resultSign == 0);
 //Update the C flag if a carry occurred in the operation
 CPSR["C"] = (((~resultUnSign & (operand2 | operand1)) | (resultUnSign & operand1 & operand2)) & 0x0000000080000000LL) == 0;
 //Update the V flag if an overflow occurred in the operation
