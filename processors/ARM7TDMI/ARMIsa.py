@@ -243,7 +243,8 @@ branch_Instr = trap.Instruction('BRANCH', True)
 branch_Instr.setMachineCode(branch, {}, 'TODO')
 branch_Instr.setCode(opCode, 'execute')
 branch_Instr.addBehavior(condCheckOp, 'execute')
-#branch_Instr.addTest({'cond': 0xe, 'opcode': 0, 'l': 0, 'offset': 10}, {'PC': 0x00445560, 'LR': 8}, {'PC': 0x00445560, 'LR': 8})
+branch_Instr.addTest({'cond': 0xe, 'l': 0, 'offset': 0x400}, {'PC': 0x00445560, 'LR': 8}, {'PC': 0x00446560, 'LR': 8})
+branch_Instr.addTest({'cond': 0xe, 'l': 1, 'offset': 0x400}, {'PC': 0x00445560, 'LR': 8}, {'PC': 0x00446560, 'LR': 0x0044555C})
 isa.addInstruction(branch_Instr)
 opCode = cxx_writer.Code("""
 // Note how the T bit is not considered since we do not bother with
@@ -255,6 +256,8 @@ branch_thumb_Instr = trap.Instruction('BRANCHX', True)
 branch_thumb_Instr.setMachineCode(branch_thumb, {}, 'TODO')
 branch_thumb_Instr.setCode(opCode, 'execute')
 branch_thumb_Instr.addBehavior(condCheckOp, 'execute')
+branch_thumb_Instr.addTest({'cond': 0xe, 'rm': 0}, {'REGS[0]': 0x00445560}, {'PC': 0x00445560})
+branch_thumb_Instr.addTest({'cond': 0xe, 'rm': 0}, {'REGS[0]': 0x00445563}, {'PC': 0x00445560})
 isa.addInstruction(branch_thumb_Instr)
 
 # BIC instruction family
@@ -364,7 +367,7 @@ cmp_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm':
 cmp_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 1}, {'REGS[9]': 3, 'REGS[8]': 3}, {'CPSR': 0x20000000})
 cmp_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 1, 'shift_op': 1}, {'REGS[9]': 0x80000000, 'REGS[8]': 3}, {'CPSR': 0x10000000})
 cmp_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 2}, {'REGS[9]': 3, 'REGS[8]': 3}, {'CPSR': 0x20000000})
-cmp_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 2}, {'REGS[9]': 3, 'REGS[8]': 0x80000000}, {'CPSR': 0x00000000})
+cmp_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 2}, {'REGS[9]': 3, 'REGS[8]': 0x80000000}, {'CPSR': 0x20000000})
 cmp_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 1, 'shift_op': 2}, {'REGS[9]': 3, 'REGS[8]': 3}, {'CPSR': 0x00000000})
 cmp_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 3}, {'CPSR' : 0x20000000, 'REGS[9]': 3, 'REGS[8]': 0xffffffff}, {'CPSR': 0x20000000})
 cmp_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rm': 8, 'shift_amm': 16, 'shift_op': 3}, {'REGS[9]': 3, 'REGS[8]': 0x00020020}, {'CPSR': 0xa0000000})
@@ -397,6 +400,18 @@ eor_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
 eor_shift_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 eor_shift_imm_Instr.addBehavior(UpdatePC, 'execute', False)
 eor_shift_imm_Instr.addVariable(('result', 'BIT<32>'))
+eor_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 0})
+eor_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 0, 'CPSR': 0x60000000})
+eor_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 0})
+eor_shift_imm_Instr.addTest({'cond': 0x0, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x0, 'REGS[10]': 123, 'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 123})
+eor_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 1, 'shift_op': 0}, {'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 5})
+eor_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 1}, {'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 3})
+eor_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 1, 'shift_op': 1}, {'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 2})
+eor_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 2}, {'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 3})
+eor_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 2}, {'REGS[9]': 3, 'REGS[8]': 0x80000000}, {'REGS[10]': 0xfffffffc})
+eor_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 1, 'shift_op': 2}, {'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 2})
+eor_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 3}, {'CPSR' : 0x20000000, 'REGS[9]': 3, 'REGS[8]': 0xffffffff}, {'REGS[10]': 0xfffffffc})
+eor_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 16, 'shift_op': 3}, {'REGS[9]': 3, 'REGS[8]': 0x00020020}, {'REGS[10]': 0x00200001})
 isa.addInstruction(eor_shift_imm_Instr)
 eor_shift_reg_Instr = trap.Instruction('EOR_sr', True)
 eor_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [0, 0, 0, 1]}, 'TODO')
@@ -440,7 +455,6 @@ else{
     if(w != 0){
         rn = wb_address;
     }
-
     //First af all I read the memory in the register I in the register list.
     for(int i = 0; i < 15; i++){
         if((reg_list & (0x00000001 << i)) != 0){
@@ -475,6 +489,10 @@ ldm_Instr.setMachineCode(ls_multiple, {'l' : [1]}, 'TODO')
 ldm_Instr.setCode(opCode, 'execute')
 ldm_Instr.addBehavior(condCheckOp, 'execute')
 ldm_Instr.addBehavior(LSM_reglist_Op, 'execute')
+ldm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 's': 0, 'w': 0, 'rn': 0, 'reg_list': 0x02}, {'REGS[0]': 0x10, 'dataMem[0x10]': 1234}, {'REGS[1]': 1234})
+ldm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 's': 0, 'w': 0, 'rn': 0, 'reg_list': 0x02}, {'REGS[0]': 0x10, 'dataMem[0x10]': 1234}, {'REGS[1]': 1234})    
+ldm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 's': 0, 'w': 1, 'rn': 0, 'reg_list': 0x02}, {'REGS[0]': 0x10, 'dataMem[0x10]': 1234}, {'REGS[1]': 1234, 'REGS[0]': 0x14})
+ldm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 's': 0, 'w': 0, 'rn': 0, 'reg_list': 0x0e}, {'REGS[0]': 0x10, 'dataMem[0x10]': 1, 'dataMem[0x14]': 2, 'dataMem[0x18]': 3}, {'REGS[1]': 1, 'REGS[2]': 2, 'REGS[3]': 3})    
 isa.addInstruction(ldm_Instr)
 
 # LDR instruction family

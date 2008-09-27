@@ -344,7 +344,10 @@ def getCPPInstrTest(self, processor, model):
             if processor.memory:
                 memories.append(processor.memory[0])
             if brackIndex > 0 and resource[:brackIndex] in memories:
-                code += resource + '.write_word(' + hex(resource[brackIndex + 1:-1] + ', ' + str(value)) + ');\n'
+                try:
+                    code += resource[:brackIndex] + '.write_word(' + hex(int(resource[brackIndex + 1:-1])) + ', ' + str(value) + ');\n'
+                except ValueError:
+                    code += resource[:brackIndex] + '.write_word(' + hex(int(resource[brackIndex + 1:-1], 16)) + ', ' + str(value) + ');\n'
             else:
                 code += resource + ' = ' + str(value) + ';\n'
         code += 'toTest.setParams(' + hex(int(''.join(instrCode), 2)) + ');\n'
