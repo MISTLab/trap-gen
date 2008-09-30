@@ -436,25 +436,8 @@ isa.addInstruction(eor_imm_Instr)
 opCode = cxx_writer.Code("""
 unsigned int numRegsToLoad = 0;
 unsigned int loadLatency = 0;
-//First of all I have to check that I'm not dealing with user mode registers:
-if((s == 1) && ((reg_list & 0x00008000) == 0)){
-    //I'm dealing with user-mode registers: LDM type two
-    //Load the registers common to all modes
-    for(int i = 0; i < 16; i++){
-        if((reg_list & (0x00000001 << i)) != 0){
-            RB[i] = dataMem.read_word(start_address);
-            start_address += 4;
-            numRegsToLoad++;
-        }
-    }
-    loadLatency = numRegsToLoad + 1;
-}
-else{
+if(s == 0){
     //I'm dealing just with the current registers: LDM type one or three
-    // First of all if it is necessary I perform the writeback
-    if(w != 0){
-        rn = wb_address;
-    }
     //First af all I read the memory in the register I in the register list.
     for(int i = 0; i < 15; i++){
         if((reg_list & (0x00000001 << i)) != 0){
@@ -471,15 +454,50 @@ else{
         //I have to load also the PC: it is like a branch; since I don't bother with
         //Thumb mode, bits 0 and 1 of the PC are ignored
         PC = dataMem.read_word(start_address) & 0xFFFFFFFC;
-        if(s == 1){
-            //LDM type three: in this type of operation I also have to restore the PSR.
-            restoreSPSR();
-        }
         numRegsToLoad++;
         loadLatency += 2;
     }
+    else{
+        PC += 4;
+    }
+    // First of all if it is necessary I perform the writeback
+    if(w != 0){
+        rn = wb_address;
+    }
 }
-if((reg_list & 0x00008000) == 0){
+else if((reg_list & 0x00008000) != 0){
+    //I'm dealing just with the current registers: LDM type one or three
+    //First af all I read the memory in the register I in the register list.
+    for(int i = 0; i < 15; i++){
+        if((reg_list & (0x00000001 << i)) != 0){
+            REGS[i] = dataMem.read_word(start_address);
+            start_address += 4;
+            numRegsToLoad++;
+        }
+    }
+    loadLatency = numRegsToLoad + 1;
+
+    //I tread in a special way the PC, since loading a value
+    //in the PC is like performing a branch.
+    //I have to load also the PC: it is like a branch; since I don't bother with
+    //Thumb mode, bits 0 and 1 of the PC are ignored
+    PC = dataMem.read_word(start_address) & 0xFFFFFFFC;
+    //LDM type three: in this type of operation I also have to restore the PSR.
+    restoreSPSR();
+    numRegsToLoad++;
+    loadLatency += 2;
+}
+else{
+    //I'm dealing with user-mode registers: LDM type two
+    //Load the registers common to all modes
+    for(int i = 0; i < 16; i++){
+        if((reg_list & (0x00000001 << i)) != 0){
+            RB[i] = dataMem.read_word(start_address);
+            start_address += 4;
+            numRegsToLoad++;
+        }
+    }
+    loadLatency = numRegsToLoad + 1;
     PC += 4;
 }
 stall(loadLatency);
@@ -490,9 +508,27 @@ ldm_Instr.setCode(opCode, 'execute')
 ldm_Instr.addBehavior(condCheckOp, 'execute')
 ldm_Instr.addBehavior(LSM_reglist_Op, 'execute')
 ldm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 's': 0, 'w': 0, 'rn': 0, 'reg_list': 0x02}, {'REGS[0]': 0x10, 'dataMem[0x10]': 1234}, {'REGS[1]': 1234})
-ldm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 's': 0, 'w': 0, 'rn': 0, 'reg_list': 0x02}, {'REGS[0]': 0x10, 'dataMem[0x10]': 1234}, {'REGS[1]': 1234})    
+ldm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 's': 0, 'w': 0, 'rn': 0, 'reg_list': 0x02}, {'REGS[0]': 0x10, 'dataMem[0x10]': 1234}, {'REGS[1]': 1234})
 ldm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 's': 0, 'w': 1, 'rn': 0, 'reg_list': 0x02}, {'REGS[0]': 0x10, 'dataMem[0x10]': 1234}, {'REGS[1]': 1234, 'REGS[0]': 0x14})
-ldm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 's': 0, 'w': 0, 'rn': 0, 'reg_list': 0x0e}, {'REGS[0]': 0x10, 'dataMem[0x10]': 1, 'dataMem[0x14]': 2, 'dataMem[0x18]': 3}, {'REGS[1]': 1, 'REGS[2]': 2, 'REGS[3]': 3})    
+ldm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 's': 0, 'w': 0, 'rn': 0, 'reg_list': 0x0e}, {'REGS[0]': 0x10, 'dataMem[0x10]': 1, 'dataMem[0x14]': 2, 'dataMem[0x18]': 3}, {'REGS[1]': 1, 'REGS[2]': 2, 'REGS[3]': 3})
+ldm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 's': 0, 'w': 1, 'rn': 0, 'reg_list': 0x0e}, {'REGS[0]': 0x10, 'dataMem[0x10]': 1, 'dataMem[0x14]': 2, 'dataMem[0x18]': 3}, {'REGS[1]': 1, 'REGS[2]': 2, 'REGS[3]': 3, 'REGS[0]': 0x1c})
+ldm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 's': 0, 'w': 0, 'rn': 0, 'reg_list': 0x02}, {'REGS[0]': 0x10, 'dataMem[0x14]': 1234}, {'REGS[1]': 1234})
+ldm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 's': 0, 'w': 0, 'rn': 0, 'reg_list': 0x02}, {'REGS[0]': 0x10, 'dataMem[0x0c]': 1234}, {'REGS[1]': 1234})
+ldm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 's': 0, 'w': 1, 'rn': 0, 'reg_list': 0x02}, {'REGS[0]': 0x10, 'dataMem[0x14]': 1234}, {'REGS[1]': 1234, 'REGS[0]': 0x14})
+ldm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 's': 0, 'w': 0, 'rn': 0, 'reg_list': 0x0e}, {'REGS[0]': 0x10, 'dataMem[0x0c]': 1, 'dataMem[0x08]': 2, 'dataMem[0x04]': 3}, {'REGS[1]': 3, 'REGS[2]': 2, 'REGS[3]': 1})
+ldm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 's': 0, 'w': 1, 'rn': 0, 'reg_list': 0x0e}, {'REGS[0]': 0x10, 'dataMem[0x0c]': 1, 'dataMem[0x08]': 2, 'dataMem[0x04]': 3}, {'REGS[1]': 3, 'REGS[2]': 2, 'REGS[3]': 1, 'REGS[0]': 0x04})
+ldm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 's': 1, 'w': 0, 'rn': 0, 'reg_list': 0x2000}, {'CPSR' : 0x12, 'RB[0]': 0x10, 'RB[13]': 0x777, 'RB[21]': 0x888, 'dataMem[0x10]': 1234}, {'RB[13]': 1234, 'RB[21]': 0x888})
+ldm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 's': 1, 'w': 0, 'rn': 0, 'reg_list': 0x2000}, {'CPSR' : 0x12, 'RB[0]': 0x10, 'RB[13]': 0x777, 'RB[21]': 0x888, 'dataMem[0x10]': 1234}, {'RB[13]': 1234, 'RB[21]': 0x888})
+ldm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 's': 1, 'w': 0, 'rn': 0, 'reg_list': 0x6000}, {'CPSR' : 0x12, 'RB[0]': 0x10, 'RB[13]': 0x777, 'RB[21]': 0x888, 'dataMem[0x10]': 1, 'dataMem[0x14]': 2}, {'RB[13]': 1, 'RB[14]': 2})
+ldm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 's': 1, 'w': 0, 'rn': 0, 'reg_list': 0x2000}, {'CPSR' : 0x12, 'RB[0]': 0x10, 'RB[13]': 0x777, 'RB[21]': 0x888, 'dataMem[0x14]': 1234}, {'RB[13]': 1234, 'RB[21]': 0x888})
+ldm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 's': 1, 'w': 0, 'rn': 0, 'reg_list': 0x2000}, {'CPSR' : 0x12, 'RB[0]': 0x10, 'RB[13]': 0x777, 'RB[21]': 0x888, 'dataMem[0x0c]': 1234}, {'RB[13]': 1234, 'RB[21]': 0x888})
+ldm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 's': 1, 'w': 0, 'rn': 0, 'reg_list': 0x6000}, {'CPSR' : 0x12, 'RB[0]': 0x10, 'RB[13]': 0x777, 'RB[21]': 0x888, 'dataMem[0x0c]': 1, 'dataMem[0x08]': 2}, {'RB[13]': 2, 'RB[14]': 1, 'RB[21]': 0x888})
+ldm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 's': 1, 'w': 0, 'rn': 0, 'reg_list': 0xa000}, {'SPSR[1]' : 0x4444441f, 'CPSR' : 0x12, 'RB[0]': 0x10, 'RB[13]': 0x777, 'RB[21]': 0x888, 'dataMem[0x10]': 0xaaa0, 'dataMem[0x0c]': 456}, {'RB[15]': 0xaaa0, 'RB[13]': 456, 'RB[21]': 0x888, 'CPSR' : 0x4444441f})
+ldm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 's': 1, 'w': 0, 'rn': 0, 'reg_list': 0xa000}, {'SPSR[1]' : 0x4444441f, 'CPSR' : 0x12, 'RB[0]': 0x10, 'RB[13]': 0x777, 'RB[21]': 0x888, 'dataMem[0x10]': 456, 'dataMem[0x14]': 0xaaa0}, {'RB[15]': 0xaaa0, 'RB[13]': 456, 'RB[21]': 0x888, 'CPSR' : 0x4444441f})
+ldm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 's': 1, 'w': 0, 'rn': 0, 'reg_list': 0xe000}, {'SPSR[1]' : 0x4444441f, 'CPSR' : 0x12, 'RB[0]': 0x10, 'RB[13]': 0x777, 'RB[21]': 0x888, 'dataMem[0x10]': 456, 'dataMem[0x14]': 2, 'dataMem[0x18]': 0xaaa0}, {'RB[15]': 0xaaa0, 'RB[13]': 456, 'RB[14]': 2, 'CPSR' : 0x4444441f})
+ldm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 's': 1, 'w': 0, 'rn': 0, 'reg_list': 0xa000}, {'SPSR[1]' : 0x4444441f, 'CPSR' : 0x12, 'RB[0]': 0x10, 'RB[13]': 0x777, 'RB[21]': 0x888, 'dataMem[0x14]': 456, 'dataMem[0x18]': 0xaaa0}, {'RB[15]': 0xaaa0, 'RB[13]': 456, 'RB[21]': 0x888, 'CPSR' : 0x4444441f})
+ldm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 's': 1, 'w': 0, 'rn': 0, 'reg_list': 0xa000}, {'SPSR[1]' : 0x4444441f, 'CPSR' : 0x12, 'RB[0]': 0x10, 'RB[13]': 0x777, 'RB[21]': 0x888, 'dataMem[0x0c]': 0xaaa0, 'dataMem[0x08]': 456}, {'RB[15]': 0xaaa0, 'RB[13]': 456, 'RB[21]': 0x888, 'CPSR' : 0x4444441f})
+ldm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 's': 1, 'w': 0, 'rn': 0, 'reg_list': 0xe000}, {'SPSR[1]' : 0x4444441f, 'CPSR' : 0x12, 'RB[0]': 0x10, 'RB[13]': 0x777, 'RB[21]': 0x888, 'dataMem[0x0c]': 0xaaa0, 'dataMem[0x08]': 2, 'dataMem[0x04]': 456}, {'RB[15]': 0xaaa0, 'RB[13]': 456, 'RB[14]': 2, 'RB[21]': 0x888, 'CPSR' : 0x4444441f})
 isa.addInstruction(ldm_Instr)
 
 # LDR instruction family
@@ -527,6 +563,18 @@ ldr_imm_Instr.addBehavior(condCheckOp, 'execute')
 ldr_imm_Instr.addBehavior(ls_imm_Op, 'execute')
 ldr_imm_Instr.addVariable(('memLastBits', 'BIT<32>'))
 ldr_imm_Instr.addVariable(('value', 'BIT<32>'))
+ldr_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0}, {'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x10})
+ldr_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0}, {'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x10})
+ldr_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0}, {'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x10})
+ldr_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0}, {'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x10})
+ldr_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0}, {'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x10})
+ldr_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0}, {'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x10})
+ldr_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x18})
+ldr_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x08})
+ldr_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'dataMem[0x18]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x10})
+ldr_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'dataMem[0x08]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x10})
+ldr_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'dataMem[0x18]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x18})
+ldr_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'dataMem[0x08]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x08})
 isa.addInstruction(ldr_imm_Instr)
 ldr_off_Instr = trap.Instruction('LDR_off', True)
 ldr_off_Instr.setMachineCode(ls_regOff, {'b': [0], 'l': [1]}, 'TODO')
