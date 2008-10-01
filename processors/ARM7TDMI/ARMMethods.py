@@ -132,13 +132,13 @@ RotateRight_method.addVariable(('toGlue', 'BIT<32>'))
 
 opCode = cxx_writer.Code("""
 long long resultSign = (long long)((long long)(int)operand1 + (long long)(int)operand2);
-unsigned long long resultUnSign = (unsigned long long)((unsigned long long)operand1 + (unsigned long long)operand2);
+//unsigned long long resultUnSign = (unsigned long long)((unsigned long long)operand1 + (unsigned long long)operand2);
 // N flag if the results is negative
 CPSR["N"] = ((resultSign & 0x0000000080000000LL) != 0);
 //Update flag Z if the result is 0
 CPSR["Z"] = (resultSign == 0);
 //Update the C resultUnSign if a carry occurred in the operation
-CPSR["C"] = (((operand1 ^ operand2 ^ ((unsigned int)(resultUnSign >> 1))) & 0x80000000) != 0);
+CPSR["C"] = (((operand1 ^ operand2 ^ ((unsigned int)(resultSign >> 1))) & 0x80000000) != 0);
 //Update the V flag if an overflow occurred in the operation
 CPSR["V"] = ((((unsigned int)(resultSign >> 1)) ^ ((unsigned int)resultSign)) & 0x80000000) != 0;
 """)
@@ -147,14 +147,14 @@ UpdatePSRAdd_method.setSignature(parameters = [('operand1', 'BIT<32>'), ('operan
 
 opCode = cxx_writer.Code("""
 long long resultSign = (long long)((long long)(int)operand1 - (long long)(int)operand2);
-unsigned long long resultUnSign = (unsigned long long)((unsigned long long)operand1 - (unsigned long long)operand2);
+//unsigned long long resultUnSign = (unsigned long long)((unsigned long long)operand1 - (unsigned long long)operand2);
 // N flag if the results is negative
 CPSR["N"] = ((resultSign & 0x0000000080000000LL) != 0);
 //Update flag Z if the result is 0
 CPSR["Z"] = (resultSign == 0);
 //Update the C flag if a borrow didn't occurr in the operation
-operand2 = (int)-operand2;
-CPSR["C"] = (((operand1 ^ operand2 ^ ((unsigned int)(resultUnSign >> 1))) & 0x80000000) == 0);
+//operand2 = (int)-operand2;
+CPSR["C"] = (((operand1 ^ operand2 ^ ((unsigned int)(resultSign >> 1))) & 0x80000000) == 0);
 //Update the V flag if an overflow occurred in the operation
 CPSR["V"] = ((((unsigned int)(resultSign >> 1)) ^ ((unsigned int)resultSign)) & 0x80000000) != 0;
 """)

@@ -165,4 +165,5 @@ processor.setABI(abi)
 
 # Finally we can dump the processor on file
 #processor.write(folder = 'processor', models = ['funcLT'], dumpDecoderName = 'decoder.dot')
-processor.write(folder = 'processor', models = ['funcLT'], trace = True)
+#processor.write(folder = 'processor', models = ['funcLT'], trace = True)
+processor.write(folder = 'processor', models = ['funcLT'])

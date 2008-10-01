@@ -199,7 +199,7 @@ def getCPPRegClass(self, model, regType):
         InnerFieldClass = cxx_writer.writer_code.ClassDeclaration('InnerField_' + field, [operatorEqualDecl, operatorIntDecl, fieldAttribute], [cxx_writer.writer_code.Type('InnerField')])
         InnerFieldClass.addConstructor(publicConstr)
         publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
-        InnerFieldClass.addDestructor(publicDestr)    
+        InnerFieldClass.addDestructor(publicDestr)
         innerClasses.append(InnerFieldClass)
         fieldAttribute = cxx_writer.writer_code.Attribute('field_' + field, InnerFieldClass.getType(), 'pri')
         attrs.append(fieldAttribute)
@@ -212,7 +212,7 @@ def getCPPRegClass(self, model, regType):
     InnerFieldClass = cxx_writer.writer_code.ClassDeclaration('InnerField_Empty', [operatorEqualDecl, operatorIntDecl], [cxx_writer.writer_code.Type('InnerField')])
     InnerFieldClass.addConstructor(publicConstr)
     publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
-    InnerFieldClass.addDestructor(publicDestr)        
+    InnerFieldClass.addDestructor(publicDestr)
     innerClasses.append(InnerFieldClass)
     fieldAttribute = cxx_writer.writer_code.Attribute('field_empty', InnerFieldClass.getType(), 'pri')
     attrs.append(fieldAttribute)
@@ -269,7 +269,7 @@ def getCPPRegisters(self, model):
     operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), emptyBody, cxx_writer.writer_code.Type(''), 'pu', const = True, pure = True)
     InnerFieldClass = cxx_writer.writer_code.ClassDeclaration('InnerField', [operatorEqualDecl, operatorIntDecl])
     publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
-    InnerFieldClass.addDestructor(publicDestr)    
+    InnerFieldClass.addDestructor(publicDestr)
 
     # Now lets procede with the members of the main class
     operatorParam = cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.stringRefType.makeConst())
@@ -543,7 +543,7 @@ def getCPPMemoryIf(self, model):
     memoryIfElements.append(unlockDecl)
     memoryIfDecl = cxx_writer.writer_code.ClassDeclaration('MemoryInterface', memoryIfElements)
     publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
-    memoryIfDecl.addDestructor(publicDestr)    
+    memoryIfDecl.addDestructor(publicDestr)
     classes.append(memoryIfDecl)
     # Now I check if it is the case of creating a local memory
     readMemAliasCode = ''
@@ -638,7 +638,7 @@ def getCPPProc(self, model, trace):
             fetchAddress += ' + ' + str(self.fetchReg[1])
     codeString += fetchAddress + ');\n'
     if trace:
-        codeString += """std::cerr << "Current PC: " << std::hex << std::showbase << """ + fetchAddress + """ << std::endl;"""
+        codeString += """std::cerr << "Current PC: " << std::hex << std::showbase << """ + fetchAddress + """ << std::endl;\n"""
     if self.instructionCache:
         codeString += 'std::map< ' + str(fetchWordType) + ', Instruction * >::iterator cachedInstr = Processor::instrCache.find(bitString);'
         codeString += """
@@ -649,7 +649,12 @@ def getCPPProc(self, model, trace):
                 if(!(this->toolManager.newIssue())){
                 #endif
                 numCycles = cachedInstr->second->behavior();
+        """
+        if trace:
+            codeString += """
                 cachedInstr->second->printTrace();
+            """
+        codeString += """
                 #ifndef DISABLE_TOOLS
                 }
                 #endif
@@ -678,7 +683,12 @@ def getCPPProc(self, model, trace):
                 if(!(this->toolManager.newIssue())){
                 #endif
                 numCycles = instr->behavior();
+        """
+        if trace:
+            codeString += """
                 instr->printTrace();
+            """
+        codeString += """
                 #ifndef DISABLE_TOOLS
                 }
                 #endif
@@ -706,7 +716,7 @@ def getCPPProc(self, model, trace):
         # TODO: Code for keeping time with systemc
         pass
     else:
-        codeString += 'this->totalCycles += numCycles;\n'
+        codeString += 'this->totalCycles += numCycles;\nthis->numInstructions++;\n\n'
     codeString += '}'
 
     processorElements = []
@@ -1185,7 +1195,7 @@ def getCPPIf(self, model):
     publicIfConstr = cxx_writer.writer_code.Constructor(cxx_writer.writer_code.Code(''), 'pu', baseInstrConstrParams, initElements)
     emptyBody = cxx_writer.writer_code.Code('')
     opDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
-    ifClassDecl.addDestructor(opDestr)    
+    ifClassDecl.addDestructor(opDestr)
     ifClassDecl.addConstructor(publicIfConstr)
     return ifClassDecl
 
@@ -1259,10 +1269,10 @@ def getMainCode(self, model):
     double elapsedSec = t.elapsed();
     std::cout << "Elapsed " << elapsedSec << " sec" << std::endl;
     std::cout << "Executed " << procInst.numInstructions << " instructions" << std::endl;
-    std::cout << "Execition Speed " << (double)procInst.numInstructions/(elapsedSec*10e6) << " MIPS" << std::endl;
+    std::cout << "Execution Speed " << (double)procInst.numInstructions/(elapsedSec*10e6) << " MIPS" << std::endl;
     """
     if self.systemc or model.startswith('acc'):
-        code += 'std::cout << \"Simulated time \" << sc_simulation_time()/10e3 << \" ns\" << std::endl\n'
+        code += 'std::cout << \"Simulated time \" << sc_simulation_time()/10e3 << \" ns\" << std::endl;\n'
     else:
         code += 'std::cout << \"Elapsed \" << procInst.totalCycles << \" cycles\" << std::endl;\n'
     if self.endOp:

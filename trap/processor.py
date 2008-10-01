@@ -568,7 +568,7 @@ class Processor:
         # in order to execute simulations
         return procWriter.getMainCode(self, model)
 
-    def write(self, folder = '', models = validModels, dumpDecoderName = '', trace = True):
+    def write(self, folder = '', models = validModels, dumpDecoderName = '', trace = False):
         # Ok: this method does two things: first of all it performs all
         # the possible checks to ensure that the processor description is
         # coherent. Second it actually calls the write method of the

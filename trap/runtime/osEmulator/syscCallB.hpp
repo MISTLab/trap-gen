@@ -347,10 +347,10 @@ template<class wordSize> class _exitSysCall : public SyscallCB<wordSize>{
     bool operator()(){
         wordSize exitValue = this->processorInstance.readRetVal();
         std::cout << std::endl << "Program exited with value " << exitValue << std::endl << std::endl;
-        if(sc_is_running() && sc_time_stamp().to_double() > 0)
+        if(sc_is_running()){
             sc_stop();
-        else
-            exit(0);
+            wait();
+        }
         return true;
     }
 };
