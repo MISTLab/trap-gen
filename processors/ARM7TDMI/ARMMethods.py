@@ -138,9 +138,9 @@ CPSR["N"] = ((resultSign & 0x0000000080000000LL) != 0);
 //Update flag Z if the result is 0
 CPSR["Z"] = (resultSign == 0);
 //Update the C resultUnSign if a carry occurred in the operation
-CPSR["C"] = (((~resultUnSign & (operand2 | operand1)) | (resultUnSign & operand1 & operand2)) & 0x0000000080000000LL) != 0;
+CPSR["C"] = (((operand1 ^ operand2 ^ ((unsigned int)(resultUnSign >> 1))) & 0x80000000) != 0);
 //Update the V flag if an overflow occurred in the operation
-CPSR["V"] = (((operand1 & operand2 & ~resultSign) | (~operand1 & ~operand2 & resultSign)) & 0x0000000080000000LL) != 0;
+CPSR["V"] = ((((unsigned int)(resultSign >> 1)) ^ ((unsigned int)resultSign)) & 0x80000000) != 0;
 """)
 UpdatePSRAdd_method = trap.HelperMethod('UpdatePSRAddInner', opCode)
 UpdatePSRAdd_method.setSignature(parameters = [('operand1', 'BIT<32>'), ('operand2', 'BIT<32>')])
@@ -148,15 +148,15 @@ UpdatePSRAdd_method.setSignature(parameters = [('operand1', 'BIT<32>'), ('operan
 opCode = cxx_writer.Code("""
 long long resultSign = (long long)((long long)(int)operand1 - (long long)(int)operand2);
 unsigned long long resultUnSign = (unsigned long long)((unsigned long long)operand1 - (unsigned long long)operand2);
-operand2 = -(int)operand2;
 // N flag if the results is negative
 CPSR["N"] = ((resultSign & 0x0000000080000000LL) != 0);
 //Update flag Z if the result is 0
 CPSR["Z"] = (resultSign == 0);
-//Update the C flag if a carry occurred in the operation
-CPSR["C"] = (((~resultUnSign & (operand2 | operand1)) | (resultUnSign & operand1 & operand2)) & 0x0000000080000000LL) == 0;
+//Update the C flag if a borrow didn't occurr in the operation
+operand2 = (int)-operand2;
+CPSR["C"] = (((operand1 ^ operand2 ^ ((unsigned int)(resultUnSign >> 1))) & 0x80000000) == 0);
 //Update the V flag if an overflow occurred in the operation
-CPSR["V"] = (((operand1 & operand2 & ~resultSign) | (~operand1 & ~operand2 & resultSign)) & 0x0000000080000000LL) != 0;
+CPSR["V"] = ((((unsigned int)(resultSign >> 1)) ^ ((unsigned int)resultSign)) & 0x80000000) != 0;
 """)
 UpdatePSRSub_method = trap.HelperMethod('UpdatePSRSubInner', opCode)
 UpdatePSRSub_method.setSignature(parameters = [('operand1', 'BIT<32>'), ('operand2', 'BIT<32>')])
@@ -709,19 +709,13 @@ UpdatePSRmul.addUserInstructionElement('rd')
 # In case the program counter is the updated register I have
 # to increment the latency of the operation
 opCode = cxx_writer.Code("""
-if(rd_bit == 15){
-    #ifndef CYCLE_ACCURATE
-    //In case I'm executing the functional model I have to increment the
-    //program counter to take into account the fact the I do not
-    //have the pipeline
-    PC += 8;
-    #endif
+if(rd_bit != 15){
+    PC += 4;
+}
+else{
     //In case the destination register is the program counter I have to
     //specify that I have a latency of two clock cycles
     stall(2);
-}
-else{
-    PC += 4;
 }
 """)
 UpdatePC = trap.HelperOperation('UpdatePC', opCode, False)

@@ -234,7 +234,7 @@ template<class issueWidth> class OSEmulator : public ToolsIf, OSEmulatorBase{
 
             typename std::map<unsigned int, SyscallCB<issueWidth>* >::iterator foundSysc = this->syscCallbacks.find(curPC);
             if(foundSysc != this->syscCallbacks.end()){
-                (*(foundSysc->second))();
+                return (*(foundSysc->second))();
             }
         }
         return false;
