@@ -1064,10 +1064,7 @@ def getCPPIf(self, model):
         readElemCode.addInclude(includes)
         readElemMethod = cxx_writer.writer_code.Method('read' + self.abi.name[elem], readElemCode, wordType, 'pu')
         ifClassElements.append(readElemMethod)
-        setElemBody = 'this->' + elem + ' = newValue'
-        if self.abi.offset.has_key(elem):
-            setElemBody += ' - ' + str(self.abi.offset[elem])
-        setElemBody += ';'
+        setElemBody = 'this->' + elem + ' = newValue;'
         setElemCode = cxx_writer.writer_code.Code(setElemBody)
         setElemCode.addInclude(includes)
         setElemParam = cxx_writer.writer_code.Parameter('newValue', wordType.makeRef().makeConst())
@@ -1113,8 +1110,6 @@ def getCPPIf(self, model):
     for reg, gdbId in self.abi.regCorrespondence.items():
         setGDBRegBody += 'case ' + str(gdbId) + ':{\n'
         setGDBRegBody += reg + ' = newValue'
-        if self.abi.offset.has_key(reg):
-            setGDBRegBody += ' - ' + str(self.abi.offset[reg])
         setGDBRegBody += ';\nbreak;}\n'
     setGDBRegBody += 'default:{\nTHROW_EXCEPTION(\"No register corresponding to GDB id\" << gdbId);\n}\n}\n'
     setGDBRegCode = cxx_writer.writer_code.Code(setGDBRegBody)
