@@ -587,7 +587,7 @@ isa.addInstruction(ldr_off_Instr)
 # LDRB instruction family
 # Normal load instruction
 opCode = cxx_writer.Code("""
-rd = dataMem.read_word(address);
+rd = dataMem.read_byte(address);
 stall(2);
 """)
 ldrb_imm_Instr = trap.Instruction('LDRB_imm', True)
