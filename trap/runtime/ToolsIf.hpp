@@ -61,7 +61,10 @@ class ToolsManager{
     private:
     ///List of the active tools, which are activated at every instruction
     std::vector<ToolsIf *> activeTools;
+    std::vector<ToolsIf *>::const_iterator toolsStart;
+    std::vector<ToolsIf *>::const_iterator toolsEnd;
     public:
+    ToolsManager();
     ///Adds a tool to the list of the tool which are activated when there is a new instruction
     ///issue
     void addTool(ToolsIf &tool);
@@ -70,7 +73,7 @@ class ToolsManager{
     ///the tool can then take the appropriate actions.
     ///the return value specifies whether the processor should skip
     ///the issue of the current instruction
-    bool newIssue();
+    bool newIssue() const;
 };
 
 #endif

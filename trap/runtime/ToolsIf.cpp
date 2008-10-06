@@ -44,10 +44,17 @@
 
 #include "ToolsIf.hpp"
 
+ToolsManager::ToolsManager(){
+    this->toolsStart = this->activeTools.begin();
+    this->toolsEnd = this->activeTools.end();
+}
+
 ///Adds a tool to the list of the tool which are activated when there is a new instruction
 ///issue
 void ToolsManager::addTool(ToolsIf &tool){
     this->activeTools.push_back(&tool);
+    this->toolsStart = this->activeTools.begin();
+    this->toolsEnd = this->activeTools.end();
 }
 
 ///The only method which is called to activate the tool
@@ -55,10 +62,10 @@ void ToolsManager::addTool(ToolsIf &tool){
 ///the tool can then take the appropriate actions.
 ///the return value specifies whether the processor should skip
 ///the issue of the current instruction
-bool ToolsManager::newIssue(){
+bool ToolsManager::newIssue() const{
     bool skipInstruction = false;
-    std::vector<ToolsIf *>::iterator toolsIter, toolsEnd;
-    for(toolsIter = this->activeTools.begin(), toolsEnd = this->activeTools.end(); toolsIter != toolsEnd; toolsIter++){
+    std::vector<ToolsIf *>::const_iterator toolsIter = this->toolsStart;
+    for(; toolsIter != this->toolsEnd; toolsIter++){
         skipInstruction |= (*toolsIter)->newIssue();
     }
     return skipInstruction;

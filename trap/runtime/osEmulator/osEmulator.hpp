@@ -57,6 +57,7 @@ template<class issueWidth> class OSEmulator : public ToolsIf, OSEmulatorBase{
     std::map<unsigned int, SyscallCB<issueWidth>* > syscCallbacks;
     unsigned int syscMask;
     ABIIf<issueWidth> &processorInstance;
+    typename std::map<unsigned int, SyscallCB<issueWidth>* >::iterator syscCallbacksEnd;
 
     bool register_syscall(std::string funName, SyscallCB<issueWidth> &callBack){
         BFDFrontend &bfdFE = BFDFrontend::getInstance();
@@ -81,6 +82,7 @@ template<class issueWidth> class OSEmulator : public ToolsIf, OSEmulatorBase{
 
         this->syscCallbacks[symAddr] = &callBack;
         this->syscMask &= symAddr;
+        this->syscCallbacksEnd = this->syscCallbacks.end();
 
         return true;
     }
@@ -89,6 +91,7 @@ template<class issueWidth> class OSEmulator : public ToolsIf, OSEmulatorBase{
     OSEmulator(ABIIf<issueWidth> &processorInstance) : processorInstance(processorInstance){
         this->syscMask = (unsigned int)-1L;
         OSEmulatorBase::heapPointer = (unsigned int)this->processorInstance.getCodeLimit();
+        this->syscCallbacksEnd = this->syscCallbacks.end();
     }
     void initSysCalls(std::string execName){
         BFDFrontend::getInstance(execName);
@@ -231,9 +234,8 @@ template<class issueWidth> class OSEmulator : public ToolsIf, OSEmulatorBase{
         //callback.
         issueWidth curPC = this->processorInstance.readPC();
         if((this->syscMask & curPC) == this->syscMask){
-
             typename std::map<unsigned int, SyscallCB<issueWidth>* >::iterator foundSysc = this->syscCallbacks.find(curPC);
-            if(foundSysc != this->syscCallbacks.end()){
+            if(foundSysc != this->syscCallbacksEnd){
                 return (*(foundSysc->second))();
             }
         }

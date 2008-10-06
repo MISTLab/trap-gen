@@ -1262,9 +1262,9 @@ def getMainCode(self, model):
     boost::timer t;
     sc_start();
     double elapsedSec = t.elapsed();
-    std::cout << "Elapsed " << elapsedSec << " sec" << std::endl;
+    std::cout << "Elapsed " << elapsedSec << " sec." << std::endl;
     std::cout << "Executed " << procInst.numInstructions << " instructions" << std::endl;
-    std::cout << "Execution Speed " << (double)procInst.numInstructions/(elapsedSec*10e6) << " MIPS" << std::endl;
+    std::cout << "Execution Speed " << (double)procInst.numInstructions/(elapsedSec*1e6) << " MIPS" << std::endl;
     """
     if self.systemc or model.startswith('acc'):
         code += 'std::cout << \"Simulated time \" << sc_simulation_time()/10e3 << \" ns\" << std::endl;\n'
