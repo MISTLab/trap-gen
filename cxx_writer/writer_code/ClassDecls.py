@@ -81,10 +81,10 @@ class Method(ClassMember, Function):
             else:
                 writer.write(' ')
         writer.write(')')
-        if self.noException:
-            writer.write(' throw()')
         if self.const:
             writer.write(' const')
+        if self.noException:
+            writer.write(' throw()')
         writer.write('{\n')
         self.body.writeImplementation(writer)
         writer.write('}\n\n')
@@ -122,10 +122,10 @@ class MemberOperator(ClassMember, Operator):
             else:
                 writer.write(' ')
         writer.write(')')
-        if self.noException:
-            writer.write(' throw()')
         if self.const:
             writer.write(' const')
+        if self.noException:
+            writer.write(' throw()')
         writer.write('{\n')
         self.body.writeImplementation(writer)
         writer.write('}\n\n')

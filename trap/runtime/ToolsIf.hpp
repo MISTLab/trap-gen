@@ -53,7 +53,7 @@ class ToolsIf{
     ///the tool can then take the appropriate actions.
     ///the return value specifies whether the processor should skip
     ///the issue of the current instruction
-    virtual bool newIssue() = 0;
+    virtual bool newIssue() const throw() = 0;
     virtual ~ToolsIf(){}
 };
 
@@ -73,7 +73,7 @@ class ToolsManager{
     ///the tool can then take the appropriate actions.
     ///the return value specifies whether the processor should skip
     ///the issue of the current instruction
-    bool newIssue() const;
+    bool newIssue() const throw();
 };
 
 #endif

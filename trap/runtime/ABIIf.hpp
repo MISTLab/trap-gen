@@ -47,21 +47,21 @@
 
 template<class regWidth> class ABIIf{
     public:
-    virtual bool isLittleEndian() = 0;
-    virtual regWidth readLR() = 0;
-    virtual void setLR( const regWidth & newValue ) = 0;
-    virtual regWidth readPC() = 0;
-    virtual void setPC( const regWidth & newValue ) = 0;
-    virtual regWidth readSP() = 0;
-    virtual void setSP( const regWidth & newValue ) = 0;
-    virtual regWidth readFP() = 0;
-    virtual void setFP( const regWidth & newValue ) = 0;
-    virtual regWidth readRetVal() = 0;
-    virtual void setRetVal( const regWidth & newValue ) = 0;
-    virtual std::vector< regWidth > readArgs() = 0;
-    virtual void setArgs( const std::vector< regWidth > & args ) = 0;
-    virtual regWidth readGDBReg( const unsigned int & gdbId ) = 0;
-    virtual void setGDBReg( const regWidth & newValue, const unsigned int & gdbId ) = 0;
+    virtual bool isLittleEndian() const throw() = 0;
+    virtual regWidth readLR() const throw() = 0;
+    virtual void setLR( const regWidth & newValue ) throw() = 0;
+    virtual regWidth readPC() const throw() = 0;
+    virtual void setPC( const regWidth & newValue ) throw() = 0;
+    virtual regWidth readSP() const throw() = 0;
+    virtual void setSP( const regWidth & newValue ) throw() = 0;
+    virtual regWidth readFP() const throw() = 0;
+    virtual void setFP( const regWidth & newValue ) throw() = 0;
+    virtual regWidth readRetVal() const throw() = 0;
+    virtual void setRetVal( const regWidth & newValue ) throw() = 0;
+    virtual std::vector< regWidth > readArgs() const throw() = 0;
+    virtual void setArgs( const std::vector< regWidth > & args ) throw() = 0;
+    virtual regWidth readGDBReg( const unsigned int & gdbId ) const throw() = 0;
+    virtual void setGDBReg( const regWidth & newValue, const unsigned int & gdbId ) throw() = 0;
     virtual regWidth readMem( const regWidth & address, int length = sizeof(regWidth) ) = 0;
     virtual unsigned char readCharMem( const regWidth & address) = 0;
     virtual void writeMem( const regWidth & address, const regWidth & datum, int length = sizeof(regWidth) ) = 0;

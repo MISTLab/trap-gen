@@ -57,7 +57,7 @@ template<class issueWidth> class OSEmulator : public ToolsIf, OSEmulatorBase{
     std::map<unsigned int, SyscallCB<issueWidth>* > syscCallbacks;
     unsigned int syscMask;
     ABIIf<issueWidth> &processorInstance;
-    typename std::map<unsigned int, SyscallCB<issueWidth>* >::iterator syscCallbacksEnd;
+    typename std::map<unsigned int, SyscallCB<issueWidth>* >::const_iterator syscCallbacksEnd;
 
     bool register_syscall(std::string funName, SyscallCB<issueWidth> &callBack){
         BFDFrontend &bfdFE = BFDFrontend::getInstance();
@@ -228,13 +228,13 @@ template<class issueWidth> class OSEmulator : public ToolsIf, OSEmulatorBase{
         if(!this->register_syscall("main", *mainCallBack))
             THROW_EXCEPTION("Fatal Error, unable to find main function in current application");
     }
-    bool newIssue(){
+    bool newIssue() const throw(){
         //I have to go over all the registered system calls and check if there is one
         //that matches the current program counter. In case I simply call the corresponding
         //callback.
         issueWidth curPC = this->processorInstance.readPC();
         if((this->syscMask & curPC) == this->syscMask){
-            typename std::map<unsigned int, SyscallCB<issueWidth>* >::iterator foundSysc = this->syscCallbacks.find(curPC);
+            typename std::map<unsigned int, SyscallCB<issueWidth>* >::const_iterator foundSysc = this->syscCallbacks.find(curPC);
             if(foundSysc != this->syscCallbacksEnd){
                 return (*(foundSysc->second))();
             }

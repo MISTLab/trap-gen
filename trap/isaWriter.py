@@ -190,7 +190,7 @@ def getCPPInstr(self, model, trace):
     behaviorDecl = cxx_writer.writer_code.Method('behavior', behaviorBody, cxx_writer.writer_code.uintType, 'pu')
     classElements.append(behaviorDecl)
     replicateBody = cxx_writer.writer_code.Code('return new ' + self.name + '(' + baseInstrInitElement + ');')
-    replicateDecl = cxx_writer.writer_code.Method('replicate', replicateBody, instructionType.makePointer(), 'pu')
+    replicateDecl = cxx_writer.writer_code.Method('replicate', replicateBody, instructionType.makePointer(), 'pu', noException = True, const = True)
     classElements.append(replicateDecl)
     if trace:
         getIstructionNameBody = cxx_writer.writer_code.Code('return \"' + self.name + '\"\n;')
@@ -239,7 +239,7 @@ def getCPPInstr(self, model, trace):
         setParamsCode += ';\n'
     setParamsBody = cxx_writer.writer_code.Code(setParamsCode)
     setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
-    setparamsDecl = cxx_writer.writer_code.Method('setParams', setParamsBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam])
+    setparamsDecl = cxx_writer.writer_code.Method('setParams', setParamsBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam], noException = True)
     classElements.append(setparamsDecl)
     for var in self.variables:
         if not var.name in behVars:
@@ -386,10 +386,10 @@ def getCPPClasses(self, processor, modelType, trace):
     emptyBody = cxx_writer.writer_code.Code('')
     behaviorDecl = cxx_writer.writer_code.Method('behavior', emptyBody, cxx_writer.writer_code.uintType, 'pu', pure = True)
     instructionElements.append(behaviorDecl)
-    replicateDecl = cxx_writer.writer_code.Method('replicate', emptyBody, instructionType.makePointer(), 'pu', pure = True)
+    replicateDecl = cxx_writer.writer_code.Method('replicate', emptyBody, instructionType.makePointer(), 'pu', pure = True, noException = True, const = True)
     instructionElements.append(replicateDecl)
     setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
-    setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam], pure = True)
+    setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam], pure = True, noException = True)
     instructionElements.append(setparamsDecl)
     if trace:
         getIstructionNameDecl = cxx_writer.writer_code.Method('getIstructionName', emptyBody, cxx_writer.writer_code.stringType, 'pu', pure = True)
@@ -509,11 +509,12 @@ def getCPPClasses(self, processor, modelType, trace):
     behaviorBody = cxx_writer.writer_code.Code(codeString)
     behaviorDecl = cxx_writer.writer_code.Method('behavior', behaviorBody, cxx_writer.writer_code.uintType, 'pu')
     invalidInstrElements.append(behaviorDecl)
-    replicateBody = cxx_writer.writer_code.Code('return this;')
-    replicateDecl = cxx_writer.writer_code.Method('replicate', replicateBody, instructionType.makePointer(), 'pu')
+    from procWriter import baseInstrInitElement
+    replicateBody = cxx_writer.writer_code.Code('return new InvalidInstr(' + baseInstrInitElement + ');')
+    replicateDecl = cxx_writer.writer_code.Method('replicate', replicateBody, instructionType.makePointer(), 'pu', noException = True, const = True)
     invalidInstrElements.append(replicateDecl)
     setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
-    setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam])
+    setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam], noException = True)
     invalidInstrElements.append(setparamsDecl)
     if trace:
         getIstructionNameBody = cxx_writer.writer_code.Code('return \"InvalidInstruction\"\n;')

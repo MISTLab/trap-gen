@@ -87,25 +87,25 @@ class Type(DumpElement):
         import copy
         newType = copy.deepcopy(self)
         newType.const = True
-        return newType    
+        return newType
     def removeConst(self):
         import copy
         newType = copy.deepcopy(self)
         newType.const = False
-        return newType    
+        return newType
     def writeDeclaration(self, writer):
         if self.const:
             writer.write('const ')
         writer.write(self.name)
         for i in self.modifiers:
             writer.write(' ' + i)
-    
+
     def getIncludes(self):
         if self.include:
             return [self.include]
         else:
             return []
-            
+
     def __str__(self):
         typeStr = ''
         if self.const:
@@ -338,13 +338,13 @@ class Function(DumpElement):
             writer.write('}\n')
         else:
             writer.write(')')
-            if self.noException:
-                writer.write(' throw()')
             try:
                 if self.const:
                     writer.write(' const')
             except AttributeError:
                 pass
+            if self.noException:
+                writer.write(' throw()')
             try:
                 if self.pure:
                     writer.write(' = 0')
