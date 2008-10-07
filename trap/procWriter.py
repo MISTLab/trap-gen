@@ -640,7 +640,7 @@ def getCPPProc(self, model, trace):
     if trace:
         codeString += """std::cerr << "Current PC: " << std::hex << std::showbase << """ + fetchAddress + """ << std::endl;\n"""
     if self.instructionCache:
-        codeString += 'std::map< ' + str(fetchWordType) + ', Instruction * >::iterator cachedInstr = Processor::instrCache.find(bitString);'
+        codeString += '__gnu_cxx::hash_map< ' + str(fetchWordType) + ', Instruction * >::iterator cachedInstr = Processor::instrCache.find(bitString);'
         codeString += """
         if(cachedInstr != Processor::instrCache.end()){
             // I can call the instruction, I have found it
@@ -704,12 +704,12 @@ def getCPPProc(self, model, trace):
             }
             // ... and then add the instruction to the cache
         """
-        codeString += 'instrCache.insert( std::pair< ' + str(fetchWordType) + ', Instruction * >(bitString, instr) );'
+        codeString += 'instrCache[bitString] = instr;'
         codeString += """
             Processor::INSTRUCTIONS[instrId] = instr->replicate();
         }
         """
-        includes.append('map')
+        #includes.append('ext/hash_map')
     else:
         codeString += 'instr->behavior(bitString)\n';
     if self.systemc or model.startswith('acc'):
@@ -940,8 +940,8 @@ def getCPPProc(self, model, trace):
     instructionsAttribute = cxx_writer.writer_code.Attribute('INSTRUCTIONS',
                             IntructionTypePtr.makePointer(), 'pri', True, 'NULL')
     cacheAttribute = cxx_writer.writer_code.Attribute('instrCache',
-                        cxx_writer.writer_code.TemplateType('std::map',
-                            [fetchWordType, IntructionTypePtr], 'map'), 'pri', True)
+                        cxx_writer.writer_code.TemplateType('__gnu_cxx::hash_map',
+                            [fetchWordType, IntructionTypePtr], 'ext/hash_map'), 'pri', True)
     numProcAttribute = cxx_writer.writer_code.Attribute('numInstances',
                             cxx_writer.writer_code.intType, 'pri', True, '0')
     processorElements += [cacheAttribute, instructionsAttribute, numProcAttribute]
@@ -987,7 +987,7 @@ def getCPPProc(self, model, trace):
         }
         delete [] Processor::INSTRUCTIONS;
         Processor::INSTRUCTIONS = NULL;
-        std::map< """ + str(fetchWordType) + """, Instruction * >::const_iterator cacheIter, cacheEnd;
+        __gnu_cxx::hash_map< """ + str(fetchWordType) + """, Instruction * >::const_iterator cacheIter, cacheEnd;
         for(cacheIter = Processor::instrCache.begin(), cacheEnd = Processor::instrCache.end(); cacheIter != cacheEnd; cacheIter++){
             delete cacheIter->second;
         }
