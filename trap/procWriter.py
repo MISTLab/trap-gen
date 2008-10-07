@@ -357,13 +357,13 @@ def getCPPAlias(self, model):
     InnerFieldType = cxx_writer.writer_code.Type('InnerField')
     operatorBody = cxx_writer.writer_code.Code(codeOperatorBody)
     operatorParam = [cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.intType)]
-    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, InnerFieldType.makeRef(), 'pu', operatorParam, inline = True)
+    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, InnerFieldType.makeRef(), 'pu', operatorParam)
     aliasElements.append(operatorDecl)
 
     #################### Lets declare the normal operators (implementation of the pure operators of the base class) ###########
     for i in unaryOps:
         operatorBody = cxx_writer.writer_code.Code('return ' + i + '(*this->reg + this->offset);')
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', inline = True)
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu')
         aliasElements.append(operatorDecl)
     # Now I have the three versions of the operators, depending whether they take
     # in input the integer value, the specific register or the base one
@@ -387,7 +387,7 @@ def getCPPAlias(self, model):
     for i in binaryOps:
         operatorBody = cxx_writer.writer_code.Code('return ((*this->reg + this->offset) ' + i + ' *other.reg);')
         operatorParam = cxx_writer.writer_code.Parameter('other', aliasType.makeRef().makeConst())
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True, inline = True)
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True)
         aliasElements.append(operatorDecl)
 #    for i in comparisonOps:
 #        operatorBody = cxx_writer.writer_code.Code('return ((*this->reg + this->offset) ' + i + ' *other.reg);')
@@ -397,7 +397,7 @@ def getCPPAlias(self, model):
     for i in assignmentOps:
         operatorBody = cxx_writer.writer_code.Code('*this->reg ' + i + ' *other.reg;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', aliasType.makeRef().makeConst())
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam], inline = True)
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam])
         aliasElements.append(operatorDecl)
     # GENERIC REGISTER:
     for i in binaryOps:
@@ -408,12 +408,12 @@ def getCPPAlias(self, model):
     for i in comparisonOps:
         operatorBody = cxx_writer.writer_code.Code('return ((*this->reg + this->offset) ' + i + ' other);')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True, inline = True)
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
         aliasElements.append(operatorDecl)
     for i in assignmentOps:
         operatorBody = cxx_writer.writer_code.Code('*this->reg ' + i + ' other;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam], inline = True)
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam])
         aliasElements.append(operatorDecl)
     # Scalar value cast operator
     operatorBody = cxx_writer.writer_code.Code('return *this->reg + this->offset;')
