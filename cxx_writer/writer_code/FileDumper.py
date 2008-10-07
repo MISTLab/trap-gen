@@ -276,8 +276,8 @@ class Folder:
 
     # Set Optimized as the default compilation mode, enabled if no other is selected on the command line
     try:
-        if Params.g_options.debug_level == '':
-            Params.g_options.debug_level = "OPTIMIZED"
+        if Options.options.debug_level == '':
+            Options.options.debug_level = "OPTIMIZED"
     except:
         pass
 
@@ -293,7 +293,7 @@ class Folder:
     # Check for special gcc flags
     ########################################
     if not conf.check_flags(''):
-        Params.fatal('gcc does not support the custom flags used. Please change gcc version of the custom flags')
+        conf.fatal('gcc does not support the custom flags used. Please change gcc version of the custom flags')
 
     ########################################
     # Setting the host endianess
