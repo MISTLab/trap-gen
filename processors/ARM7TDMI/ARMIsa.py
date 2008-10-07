@@ -86,7 +86,7 @@ isa.addMethod(UpdatePSRSub_method)
 # ADC instruction family
 opCode = cxx_writer.Code("""
 rd = (int)rn + (int)operand;
-if (CPSR["C"]){
+if (CPSR[key_C]){
     rd += 1;
 }
 """)
@@ -863,7 +863,7 @@ isa.addInstruction(mov_imm_Instr)
 # MRS instruction
 opCode = cxx_writer.Code("""
 if(r == 1){ // I have to save the SPSR
-    switch(CPSR["mode"]){
+    switch(CPSR[key_mode]){
         case 0x1:{
             //I'm in FIQ mode
             rd = SPSR[0];
@@ -907,7 +907,7 @@ value = RotateRight(rotate*2, immediate);
 if((value & 0x00000010) == 0){
     THROW_EXCEPTION("MSR called with unvalid mode " << std::hex << std::showbase << value << ": we are trying to switch to 26 bit PC");
 }
-unsigned int currentMode = CPSR["mode"];
+unsigned int currentMode = CPSR[key_mode];
 //Firs of all I check whether I have to modify the CPSR or the SPSR
 if(r == 0){
     //CPSR
@@ -1049,7 +1049,7 @@ opCode = cxx_writer.Code("""
 if((rm & 0x00000010) == 0){
     THROW_EXCEPTION("MSR called with unvalid mode " << std::hex << std::showbase << rm << ": we are trying to switch to 26 bit PC");
 }
-unsigned int currentMode = CPSR["mode"];
+unsigned int currentMode = CPSR[key_mode];
 //Firs of all I check whether I have to modify the CPSR or the SPSR
 if(r == 0){
     //CPSR
@@ -1283,7 +1283,7 @@ isa.addInstruction(rsb_imm_Instr)
 # RSC instruction family
 opCode = cxx_writer.Code("""
 rd = (int)operand - (int)rn;
-if (CPSR["C"]){
+if (CPSR[key_C]){
     rd -= 1;
 }
 """)
@@ -1315,7 +1315,7 @@ isa.addInstruction(rsc_imm_Instr)
 # SBC instruction family
 opCode = cxx_writer.Code("""
 rd = (int)rn - (int)operand;
-if (CPSR["C"]){
+if (CPSR[key_C]){
     rd -= 1;
 }
 """)

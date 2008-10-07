@@ -531,6 +531,9 @@ class Processor:
         # and all the classes for the different bitwidths
         return procWriter.getCPPRegisters(self, model)
 
+    def getRegistersBitfields(self):
+        return procWriter.getRegistersBitfields(self)
+
     def getCPPAlias(self, model):
         # This method creates the class describing a register
         # alias
@@ -621,6 +624,7 @@ class Processor:
             implFileRegs = cxx_writer.writer_code.FileDumper('registers.cpp', False)
             implFileRegs.addInclude('registers.hpp')
             headFileRegs = cxx_writer.writer_code.FileDumper('registers.hpp', True)
+            headFileRegs.addMember(self.getRegistersBitfields())
             for i in RegClasses:
                 implFileRegs.addMember(i)
                 headFileRegs.addMember(i)

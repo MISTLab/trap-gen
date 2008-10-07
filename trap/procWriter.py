@@ -57,6 +57,18 @@ resourceType = {}
 baseInstrInitElement = ''
 aliasGraph = None
 
+def getRegistersBitfields(self):
+    addedKeys = []
+    defineCode = ''
+    numKeys = 0
+    for reg in self.regs + self.regBanks:
+        for key in reg.bitMask.keys():
+            if not key in addedKeys:
+                defineCode += '#define key_' + key + ' ' + str(numKeys) + '\n'
+                addedKeys.append(key)
+                numKeys += 1
+    return cxx_writer.writer_code.Code(defineCode + '\n\n')
+
 def getCPPRegClass(self, model, regType):
     # returns the class implementing the current register; I have to
     # define all the operators;
@@ -64,26 +76,17 @@ def getCPPRegClass(self, model, regType):
     emptyBody = cxx_writer.writer_code.Code('')
     regWidthType = regMaxType
     registerType = cxx_writer.writer_code.Type('Register')
+    InnerFieldType = cxx_writer.writer_code.Type('InnerField')
     registerElements = []
 
     ####################### Lets declare the operators used to access the register fields ##############
-    codeOperatorBody = ''
+    codeOperatorBody = 'switch(bitField){\n'
     for key in self.bitMask.keys():
-        codeOperatorBody += 'if(bitField == \"' + key + '\"){\nreturn this->field_' + key + ';\n}\n'
-    codeOperatorBody += 'return this->field_empty;'
-    InnerFieldType = cxx_writer.writer_code.Type('InnerField')
+        codeOperatorBody += 'case key_' + key + ':{\nreturn this->field_' + key + ';\nbreak;\n}\n'
+    codeOperatorBody += 'default:{\nreturn this->field_empty;\nbreak;\n}\n}\n'
     operatorBody = cxx_writer.writer_code.Code(codeOperatorBody)
-    operatorParam = [cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.stringRefType.makeConst())]
-    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, InnerFieldType.makeRef(), 'pu', operatorParam)
-    registerElements.append(operatorDecl)
-    codeOperatorBody = ''
-    for key in self.bitMask.keys():
-        codeOperatorBody += 'if(strcmp(bitField, \"' + key + '\") == 0){\nreturn this->field_' + key + ';\n}\n'
-    codeOperatorBody += 'return this->field_empty;'
-    operatorBody = cxx_writer.writer_code.Code(codeOperatorBody)
-    operatorBody.addInclude('cstring')
-    operatorParam = [cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.charPtrType.makeConst())]
-    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, InnerFieldType.makeRef(), 'pu', operatorParam)
+    operatorParam = [cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.intType)]
+    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, InnerFieldType.makeRef(), 'pu', operatorParam, noException = True)
     registerElements.append(operatorDecl)
 
     #################### Lets declare the normal operators (implementation of the pure operators of the base class) ###########
@@ -272,11 +275,8 @@ def getCPPRegisters(self, model):
     InnerFieldClass.addDestructor(publicDestr)
 
     # Now lets procede with the members of the main class
-    operatorParam = cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.stringRefType.makeConst())
-    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', emptyBody, InnerFieldClass.getType().makeRef(), 'pu', [operatorParam], pure = True)
-    registerElements.append(operatorDecl)
-    operatorParam = cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.charPtrType.makeConst())
-    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', emptyBody, InnerFieldClass.getType().makeRef(), 'pu', [operatorParam], pure = True)
+    operatorParam = cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.intType)
+    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', emptyBody, InnerFieldClass.getType().makeRef(), 'pu', [operatorParam], pure = True, noException = True)
     registerElements.append(operatorDecl)
     for i in unaryOps:
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, emptyBody, regMaxType, 'pu', pure = True)
@@ -356,7 +356,7 @@ def getCPPAlias(self, model):
     codeOperatorBody = 'return (*this->reg)[bitField];'
     InnerFieldType = cxx_writer.writer_code.Type('InnerField')
     operatorBody = cxx_writer.writer_code.Code(codeOperatorBody)
-    operatorParam = [cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.stringRefType.makeConst())]
+    operatorParam = [cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.intType)]
     operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, InnerFieldType.makeRef(), 'pu', operatorParam)
     aliasElements.append(operatorDecl)
 
@@ -638,7 +638,7 @@ def getCPPProc(self, model, trace):
             fetchAddress += ' + ' + str(self.fetchReg[1])
     codeString += fetchAddress + ');\n'
     if trace:
-        codeString += """std::cerr << "Current PC: " << std::hex << std::showbase << """ + fetchAddress + """ << std::endl;\n"""
+        codeString += 'std::cerr << \"Current PC: \" << std::hex << std::showbase << ' + fetchAddress + ' << std::endl;\n'
     if self.instructionCache:
         codeString += '__gnu_cxx::hash_map< ' + str(fetchWordType) + ', Instruction * >::iterator cachedInstr = Processor::instrCache.find(bitString);'
         codeString += """
