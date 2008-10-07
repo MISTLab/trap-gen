@@ -331,6 +331,11 @@ class Function(DumpElement):
                 writer.write(' ')
         if self.template or self.inline:
             writer.write(')')
+            try:
+                if self.const:
+                    writer.write(' const')
+            except AttributeError:
+                pass
             if self.noException:
                 writer.write(' throw()')
             writer.write('{\n')
