@@ -54,10 +54,10 @@
 
 template<class issueWidth> class OSEmulator : public ToolsIf, OSEmulatorBase{
   private:
-    std::map<unsigned int, SyscallCB<issueWidth>* > syscCallbacks;
+    __gnu_cxx::hash_map<unsigned int, SyscallCB<issueWidth>* > syscCallbacks;
     unsigned int syscMask;
     ABIIf<issueWidth> &processorInstance;
-    typename std::map<unsigned int, SyscallCB<issueWidth>* >::const_iterator syscCallbacksEnd;
+    typename __gnu_cxx::hash_map<unsigned int, SyscallCB<issueWidth>* >::const_iterator syscCallbacksEnd;
 
     bool register_syscall(std::string funName, SyscallCB<issueWidth> &callBack){
         BFDFrontend &bfdFE = BFDFrontend::getInstance();
@@ -67,10 +67,10 @@ template<class issueWidth> class OSEmulator : public ToolsIf, OSEmulatorBase{
             return false;
         }
 
-        typename std::map<unsigned int, SyscallCB<issueWidth>* >::iterator foundSysc = this->syscCallbacks.find(symAddr);
+        typename __gnu_cxx::hash_map<unsigned int, SyscallCB<issueWidth>* >::iterator foundSysc = this->syscCallbacks.find(symAddr);
         if(foundSysc != this->syscCallbacks.end()){
             int numMatch = 0;
-            typename std::map<unsigned int, SyscallCB<issueWidth>* >::iterator allCallIter, allCallEnd;
+            typename __gnu_cxx::hash_map<unsigned int, SyscallCB<issueWidth>* >::iterator allCallIter, allCallEnd;
             for(allCallIter = this->syscCallbacks.begin(), allCallEnd = this->syscCallbacks.end(); allCallIter != allCallEnd; allCallIter++){
                 if(allCallIter->second == foundSysc->second)
                     numMatch++;
@@ -234,7 +234,7 @@ template<class issueWidth> class OSEmulator : public ToolsIf, OSEmulatorBase{
         //callback.
         issueWidth curPC = this->processorInstance.readPC();
         if((this->syscMask & curPC) == this->syscMask){
-            typename std::map<unsigned int, SyscallCB<issueWidth>* >::const_iterator foundSysc = this->syscCallbacks.find(curPC);
+            typename __gnu_cxx::hash_map<unsigned int, SyscallCB<issueWidth>* >::const_iterator foundSysc = this->syscCallbacks.find(curPC);
             if(foundSysc != this->syscCallbacksEnd){
                 return (*(foundSysc->second))();
             }

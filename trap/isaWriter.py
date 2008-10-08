@@ -408,11 +408,11 @@ def getCPPClasses(self, processor, modelType, trace):
     # Note how the flush operation also stops the execution of the current operation
     flushBody = cxx_writer.writer_code.Code('throw flush_exception();')
     flushBody.addInclude('customExceptions.hpp')
-    flushDecl = cxx_writer.writer_code.Method('flush', flushBody, cxx_writer.writer_code.voidType, 'pu')
+    flushDecl = cxx_writer.writer_code.Method('flush', flushBody, cxx_writer.writer_code.voidType, 'pu', inline = True)
     instructionElements.append(flushDecl)
     stallParam = cxx_writer.writer_code.Parameter('numCycles', archWordType.makeRef().makeConst())
     stallBody = cxx_writer.writer_code.Code('this->totalInstrCycles += numCycles;')
-    stallDecl = cxx_writer.writer_code.Method('stall', stallBody, cxx_writer.writer_code.voidType, 'pu', [stallParam])
+    stallDecl = cxx_writer.writer_code.Method('stall', stallBody, cxx_writer.writer_code.voidType, 'pu', [stallParam], inline = True)
     instructionElements.append(stallDecl)
     # we now have to check if there is a non-inline behavior common to all instructions:
     # in this case I declare it here in the base instruction class
