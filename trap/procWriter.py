@@ -88,6 +88,24 @@ def getCPPRegClass(self, model, regType):
     operatorParam = [cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.intType)]
     operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, InnerFieldType.makeRef(), 'pu', operatorParam, noException = True)
     registerElements.append(operatorDecl)
+    codeOperatorBody = 'switch(bitField){\n'
+    for key, length in self.bitMask.items():
+        mask = ''
+        for i in range(0, self.bitWidth):
+            if(i >= length[0] and i <= length[1]):
+                mask = '1' + mask
+            else:
+                mask = '0' + mask
+        codeOperatorBody += 'case key_' + key + ':{\n'
+        codeOperatorBody += 'return (this->value & ' + hex(int(mask, 2)) + ')'
+        if length[0] > 0:
+            codeOperatorBody += ' >> ' + str(length[0])
+        codeOperatorBody += ';\nbreak;\n}\n'
+    codeOperatorBody += 'default:{\nreturn 0;\nbreak;\n}\n}\n'
+    operatorBody = cxx_writer.writer_code.Code(codeOperatorBody)
+    operatorParam = [cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.intType)]
+    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, regMaxType, 'pu', operatorParam, noException = True, const = True)
+    registerElements.append(operatorDecl)
 
     #################### Lets declare the normal operators (implementation of the pure operators of the base class) ###########
     for i in unaryOps:
@@ -277,6 +295,9 @@ def getCPPRegisters(self, model):
     # Now lets procede with the members of the main class
     operatorParam = cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.intType)
     operatorDecl = cxx_writer.writer_code.MemberOperator('[]', emptyBody, InnerFieldClass.getType().makeRef(), 'pu', [operatorParam], pure = True, noException = True)
+    registerElements.append(operatorDecl)
+    operatorParam = cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.intType)
+    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', emptyBody, regMaxType, 'pu', [operatorParam], pure = True, noException = True, const = True)
     registerElements.append(operatorDecl)
     for i in unaryOps:
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, emptyBody, regMaxType, 'pu', pure = True)
