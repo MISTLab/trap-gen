@@ -73,7 +73,14 @@ class ToolsManager{
     ///the tool can then take the appropriate actions.
     ///the return value specifies whether the processor should skip
     ///the issue of the current instruction
-    bool newIssue() const throw();
+    inline bool newIssue() const throw(){
+        bool skipInstruction = false;
+        std::vector<ToolsIf *>::const_iterator toolsIter = this->toolsStart;
+        for(; toolsIter != this->toolsEnd; toolsIter++){
+            skipInstruction |= (*toolsIter)->newIssue();
+        }
+        return skipInstruction;
+    }
 };
 
 #endif

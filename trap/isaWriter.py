@@ -465,14 +465,14 @@ def getCPPClasses(self, processor, modelType, trace):
         baseInitElement += aliasB.name + ', '
         instructionElements.append(attribute)
     if processor.memory:
-        attribute = cxx_writer.writer_code.Attribute(processor.memory[0], memoryType.makeRef(), 'pro')
-        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(processor.memory[0], memoryType.makeRef()))
+        attribute = cxx_writer.writer_code.Attribute(processor.memory[0], cxx_writer.writer_code.Type('LocalMemory', 'memory.hpp').makeRef(), 'pro')
+        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(processor.memory[0], cxx_writer.writer_code.Type('LocalMemory', 'memory.hpp').makeRef()))
         initElements.append(processor.memory[0] + '(' + processor.memory[0] + ')')
         baseInitElement += processor.memory[0] + ', '
         instructionElements.append(attribute)
     for tlmPorts in processor.tlmPorts.keys():
-        attribute = cxx_writer.writer_code.Attribute(tlmPorts, memoryType.makeRef(), 'pro')
-        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(tlmPorts, memoryType.makeRef()))
+        attribute = cxx_writer.writer_code.Attribute(tlmPorts, cxx_writer.writer_code.Type('TLMPORT', 'memory.hpp'.makeRef()).makeRef(), 'pro')
+        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(tlmPorts, cxx_writer.writer_code.Type('TLMPORT', 'memory.hpp').makeRef()))
         initElements.append(tlmPorts + '(' + tlmPorts + ')')
         baseInitElement += tlmPorts + ', '
         instructionElements.append(attribute)

@@ -88,24 +88,6 @@ def getCPPRegClass(self, model, regType):
     operatorParam = [cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.intType)]
     operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, InnerFieldType.makeRef(), 'pu', operatorParam, noException = True)
     registerElements.append(operatorDecl)
-    codeOperatorBody = 'switch(bitField){\n'
-    for key, length in self.bitMask.items():
-        mask = ''
-        for i in range(0, self.bitWidth):
-            if(i >= length[0] and i <= length[1]):
-                mask = '1' + mask
-            else:
-                mask = '0' + mask
-        codeOperatorBody += 'case key_' + key + ':{\n'
-        codeOperatorBody += 'return (this->value & ' + hex(int(mask, 2)) + ')'
-        if length[0] > 0:
-            codeOperatorBody += ' >> ' + str(length[0])
-        codeOperatorBody += ';\nbreak;\n}\n'
-    codeOperatorBody += 'default:{\nreturn 0;\nbreak;\n}\n}\n'
-    operatorBody = cxx_writer.writer_code.Code(codeOperatorBody)
-    operatorParam = [cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.intType)]
-    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, regMaxType, 'pu', operatorParam, noException = True, const = True)
-    registerElements.append(operatorDecl)
 
     #################### Lets declare the normal operators (implementation of the pure operators of the base class) ###########
     for i in unaryOps:
@@ -295,9 +277,6 @@ def getCPPRegisters(self, model):
     # Now lets procede with the members of the main class
     operatorParam = cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.intType)
     operatorDecl = cxx_writer.writer_code.MemberOperator('[]', emptyBody, InnerFieldClass.getType().makeRef(), 'pu', [operatorParam], pure = True, noException = True)
-    registerElements.append(operatorDecl)
-    operatorParam = cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.intType)
-    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', emptyBody, regMaxType, 'pu', [operatorParam], pure = True, noException = True, const = True)
     registerElements.append(operatorDecl)
     for i in unaryOps:
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, emptyBody, regMaxType, 'pu', pure = True)
@@ -578,14 +557,14 @@ def getCPPMemoryIf(self, model):
         aliasInit.append(alias.alias + '(' + alias.alias + ')')
         readMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\nreturn ' + alias.alias + ';\n}\n'
         writeMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n' + alias.alias + ' = datum;\nreturn;\n}\n'
-    checkAddressCode = 'if(address > this->size){\nTHROW_EXCEPTION("Address " << std::hex << std::showbase << address << " out of memory");\n}\n'
+    checkAddressCode = 'if(address >= this->size){\nTHROW_EXCEPTION("Address " << std::hex << std::showbase << address << " out of memory");\n}\n'
     if self.memory:
         memoryElements = []
         emptyBody = cxx_writer.writer_code.Code('')
         readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + 'return *(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
         readBody.addInclude('utils.hpp')
         addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
-        readDecl = cxx_writer.writer_code.Method('read_word', readBody, archWordType, 'pu', [addressParam], const = True)
+        readDecl = cxx_writer.writer_code.Method('read_word', readBody, archWordType, 'pu', [addressParam], const = True, inline = True)
         memoryElements.append(readDecl)
         readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + 'return *(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
         readDecl = cxx_writer.writer_code.Method('read_half', readBody, archHWordType, 'pu', [addressParam], const = True)
@@ -596,7 +575,7 @@ def getCPPMemoryIf(self, model):
         writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '*(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
         addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
         datumParam = cxx_writer.writer_code.Parameter('datum', archWordType.makeRef().makeConst())
-        writeDecl = cxx_writer.writer_code.Method('write_word', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam])
+        writeDecl = cxx_writer.writer_code.Method('write_word', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], inline = True)
         memoryElements.append(writeDecl)
         writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '*(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
         datumParam = cxx_writer.writer_code.Parameter('datum', archHWordType.makeRef().makeConst())
@@ -638,7 +617,7 @@ def getCPPProc(self, model, trace):
     ToolsManagerType = cxx_writer.writer_code.Type('ToolsManager', 'ToolsIf.hpp')
     codeString = 'while(true){\n'
     codeString += 'unsigned int numCycles = 0;\n'
-    codeString += str(fetchWordType) + ' bitString = '
+    codeString += str(fetchWordType) + ' bitString = this->'
     # Now I have to check what is the fetch: if there is a TLM port or
     # if I have to access local memory
     if self.memory:
