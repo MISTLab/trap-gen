@@ -615,34 +615,51 @@ def getCPPProc(self, model, trace):
     includes = fetchWordType.getIncludes()
     interfaceType = cxx_writer.writer_code.Type(self.name + '_ABIIf', 'interface.hpp')
     ToolsManagerType = cxx_writer.writer_code.Type('ToolsManager', 'ToolsIf.hpp')
-    codeString = 'while(true){\n'
+    codeString = ''
+    if self.instructionCache:
+        codeString += '__gnu_cxx::hash_map< ' + str(fetchWordType) + ', Instruction * >::iterator instrCacheEnd = Processor::instrCache.end();\n'
+    codeString += 'while(true){\n'
     codeString += 'unsigned int numCycles = 0;\n'
-    codeString += str(fetchWordType) + ' bitString = this->'
+    
+    fetchCode = str(fetchWordType) + ' bitString = this->'
     # Now I have to check what is the fetch: if there is a TLM port or
     # if I have to access local memory
     if self.memory:
         # I perform the fetch from the local memory
-        codeString += self.memory[0]
+        fetchCode += self.memory[0]
     else:
         for name, isFetch  in self.tlmPorts.items():
             if isFetch:
-                codeString += name
+                fetchCode += name
         if codeString.endswith('= '):
             raise Exception('No TLM port was chosen for the instruction fetch')
-    codeString += '.read_word(this->'
+    fetchCode += '.read_word(this->'
     fetchAddress = self.fetchReg[0]
     if model.startswith('func'):
         if self.fetchReg[1] < 0:
             fetchAddress += str(self.fetchReg[1])
         else:
             fetchAddress += ' + ' + str(self.fetchReg[1])
-    codeString += fetchAddress + ');\n'
+    fetchCode += fetchAddress + ');\n'
+    if self.instructionCache and self.fastFetch:
+        codeString += str(fetchWordType) + ' curPC = this->' + self.fetchReg[0] + ';\n'
+    else:
+        codeString += fetchCode
     if trace:
-        codeString += 'std::cerr << \"Current PC: \" << std::hex << std::showbase << ' + fetchAddress + ' << std::endl;\n'
+        codeString += 'std::cerr << \"Current PC: \" << std::hex << std::showbase << '
+        if self.fastFetch:
+            codeString += 'curPC'
+        else:
+            codeString += fetchAddress
+        codeString += ' << std::endl;\n'
     if self.instructionCache:
-        codeString += '__gnu_cxx::hash_map< ' + str(fetchWordType) + ', Instruction * >::iterator cachedInstr = Processor::instrCache.find(bitString);'
+        codeString += '__gnu_cxx::hash_map< ' + str(fetchWordType) + ', Instruction * >::iterator cachedInstr = Processor::instrCache.find('
+        if self.fastFetch:
+            codeString += 'curPC);'            
+        else:
+            codeString += 'bitString);'
         codeString += """
-        if(cachedInstr != Processor::instrCache.end()){
+        if(cachedInstr != instrCacheEnd){
             // I can call the instruction, I have found it
             try{
                 #ifndef DISABLE_TOOLS
@@ -673,45 +690,48 @@ def getCPPProc(self, model, trace):
             // The current instruction is not present in the cache:
             // I have to perform the normal decoding phase ...
         """
+    if self.instructionCache and self.fastFetch:
+        codeString += fetchCode
     codeString += """int instrId = decoder.decode(bitString);
     Instruction * instr = Processor::INSTRUCTIONS[instrId];
     """
+    codeString += """instr->setParams(bitString);
+        try{
+            #ifndef DISABLE_TOOLS
+            if(!(this->toolManager.newIssue())){
+            #endif
+            numCycles = instr->behavior();
+    """
+    if trace:
+        codeString += """
+            instr->printTrace();
+        """
+    codeString += """
+            #ifndef DISABLE_TOOLS
+            }
+            #endif
+        }
+        catch(flush_exception &etc){
+    """
+    if trace:
+        codeString += """
+                std::cerr << "Skipped Instruction" << std::endl << std::endl;
+        """
+    codeString += """
+            numCycles = 0;
+        }
+        // ... and then add the instruction to the cache
+    """
     if self.instructionCache:
-        codeString += """instr->setParams(bitString);
-            try{
-                #ifndef DISABLE_TOOLS
-                if(!(this->toolManager.newIssue())){
-                #endif
-                numCycles = instr->behavior();
-        """
-        if trace:
-            codeString += """
-                instr->printTrace();
-            """
+        if self.fastFetch:
+            codeString += 'instrCache[curPC] = instr;'
+        else:
+            codeString += 'instrCache[bitString] = instr;'
         codeString += """
-                #ifndef DISABLE_TOOLS
-                }
-                #endif
-            }
-            catch(flush_exception &etc){
-        """
-        if trace:
-            codeString += """
-                    std::cerr << "Skipped Instruction" << std::endl << std::endl;
-            """
-        codeString += """
-                numCycles = 0;
-            }
-            // ... and then add the instruction to the cache
-        """
-        codeString += 'instrCache[bitString] = instr;'
-        codeString += """
+            instrCacheEnd = Processor::instrCache.end();
             Processor::INSTRUCTIONS[instrId] = instr->replicate();
         }
         """
-        #includes.append('ext/hash_map')
-    else:
-        codeString += 'instr->behavior(bitString)\n';
     if self.systemc or model.startswith('acc'):
         # TODO: Code for keeping time with systemc
         pass
@@ -939,12 +959,15 @@ def getCPPProc(self, model, trace):
     IntructionTypePtr = IntructionType.makePointer()
     instructionsAttribute = cxx_writer.writer_code.Attribute('INSTRUCTIONS',
                             IntructionTypePtr.makePointer(), 'pri', True, 'NULL')
-    cacheAttribute = cxx_writer.writer_code.Attribute('instrCache',
+    processorElements.append(instructionsAttribute)
+    if self.instructionCache:
+        cacheAttribute = cxx_writer.writer_code.Attribute('instrCache',
                         cxx_writer.writer_code.TemplateType('__gnu_cxx::hash_map',
                             [fetchWordType, IntructionTypePtr], 'ext/hash_map'), 'pri', True)
+        processorElements.append(cacheAttribute)
     numProcAttribute = cxx_writer.writer_code.Attribute('numInstances',
                             cxx_writer.writer_code.intType, 'pri', True, '0')
-    processorElements += [cacheAttribute, instructionsAttribute, numProcAttribute]
+    processorElements.append(numProcAttribute)
     # Ok, here I have to create the code for the constructor: I have to
     # initialize the INSTRUCTIONS array, the local memory (if present)
     # the TLM ports
@@ -986,11 +1009,15 @@ def getCPPProc(self, model, trace):
             delete Processor::INSTRUCTIONS[i];
         }
         delete [] Processor::INSTRUCTIONS;
-        Processor::INSTRUCTIONS = NULL;
+    """
+    if self.instructionCache:
+        destrCode += """Processor::INSTRUCTIONS = NULL;
         __gnu_cxx::hash_map< """ + str(fetchWordType) + """, Instruction * >::const_iterator cacheIter, cacheEnd;
         for(cacheIter = Processor::instrCache.begin(), cacheEnd = Processor::instrCache.end(); cacheIter != cacheEnd; cacheIter++){
             delete cacheIter->second;
         }
+        """
+    destrCode += """
         delete this->abiIf;
     }
     """

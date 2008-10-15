@@ -219,7 +219,7 @@ class Processor:
     functional processor in case a local memory is used (in case TLM ports
     are used the systemc parameter is not taken into account)
     """
-    def __init__(self, name, version = 0.1, systemc = True, coprocessor = False, instructionCache = True):
+    def __init__(self, name, version = 0.1, systemc = True, coprocessor = False, instructionCache = True, fastFetch = False):
         self.name = name
         self.version = version
         self.isBigEndian = None
@@ -245,6 +245,7 @@ class Processor:
         self.memAlias = []
         self.systemc = systemc
         self.instructionCache = instructionCache
+        self.fastFetch = fastFetch
 
     def setISA(self, isa):
         self.isa = isa
