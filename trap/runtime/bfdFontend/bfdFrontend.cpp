@@ -116,9 +116,9 @@ BFDFrontend::BFDFrontend(std::string binaryName){
         if((flags & SEC_ALLOC) != 0 && (flags & SEC_DEBUGGING) == 0 && (flags & SEC_THREAD_LOCAL) == 0){
             bfd_size_type datasize = bfd_section_size(this->execImage, p);
             bfd_vma vma = bfd_get_section_vma(this->execImage, p);
-            #ifndef NDEBUG
+/*            #ifndef NDEBUG
             std::cerr << "Section " << p->name << " Start Address " << std::hex << vma << " Size " << std::hex << datasize << " End Address " << std::hex << datasize + vma << std::dec << std::endl;
-            #endif
+            #endif*/
             if((datasize + vma) > gblEndAddr)
                 gblEndAddr = datasize + vma;
             if(gblStartAddr > vma || gblStartAddr == (bfd_vma)-1)

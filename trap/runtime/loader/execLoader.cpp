@@ -135,15 +135,15 @@ void ExecLoader::loadProgramData(){
         flagword flags = bfd_get_section_flags(this->execImage, p);
         if((flags & SEC_ALLOC) != 0 && (flags & SEC_DEBUGGING) == 0 && (flags & SEC_THREAD_LOCAL) == 0){
             //Ok,  this is a section which must be in the final executable;
-            //Lets see if it has content: if not I have to pad the section with zeros, 
+            //Lets see if it has content: if not I have to pad the section with zeros,
             //otherwise I load it
             bfd_size_type datasize = bfd_section_size(this->execImage, p);
             bfd_vma vma = bfd_get_section_vma(this->execImage, p);
             std::map<unsigned long, unsigned char>::iterator curMapPos = memMap.begin();
             if((flags & SEC_HAS_CONTENTS) != 0){
-                #ifndef NDEBUG
+/*                #ifndef NDEBUG
                 std::cerr << "Loading data fom section " << p->name << " Start Address " << std::showbase << std::hex << vma << " Size " << std::hex << datasize << " End Address " << std::hex << datasize + vma << std::dec << std::endl;
-                #endif
+                #endif*/
                 bfd_byte *data = new bfd_byte[datasize];
                 bfd_get_section_contents (this->execImage, p, data, 0, datasize);
                 for(unsigned int i = 0; i < datasize; i += 4){
@@ -163,15 +163,15 @@ void ExecLoader::loadProgramData(){
                 delete [] data;
             }
             else{
-                #ifndef NDEBUG
+/*                #ifndef NDEBUG
                 std::cerr << "Filling with 0s section " << p->name << " Start Address " << std::showbase << std::hex << vma << " Size " << std::hex << datasize << " End Address " << std::hex << datasize + vma << std::dec << std::endl;
-                #endif
+                #endif*/
                 for(unsigned int i = 0; i < datasize; i++)
                     curMapPos = memMap.insert(curMapPos, std::pair<unsigned long, unsigned char>(vma + i, 0));
             }
         }
     }
-    //ok,  I now have all the map of the memory; I simply have to fill in the 
+    //ok,  I now have all the map of the memory; I simply have to fill in the
     //this->programData  array
     this->dataStart = memMap.begin()->first;
     this->progDim = memMap.rbegin()->first - this->dataStart + 1;

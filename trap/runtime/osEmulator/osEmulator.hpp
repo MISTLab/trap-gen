@@ -54,10 +54,18 @@
 
 template<class issueWidth> class OSEmulator : public ToolsIf<issueWidth>, OSEmulatorBase{
   private:
-    __gnu_cxx::hash_map<unsigned int, SyscallCB<issueWidth>* > syscCallbacks;
-    unsigned int syscMask;
+    __gnu_cxx::hash_map<issueWidth, SyscallCB<issueWidth>* > syscCallbacks;
     ABIIf<issueWidth> &processorInstance;
-    typename __gnu_cxx::hash_map<unsigned int, SyscallCB<issueWidth>* >::const_iterator syscCallbacksEnd;
+    typename __gnu_cxx::hash_map<issueWidth, SyscallCB<issueWidth>* >::const_iterator syscCallbacksEnd;
+
+    unsigned int countBits(issueWidth bits){
+        unsigned int numBits = 0;
+        for(unsigned int i = 0; i < sizeof(issueWidth)*8; i++){
+            if((bits & (0x1 << i)) != 0)
+                numBits++;
+        }
+        return numBits;
+    }
 
     bool register_syscall(std::string funName, SyscallCB<issueWidth> &callBack){
         BFDFrontend &bfdFE = BFDFrontend::getInstance();
@@ -67,10 +75,10 @@ template<class issueWidth> class OSEmulator : public ToolsIf<issueWidth>, OSEmul
             return false;
         }
 
-        typename __gnu_cxx::hash_map<unsigned int, SyscallCB<issueWidth>* >::iterator foundSysc = this->syscCallbacks.find(symAddr);
+        typename __gnu_cxx::hash_map<issueWidth, SyscallCB<issueWidth>* >::iterator foundSysc = this->syscCallbacks.find(symAddr);
         if(foundSysc != this->syscCallbacks.end()){
             int numMatch = 0;
-            typename __gnu_cxx::hash_map<unsigned int, SyscallCB<issueWidth>* >::iterator allCallIter, allCallEnd;
+            typename __gnu_cxx::hash_map<issueWidth, SyscallCB<issueWidth>* >::iterator allCallIter, allCallEnd;
             for(allCallIter = this->syscCallbacks.begin(), allCallEnd = this->syscCallbacks.end(); allCallIter != allCallEnd; allCallIter++){
                 if(allCallIter->second == foundSysc->second)
                     numMatch++;
@@ -81,7 +89,6 @@ template<class issueWidth> class OSEmulator : public ToolsIf<issueWidth>, OSEmul
         }
 
         this->syscCallbacks[symAddr] = &callBack;
-        this->syscMask &= symAddr;
         this->syscCallbacksEnd = this->syscCallbacks.end();
 
         return true;
@@ -89,7 +96,6 @@ template<class issueWidth> class OSEmulator : public ToolsIf<issueWidth>, OSEmul
 
   public:
     OSEmulator(ABIIf<issueWidth> &processorInstance) : processorInstance(processorInstance){
-        this->syscMask = (unsigned int)-1L;
         OSEmulatorBase::heapPointer = (unsigned int)this->processorInstance.getCodeLimit();
         this->syscCallbacksEnd = this->syscCallbacks.end();
     }
@@ -232,11 +238,9 @@ template<class issueWidth> class OSEmulator : public ToolsIf<issueWidth>, OSEmul
         //I have to go over all the registered system calls and check if there is one
         //that matches the current program counter. In case I simply call the corresponding
         //callback.
-        if((this->syscMask & curPC) == this->syscMask){
-            typename __gnu_cxx::hash_map<unsigned int, SyscallCB<issueWidth>* >::const_iterator foundSysc = this->syscCallbacks.find(curPC);
-            if(foundSysc != this->syscCallbacksEnd){
-                return (*(foundSysc->second))();
-            }
+        typename __gnu_cxx::hash_map<issueWidth, SyscallCB<issueWidth>* >::const_iterator foundSysc = this->syscCallbacks.find(curPC);
+        if(foundSysc != this->syscCallbacksEnd){
+            return (*(foundSysc->second))();
         }
         return false;
     }
