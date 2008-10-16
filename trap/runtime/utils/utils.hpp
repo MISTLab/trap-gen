@@ -59,4 +59,9 @@
 #endif
 #define THROW_EXCEPTION( msg ) ( throw std::runtime_error(MAKE_STRING( "At: function " << __PRETTY_FUNCTION__ << " file: " << __FILE__ << ":" << __LINE__ << " --> " << msg )) )
 
+#ifdef THROW_ERROR
+#undef THROW_ERROR
+#endif
+#define THROW_ERROR( msg ) ( {std::cerr << "At: function " << __PRETTY_FUNCTION__ << " file: " << __FILE__ << ":" << __LINE__ << " --> " << msg << std::endl;exit(0);} )
+
 #endif
