@@ -718,13 +718,13 @@ else{
     stall(2);
 }
 """)
-UpdatePC = trap.HelperOperation('UpdatePC', opCode, False)
+UpdatePC = trap.HelperOperation('UpdatePC', opCode, inline = False)
 UpdatePC.addUserInstructionElement('rd')
 # Normal PC increment
 opCode = cxx_writer.Code("""
 PC += 4;
 """)
-IncrementPC = trap.HelperOperation('IncrementPC', opCode, False)
+IncrementPC = trap.HelperOperation('IncrementPC', opCode, inline = False)
 # Now I define the behavior for the Load/Store with immediate offset/index
 opCode = cxx_writer.Code("""
 address = 0;
