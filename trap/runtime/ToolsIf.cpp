@@ -40,19 +40,3 @@
  *
 \***************************************************************************/
 
-#include <vector>
-
-#include "ToolsIf.hpp"
-
-ToolsManager::ToolsManager(){
-    this->toolsStart = this->activeTools.begin();
-    this->toolsEnd = this->activeTools.end();
-}
-
-///Adds a tool to the list of the tool which are activated when there is a new instruction
-///issue
-void ToolsManager::addTool(ToolsIf &tool){
-    this->activeTools.push_back(&tool);
-    this->toolsStart = this->activeTools.begin();
-    this->toolsEnd = this->activeTools.end();
-}

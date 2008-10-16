@@ -614,13 +614,13 @@ def getCPPProc(self, model, trace):
     fetchWordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>')
     includes = fetchWordType.getIncludes()
     interfaceType = cxx_writer.writer_code.Type(self.name + '_ABIIf', 'interface.hpp')
-    ToolsManagerType = cxx_writer.writer_code.Type('ToolsManager', 'ToolsIf.hpp')
+    ToolsManagerType = cxx_writer.writer_code.TemplateType('ToolsManager', [fetchWordType], 'ToolsIf.hpp')
     codeString = ''
     if self.instructionCache:
         codeString += '__gnu_cxx::hash_map< ' + str(fetchWordType) + ', Instruction * >::iterator instrCacheEnd = Processor::instrCache.end();\n'
     codeString += 'while(true){\n'
     codeString += 'unsigned int numCycles = 0;\n'
-    
+
     fetchCode = str(fetchWordType) + ' bitString = this->'
     # Now I have to check what is the fetch: if there is a TLM port or
     # if I have to access local memory
@@ -633,8 +633,11 @@ def getCPPProc(self, model, trace):
                 fetchCode += name
         if codeString.endswith('= '):
             raise Exception('No TLM port was chosen for the instruction fetch')
-    fetchCode += '.read_word(this->'
-    fetchAddress = self.fetchReg[0]
+    fetchCode += '.read_word('
+    if self.instructionCache and self.fastFetch:
+        fetchAddress = 'curPC'
+    else:
+        fetchAddress = 'this->' + self.fetchReg[0]
     if model.startswith('func'):
         if self.fetchReg[1] < 0:
             fetchAddress += str(self.fetchReg[1])
@@ -655,7 +658,7 @@ def getCPPProc(self, model, trace):
     if self.instructionCache:
         codeString += '__gnu_cxx::hash_map< ' + str(fetchWordType) + ', Instruction * >::iterator cachedInstr = Processor::instrCache.find('
         if self.fastFetch:
-            codeString += 'curPC);'            
+            codeString += 'curPC);'
         else:
             codeString += 'bitString);'
         codeString += """
@@ -663,7 +666,7 @@ def getCPPProc(self, model, trace):
             // I can call the instruction, I have found it
             try{
                 #ifndef DISABLE_TOOLS
-                if(!(this->toolManager.newIssue())){
+                if(!(this->toolManager.newIssue(""" + fetchAddress + """))){
                 #endif
                 numCycles = cachedInstr->second->behavior();
         """
@@ -698,7 +701,7 @@ def getCPPProc(self, model, trace):
     codeString += """instr->setParams(bitString);
         try{
             #ifndef DISABLE_TOOLS
-            if(!(this->toolManager.newIssue())){
+            if(!(this->toolManager.newIssue(""" + fetchAddress + """))){
             #endif
             numCycles = instr->behavior();
     """

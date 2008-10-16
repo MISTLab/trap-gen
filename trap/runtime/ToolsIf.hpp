@@ -46,38 +46,45 @@
 #include <vector>
 
 ///Base class for all the tools (profilers, debugger, etc...)
-class ToolsIf{
+template<class issueWidth> class ToolsIf{
     public:
     ///The only method which is called to activate the tool
     ///it signals to the tool that a new instruction issue has been started;
     ///the tool can then take the appropriate actions.
     ///the return value specifies whether the processor should skip
     ///the issue of the current instruction
-    virtual bool newIssue() const throw() = 0;
+    virtual bool newIssue(const issueWidth &curPC) const throw() = 0;
     virtual ~ToolsIf(){}
 };
 
-class ToolsManager{
+template<class issueWidth> class ToolsManager{
     private:
     ///List of the active tools, which are activated at every instruction
-    std::vector<ToolsIf *> activeTools;
-    std::vector<ToolsIf *>::const_iterator toolsStart;
-    std::vector<ToolsIf *>::const_iterator toolsEnd;
+    std::vector<ToolsIf<issueWidth> *> activeTools;
+    typename std::vector<ToolsIf<issueWidth> *>::const_iterator toolsStart;
+    typename std::vector<ToolsIf<issueWidth> *>::const_iterator toolsEnd;
     public:
-    ToolsManager();
+    ToolsManager(){
+        this->toolsStart = this->activeTools.begin();
+        this->toolsEnd = this->activeTools.end();
+    }
     ///Adds a tool to the list of the tool which are activated when there is a new instruction
     ///issue
-    void addTool(ToolsIf &tool);
+    void addTool(ToolsIf<issueWidth> &tool){
+        this->activeTools.push_back(&tool);
+        this->toolsStart = this->activeTools.begin();
+        this->toolsEnd = this->activeTools.end();
+    }
     ///The only method which is called to activate the tool
     ///it signals to the tool that a new instruction issue has been started;
     ///the tool can then take the appropriate actions.
     ///the return value specifies whether the processor should skip
     ///the issue of the current instruction
-    inline bool newIssue() const throw(){
+    inline bool newIssue(const issueWidth &curPC) const throw(){
         bool skipInstruction = false;
-        std::vector<ToolsIf *>::const_iterator toolsIter = this->toolsStart;
+        typename std::vector<ToolsIf<issueWidth> *>::const_iterator toolsIter = this->toolsStart;
         for(; toolsIter != this->toolsEnd; toolsIter++){
-            skipInstruction |= (*toolsIter)->newIssue();
+            skipInstruction |= (*toolsIter)->newIssue(curPC);
         }
         return skipInstruction;
     }
