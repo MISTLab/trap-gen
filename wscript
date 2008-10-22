@@ -62,11 +62,11 @@ def configure(conf):
     ########################################
     # Check for boost libraries
     ########################################
-    #boostconf = conf.create_boost_configurator()
-    #boostconf.lib = ['thread', 'regex', 'date_time', 'program_options', 'system', 'filesystem']
-    #boostconf.lib = ['thread', 'regex', 'date_time', 'program_options', 'filesystem']
-    #boostconf.min_version = '1.35.0'
-    #boostconf.run()
+    conf.check_tool('boost')
+    boostconf = conf.create_boost_configurator()
+    boostconf.lib = ['regex']
+    boostconf.min_version = '1.35.0'
+    boostconf.run()
 
     ##################################################
     # Check for BFD library and header

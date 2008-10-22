@@ -7,7 +7,7 @@ def build(bld):
     obj.source="""
         bfdFrontend.cpp
     """
-    obj.uselib = 'BFD'
+    obj.uselib = 'BFD BOOST BOOST_REGEX'
     obj.includes = '. ../utils'
     obj.export_incdirs = '.'
     obj.name = 'bfdFrontend'
