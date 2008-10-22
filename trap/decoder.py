@@ -721,11 +721,6 @@ class decoderCreator:
         # If I'm here it means that I still have to split the node
         bestPattern, leavesPattern, costPattern = self.findBestPattern(subtree)
         bestTable, leavesTable, costTable = self.findBestTable(subtree)
-        print 'Original pattern ' + str(len(subtree.patterns))
-        if bestTable:
-            print 'table: cost -> ' + str(costTable) + ' num leaves ' + str(len(leavesTable))
-        if bestPattern:
-            print 'patttern: cost -> ' + str(costPattern) + ' num leaves ' + str(len(leavesPattern))
         if not bestTable and not bestPattern:
             curInstrNames = []
             for instr in subtree.patterns:
