@@ -317,8 +317,6 @@ class decoderCreator:
                 return '// Instruction ' + self.instrName[subtree.instrId] + '\nreturn ' + str(subtree.instrId) + ';\n'
             else:
                 return '// Non-valid pattern\nreturn ' + str(self.instrNum) + ';\n'
-##        if self.decodingTree.out_degree(subtree) < 3:
-##            raise Exception('subtree ' + str(subtree) + ' should have at least three out edges, while it has ' + str(self.decodingTree.out_degree(subtree)))
         outEdges = self.decodingTree.out_edges(subtree)
         mask = subtree.splitFunction.toCode()
         outEdges = sorted(outEdges, lambda x, y: cmp(y[-1][-1], x[-1][-1]))
@@ -349,6 +347,7 @@ class decoderCreator:
         else:
             codeString = self.createTableDecoder(self.rootNote)
         code = cxx_writer.writer_code.Code(codeString)
+        code.addInclude('utils.hpp')
         parameters = [cxx_writer.writer_code.Parameter('instrCode', fetchSizeType)]
         decodeMethod = cxx_writer.writer_code.Method('decode', code, cxx_writer.writer_code.intType, 'pu', parameters)
         decodeClass = cxx_writer.writer_code.ClassDeclaration('Decoder', [decodeMethod])
