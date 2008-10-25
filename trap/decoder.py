@@ -333,7 +333,7 @@ class decoderCreator:
             else:
                 code += self.createTableDecoder(edge[1])
             code += 'break;\n'
-        code += 'default:\nTHROW_EXCEPTION(\"Fatal Error, pattern \" << instrCode << \" not recognized by the decoder\");\n'
+        code += 'default:\nTHROW_EXCEPTION(\"Fatal Error, pattern \" << std::hex << std::showbase << instrCode << std::dec << \" not recognized by the decoder\");\n'
         code += '}\n'
         return code
 
