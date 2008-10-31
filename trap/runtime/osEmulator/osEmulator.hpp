@@ -45,6 +45,7 @@
 
 #include <map>
 #include <string>
+#include <ext/hash_map>
 
 #include "ABIIf.hpp"
 #include "bfdFrontend.hpp"

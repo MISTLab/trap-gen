@@ -650,7 +650,7 @@ def getCPPProc(self, model, trace):
         codeString += fetchCode
     if trace:
         codeString += 'std::cerr << \"Current PC: \" << std::hex << std::showbase << '
-        if self.fastFetch:
+        if self.fastFetch and self.instructionCache:
             codeString += 'curPC'
         else:
             codeString += fetchAddress

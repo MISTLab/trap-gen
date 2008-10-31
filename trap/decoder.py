@@ -139,8 +139,8 @@ class SplitFunction:
             return retVal
         if self.table:
             for i in reversed(self.table):
-                if i !=  '0':
-                    retVal += i
+                if i !=  0:
+                    retVal += str(i)
                 else:
                     retVal += '-'
             return retVal
@@ -222,7 +222,7 @@ class decoderCreator:
     Automated Synthesis of Efficient Binary Decodes for Retargetable Software Toolkits
     """
 
-    def __init__(self, instructions, memPenaltyFactor = 1.2):
+    def __init__(self, instructions, memPenaltyFactor = 2):
         # memPenaltyFactor represent how much the heuristic has to take
         # into account memory consumption: the lower the more memory is
         # consumed by the created decoder.
@@ -287,23 +287,29 @@ class decoderCreator:
         code = 'if((instrCode & ' + mask + ') ' + compareFun + ' ' + value + '){\n'
         if nodeIf.instrId != None:
             if nodeIf.instrId != -1:
+                #code += '\n' + str(nodeIf.patterns) + '\n'
                 code += '// Instruction ' + self.instrName[nodeIf.instrId] + '\nreturn ' + str(nodeIf.instrId) + ';\n'
             else:
                 code += '// Non-valid pattern\nreturn ' + str(self.instrNum) + ';\n'
         elif nodeIf.splitFunction.pattern:
+            #code += '\n' + str(nodeIf.patterns) + '\n'
             code += self.createPatternDecoder(nodeIf)
         else:
+            #code += '\n' + str(nodeIf.patterns) + '\n'
             code += self.createTableDecoder(nodeIf)
         code += '}\n'
         code += 'else{\n'
         if nodeElse.instrId != None:
             if nodeElse.instrId != -1:
+                #code += '\n' + str(nodeElse.patterns) + '\n'
                 code += '// Instruction ' + self.instrName[nodeElse.instrId] + '\nreturn ' + str(nodeElse.instrId) + ';\n'
             else:
                 code += '// Non-valid pattern\nreturn ' + str(self.instrNum) + ';\n'
         elif nodeElse.splitFunction.pattern:
+            #code += '\n' + str(nodeElse.patterns) + '\n'
             code += self.createPatternDecoder(nodeElse)
         else:
+            #code += '\n' + str(nodeElse.patterns) + '\n'
             code += self.createTableDecoder(nodeElse)
         code += '}\n'
         return code
@@ -325,12 +331,15 @@ class decoderCreator:
             code += 'case ' + hex(edge[-1][0]) + ':{\n'
             if edge[1].instrId != None:
                 if edge[1].instrId != -1:
+                    #code += '\n' + str(edge[1].patterns) + '\n'
                     code += '// Instruction ' + self.instrName[edge[1].instrId] + '\nreturn ' + str(edge[1].instrId) + ';\n'
                 else:
                     code += '// Non-valid pattern\nreturn ' + str(self.instrNum) + ';\n'
             elif edge[1].splitFunction.pattern:
+                #code += '\n' + str(edge[1].patterns) + '\n'
                 code += self.createPatternDecoder(edge[1])
             else:
+                #code += '\n' + str(edge[1].patterns) + '\n'
                 code += self.createTableDecoder(edge[1])
             code += 'break;}\n'
         code += 'default:{\nTHROW_EXCEPTION(\"Fatal Error, pattern \" << std::hex << std::showbase << instrCode << std::dec << \" not recognized by the decoder\");}\n'
@@ -439,22 +448,24 @@ class decoderCreator:
         for pattern in subtree.patterns:
             added = False
             for i in range(0, len(curMask[0])):
-                if pattern[0][curMask[0][i]] != curMask[1][i]:
+                if (pattern[0][curMask[0][i]] != None) and (pattern[0][curMask[0][i]] != curMask[1][i]):
                     neqPattern.append(pattern)
                     added = True
                     break
             if not added:
-                dontCare = True
-                for i in range(0, len(curMask[0])):
-                    if pattern[0][curMask[0][i]]:
-                        dontCare = False
-                if dontCare and pattern[0][newBit] is None:
-                    neqPattern.append(pattern)
-                    eqPattern.append(pattern)
-                elif pattern[0][newBit] != newBitVal:
+                if (pattern[0][newBit] != None) and (pattern[0][newBit] != newBitVal):
                     neqPattern.append(pattern)
                 else:
-                    eqPattern.append(pattern)
+                    dontCare = False
+                    for i in curMask[0]:
+                        if pattern[0][i] is None:
+                            dontCare = True
+                            break
+                    if dontCare or (pattern[0][newBit] is None):
+                        neqPattern.append(pattern)
+                        eqPattern.append(pattern)
+                    else:
+                        eqPattern.append(pattern)
         # Ok, I have created the two splitted nodes
         eqSubtree = DecodingNode(eqPattern)
         neqSubtree = DecodingNode(neqPattern)
@@ -464,8 +475,6 @@ class decoderCreator:
             eqProb += i[1]
         for i in neqPattern:
             neqProb += i[1]
-        # Note how the memory cost if always fixed to 1 in this implementation since we
-        # do not consider node splitting (as said above)
         memoryCost = float(len(eqPattern) + len(neqPattern) - 1)/float(len(subtree.patterns) -1)
         import math
         cost = 1 + self.memPenaltyFactor*math.log(memoryCost, 2) + (eqProb/(neqProb + eqProb))*self.computationalCost(eqSubtree) + (neqProb/(neqProb + eqProb))*self.computationalCost(neqSubtree)
@@ -581,10 +590,9 @@ class decoderCreator:
         # costPattern is the cost of this split
         matchPattern = []
         for i in range(0, maxPatternLen):
-            if i in chosenBits:
-                matchPattern.append(chosenBitVals.pop(0))
-            else:
-                matchPattern.append(None)
+            matchPattern.append(None)
+        for i in range(0, len(chosenBits)):
+            matchPattern[chosenBits[i]] = chosenBitVals[i]
         if bestCost == None:
             return(None, None, None)
         return (SplitFunction(pattern = matchPattern), bestLeaves, bestCost)
