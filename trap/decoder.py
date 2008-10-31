@@ -125,10 +125,7 @@ class SplitFunction:
             return (hex(int(mask, 2)), hex(int(value, 2)))
         if self.table:
             for i in reversed(self.table):
-                if i !=  None:
-                    mask += '1'
-                else:
-                    mask += '0'
+                mask += str(i)
             return hex(int(mask, 2))
 
     def __repr__(self):
@@ -142,8 +139,8 @@ class SplitFunction:
             return retVal
         if self.table:
             for i in reversed(self.table):
-                if i !=  None:
-                    retVal += str(i)
+                if i !=  '0':
+                    retVal += i
                 else:
                     retVal += '-'
             return retVal
@@ -225,7 +222,7 @@ class decoderCreator:
     Automated Synthesis of Efficient Binary Decodes for Retargetable Software Toolkits
     """
 
-    def __init__(self, instructions, memPenaltyFactor = 0.2):
+    def __init__(self, instructions, memPenaltyFactor = 1.2):
         # memPenaltyFactor represent how much the heuristic has to take
         # into account memory consumption: the lower the more memory is
         # consumed by the created decoder.
@@ -497,12 +494,12 @@ class decoderCreator:
             # now, in case some of the elements of the pattern, corresponding to the
             # the table elements are don't care, it means that I need to assign them to
             # the different table elements
-            curTableVal = 0
             expandedPatterns = expandPatterns([], pattern[0], tablePattern)
             for curPattern in expandedPatterns:
+                curTableVal = 0
                 for i in range(0, len(tablePattern)):
                     if tablePattern[i] == 1:
-                        curTableVal += int(curPattern[i]*math.pow(2, len(tablePattern)-1-i))
+                        curTableVal += int(curPattern[i]*math.pow(2, i))
                 if leavesPatterns.has_key(curTableVal):
                     leavesPatterns[curTableVal].append(pattern)
                 else:

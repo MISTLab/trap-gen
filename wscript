@@ -47,7 +47,7 @@ def configure(conf):
     # Check for special gcc flags
     ########################################
     if not conf.check_flags(''):
-        Params.fatal('gcc does not support the custom flags used. Please chaneg the gcc version or the custom flags')
+        Params.fatal('gcc does not support the custom flags used. Please change the gcc version or the custom flags')
 
     ########################################
     # Setting the host endianess
