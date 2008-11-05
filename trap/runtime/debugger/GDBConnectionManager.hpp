@@ -76,12 +76,12 @@ class GDBConnectionManager{
    bool checkChecksum(std::string &data, char checkSum[2]);
    ///Converts a generic numeric value into a string of hex numbers;
    ///each hex number of the string is in the same order of the endianess
-   ///of the processor linked to this stub 
+   ///of the processor linked to this stub
    std::string toHexString(unsigned int value, int numChars = -1);
    ///Converts an hexadecimal number expressed with a string
    ///into its correspondent integer number
    ///each hex number of the string is in the same order of the endianess
-   ///of the processor linked to this stub 
+   ///of the processor linked to this stub
    unsigned int toIntNum(std::string &toConvert);
    ///Converts a hexadecimal number into the corresponding character string
    std::string toStr(std::string &toConvert);
@@ -96,7 +96,7 @@ class GDBConnectionManager{
    ///Specifies the verbosity level of the excution
    unsigned int verbosityLevel;
   public:
-   GDBConnectionManager(bool endianess, unsigned int verbosityLevel = 1);
+   GDBConnectionManager(bool endianess);
    ~GDBConnectionManager();
    ///Creates a socket connection waiting on the specified port;
    ///this will be later used to communicate with GDB

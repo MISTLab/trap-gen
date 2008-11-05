@@ -57,7 +57,7 @@ void GDBConnectionManager::initialize(unsigned int port){
    }
    catch(...){
         this->killed = true;
-        THROW_EXCEPTION("Error during the creation of the connection on port " + boost::lexical_cast<std::string>(port));        
+        THROW_EXCEPTION("Error during the creation of the connection on port " + boost::lexical_cast<std::string>(port));
    }
 }
 
@@ -138,12 +138,12 @@ void GDBConnectionManager::sendResponse(GDBResponse &response){
    do{
       //Now I complete the packet with the checksum
       std::string packet = '$' + payload + '#' + this->toHexString(this->computeChecksum(payload), 2);
-   
+
       #ifndef NDEBUG
       if(verbosityLevel >= 1)
         std::cerr << __PRETTY_FUNCTION__ << ": Sending packet " << packet << std::endl;
       #endif
-   
+
       //Finally I can send the packet on th network
       boost::system::error_code asioError;
       asio::write(*this->socket, asio::buffer(packet.c_str(), packet.size()), asio::transfer_all(), asioError);
@@ -153,7 +153,7 @@ void GDBConnectionManager::sendResponse(GDBResponse &response){
          std::cerr << __PRETTY_FUNCTION__ << ": WriteError " << asioError.message() << std::endl;
       }
       #endif
-   
+
       //Now I have to check that the packet was correctly received, otherwise I
       //retransmitt it
       int numRestries = 0;
@@ -198,10 +198,10 @@ GDBRequest GDBConnectionManager::processRequest(){
    bool correctlyReceived = false;
    GDBRequest req;
 
-   do{   
+   do{
       unsigned char recivedChar = '\x0';
       boost::system::error_code asioError;
-   
+
       //Reading the starting character
       while((recivedChar & 0x7f) != '$'){
          this->socket->read_some(asio::buffer(&recivedChar, 1), asioError);
@@ -212,12 +212,12 @@ GDBRequest GDBConnectionManager::processRequest(){
             return req;
          }
       }
-      
+
       #ifndef NDEBUG
       if(verbosityLevel >= 3)
         std::cerr << "Received the correct message starting character" << std::endl;
       #endif
-      
+
       //Now I have to start reading the payload: I go on until # is enocuntered;
       payload = "";
       while((recivedChar & 0x7f) != '#'){
@@ -231,12 +231,12 @@ GDBRequest GDBConnectionManager::processRequest(){
          if((recivedChar & 0x7f) != '#')
             payload += (char)(recivedChar & 0x7f);
       }
-   
+
       #ifndef NDEBUG
       if(verbosityLevel >= 3)
         std::cerr << "Correctly received the payload: " << payload << std::endl;
       #endif
-   
+
       //Finally I read the checksum: it should be composed of two characters
       char checkSum[2];
       this->socket->read_some(asio::buffer(checkSum, 2), asioError);
@@ -251,10 +251,10 @@ GDBRequest GDBConnectionManager::processRequest(){
       if(verbosityLevel >= 3)
         std::cerr << "Received Checksum " << checkSum[0] << checkSum[1] << std::endl;
       #endif
-      
+
       //Now I have to check the checksum...
       correctlyReceived = this->checkChecksum(payload, checkSum);
-      
+
       //...and communicate the result of the checking to GDB server
       char checkRes;
       if(correctlyReceived){
@@ -278,17 +278,17 @@ GDBRequest GDBConnectionManager::processRequest(){
          req.type = GDBRequest::ERROR;
          return req;
       }
-      #endif      
+      #endif
    }while(!correctlyReceived);
 
    #ifndef NDEBUG
    if(verbosityLevel >= 1)
     std::cerr << __PRETTY_FUNCTION__ << ": Payload correctly received " << payload << std::endl;
-   #endif      
-   
+   #endif
+
    //Now I have do decode the payload and transform it into the real packet
    char payType = payload[0];
-   payload = payload.substr(1); 
+   payload = payload.substr(1);
    switch(payType){
       case '!':{
          req.type = GDBRequest::EXCL;
@@ -376,7 +376,7 @@ GDBRequest GDBConnectionManager::processRequest(){
          std::string temp = payload.substr(0, sepIndex);
          req.address = this->toIntNum(temp);
          temp = payload.substr(sepIndex + 1);
-         req.length = this->toIntNum(temp);         
+         req.length = this->toIntNum(temp);
       break;}
       case 'M':{
          req.type = GDBRequest::M;
@@ -442,7 +442,7 @@ GDBRequest GDBConnectionManager::processRequest(){
          if(payload.size() > 0)
             req.address = this->toIntNum(payload);
          else
-            req.address = 0; 
+            req.address = 0;
       break;}
       case 'S':{
          req.type = GDBRequest::S;
@@ -533,7 +533,7 @@ GDBRequest GDBConnectionManager::processRequest(){
          req.type = GDBRequest::UNK;
       break;}
    }
-   
+
    return req;
 }
 
@@ -545,7 +545,7 @@ void GDBConnectionManager::sendInterrupt(){
    GDBResponse response;
    response.type = GDBResponse::S;
    response.payload = SIGTRAP;
-   
+
    this->sendResponse(response);
 }
 
@@ -581,14 +581,14 @@ bool GDBConnectionManager::checkChecksum(std::string &data, char checkSum[2]){
    #ifndef NDEBUG
    if(verbosityLevel >= 3)
        std::cerr << __PRETTY_FUNCTION__ << ": Received CheckSum " << (unsigned int)recvCheck << std::endl;
-   #endif   
-   
+   #endif
+
    return compCheck == recvCheck;
 }
 
 ///Converts a generic numeric value into a string of hex numbers;
 ///each hew number of the string is in the same order of the endianess
-///of the processor linked to this stub 
+///of the processor linked to this stub
 std::string GDBConnectionManager::toHexString(unsigned int value, int numChars){
    std::ostringstream os;
 
@@ -596,30 +596,30 @@ std::string GDBConnectionManager::toHexString(unsigned int value, int numChars){
    if(verbosityLevel >= 3)
       std::cerr << __PRETTY_FUNCTION__ << ": Converting " << std::hex << value << std::dec << std::endl;
    #endif
-   
-   if(this->endianess && ((value & 0xFFFFFF00) != 0)){
+
+   if(!this->endianess && ((value & 0xFFFFFF00) != 0)){
       //I have to flip the bytes of value so that the endianess is correct
-      value = ((value & 0x000000FF) << 24) | ((value & 0x0000FF00) << 8) | 
+      value = ((value & 0x000000FF) << 24) | ((value & 0x0000FF00) << 8) |
                 ((value & 0x00FF0000) >> 8) | ((value & 0xFF000000) >> 24);
        #ifndef NDEBUG
        if(verbosityLevel >= 3)
           std::cerr << __PRETTY_FUNCTION__ << ": Value after endianess convertion " << std::hex << value << std::dec << std::endl;
        #endif
    }
-   
+
    //Conversion to hex
    if(numChars == -1)
       os << std::hex << value;
    else
       os << std::hex << std::setw(numChars) << std::setfill('0') << value;
-   
+
    return os.str();
 }
 
 ///Converts an hexadecimal number expressed with a string
 ///into its correspondent integer number
 ///each hex number of the string is in the same order of the endianess
-///of the processor linked to this stub 
+///of the processor linked to this stub
 unsigned int GDBConnectionManager::toIntNum(std::string &toConvert){
    #ifndef NDEBUG
    if(verbosityLevel >= 3)
@@ -627,7 +627,7 @@ unsigned int GDBConnectionManager::toIntNum(std::string &toConvert){
    #endif
 
    std::string toConvTemp = toConvert;
-   if(toConvTemp.size() >= 2 && toConvTemp[0] == '0' && (toConvTemp[1] == 'X' || toConvTemp[1] == 'x')) 
+   if(toConvTemp.size() >= 2 && toConvTemp[0] == '0' && (toConvTemp[1] == 'X' || toConvTemp[1] == 'x'))
       toConvTemp = toConvTemp.substr(2);
 
    unsigned int result = 0;
@@ -645,18 +645,18 @@ unsigned int GDBConnectionManager::toIntNum(std::string &toConvert){
       result |= (mapIter->second << pos);
       pos += 4;
    }
-   
-//   if(this->endianess && (result & 0xFFFFFF00) != 0){
+
+//   if(!this->endianess && (result & 0xFFFFFF00) != 0){
 //      //I have to flip the bytes of value so that the endianess is correct
-//      result = ((result & 0x000000FF) << 24) | ((result & 0x0000FF00) << 8) | 
+//      result = ((result & 0x000000FF) << 24) | ((result & 0x0000FF00) << 8) |
 //                ((result & 0x00FF0000) >> 8) | ((result & 0xFF000000) >> 24);
 //   }
-   
+
    #ifndef NDEBUG
    if(verbosityLevel >= 3)
        std::cerr << __PRETTY_FUNCTION__ << ": converted " << result << std::endl;
    #endif
-   
+
    return result;
 }
 
@@ -691,11 +691,11 @@ std::string GDBConnectionManager::toStr(std::string &toConvert){
          std::string temp = toConvert.substr(i*2,  2);
          outMex += (char)(this->toIntNum(temp));
     }
-    
+
     #ifndef NDEBUG
    if(verbosityLevel >= 3)
        std::cerr << __PRETTY_FUNCTION__ << ": converted " << outMex << std::endl;
     #endif
-    
+
     return outMex;
 }

@@ -47,6 +47,13 @@
 
 template<class regWidth> class ABIIf{
     public:
+    bool matchEndian(){
+        #ifdef LITTLE_ENDIAN_BO
+        return this->isLittleEndian();
+        #else
+        return !this->isLittleEndian();
+        #endif
+    }
     virtual bool isLittleEndian() const throw() = 0;
     virtual regWidth readLR() const throw() = 0;
     virtual void setLR( const regWidth & newValue ) throw() = 0;

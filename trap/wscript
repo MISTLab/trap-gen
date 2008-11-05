@@ -6,7 +6,7 @@ def build(bld):
     bld.add_subdirs('runtime')
 
     obj = bld.new_task_gen('cxx', 'staticlib')
-    obj.add_objects = 'loader syscall bfdFrontend tools'
+    obj.add_objects = 'loader syscall bfdFrontend tools debugger'
     obj.name = 'trap'
     obj.target = 'trap'
     obj.install_path = os.path.join('${PREFIX}', 'lib')
