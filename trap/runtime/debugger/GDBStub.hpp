@@ -76,8 +76,8 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
         ///Main body of the thread: it simply waits for GDB requests
         ///and takes the appropriate actions once the requests are decoded
         void operator()(){
-            while(stub.waitForRequest())
-                ;
+            while(true)
+                stub.waitForRequest();
         }
     };
 
@@ -97,12 +97,6 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
     bool breakEnabled;
     ///Specifies whether GDB server side killed the simulation
     bool isKilled;
-    ///Specifies whether GDB server side is waiting for input from the user
-    bool isWaiting;
-    ///Contains the current simulation time; when the GDB stub stops,  it might be that
-    ///we want simulation to go on (this just if MYSQL is enabled): this way simulation
-    ///continues (faster) but we might debug a given simulation time
-    double curSimTime;
     ///In case we decided to run the simulation only for a limited ammount of time
     ///this variable contains that time
     double timeToGo;
@@ -112,6 +106,12 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
     ///In case the simulation is run only for a specified ammount of time,  this variable
     ///contains the simulation time at that start time
     double simStartTime;
+    ///Specifies that we have to stop because a timeout was encountered
+    bool timeout;
+    ///Event used to manage execution for a specified ammount of time
+    sc_event pauseEvent;
+    ///Event used to stop processor execution until simulation is restarted
+    sc_event gdbPausedEvent;
 
     /********************************************************************/
     ///Checks if a breakpoint is present at the current address and
@@ -138,7 +138,12 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
             this->step++;
         else if(this->step == 2){
             this->step = 0;
-            this->setStopped(STEP);
+            if(this->timeout){
+                this->timeout = false;
+                this->setStopped(TIMEOUT);
+            }
+            else
+                this->setStopped(STEP);
         }
     }
 
@@ -146,7 +151,6 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
     ///GDB debugger
     void startThread(){
         GDBThread thread(*this);
-
         boost::thread th(thread);
     }
 
@@ -164,23 +168,24 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
     ///the first processor which starts execution
     void setStopped(stopType stopReason = UNK){
         //saving current simulation time
-        this->curSimTime = sc_time_stamp().to_double();
+        double curSimTime = sc_time_stamp().to_double();
 
         //Now I have to behave differently depending on whether database support is enabled or not
         //if it is enabled I do not stop simulation,  while if it is not enabled I have to stop simulation in
         //order to be able to inspect the content of the processor - memory - etc...
         //Computing the next simulation time instant
         if(this->timeToGo > 0){
-            this->timeToGo -= (this->curSimTime - simStartTime);
+            this->timeToGo -= (curSimTime - this->simStartTime);
             if(this->timeToGo < 0)
                 this->timeToGo = 0;
-            this->simStartTime = this->curSimTime;
+            this->simStartTime = curSimTime;
         }
-        //pausing simulation
-        if(stopReason != TIMEOUT && stopReason !=  PAUSED)
-            wait();
         //Disabling break and watch points
         this->breakEnabled = false;
+        this->awakeGDB(stopReason);
+        //pausing simulation
+        if(stopReason != TIMEOUT && stopReason !=  PAUSED)
+            wait(this->gdbPausedEvent);
     }
 
     ///Sends a TRAP message to GDB so that it is awaken
@@ -215,20 +220,20 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
                     std::pair<std::string, unsigned int> info;
                     info.second = this->breakReached->address;
                     switch(this->breakReached->type){
-                        case Breakpoint<AddressType>::WRITE:
+                        case Breakpoint<issueWidth>::WRITE:
                             info.first = "watch";
                         break;
-                        case Breakpoint<AddressType>::READ:
+                        case Breakpoint<issueWidth>::READ:
                             info.first = "rwatch";
                         break;
-                        case Breakpoint<AddressType>::ACCESS:
+                        case Breakpoint<issueWidth>::ACCESS:
                             info.first = "awatch";
                         break;
                         default:
                             info.first = "none";
                         break;
                     }
-                    response.size = sizeof(AddressType);
+                    response.size = sizeof(issueWidth);
                     response.info.push_back(info);
                     this->connManager.sendResponse(response);
                 }
@@ -265,7 +270,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
     ///Signals to the GDB debugger that simulation ended; the error variable specifies
     ///if the program ended with an error
     void signalProgramEnd(bool error = false){
-        if((!this->isKilled && !this->isWaiting) || error){
+        if(!this->isKilled || error){
             GDBResponse response;
             //Now I just print a message to the GDB console signaling the user that the program is ending
             if(error){
@@ -277,9 +282,6 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
             response.type = GDBResponse::OUTPUT;
             if(error){
                 response.message = "Program Ended With an Error\n";
-                #ifndef NDEBUG
-                std::cerr << __PRETTY_FUNCTION__ << "Processor Name: " << this->proc.getName() << " Program Ended With an Error" << std::endl;
-                #endif
             }
             else
                 response.message = "Program Correctly Ended\n";
@@ -298,41 +300,40 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
     ///Waits for an incoming request by the GDB debugger and, once it
     ///has been received, it routes it to the appropriate handler
     ///Returns whether we must be listening for other incoming data or not
-    bool waitForRequest(){
+    void waitForRequest(){
         GDBRequest req = connManager.processRequest();
-        bool reListen = false;
         switch(req.type){
             case GDBRequest::QUEST:
                 //? request: it asks the target the reason why it halted
-                reListen = this->reqStopReason();
+                this->reqStopReason();
             break;
             case GDBRequest::EXCL:
                 // ! request: it asks if extended mode is supported
-                reListen = this->emptyAction(req);
+                this->emptyAction(req);
             break;
             case GDBRequest::c:
                 //c request: Continue command
-                reListen = this->cont(req);
+                this->cont(req);
             break;
             case GDBRequest::C:
                 //C request: Continue with signal command, currently not supported
-                reListen = this->emptyAction(req);
+                this->emptyAction(req);
             break;
             case GDBRequest::D:
                 //D request: disconnection from the remote target
-                reListen = this->detach(req);
+                this->detach(req);
             break;
             case GDBRequest::g:
                 //g request: read general register
-                reListen = this->readRegisters();
+                this->readRegisters();
             break;
             case GDBRequest::G:
                 //G request: write general register
-                reListen = this->writeRegisters(req);
+                this->writeRegisters(req);
             break;
             case GDBRequest::H:
                 //H request: multithreading stuff, not currently supported
-                reListen = this->emptyAction(req);
+                this->emptyAction(req);
             break;
             case GDBRequest::i:
                 //i request: single clock cycle step; currently it is not supported
@@ -340,60 +341,60 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
                 //time equal to the clock cycle (or one of its multiple) and I still
                 //have to think how to know the clock cycle of the processor and
                 //how to awake again all the processors after simulation stopped again
-                reListen = this->emptyAction(req);
+                this->emptyAction(req);
             break;
             case GDBRequest::I:
                 //i request: signal and single clock cycle step
-                reListen = this->emptyAction(req);
+                this->emptyAction(req);
             break;
             case GDBRequest::k:
                 //i request: kill application: I simply call the sc_stop method
-                reListen = this->killApp();
+                this->killApp();
             break;
             case GDBRequest::m:
                 //m request: read memory
-                reListen = this->readMemory(req);
+                this->readMemory(req);
             break;
             case GDBRequest::M:
             case GDBRequest::X:
                 //M request: write memory
-                reListen = this->writeMemory(req);
+                this->writeMemory(req);
             break;
             case GDBRequest::p:
                 //p request: register read
-                reListen = this->readRegister(req);
+                this->readRegister(req);
             break;
             case GDBRequest::P:
                 //P request: register write
-                reListen = this->writeRegister(req);
+                this->writeRegister(req);
             break;
             case GDBRequest::q:
                 //P request: register write
-                reListen = this->genericQuery(req);
+                this->genericQuery(req);
             break;
             case GDBRequest::s:
                 //s request: single step
-                reListen = this->doStep(req);
+                this->doStep(req);
             break;
             case GDBRequest::S:
                 //S request: single step with signal
-                reListen = this->emptyAction(req);
+                this->emptyAction(req);
             break;
             case GDBRequest::t:
                 //t request: backward search: currently not supported
-                reListen = this->emptyAction(req);
+                this->emptyAction(req);
             break;
             case GDBRequest::T:
                 //T request: thread stuff: currently not supported
-                reListen = this->emptyAction(req);
+                this->emptyAction(req);
             break;
             case GDBRequest::z:
                 //z request: breakpoint/watch removal
-                reListen = this->removeBreakpoint(req);
+                this->removeBreakpoint(req);
             break;
             case GDBRequest::Z:
                 //z request: breakpoint/watch addition
-                reListen = this->addBreakpoint(req);
+                this->addBreakpoint(req);
             break;
             case GDBRequest::ERROR:
                 reListen = false;
@@ -402,8 +403,6 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
                 reListen = this->emptyAction(req);
             break;
         }
-        this->isWaiting = reListen;
-        return reListen;
     }
 
     ///Method used to resume execution after GDB has issued
@@ -411,15 +410,10 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
     void resumeExecution(){
         //I'm going to restart execution, so I can again enable watch and break points
         this->breakEnabled = true;
-        if(numStopped == 0){
-            //I can finally resume execution
-            simStartTime = this->simController.get_simulated_time();
-            if(timeToGo > 0){
-                this->simController.run_simulation(timeToGo);
-            }
-            else{
-                this->simController.run_simulation();
-            }
+        this->simStartTime = sc_time_stamp().to_double();
+        this->gdbPausedEvent.notify();
+        if(timeToGo > 0){
+            this->pauseEvent(sc_time(timeToGo, SC_PS));
         }
     }
 
@@ -427,28 +421,24 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
 
     ///It does nothing, it simply sends an empty string back to the
     ///GDB debugger
-    bool emptyAction(GDBRequest &req){
+    void emptyAction(GDBRequest &req){
         GDBResponse resp;
         resp.type = GDBResponse::NOT_SUPPORTED;
-
         this->connManager.sendResponse(resp);
-
-        return true;
     }
 
     ///Asks for the reason why the processor is stopped
-    bool reqStopReason(){
+    void reqStopReason(){
         this->awakeGDB();
-        return true;
     }
 
     ///Reads the value of a register;
-    bool readRegister(GDBRequest &req){
+    void readRegister(GDBRequest &req){
         GDBResponse rsp;
         rsp.type = GDBResponse::REG_READ;
         try{
-            if(req.reg < this->proc.nRegs() && !sc_controller::error){
-                AddressType regContent = this->proc.reg_read(req.reg);
+            if(req.reg < this->processorInstance.nGDBRegs()){
+                issueWidth regContent = this->processorInstance.readGDBReg(req.reg);
                 this->valueToBytes(rsp.data, regContent);
             }
             else{
@@ -459,56 +449,30 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
             this->valueToBytes(rsp.data, 0);
         }
 
-        if(sc_controller::error)
-            rsp.type = GDBResponse::ERROR;
-
         this->connManager.sendResponse(rsp);
-
-        if(!sc_controller::error)
-            return true;
-        else{
-            rsp.type = GDBResponse::OUTPUT;
-            rsp.message = sc_controller::errorMessage;
-            this->connManager.sendResponse(rsp);
-            return false;
-        }
     }
 
     ///Reads the value of a memory location
-    bool readMemory(GDBRequest &req){
+    void readMemory(GDBRequest &req){
         GDBResponse rsp;
         rsp.type = GDBResponse::MEM_READ;
 
         for(unsigned int i = 0; i < req.length; i++){
             try{
-                unsigned char memContent = this->proc.mem_read(req.address + i);
+                unsigned char memContent = this->processorInstance.readMem(req.address + i);
                 this->valueToBytes(rsp.data, memContent);
             }
             catch(...){
                 this->valueToBytes(rsp.data, 0);
             }
-            if(sc_controller::error)
-                break;
         }
-
-        if(sc_controller::error)
-            rsp.type = GDBResponse::ERROR;
 
         this->connManager.sendResponse(rsp);
-
-        if(!sc_controller::error)
-            return true;
-        else{
-            rsp.type = GDBResponse::OUTPUT;
-            rsp.message = sc_controller::errorMessage;
-            this->connManager.sendResponse(rsp);
-            return false;
-        }
     }
 
-    bool cont(GDBRequest &req){
+    void cont(GDBRequest &req){
         if(req.address != 0){
-            this->proc.set_ac_pc(req.address);
+            this->processorInstance.setPC(req.address);
         }
 
         //Now, I have to restart SystemC, since the processor
@@ -516,63 +480,46 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
         //after all the gdbs has issued some kind of start command
         //(either a continue, a step ...)
         this->resumeExecution();
-
-        return false;
     }
 
-    bool detach(GDBRequest &req){
+    void detach(GDBRequest &req){
         //First of all I have to perform some cleanup
         this->breakManager.clearAllBreaks();
-        this->isGDBConnected = false;
         //Finally I can send a positive response
         GDBResponse resp;
         resp.type = GDBResponse::OK;
         this->connManager.sendResponse(resp);
-        this->isKilled = true;
-        //Now,  if execution were stopped,  I have to resume it
-        return false;
+        this->step = 0;
+        this->resumeExecution();
     }
 
-    bool readRegisters(){
+    void readRegisters(){
         //I have to read all the general purpose registers and
         //send their content back to GDB
         GDBResponse resp;
         resp.type = GDBResponse::REG_READ;
-        for(unsigned int i = 0; i < this->proc.nRegs(); i++){
+        for(unsigned int i = 0; i < this->processorInstance.nGDBRegs(); i++){
             try{
-                AddressType regContent = this->proc.reg_read(i);
+                issueWidth regContent = this->processorInstance.readGDBReg(i);
                 this->valueToBytes(resp.data, regContent);
             }
             catch(...){
-            this->valueToBytes(resp.data, 0);
+                this->valueToBytes(resp.data, 0);
             }
         }
-
-        if(sc_controller::error)
-            resp.type = GDBResponse::ERROR;
-
         this->connManager.sendResponse(resp);
-
-        if(!sc_controller::error)
-            return true;
-        else{
-            resp.type = GDBResponse::OUTPUT;
-            resp.message = sc_controller::errorMessage;
-            this->connManager.sendResponse(resp);
-            return false;
-        }
     }
 
-    bool writeRegisters(GDBRequest &req){
-        std::vector<AddressType> regContent;
+    void writeRegisters(GDBRequest &req){
+        std::vector<issueWidth> regContent;
         this->bytesToValue(req.data, regContent);
-        typename std::vector<AddressType>::iterator dataIter, dataEnd;
+        typename std::vector<issueWidth>::iterator dataIter, dataEnd;
         bool error = false;
         unsigned int i = 0;
         for(dataIter = regContent.begin(), dataEnd = regContent.end();
                                         dataIter != dataEnd; dataIter++){
             try{
-                this->proc.reg_write(i, *dataIter);
+                this->processorInstance.setGDBReg(*dataIter, i);
             }
             catch(...){
                 error = true;
@@ -582,65 +529,43 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
 
         GDBResponse resp;
 
-        if(i != (unsigned int)this->proc.nRegs() || error){
-            #ifndef NDEBUG
-            std::cerr << __PRETTY_FUNCTION__ << "Processor Name: " << this->proc.getName() << " Error, written: " << i << " registers out of range " << this->proc.nRegs() << std::endl;
-            #endif
+        if(i != (unsigned int)this->processorInstance.nGDBRegs() || error)
             resp.type = GDBResponse::ERROR;
-        }
         else
             resp.type = GDBResponse::OK;
         this->connManager.sendResponse(resp);
-
-        return true;
     }
 
-    bool writeMemory(GDBRequest &req){
+    void writeMemory(GDBRequest &req){
         bool error = false;
         unsigned int bytes = 0;
         std::vector<char>::iterator dataIter, dataEnd;
         for(dataIter = req.data.begin(), dataEnd = req.data.end(); dataIter != dataEnd; dataIter++){
             try{
-                this->proc.mem_write(req.address + bytes, *dataIter);
+                this->processorInstance.writeMem(req.address + bytes, *dataIter);
                 bytes++;
             }
             catch(...){
                 error = true;
                 break;
             }
-            if(sc_controller::error)
-                break;
         }
 
         GDBResponse resp;
         resp.type = GDBResponse::OK;
 
-        #ifndef NDEBUG
-        if(bytes != (unsigned int)req.length){
-            std::cerr << __PRETTY_FUNCTION__ << "Processor Name: " << this->proc.getName() << " Error, written: " << bytes << " bytes out of " << req.length << std::endl;
+        if(bytes != (unsigned int)req.length || error){
             resp.type = GDBResponse::ERROR;
         }
-        #endif
-        if(sc_controller::error || error)
-            resp.type = GDBResponse::ERROR;
 
         this->connManager.sendResponse(resp);
-        if(sc_controller::error){
-            resp.type = GDBResponse::OUTPUT;
-            resp.message = sc_controller::errorMessage;
-            this->connManager.sendResponse(resp);
-            return false;
-        }
-
-
-        return true;
     }
 
-    bool writeRegister(GDBRequest &req){
+    void writeRegister(GDBRequest &req){
         GDBResponse rsp;
-        if(req.reg <= this->proc.nRegs()){
+        if(req.reg <= this->processorInstance.nGDBRegs()){
             try{
-                this->proc.reg_write(req.reg, req.value);
+                this->processorInstance.setGDBReg(req.value, req.reg);
                 rsp.type = GDBResponse::OK;
             }
             catch(...){
@@ -650,150 +575,128 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
         else{
             rsp.type = GDBResponse::ERROR;
         }
-        if(sc_controller::error)
-            rsp.type = GDBResponse::ERROR;
         this->connManager.sendResponse(rsp);
-
-        return true;
     }
 
-    bool killApp(){
+    void killApp(){
         this->isKilled = true;
-        if(this->simController.is_paused())
-            this->simController.run_simulation();
-        this->simController.stop_simulation();
-        //Lets notify the other processors that the app has been killed
-        std::vector<GDBStubBase *>::iterator stubsIter, stubsEnd;
-        for(stubsIter = stubs.begin(), stubsEnd = stubs.end();
-                                stubsIter != stubsEnd; stubsIter++){
-            if(*stubsIter != this){
-                GDBResponse response;
-                response.type = GDBResponse::OUTPUT;
-                response.message = "CPU " + this->proc.getName() + " killed the simulation\n";
-                dynamic_cast<GDBStub<AddressType> *>(*stubsIter)->connManager.sendResponse(response);
-                dynamic_cast<GDBStub<AddressType> *>(*stubsIter)->signalProgramEnd(true);
-            }
-        }
-        return false;
+        sc_stop();
+        wait();
     }
 
-    bool doStep(GDBRequest &req){
+    void doStep(GDBRequest &req){
         if(req.address != 0){
-            this->proc.set_ac_pc(req.address);
+            this->processorInstance.setPC(req.address);
         }
 
         this->step = 1;
         this->resumeExecution();
-
-        return false;
     }
 
-    bool addBreakpoint(GDBRequest &req){
+    void addBreakpoint(GDBRequest &req){
         GDBResponse resp;
         switch(req.value){
             /*case 0:
-                if(this->breakManager.addBreakpoint(Breakpoint<AddressType>::MEM, req.address, req.length))
+                if(this->breakManager.addBreakpoint(Breakpoint<issueWidth>::MEM, req.address, req.length))
                 resp.type = GDBResponse::OK;
                 else
                 resp.type = GDBResponse::ERROR;
             break;*/
             case 0:
             case 1:
-                if(this->breakManager.addBreakpoint(Breakpoint<AddressType>::HW, req.address, req.length))
-                resp.type = GDBResponse::OK;
+                if(this->breakManager.addBreakpoint(Breakpoint<issueWidth>::HW, req.address, req.length))
+                    resp.type = GDBResponse::OK;
                 else
-                resp.type = GDBResponse::ERROR;
+                    resp.type = GDBResponse::ERROR;
             break;
             case 2:
-                if(this->breakManager.addBreakpoint(Breakpoint<AddressType>::WRITE, req.address, req.length))
-                resp.type = GDBResponse::OK;
+                if(this->breakManager.addBreakpoint(Breakpoint<issueWidth>::WRITE, req.address, req.length))
+                    resp.type = GDBResponse::OK;
                 else
-                resp.type = GDBResponse::ERROR;
+                    resp.type = GDBResponse::ERROR;
             break;
             case 3:
-                if(this->breakManager.addBreakpoint(Breakpoint<AddressType>::READ, req.address, req.length))
-                resp.type = GDBResponse::OK;
+                if(this->breakManager.addBreakpoint(Breakpoint<issueWidth>::READ, req.address, req.length))
+                    resp.type = GDBResponse::OK;
                 else
-                resp.type = GDBResponse::ERROR;
+                    resp.type = GDBResponse::ERROR;
             break;
             case 4:
-                if(this->breakManager.addBreakpoint(Breakpoint<AddressType>::ACCESS, req.address, req.length))
-                resp.type = GDBResponse::OK;
+                if(this->breakManager.addBreakpoint(Breakpoint<issueWidth>::ACCESS, req.address, req.length))
+                    resp.type = GDBResponse::OK;
                 else
-                resp.type = GDBResponse::ERROR;
+                    resp.type = GDBResponse::ERROR;
             break;
             default:
                 resp.type = GDBResponse::NOT_SUPPORTED;
             break;
         }
         this->connManager.sendResponse(resp);
-        return true;
     }
 
-    bool removeBreakpoint(GDBRequest &req){
+    void removeBreakpoint(GDBRequest &req){
         GDBResponse resp;
         if(this->breakManager.removeBreakpoint(req.address))
             resp.type = GDBResponse::OK;
         else
             resp.type = GDBResponse::ERROR;
         this->connManager.sendResponse(resp);
-        return true;
     }
 
-    bool genericQuery(GDBRequest &req){
+    void genericQuery(GDBRequest &req){
         //I have to determine the query packet; in case it is Rcmd I deal with it
         GDBResponse resp;
         if(req.command != "Rcmd")
             resp.type = GDBResponse::NOT_SUPPORTED;
         else{
-             //lets see which is the custom command being sent
-             std::string::size_type spacePos = req.extension.find(' ');
-             std::string custComm;
-             if(spacePos == std::string::npos)
+            //lets see which is the custom command being sent
+            std::string::size_type spacePos = req.extension.find(' ');
+            std::string custComm;
+            if(spacePos == std::string::npos)
                 custComm = req.extension;
-            else{
-                 custComm = req.extension.substr(0,  spacePos);
-            }
-             if(custComm == "go"){
-                 //Ok,  finally I got the right command: lets see for
-                 //how many nanoseconds I have to execute the continue
-                timeToGo = atof(req.extension.substr(spacePos + 1).c_str());
-                 if(timeToGo < 0){
-                     resp.type = GDBResponse::OUTPUT;
-                     resp.message = "Please specify a positive offset";
-                     this->connManager.sendResponse(resp);
-                     resp.type = GDBResponse::NOT_SUPPORTED;
-                     timeToGo = 0;
-                 }
-                 else
+            else
+                custComm = req.extension.substr(0,  spacePos);
+            if(custComm == "go"){
+                //Ok,  finally I got the right command: lets see for
+                //how many nanoseconds I have to execute the continue
+                this->timeToGo = atof(req.extension.substr(spacePos + 1).c_str())/1e3;
+                if(this->timeToGo < 0){
+                    resp.type = GDBResponse::OUTPUT;
+                    resp.message = "Please specify a positive offset";
+                    this->connManager.sendResponse(resp);
+                    resp.type = GDBResponse::NOT_SUPPORTED;
+                    this->timeToGo = 0;
+                }
+                else
                     resp.type = GDBResponse::OK;
             }
             else if(custComm == "go_abs"){
-                 //This command specify to go up to a specified simulation time; the time is specified in nanoseconds
-                 timeToGo = atof(req.extension.substr(spacePos + 1).c_str()) - sc_time_stamp().to_double();
-                 if(timeToGo < 0){
-                     direction = BACKWARD;
-                     timeToGo = -timeToGo;
-                     resp.type = GDBResponse::OK;
-                 }
-                 else{
-                    direction = FORWARD;
+                //This command specify to go up to a specified simulation time; the time is specified in nanoseconds
+                this->timeToGo = atof(req.extension.substr(spacePos + 1).c_str())/1e3 - sc_time_stamp().to_double();
+                if(this->timeToGo < 0){
+                    resp.type = GDBResponse::OUTPUT;
+                    resp.message = "Please specify a positive offset";
+                    this->connManager.sendResponse(resp);
+                    resp.type = GDBResponse::NOT_SUPPORTED;
+                    this->timeToGo = 0;
+                }
+                else{
                     resp.type = GDBResponse::OK;
                 }
-             }
+            }
             else if(custComm == "status"){
                  //Returns the current status of the STUB
                  resp.type = GDBResponse::OUTPUT;
-                 resp.message = "Current simulation time: " + boost::lexical_cast<std::string>(this->simController.get_simulated_time()) + " (ps)\n";
-                 if(timeToGo != 0)
-                    resp.message += "Simulating for : " + boost::lexical_cast<std::string>(timeToGo) + " Nanoseconds\n";
+                 resp.message = "Current simulation time: " + boost::lexical_cast<std::string>(sc_time_stamp().to_double()) + " (ps)\n";
+                 if(this->timeToGo != 0)
+                    resp.message += "Simulating for : " + boost::lexical_cast<std::string>(this->timeToGo) + " Nanoseconds\n";
                  this->connManager.sendResponse(resp);
                  resp.type = GDBResponse::OK;
             }
             else if(custComm == "time"){
                 //This command is simply a query to know the current simulation time
                 resp.type = GDBResponse::OUTPUT;
-                 resp.message = "Current simulation time: " + boost::lexical_cast<std::string>(this->simController.get_simulated_time()) + " (ps)\n";
+                 resp.message = "Current simulation time: " + boost::lexical_cast<std::string>(sc_time_stamp().to_double()) + " (ps)\n";
                  this->connManager.sendResponse(resp);
                  resp.type = GDBResponse::OK;
             }
@@ -814,7 +717,6 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
             }
         }
         this->connManager.sendResponse(resp);
-        return true;
     }
 
     ///Separates the bytes which form an integer value and puts them
@@ -833,10 +735,10 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
     }
 
     ///Converts a vector of bytes into a vector of integer values
-    void bytesToValue(std::vector<char> &byteHolder, std::vector<AddressType> &values){
-        for(unsigned int i = 0; i < byteHolder.size(); i += sizeof(AddressType)){
-            AddressType buf = 0;
-            for(unsigned int k = 0; k < sizeof(AddressType); k++){
+    void bytesToValue(std::vector<char> &byteHolder, std::vector<issueWidth> &values){
+        for(unsigned int i = 0; i < byteHolder.size(); i += sizeof(issueWidth)){
+            issueWidth buf = 0;
+            for(unsigned int k = 0; k < sizeof(issueWidth); k++){
                 buf |= (byteHolder[i + k] << 8*k);
             }
             values.push_back(buf);
@@ -844,14 +746,25 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
     }
 
   public:
+    SC_HAS_PROCESS(GDBStub);
     GDBStub(ABIIf<issueWidth> &processorInstance, unsigned int port = 1500) :
                     sc_module("debugger"), connManager(processorInstance.matchEndian()), processorInstance(processorInstance),
-                step(0), breakReached(NULL), breakEnabled(true), isKilled(false), isWaiting(true){
+                step(0), breakReached(NULL), breakEnabled(true), isKilled(false), timeout(false){
         this->connManager.initialize(port);
         //Now I have to listen for incoming GDB messages; this will
-        //be done in a new thread, so that the console remains responsive;
-        this->isGDBConnected = true;
+        //be done in a new thread.
         this->startThread();
+
+        SC_METHOD(pauseMethod);
+        sensitive << this->pauseEvent;
+        dont_initialize();
+
+        end_module();
+    }
+    ///Method used to pause simulation
+    void pauseMethod(){
+        this->step = 2;
+        this->timeout = true;
     }
     ///Overloading of the end_of_simulation method; it can be used to execute methods
     ///at the end of the simulation

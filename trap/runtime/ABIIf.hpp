@@ -66,6 +66,7 @@ template<class regWidth> class ABIIf{
     virtual regWidth readRetVal() const throw() = 0;
     virtual void setRetVal( const regWidth & newValue ) throw() = 0;
     virtual std::vector< regWidth > readArgs() const throw() = 0;
+    virtual unsigned int nGDBRegs() const throw() = 0;
     virtual void setArgs( const std::vector< regWidth > & args ) throw() = 0;
     virtual regWidth readGDBReg( const unsigned int & gdbId ) const throw() = 0;
     virtual void setGDBReg( const regWidth & newValue, const unsigned int & gdbId ) throw() = 0;

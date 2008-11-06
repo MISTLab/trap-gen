@@ -1,3 +1,45 @@
+/***************************************************************************\
+ *
+ *
+ *            ___        ___           ___           ___
+ *           /  /\      /  /\         /  /\         /  /\
+ *          /  /:/     /  /::\       /  /::\       /  /::\
+ *         /  /:/     /  /:/\:\     /  /:/\:\     /  /:/\:\
+ *        /  /:/     /  /:/~/:/    /  /:/~/::\   /  /:/~/:/
+ *       /  /::\    /__/:/ /:/___ /__/:/ /:/\:\ /__/:/ /:/
+ *      /__/:/\:\   \  \:\/:::::/ \  \:\/:/__\/ \  \:\/:/
+ *      \__\/  \:\   \  \::/~~~~   \  \::/       \  \::/
+ *           \  \:\   \  \:\        \  \:\        \  \:\
+ *            \  \ \   \  \:\        \  \:\        \  \:\
+ *             \__\/    \__\/         \__\/         \__\/
+ *
+ *
+ *
+ *
+ *   This file is part of TRAP.
+ *
+ *   TRAP is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU Lesser General Public License as published by
+ *   the Free Software Foundation; either version 2 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU Lesser General Public License for more details.
+ *
+ *   You should have received a copy of the GNU Lesser General Public License
+ *   along with this program; if not, write to the
+ *   Free Software Foundation, Inc.,
+ *   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ *   or see <http://www.gnu.org/licenses/>.
+ *
+ *
+ *
+ *   (c) Luca Fossati, fossati@elet.polimi.it
+ *
+\***************************************************************************/
+
 /**
  * Class used to manage connections with the GDB server.
  */
@@ -12,49 +54,47 @@
 
 using namespace boost;
 
-namespace resp{
-
 /**
  * High level repesentation of a GDB request packet
  */
 struct GDBRequest{
-   enum Type {QUEST=0, EXCL, c, C, D, g, G, H, i, I, k, m, M, p, P, q, s, S, t, T, X, z, Z, UNK, ERROR};
-   Type type;
-   unsigned int address;
-   unsigned int length;
-   unsigned int reg;
-   unsigned int signal;
-   int value;
-   std::string command;
-   std::string extension;
-   std::vector<char> data;
-   GDBRequest(){
-       address = 0;
-       length = 0;
-       reg = 0;
-       signal = 0;
-       value = 0;
-       command = "";
-       extension = "";
-   }
+    enum Type {QUEST=0, EXCL, c, C, D, g, G, H, i, I, k, m, M, p, P, q, s, S, t, T, X, z, Z, UNK, ERROR};
+    Type type;
+    unsigned int address;
+    unsigned int length;
+    unsigned int reg;
+    unsigned int signal;
+    int value;
+    std::string command;
+    std::string extension;
+    std::vector<char> data;
+    GDBRequest(){
+        address = 0;
+        length = 0;
+        reg = 0;
+        signal = 0;
+        value = 0;
+        command = "";
+        extension = "";
+    }
 };
 
 /**
  * High level repesentation of a GDB response packet
  */
 struct GDBResponse{
-   enum Type {S=0, T, W, X, OUTPUT, OK, ERROR, MEM_READ, REG_READ, NOT_SUPPORTED};
-   Type type;
-   unsigned int payload;
-   std::string message;
-   unsigned int size;
-   std::vector<char> data;
-   std::vector<std::pair<std::string, unsigned int> > info;
-   GDBResponse(){
-       payload = 0;
-       message = "";
-       size = 0;
-   }
+    enum Type {S=0, T, W, X, OUTPUT, OK, ERROR, MEM_READ, REG_READ, NOT_SUPPORTED};
+    Type type;
+    unsigned int payload;
+    std::string message;
+    unsigned int size;
+    std::vector<char> data;
+    std::vector<std::pair<std::string, unsigned int> > info;
+    GDBResponse(){
+        payload = 0;
+        message = "";
+        size = 0;
+    }
 };
 
 /**
@@ -93,8 +133,6 @@ class GDBConnectionManager{
    std::map<char, unsigned int> HexMap;
    ///Specifis whether communication has been coled by the other endpoint or not
    bool killed;
-   ///Specifies the verbosity level of the excution
-   unsigned int verbosityLevel;
   public:
    GDBConnectionManager(bool endianess);
    ~GDBConnectionManager();
@@ -114,7 +152,5 @@ class GDBConnectionManager{
    ///program under test
    void sendInterrupt();
 };
-
-}
 
 #endif

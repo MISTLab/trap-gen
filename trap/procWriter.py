@@ -1123,8 +1123,11 @@ def getCPPIf(self, model):
     setArgsParam = cxx_writer.writer_code.Parameter('args', vectorType.makeRef().makeConst())
     setArgsMethod = cxx_writer.writer_code.Method('setArgs', setArgsCode, cxx_writer.writer_code.voidType, 'pu', [setArgsParam], noException = True)
     ifClassElements.append(setArgsMethod)
+    maxGDBId = 0
     readGDBRegBody = 'switch(gdbId){\n'
     for reg, gdbId in self.abi.regCorrespondence.items():
+        if gdbId > maxGDBId:
+            maxGDBId = gdbId
         readGDBRegBody += 'case ' + str(gdbId) + ':{\n'
         readGDBRegBody += 'return ' + reg
         if self.abi.offset.has_key(reg):
@@ -1136,6 +1139,9 @@ def getCPPIf(self, model):
     readGDBRegParam = cxx_writer.writer_code.Parameter('gdbId', cxx_writer.writer_code.uintType.makeRef().makeConst())
     readGDBRegMethod = cxx_writer.writer_code.Method('readGDBReg', readGDBRegCode, wordType, 'pu', [readGDBRegParam], noException = True, const = True)
     ifClassElements.append(readGDBRegMethod)
+    readGDBRegCode = cxx_writer.writer_code.Code('return ' + str(maxGDBId) + ';')
+    nGDBRegsMethod = cxx_writer.writer_code.Method('nGDBRegs', nGDBRegsCode, cxx_writer.writer_code.uintType, 'pu', noException = True, const = True)
+    ifClassElements.append(nGDBRegsMethod)
     setGDBRegBody = 'switch(gdbId){\n'
     for reg, gdbId in self.abi.regCorrespondence.items():
         setGDBRegBody += 'case ' + str(gdbId) + ':{\n'
