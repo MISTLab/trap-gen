@@ -1139,7 +1139,7 @@ def getCPPIf(self, model):
     readGDBRegParam = cxx_writer.writer_code.Parameter('gdbId', cxx_writer.writer_code.uintType.makeRef().makeConst())
     readGDBRegMethod = cxx_writer.writer_code.Method('readGDBReg', readGDBRegCode, wordType, 'pu', [readGDBRegParam], noException = True, const = True)
     ifClassElements.append(readGDBRegMethod)
-    readGDBRegCode = cxx_writer.writer_code.Code('return ' + str(maxGDBId) + ';')
+    nGDBRegsCode = cxx_writer.writer_code.Code('return ' + str(maxGDBId) + ';')
     nGDBRegsMethod = cxx_writer.writer_code.Method('nGDBRegs', nGDBRegsCode, cxx_writer.writer_code.uintType, 'pu', noException = True, const = True)
     ifClassElements.append(nGDBRegsMethod)
     setGDBRegBody = 'switch(gdbId){\n'
@@ -1255,6 +1255,7 @@ def getMainCode(self, model):
     boost::program_options::options_description desc("Processor simulator for """ + self.name + """");
     desc.add_options()
         ("help,h", "produces the help message")
+        ("debugger,d", "activates the use of the software debugger")
         ("frequency,f", boost::program_options::value<double>(), "processor clock frequency specified in MHz [Default 1MHz]")
         ("application,a", boost::program_options::value<std::string>(), "application to be executed on the simulator")
     ;
@@ -1292,8 +1293,13 @@ def getMainCode(self, model):
     procInst.PROGRAM_START = loader.getDataStart();
     //Now I initialize the tools (i.e. debugger, os emulator, ...)
     OSEmulator< """ + str(wordType) + """ > osEmu(*(procInst.abiIf));
+    GDBStub< """ + str(wordType) + """ > gdbStub(*(procInst.abiIf));
     osEmu.initSysCalls(vm["application"].as<std::string>());
     procInst.toolManager.addTool(osEmu);
+    if(vm.count("debugger") != 0){
+        procInst.toolManager.addTool(gdbStub);
+        gdbStub.initialize();
+    }
     //Now we can start the execution
     boost::timer t;
     sc_start();
@@ -1316,7 +1322,7 @@ def getMainCode(self, model):
     mainCode.addInclude('utils.hpp')
     mainCode.addInclude('systemc.h')
     mainCode.addInclude('execLoader.hpp')
-    mainCode.addInclude('execLoader.hpp')
+    mainCode.addInclude('GDBStub.hpp')
     mainCode.addInclude('osEmulator.hpp')
     mainCode.addInclude('boost/program_options.hpp')
     mainCode.addInclude('boost/timer.hpp')

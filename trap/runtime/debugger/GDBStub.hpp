@@ -112,28 +112,29 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
     sc_event pauseEvent;
     ///Event used to stop processor execution until simulation is restarted
     sc_event gdbPausedEvent;
+    ///Sepecifies if GDB is connected to this stub or not
+    bool isConnected;
 
     /********************************************************************/
     ///Checks if a breakpoint is present at the current address and
     ///in case it halts execution
     #ifndef NDEBUG
-    inline void checkBreakpoint(const AddressType address) const{
+    inline void checkBreakpoint(const issueWidth &address){
     #else
-    inline void checkBreakpoint(const AddressType address) const throw(){
+    inline void checkBreakpoint(const issueWidth &address) throw(){
     #endif
         if(this->breakEnabled && this->breakManager.hasBreakpoint(address)){
-            breakReached = this->breakManager.getBreakPoint(address);
+            this->breakReached = this->breakManager.getBreakPoint(address);
             #ifndef NDEBUG
             if(breakReached == NULL){
                 THROW_EXCEPTION("I stopped because of a breakpoint, but no breakpoint was found");
             }
             #endif
             this->setStopped(BREAK);
-            this->stepCalled = true;
         }
     }
     ///Checks if execution must be stopped because of a step command
-    inline void checkStep() const throw(){
+    inline void checkStep() throw(){
         if(this->step == 1)
             this->step++;
         else if(this->step == 2){
@@ -206,8 +207,8 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
                 }
                 #endif
 
-                if(this->breakReached->type == Breakpoint<AddressType>::HW ||
-                            this->breakReached->type == Breakpoint<AddressType>::MEM){
+                if(this->breakReached->type == Breakpoint<issueWidth>::HW ||
+                            this->breakReached->type == Breakpoint<issueWidth>::MEM){
                     GDBResponse response;
                     response.type = GDBResponse::S;
                     response.payload = SIGTRAP;
@@ -249,7 +250,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
                 //the simulation time specified has elapsed,  so simulation halted
                 GDBResponse resp;
                 resp.type = GDBResponse::OUTPUT;
-                resp.message = "Specified Simulation time completed - Current simulation time: " + boost::lexical_cast<std::string>(this->simController.get_simulated_time()) + " (ps)\n";
+                resp.message = "Specified Simulation time completed - Current simulation time: " + sc_time_stamp().to_string() + " (ps)\n";
                 this->connManager.sendResponse(resp);
                 this->connManager.sendInterrupt();
             break;}
@@ -257,7 +258,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
                 //the simulation time specified has elapsed, so simulation halted
                 GDBResponse resp;
                 resp.type = GDBResponse::OUTPUT;
-                resp.message = "Simulation Paused - Current simulation time: " + boost::lexical_cast<std::string>(this->simController.get_simulated_time()) + " (ps)\n";
+                resp.message = "Simulation Paused - Current simulation time: " + sc_time_stamp().to_string() + " (ps)\n";
                 this->connManager.sendResponse(resp);
                 this->connManager.sendInterrupt();
             break;}
@@ -397,10 +398,9 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
                 this->addBreakpoint(req);
             break;
             case GDBRequest::ERROR:
-                reListen = false;
             break;
             default:
-                reListen = this->emptyAction(req);
+                this->emptyAction(req);
             break;
         }
     }
@@ -413,7 +413,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
         this->simStartTime = sc_time_stamp().to_double();
         this->gdbPausedEvent.notify();
         if(timeToGo > 0){
-            this->pauseEvent(sc_time(timeToGo, SC_PS));
+            this->pauseEvent.notify(sc_time(timeToGo, SC_PS));
         }
     }
 
@@ -491,6 +491,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
         this->connManager.sendResponse(resp);
         this->step = 0;
         this->resumeExecution();
+        this->isConnected = false;
     }
 
     void readRegisters(){
@@ -722,7 +723,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
     ///Separates the bytes which form an integer value and puts them
     ///into an array of bytes
     template <class ValueType> void valueToBytes(std::vector<char> &byteHolder, ValueType value){
-        if(!endianess){
+        if(!this->processorInstance.matchEndian()){
             for(unsigned int i = 0; i < sizeof(ValueType); i++){
                 byteHolder.push_back((char)((value & (0x0FF << 8*i)) >> 8*i));
             }
@@ -747,14 +748,10 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
 
   public:
     SC_HAS_PROCESS(GDBStub);
-    GDBStub(ABIIf<issueWidth> &processorInstance, unsigned int port = 1500) :
+    GDBStub(ABIIf<issueWidth> &processorInstance) :
                     sc_module("debugger"), connManager(processorInstance.matchEndian()), processorInstance(processorInstance),
-                step(0), breakReached(NULL), breakEnabled(true), isKilled(false), timeout(false){
-        this->connManager.initialize(port);
-        //Now I have to listen for incoming GDB messages; this will
-        //be done in a new thread.
-        this->startThread();
-
+                step(2), breakReached(NULL), breakEnabled(true), isKilled(false), timeout(false), isConnected(false),
+                timeToGo(0), timeToJump(0), simStartTime(0){
         SC_METHOD(pauseMethod);
         sensitive << this->pauseEvent;
         dont_initialize();
@@ -769,10 +766,19 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
     ///Overloading of the end_of_simulation method; it can be used to execute methods
     ///at the end of the simulation
     void end_of_simulation(){
-        this->signalProgramEnd();
+        if(this->isConnected)
+            this->signalProgramEnd();
+    }
+    ///Starts the connection with the GDB client
+    void initialize(unsigned int port = 1500){
+        this->connManager.initialize(port);
+        this->isConnected = true;
+        //Now I have to listen for incoming GDB messages; this will
+        //be done in a new thread.
+        this->startThread();
     }
     ///Method called at every cycle from the processor's main loop
-    bool newIssue(const issueWidth &curPC) const throw(){
+    bool newIssue(const issueWidth &curPC) throw(){
         this->checkStep();
         this->checkBreakpoint(curPC);
         return false;

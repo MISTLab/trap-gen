@@ -64,7 +64,7 @@ def configure(conf):
     ########################################
     conf.check_tool('boost')
     boostconf = conf.create_boost_configurator()
-    boostconf.lib = ['regex']
+    boostconf.lib = ['regex', 'thread']
     boostconf.min_version = '1.35.0'
     boostconf.run()
 

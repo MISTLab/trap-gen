@@ -53,7 +53,7 @@ template<class issueWidth> class ToolsIf{
     ///the tool can then take the appropriate actions.
     ///the return value specifies whether the processor should skip
     ///the issue of the current instruction
-    virtual bool newIssue(const issueWidth &curPC) const throw() = 0;
+    virtual bool newIssue(const issueWidth &curPC) throw() = 0;
     virtual ~ToolsIf(){}
 };
 

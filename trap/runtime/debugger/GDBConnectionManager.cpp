@@ -547,19 +547,10 @@ bool GDBConnectionManager::checkChecksum(std::string &data, char checkSum[2]){
 std::string GDBConnectionManager::toHexString(unsigned int value, int numChars){
     std::ostringstream os;
 
-    #ifndef NDEBUG
-    if(verbosityLevel >= 3)
-        std::cerr << __PRETTY_FUNCTION__ << ": Converting " << std::hex << value << std::dec << std::endl;
-    #endif
-
     if(!this->endianess && ((value & 0xFFFFFF00) != 0)){
         //I have to flip the bytes of value so that the endianess is correct
         value = ((value & 0x000000FF) << 24) | ((value & 0x0000FF00) << 8) |
                 ((value & 0x00FF0000) >> 8) | ((value & 0xFF000000) >> 24);
-        #ifndef NDEBUG
-        if(verbosityLevel >= 3)
-            std::cerr << __PRETTY_FUNCTION__ << ": Value after endianess convertion " << std::hex << value << std::dec << std::endl;
-        #endif
     }
 
     //Conversion to hex

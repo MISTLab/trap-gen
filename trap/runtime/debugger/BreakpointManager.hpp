@@ -58,7 +58,7 @@ template <class AddressType> struct Breakpoint{
 template <class AddressType> class BreakpointManager{
   private:
     __gnu_cxx::hash_map<AddressType, Breakpoint<AddressType> > breakpoints;
-    __gnu_cxx::hash_map<AddressType, Breakpoint<AddressType> >::const_iterator lastBreak;
+    typename __gnu_cxx::hash_map<AddressType, Breakpoint<AddressType> >::iterator lastBreak;
   public:
     //Eliminates all the breakpoints
     void clearAllBreaks(){

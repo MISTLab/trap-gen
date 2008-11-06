@@ -232,9 +232,9 @@ class Folder:
                         print >> wscriptFile, '        ' + codeFile.name
                 print >> wscriptFile, '    \"\"\"'
                 if tests:
-                    print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM SYSTEMC TLM TRAP\''
+                    print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM BOOST_THREAD SYSTEMC TLM TRAP\''
                 else:
-                    print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM SYSTEMC TLM TRAP\''
+                    print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM BOOST_THREAD SYSTEMC TLM TRAP\''
                 print >> wscriptFile, '    obj.includes = \'.\''
                 if self.uselib_local:
                     print >> wscriptFile, '    obj.uselib_local = \'' + ' '.join(self.uselib_local) + '\''
@@ -246,9 +246,9 @@ class Folder:
                 print >> wscriptFile, '    obj = bld.new_task_gen(\'cxx\', \'program\')'
                 print >> wscriptFile, '    obj.source=\'' + self.mainFile + '\''
                 if tests:
-                    print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK SYSTEMC TLM BFD TRAP\''
+                    print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_THREAD SYSTEMC TLM BFD TRAP\''
                 else:
-                    print >> wscriptFile, '    obj.uselib = \'BOOST SYSTEMC TLM BFD TRAP\''
+                    print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_THREAD SYSTEMC TLM BFD TRAP\''
                 print >> wscriptFile, '    obj.uselib_local = \'' + ' '.join(self.uselib_local + [os.path.split(self.path)[-1]]) + '\''
                 print >> wscriptFile, '    obj.name = \'' + os.path.split(self.path)[-1] + '_main\''
                 print >> wscriptFile, '    obj.target = \'' + os.path.split(self.path)[-1] + '\'\n'
@@ -309,8 +309,8 @@ class Folder:
     # Check for boost libraries
     ########################################
     boostconf = conf.create_boost_configurator()
-    #boostconf.lib = ['thread', 'regex', 'date_time', 'program_options', 'system', 'filesystem','unit_test_framework']
-    boostconf.lib = ['thread', 'regex', 'date_time', 'program_options', 'filesystem','unit_test_framework']
+    #boostconf.lib = ['thread', 'regex', 'date_time', 'program_options', 'system', 'filesystem','unit_test_framework', 'thread']
+    boostconf.lib = ['thread', 'regex', 'date_time', 'program_options', 'filesystem', 'unit_test_framework', 'thread']
     boostconf.min_version = '1.33.0'
     boostconf.run()
 
