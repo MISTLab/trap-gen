@@ -155,7 +155,7 @@ processor.addPipeStage(executeStage)
 # The ABI is necessary to emulate system calls, personalize the GDB stub and,
 # eventually, retarget GCC
 abi = trap.ABI('REGS[0]', 'REGS[0-3]', 'PC', 'LR', 'SP', 'FP')
-abi.addVarRegsCorrespondence({'REGS[0-15]': (0, 15), 'CPSR': 25})
+abi.addVarRegsCorrespondence({'REGS[0-15]': (0, 15), 'CPSR': 16})
 # Same consideration as above: this offset is valid just for the functional
 # simulator
 abi.setOffset('PC', -8)

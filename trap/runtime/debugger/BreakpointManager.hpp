@@ -60,6 +60,9 @@ template <class AddressType> class BreakpointManager{
     __gnu_cxx::hash_map<AddressType, Breakpoint<AddressType> > breakpoints;
     typename __gnu_cxx::hash_map<AddressType, Breakpoint<AddressType> >::iterator lastBreak;
   public:
+    BreakpointManager(){
+        this->lastBreak = this->breakpoints.end();
+    }
     //Eliminates all the breakpoints
     void clearAllBreaks(){
         this->breakpoints.clear();

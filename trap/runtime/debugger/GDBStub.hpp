@@ -76,7 +76,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
         ///Main body of the thread: it simply waits for GDB requests
         ///and takes the appropriate actions once the requests are decoded
         void operator()(){
-            while(true)
+            while(stub.isConnected)
                 stub.waitForRequest();
         }
     };
@@ -110,10 +110,14 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
     bool timeout;
     ///Event used to manage execution for a specified ammount of time
     sc_event pauseEvent;
-    ///Event used to stop processor execution until simulation is restarted
-    sc_event gdbPausedEvent;
+    ///Condition used to stop processor execution until simulation is restarted
+    boost::condition gdbPausedEvent;
+    ///Mutex used to access the condition
+    boost::mutex global_mutex;
     ///Sepecifies if GDB is connected to this stub or not
     bool isConnected;
+    ///Specifies that the first run is being made
+    bool firstRun;
 
     /********************************************************************/
     ///Checks if a breakpoint is present at the current address and
@@ -125,11 +129,9 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
     #endif
         if(this->breakEnabled && this->breakManager.hasBreakpoint(address)){
             this->breakReached = this->breakManager.getBreakPoint(address);
-            #ifndef NDEBUG
             if(breakReached == NULL){
                 THROW_EXCEPTION("I stopped because of a breakpoint, but no breakpoint was found");
             }
-            #endif
             this->setStopped(BREAK);
         }
     }
@@ -185,8 +187,10 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
         this->breakEnabled = false;
         this->awakeGDB(stopReason);
         //pausing simulation
-        if(stopReason != TIMEOUT && stopReason !=  PAUSED)
-            wait(this->gdbPausedEvent);
+        if(stopReason != TIMEOUT && stopReason !=  PAUSED){
+            boost::mutex::scoped_lock lk(this->global_mutex);
+            this->gdbPausedEvent.wait(lk);
+        }
     }
 
     ///Sends a TRAP message to GDB so that it is awaken
@@ -397,7 +401,15 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
                 //z request: breakpoint/watch addition
                 this->addBreakpoint(req);
             break;
+            case GDBRequest::INTR:
+                //received an iterrupt from GDB: I pause simulation and signal GDB that I stopped
+                this->recvIntr();
+            break;
             case GDBRequest::ERROR:
+                std::cerr << "Error in the connection with the GDB debugger, connection will be terminated" << std::endl;
+                this->isConnected = false;
+                this->resumeExecution();
+                this->breakEnabled = false;
             break;
             default:
                 this->emptyAction(req);
@@ -411,7 +423,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
         //I'm going to restart execution, so I can again enable watch and break points
         this->breakEnabled = true;
         this->simStartTime = sc_time_stamp().to_double();
-        this->gdbPausedEvent.notify();
+        this->gdbPausedEvent.notify_all();
         if(timeToGo > 0){
             this->pauseEvent.notify(sc_time(timeToGo, SC_PS));
         }
@@ -490,8 +502,9 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
         resp.type = GDBResponse::OK;
         this->connManager.sendResponse(resp);
         this->step = 0;
-        this->resumeExecution();
         this->isConnected = false;
+        this->resumeExecution();
+        this->breakEnabled = false;
     }
 
     void readRegisters(){
@@ -592,6 +605,10 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
 
         this->step = 1;
         this->resumeExecution();
+    }
+
+    void recvIntr(){
+        ;
     }
 
     void addBreakpoint(GDBRequest &req){
@@ -723,7 +740,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
     ///Separates the bytes which form an integer value and puts them
     ///into an array of bytes
     template <class ValueType> void valueToBytes(std::vector<char> &byteHolder, ValueType value){
-        if(!this->processorInstance.matchEndian()){
+        if(this->processorInstance.matchEndian()){
             for(unsigned int i = 0; i < sizeof(ValueType); i++){
                 byteHolder.push_back((char)((value & (0x0FF << 8*i)) >> 8*i));
             }
@@ -750,8 +767,8 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
     SC_HAS_PROCESS(GDBStub);
     GDBStub(ABIIf<issueWidth> &processorInstance) :
                     sc_module("debugger"), connManager(processorInstance.matchEndian()), processorInstance(processorInstance),
-                step(2), breakReached(NULL), breakEnabled(true), isKilled(false), timeout(false), isConnected(false),
-                timeToGo(0), timeToJump(0), simStartTime(0){
+                step(0), breakReached(NULL), breakEnabled(true), isKilled(false), timeout(false), isConnected(false),
+                timeToGo(0), timeToJump(0), simStartTime(0), firstRun(true){
         SC_METHOD(pauseMethod);
         sensitive << this->pauseEvent;
         dont_initialize();
@@ -779,8 +796,16 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
     }
     ///Method called at every cycle from the processor's main loop
     bool newIssue(const issueWidth &curPC) throw(){
-        this->checkStep();
-        this->checkBreakpoint(curPC);
+        if(this->firstRun){
+            this->firstRun = false;
+            this->breakEnabled = false;
+            boost::mutex::scoped_lock lk(this->global_mutex);
+            this->gdbPausedEvent.wait(lk);
+        }
+        else{
+            this->checkStep();
+            this->checkBreakpoint(curPC);
+        }
         return false;
     }
 };

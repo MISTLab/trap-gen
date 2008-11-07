@@ -58,7 +58,7 @@ using namespace boost;
  * High level repesentation of a GDB request packet
  */
 struct GDBRequest{
-    enum Type {QUEST=0, EXCL, c, C, D, g, G, H, i, I, k, m, M, p, P, q, s, S, t, T, X, z, Z, UNK, ERROR};
+    enum Type {QUEST=0, EXCL, c, C, D, g, G, H, i, I, k, m, M, p, P, q, s, S, t, T, X, z, Z, UNK, ERROR, INTR};
     Type type;
     unsigned int address;
     unsigned int length;

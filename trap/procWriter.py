@@ -1133,7 +1133,7 @@ def getCPPIf(self, model):
         if self.abi.offset.has_key(reg):
             readGDBRegBody += ' + ' + str(self.abi.offset[reg])
         readGDBRegBody += ';\nbreak;}\n'
-    readGDBRegBody += 'default:{\nTHROW_EXCEPTION(\"No register corresponding to GDB id\" << gdbId);\nreturn 0;\n}\n}\n'
+    readGDBRegBody += 'default:{\nTHROW_EXCEPTION(\"No register corresponding to GDB id \" << gdbId);\nreturn 0;\n}\n}\n'
     readGDBRegCode = cxx_writer.writer_code.Code(readGDBRegBody)
     readGDBRegCode.addInclude(includes)
     readGDBRegParam = cxx_writer.writer_code.Parameter('gdbId', cxx_writer.writer_code.uintType.makeRef().makeConst())
@@ -1147,7 +1147,7 @@ def getCPPIf(self, model):
         setGDBRegBody += 'case ' + str(gdbId) + ':{\n'
         setGDBRegBody += reg + ' = newValue'
         setGDBRegBody += ';\nbreak;}\n'
-    setGDBRegBody += 'default:{\nTHROW_EXCEPTION(\"No register corresponding to GDB id\" << gdbId);\n}\n}\n'
+    setGDBRegBody += 'default:{\nTHROW_EXCEPTION(\"No register corresponding to GDB id \" << gdbId);\n}\n}\n'
     setGDBRegCode = cxx_writer.writer_code.Code(setGDBRegBody)
     setGDBRegCode.addInclude(includes)
     setGDBRegParam1 = cxx_writer.writer_code.Parameter('newValue', wordType.makeRef().makeConst())

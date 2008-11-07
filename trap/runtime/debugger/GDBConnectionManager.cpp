@@ -224,7 +224,7 @@ GDBRequest GDBConnectionManager::processRequest(){
         boost::system::error_code asioError;
 
         //Reading the starting character
-        while((recivedChar & 0x7f) != '$'){
+        while((recivedChar & 0x7f) != '$' && recivedChar != 0x03){
             this->socket->read_some(asio::buffer(&recivedChar, 1), asioError);
             if(asioError == asio::error::eof){
                 std::cerr << "Connection Unexpetedly closed by the GDB Debugger" << std::endl;
@@ -232,6 +232,12 @@ GDBRequest GDBConnectionManager::processRequest(){
                 this->killed = true;
                 return req;
             }
+        }
+        if(recivedChar == 0x03){
+            //It means that I received an interrupt from GDB, I stop the simulation and
+            //become responsive
+            req.type = GDBRequest::INTR;
+            return req;
         }
 
         //Now I have to start reading the payload: I go on until # is enocuntered;
@@ -317,11 +323,11 @@ GDBRequest GDBConnectionManager::processRequest(){
             req.type = GDBRequest::G;
             std::string::iterator payIter, payIterEnd;
             for(payIter = payload.begin(), payIterEnd = payload.end();
-                        payIter != payIterEnd; payIter++){
-            std::string buf = "" + *payIter;
-            payIter++;
-            buf += *payIter;
-            req.data.push_back((unsigned char)this->toIntNum(buf));
+                                        payIter != payIterEnd; payIter++){
+                std::string buf = "" + *payIter;
+                payIter++;
+                buf += *payIter;
+                req.data.push_back((unsigned char)this->toIntNum(buf));
             }
         break;}
         case 'H':{
@@ -536,7 +542,6 @@ unsigned char GDBConnectionManager::computeChecksum(std::string &data){
 ///Checks that the checksum included in the packet is correct
 bool GDBConnectionManager::checkChecksum(std::string &data, char checkSum[2]){
     unsigned char compCheck = this->computeChecksum(data);
-    //std::string hexCheckSum = "" + checkSum[0] + checkSum[1];
     unsigned char recvCheck = ((this->chToHex(checkSum[0]) & 0x0f) << 4) | (this->chToHex(checkSum[1]) & 0x0f);
     return compCheck == recvCheck;
 }

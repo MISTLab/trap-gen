@@ -47,7 +47,7 @@
 
 template<class regWidth> class ABIIf{
     public:
-    bool matchEndian(){
+    inline bool matchEndian() const throw(){
         #ifdef LITTLE_ENDIAN_BO
         return this->isLittleEndian();
         #else

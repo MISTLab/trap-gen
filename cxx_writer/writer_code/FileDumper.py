@@ -309,9 +309,9 @@ class Folder:
     # Check for boost libraries
     ########################################
     boostconf = conf.create_boost_configurator()
-    #boostconf.lib = ['thread', 'regex', 'date_time', 'program_options', 'system', 'filesystem','unit_test_framework', 'thread']
-    boostconf.lib = ['thread', 'regex', 'date_time', 'program_options', 'filesystem', 'unit_test_framework', 'thread']
-    boostconf.min_version = '1.33.0'
+    #boostconf.lib = ['thread', 'regex', 'date_time', 'program_options', 'system', 'filesystem','unit_test_framework']
+    boostconf.lib = ['thread', 'regex', 'date_time', 'program_options', 'filesystem', 'unit_test_framework']
+    boostconf.min_version = '1.35.0'
     boostconf.run()
 
     ##################################################
