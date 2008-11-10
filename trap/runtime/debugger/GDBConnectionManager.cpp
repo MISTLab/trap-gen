@@ -235,7 +235,7 @@ GDBRequest GDBConnectionManager::processRequest(){
                 return req;
             }
         }
-        if(recivedChar == 0x03){
+        if(receivedChar == 0x03){
             //It means that I received an interrupt from GDB, I stop the simulation and
             //become responsive
             req.type = GDBRequest::INTR;
@@ -522,7 +522,7 @@ GDBRequest GDBConnectionManager::processRequest(){
 bool GDBConnectionManager::checkInterrupt(){
     unsigned char recivedChar = '\x0';
     boost::system::error_code asioError;
-
+    std::cerr << "in check interrupt" << std::endl;
     //Reading the starting character
     do{
         this->socket->read_some(boost::asio::buffer(&recivedChar, 1), asioError);
@@ -533,6 +533,7 @@ bool GDBConnectionManager::checkInterrupt(){
             return false;
         }
         if((recivedChar & 0x7f) != 0x03){
+            std::cerr << "put " << recivedChar << " in queue" << std::endl;
             this->recvdChars.push_back(recivedChar);
             this->emptyQueueCond.notify_all();
         }
@@ -542,11 +543,16 @@ bool GDBConnectionManager::checkInterrupt(){
 
 ///Reads a character from the queue of ready characters
 unsigned char GDBConnectionManager::readQueueChar(){
+    std::cerr << "in read queue" << std::endl;
     boost::mutex::scoped_lock lock(this->queueMutex);
+    std::cerr << "got the lock" << std::endl;
     while(this->recvdChars.empty())
         this->emptyQueueCond.wait(lock);
+    std::cerr << "after the condition" << std::endl;
     unsigned char recvd = this->recvdChars.front();
+    std::cerr << "received character " << recvd << std::endl;
     this->recvdChars.pop_front();
+    return recvd;
 }
 
 ///Sends and interrupt message to the GDB debugger signaling that
