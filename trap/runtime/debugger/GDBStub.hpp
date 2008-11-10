@@ -71,13 +71,21 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
     enum stopType {BREAK=0, STEP, SEG, TIMEOUT, PAUSED, UNK};
     ///Thread used to send and receive responses with the GDB debugger
     struct GDBThread{
-        GDBStub<issueWidth> &stub;
-        GDBThread(GDBStub<issueWidth> &stub) : stub(stub){}
-        ///Main body of the thread: it simply waits for GDB requests
-        ///and takes the appropriate actions once the requests are decoded
+        GDBStub<issueWidth> &gdbStub;
+        GDBThread(GDBStub<issueWidth> &gdbStub) : gdbStub(gdbStub){}
         void operator()(){
-            while(stub.isConnected)
-                stub.waitForRequest();
+            while(true){
+                if(gdbStub.connManager.checkInterrupt()){
+                    gdbStub.step = 2;
+                }
+                else{
+                    //First of all I have to perform some cleanup
+                    gdbStub.breakManager.clearAllBreaks();
+                    gdbStub.step = 0;
+                    gdbStub.isConnected = false;
+                    break;
+                }
+            }
         }
     };
 
@@ -587,7 +595,16 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
             }
         }
         else{
-            rsp.type = GDBResponse::ERROR;
+            rsp.type = GDBResponse::ERROR;        //First of all I have to perform some cleanup
+        this->breakManager.clearAllBreaks();
+        //Finally I can send a positive response
+        GDBResponse resp;
+        resp.type = GDBResponse::OK;
+        this->connManager.sendResponse(resp);
+        this->step = 0;
+        this->resumeExecution();
+        this->isConnected = false;
+
         }
         this->connManager.sendResponse(rsp);
     }

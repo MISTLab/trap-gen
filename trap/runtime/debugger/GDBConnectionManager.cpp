@@ -47,6 +47,8 @@
 #include <signal.h>
 #include <boost/asio.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/thread/condition.hpp>
+#include <boost/thread/mutex.hpp>
 
 #include "utils.hpp"
 
@@ -87,10 +89,10 @@ GDBConnectionManager::~GDBConnectionManager(){
 ///this will be later used to communicate with GDB
 void GDBConnectionManager::initialize(unsigned int port){
     try{
-        asio::io_service io_service;
-        asio::ip::tcp::acceptor acceptor(io_service, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port));
+        boost::asio::io_service io_service;
+        boost::asio::ip::tcp::acceptor acceptor(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port));
 
-        this->socket = new asio::ip::tcp::socket(io_service);
+        this->socket = new boost::asio::ip::tcp::socket(io_service);
         std::cerr << "GDB: waiting for connections on port " << port << std::endl;
         acceptor.accept(*this->socket);
         std::cerr << "GDB: connection accepted on port " << port << std::endl;
@@ -128,7 +130,7 @@ void GDBConnectionManager::sendResponse(GDBResponse &response){
             else{
                 //it is a hex number representing a register and the second part
                 //represents the value of that register; TODO we should check that
-                //this is a real number
+                //this is really a number
                 payload += pairsIter->first + ':' + this->toHexString(pairsIter->second, response.size*2);
             }
             payload += ';';
@@ -176,7 +178,7 @@ void GDBConnectionManager::sendResponse(GDBResponse &response){
 
         //Finally I can send the packet on th network
         boost::system::error_code asioError;
-        asio::write(*this->socket, asio::buffer(packet.c_str(), packet.size()), asio::transfer_all(), asioError);
+        boost::asio::write(*this->socket, boost::asio::buffer(packet.c_str(), packet.size()), boost::asio::transfer_all(), asioError);
 
         #ifndef NDEBUG
         if(asioError){
@@ -186,27 +188,27 @@ void GDBConnectionManager::sendResponse(GDBResponse &response){
 
         //Now I have to check that the packet was correctly received, otherwise I
         //retransmitt it
-        int numRestries = 0;
+        int numRetries = 0;
         retry = false;
         do{
-            numRestries = 0;
+            numRetries = 0;
             do{
-                this->socket->read_some(asio::buffer(&ack, 1), asioError);
-                if(asioError == asio::error::eof){
+                ack = this->readQueueChar();
+                if(ack == '\x0'){
                     std::cerr << "Connection Unexpetedly closed by the GDB Debugger" << std::endl;
                     this->killed = true;
                     return;
                 }
-                numRestries++;
+                numRetries++;
             }
             while((ack & 0x7f) != '+' && (ack & 0x7f) != '-');
-            if(numRestries > 1){
+            if(numRetries > 1){
                 //Some random characters were received,  I signal an error
                 packet = "$E00#a5";
-                asio::write(*this->socket, asio::buffer(packet.c_str(), packet.size()), asio::transfer_all(), asioError);
+                boost::asio::write(*this->socket, boost::asio::buffer(packet.c_str(), packet.size()), boost::asio::transfer_all(), asioError);
                 retry = true;
             }
-        }while(numRestries > 1);
+        }while(numRetries > 1);
     }while((ack & 0x7f) == '-' || retry);
 }
 
@@ -220,13 +222,13 @@ GDBRequest GDBConnectionManager::processRequest(){
     GDBRequest req;
 
     do{
-        unsigned char recivedChar = '\x0';
+        unsigned char receivedChar = '\x0';
         boost::system::error_code asioError;
 
         //Reading the starting character
-        while((recivedChar & 0x7f) != '$' && recivedChar != 0x03){
-            this->socket->read_some(asio::buffer(&recivedChar, 1), asioError);
-            if(asioError == asio::error::eof){
+        while((receivedChar & 0x7f) != '$'){
+            receivedChar = this->readQueueChar();
+            if(receivedChar == '\x0'){
                 std::cerr << "Connection Unexpetedly closed by the GDB Debugger" << std::endl;
                 req.type = GDBRequest::ERROR;
                 this->killed = true;
@@ -242,22 +244,29 @@ GDBRequest GDBConnectionManager::processRequest(){
 
         //Now I have to start reading the payload: I go on until # is enocuntered;
         payload = "";
-        while((recivedChar & 0x7f) != '#'){
-            this->socket->read_some(asio::buffer(&recivedChar, 1), asioError);
-            if(asioError == asio::error::eof){
+        while((receivedChar & 0x7f) != '#'){
+            receivedChar = this->readQueueChar();
+            if(receivedChar == '\x0'){
                 std::cerr << "Connection Unexpetedly closed by the GDB Debugger" << std::endl;
                 req.type = GDBRequest::ERROR;
                 this->killed = true;
                 return req;
             }
-            if((recivedChar & 0x7f) != '#')
-                payload += (char)(recivedChar & 0x7f);
+            if((receivedChar & 0x7f) != '#')
+                payload += (char)(receivedChar & 0x7f);
         }
 
         //Finally I read the checksum: it should be composed of two characters
         char checkSum[2];
-        this->socket->read_some(asio::buffer(checkSum, 2), asioError);
-        if(asioError == asio::error::eof){
+        checkSum[0] = this->readQueueChar();
+        if(checkSum[0] == '\x0'){
+            std::cerr << "Connection Unexpetedly closed by the GDB Debugger" << std::endl;
+            req.type = GDBRequest::ERROR;
+            this->killed = true;
+            return req;
+        }
+        checkSum[1] = this->readQueueChar();
+        if(checkSum[1] == '\x0'){
             std::cerr << "Connection Unexpetedly closed by the GDB Debugger" << std::endl;
             req.type = GDBRequest::ERROR;
             this->killed = true;
@@ -275,7 +284,7 @@ GDBRequest GDBConnectionManager::processRequest(){
         else{
             checkRes = '-';
         }
-        asio::write(*this->socket, asio::buffer(&checkRes, 1), asio::transfer_all(), asioError);
+        boost::asio::write(*this->socket, boost::asio::buffer(&checkRes, 1), boost::asio::transfer_all(), asioError);
         if(asioError){
             std::cerr << __PRETTY_FUNCTION__ << ": WriteError " << asioError.message() << std::endl;
             req.type = GDBRequest::ERROR;
@@ -506,6 +515,38 @@ GDBRequest GDBConnectionManager::processRequest(){
     }
 
     return req;
+}
+
+///Keeps waiting for a character on the channel with the GDB
+///debugger
+bool GDBConnectionManager::checkInterrupt(){
+    unsigned char recivedChar = '\x0';
+    boost::system::error_code asioError;
+
+    //Reading the starting character
+    do{
+        this->socket->read_some(boost::asio::buffer(&recivedChar, 1), asioError);
+        if(asioError == boost::asio::error::eof){
+            std::cerr << "Connection Unexpetedly closed by the GDB Debugger" << std::endl;
+            this->recvdChars.push_back('\x0');
+            this->killed = true;
+            return false;
+        }
+        if((recivedChar & 0x7f) != 0x03){
+            this->recvdChars.push_back(recivedChar);
+            this->emptyQueueCond.notify_all();
+        }
+    }while((recivedChar & 0x7f) != 0x03);
+    return true;
+}
+
+///Reads a character from the queue of ready characters
+unsigned char GDBConnectionManager::readQueueChar(){
+    boost::mutex::scoped_lock lock(this->queueMutex);
+    while(this->recvdChars.empty())
+        this->emptyQueueCond.wait(lock);
+    unsigned char recvd = this->recvdChars.front();
+    this->recvdChars.pop_front();
 }
 
 ///Sends and interrupt message to the GDB debugger signaling that

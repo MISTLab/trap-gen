@@ -49,10 +49,11 @@
 
 #include <string>
 #include <vector>
+#include <list>
 #include <iostream>
 #include <boost/asio.hpp>
-
-using namespace boost;
+#include <boost/thread/condition.hpp>
+#include <boost/thread/mutex.hpp>
 
 /**
  * High level repesentation of a GDB request packet
@@ -105,52 +106,64 @@ struct GDBResponse{
  */
 class GDBConnectionManager{
   private:
-   ///Represents the currently open connection
-   asio::ip::tcp::socket * socket;
-   ///Specifies the endianess of the current processor; true means
-   ///that it is the same endianess of the host, false, otherwise
-   bool endianess;
-   ///Computes the checksum for the data
-   unsigned char computeChecksum(std::string &data);
-   ///Checks that the checksum included in the packet is correct
-   bool checkChecksum(std::string &data, char checkSum[2]);
-   ///Converts a generic numeric value into a string of hex numbers;
-   ///each hex number of the string is in the same order of the endianess
-   ///of the processor linked to this stub
-   std::string toHexString(unsigned int value, int numChars = -1);
-   ///Converts an hexadecimal number expressed with a string
-   ///into its correspondent integer number
-   ///each hex number of the string is in the same order of the endianess
-   ///of the processor linked to this stub
-   unsigned int toIntNum(std::string &toConvert);
-   ///Converts a hexadecimal number into the corresponding character string
-   std::string toStr(std::string &toConvert);
-   ///Converts a hex character to an int representing it
-   int chToHex(unsigned char ch);
-   ///Converts and integer hex to a char representing it
-   unsigned char hexToInt(unsigned int num);
-   ///Map used to convert hex strings in integers
-   std::map<char, unsigned int> HexMap;
-   ///Specifis whether communication has been coled by the other endpoint or not
-   bool killed;
+    ///Represents the currently open connection
+    boost::asio::ip::tcp::socket * socket;
+    ///Specifies the endianess of the current processor; true means
+    ///that it is the same endianess of the host, false, otherwise
+    bool endianess;
+    ///Computes the checksum for the data
+    unsigned char computeChecksum(std::string &data);
+    ///Checks that the checksum included in the packet is correct
+    bool checkChecksum(std::string &data, char checkSum[2]);
+    ///Converts a generic numeric value into a string of hex numbers;
+    ///each hex number of the string is in the same order of the endianess
+    ///of the processor linked to this stub
+    std::string toHexString(unsigned int value, int numChars = -1);
+    ///Converts an hexadecimal number expressed with a string
+    ///into its correspondent integer number
+    ///each hex number of the string is in the same order of the endianess
+    ///of the processor linked to this stub
+    unsigned int toIntNum(std::string &toConvert);
+    ///Converts a hexadecimal number into the corresponding character string
+    std::string toStr(std::string &toConvert);
+    ///Converts a hex character to an int representing it
+    int chToHex(unsigned char ch);
+    ///Converts and integer hex to a char representing it
+    unsigned char hexToInt(unsigned int num);
+    ///Map used to convert hex strings in integers
+    std::map<char, unsigned int> HexMap;
+    ///Specifis whether communication has been killed by the other endpoint or not
+    bool killed;
+    ///List of characters received from the GDB stub
+    std::list<unsigned char> recvdChars;
+    ///Mutex and condition variables managing access to the
+    ///queue of received characters
+    boost::mutex queueMutex;
+    boost::condition emptyQueueCond;
+
+    ///Reads a character from the queue of ready characters
+    unsigned char readQueueChar();
   public:
-   GDBConnectionManager(bool endianess);
-   ~GDBConnectionManager();
-   ///Creates a socket connection waiting on the specified port;
-   ///this will be later used to communicate with GDB
-   void initialize(unsigned int port);
-   ///Sends the response to the GDB debugger connected
-   void sendResponse(GDBResponse &response);
-   ///Waits for the sending of a packet from GDB; it then parses it and
-   ///translates it into the correct request
-   GDBRequest processRequest();
-   ///Closes the connection with the GDB debugger
-   void disconnect();
-   ///Sends and interrupt message to the GDB debugger signaling that
-   ///the execution of the program halted: this way the GDB
-   ///debugger becomes responsive and it is possible to debug the
-   ///program under test
-   void sendInterrupt();
+    GDBConnectionManager(bool endianess);
+    ~GDBConnectionManager();
+    ///Creates a socket connection waiting on the specified port;
+    ///this will be later used to communicate with GDB
+    void initialize(unsigned int port);
+    ///Sends the response to the GDB debugger connected
+    void sendResponse(GDBResponse &response);
+    ///Waits for the sending of a packet from GDB; it then parses it and
+    ///translates it into the correct request
+    GDBRequest processRequest();
+    ///Closes the connection with the GDB debugger
+    void disconnect();
+    ///Keeps waiting for a character on the channel with the GDB
+    ///debugger
+    bool checkInterrupt();
+    ///Sends and interrupt message to the GDB debugger signaling that
+    ///the execution of the program halted: this way the GDB
+    ///debugger becomes responsive and it is possible to debug the
+    ///program under test
+    void sendInterrupt();
 };
 
 #endif
