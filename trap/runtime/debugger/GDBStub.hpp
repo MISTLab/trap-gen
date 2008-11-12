@@ -435,7 +435,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
         this->breakEnabled = true;
         this->simStartTime = sc_time_stamp().to_double();
         //this->gdbPausedEvent.notify_all();
-        if(this-timeToGo > 0){
+        if(this->timeToGo > 0){
             this->pauseEvent.notify(sc_time(this->timeToGo, SC_PS));
         }
     }
