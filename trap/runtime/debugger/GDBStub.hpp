@@ -715,7 +715,6 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
                 //Ok,  finally I got the right command: lets see for
                 //how many nanoseconds I have to execute the continue
                 this->timeToGo = atof(req.extension.substr(spacePos + 1).c_str())*1e3;
-                std::cerr << "chosen time to go: " << this->timeToGo << std::endl;
                 if(this->timeToGo < 0){
                     resp.type = GDBResponse::OUTPUT;
                     resp.message = "Please specify a positive offset";

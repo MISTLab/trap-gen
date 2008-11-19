@@ -186,6 +186,8 @@ void GDBConnectionManager::sendResponse(GDBResponse &response){
         }
         #endif
 
+        if(this->killed)
+            return;
         //Now I have to check that the packet was correctly received, otherwise I
         //retransmitt it
         int numRetries = 0;
@@ -200,8 +202,7 @@ void GDBConnectionManager::sendResponse(GDBResponse &response){
                     return;
                 }
                 numRetries++;
-            }
-            while((ack & 0x7f) != '+' && (ack & 0x7f) != '-');
+            }while((ack & 0x7f) != '+' && (ack & 0x7f) != '-');
             if(numRetries > 1){
                 //Some random characters were received,  I signal an error
                 packet = "$E00#a5";
@@ -522,35 +523,31 @@ GDBRequest GDBConnectionManager::processRequest(){
 bool GDBConnectionManager::checkInterrupt(){
     unsigned char recivedChar = '\x0';
     boost::system::error_code asioError;
-    std::cerr << "in check interrupt" << std::endl;
     //Reading the starting character
     do{
         this->socket->read_some(boost::asio::buffer(&recivedChar, 1), asioError);
         if(asioError == boost::asio::error::eof){
-            std::cerr << "Connection Unexpetedly closed by the GDB Debugger" << std::endl;
             this->recvdChars.push_back('\x0');
             this->killed = true;
             return false;
         }
-        if((recivedChar & 0x7f) != 0x03){
-            std::cerr << "put " << recivedChar << " in queue" << std::endl;
+        if((recivedChar & 0x7f) != 0x03 && !this->killed){
             this->recvdChars.push_back(recivedChar);
             this->emptyQueueCond.notify_all();
         }
     }while((recivedChar & 0x7f) != 0x03);
-    return true;
+    if(this->killed)
+        return false;
+    else
+        return true;
 }
 
 ///Reads a character from the queue of ready characters
 unsigned char GDBConnectionManager::readQueueChar(){
-    std::cerr << "in read queue" << std::endl;
     boost::mutex::scoped_lock lock(this->queueMutex);
-    std::cerr << "got the lock" << std::endl;
     while(this->recvdChars.empty())
         this->emptyQueueCond.wait(lock);
-    std::cerr << "after the condition" << std::endl;
     unsigned char recvd = this->recvdChars.front();
-    std::cerr << "received character " << recvd << std::endl;
     this->recvdChars.pop_front();
     return recvd;
 }
