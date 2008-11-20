@@ -74,7 +74,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
         GDBStub<issueWidth> &gdbStub;
         GDBThread(GDBStub<issueWidth> &gdbStub) : gdbStub(gdbStub){}
         void operator()(){
-            while(true){
+            while(!gdbStub.isKilled){
                 if(gdbStub.connManager.checkInterrupt()){
                     gdbStub.step = 2;
                 }
@@ -215,11 +215,9 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
             case BREAK:{
                 //Here I have to determine the case of the breakpoint: it may be a normal
                 //breakpoint placed on an instruction or it may be a watch on a variable
-                #ifndef NDEBUG
                 if(this->breakReached == NULL){
                     THROW_EXCEPTION("I stopped because of a breakpoint, but it is NULL");
                 }
-                #endif
 
                 if(this->breakReached->type == Breakpoint<issueWidth>::HW ||
                             this->breakReached->type == Breakpoint<issueWidth>::MEM){
@@ -821,8 +819,10 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
     ///Overloading of the end_of_simulation method; it can be used to execute methods
     ///at the end of the simulation
     void end_of_simulation(){
-        if(this->isConnected)
+        if(this->isConnected){
+            this->isKilled = false;
             this->signalProgramEnd();
+        }
     }
     ///Starts the connection with the GDB client
     void initialize(unsigned int port = 1500){

@@ -53,7 +53,7 @@ except ImportError:
 import ARMIsa
 
 # Lets now start building the processor
-processor = trap.Processor('ARM7TDMI', systemc = False, instructionCache = True, fastFetch = True)
+processor = trap.Processor('ARM7TDMI', systemc = True, instructionCache = True, fastFetch = True)
 processor.setLittleEndian() #little endian
 processor.setWordsize(4, 8) #4 bytes per word, 8 bits per byte
 processor.setISA(ARMIsa.isa) #lets set the instruction set

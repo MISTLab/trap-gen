@@ -176,7 +176,7 @@ void GDBConnectionManager::sendResponse(GDBResponse &response){
         //Now I complete the packet with the checksum
         std::string packet = '$' + payload + '#' + this->toHexString(this->computeChecksum(payload), 2);
 
-        //Finally I can send the packet on th network
+        //Finally I can send the packet on the network
         boost::system::error_code asioError;
         boost::asio::write(*this->socket, boost::asio::buffer(packet.c_str(), packet.size()), boost::asio::transfer_all(), asioError);
 
@@ -187,7 +187,7 @@ void GDBConnectionManager::sendResponse(GDBResponse &response){
         #endif
 
         if(this->killed)
-            return;
+            break;
         //Now I have to check that the packet was correctly received, otherwise I
         //retransmitt it
         int numRetries = 0;

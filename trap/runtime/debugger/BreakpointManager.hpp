@@ -68,9 +68,6 @@ template <class AddressType> class BreakpointManager{
         this->breakpoints.clear();
     }
     bool addBreakpoint(typename Breakpoint<AddressType>::Type type, AddressType address, unsigned int length){
-        #ifndef NDEBUG
-        std::cerr << "GDB-break " << __PRETTY_FUNCTION__ << ": Adding Breakpoint at address " << address << std::endl;
-        #endif
         if(this->breakpoints.find(address) != this->lastBreak)
             return false;
         this->breakpoints[address].address = address;
@@ -81,9 +78,6 @@ template <class AddressType> class BreakpointManager{
     }
 
     bool removeBreakpoint(AddressType address){
-        #ifndef NDEBUG
-        std::cerr << "GDB-break " << __PRETTY_FUNCTION__ << ": Removing Breakpoint at address " << address << std::endl;
-        #endif
         if(this->breakpoints.find(address) == this->lastBreak)
             return false;
         this->breakpoints.erase(address);

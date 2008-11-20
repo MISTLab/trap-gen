@@ -736,11 +736,10 @@ def getCPPProc(self, model, trace):
         }
         """
     if self.systemc or model.startswith('acc'):
-        # TODO: Code for keeping time with systemc
-        pass
+        codeString += 'wait(numCycles*this->latency);\n'
     else:
-        codeString += 'this->totalCycles += numCycles;\nthis->numInstructions++;\n\n'
-    codeString += '}'
+        codeString += 'this->totalCycles += numCycles;\n'
+    codeString += 'this->numInstructions++;\n\n}'
 
     processorElements = []
     mainLoopCode = cxx_writer.writer_code.Code(codeString)
@@ -936,8 +935,8 @@ def getCPPProc(self, model, trace):
         attribute = cxx_writer.writer_code.Attribute(tlmPortName, cxx_writer.writer_code.Type('TLMPORT', 'memory.hpp'), 'pu')
         processorElements.append(attribute)
     if self.systemc or model.startswith('acc'):
-        # Here we need to insert the quantum keeper etc.
-        pass
+        latencyAttribute = cxx_writer.writer_code.Attribute('latency', cxx_writer.writer_code.sc_timeType, 'pu')
+        processorElements.append(latencyAttribute)
     else:
         totCyclesAttribute = cxx_writer.writer_code.Attribute('totalCycles', cxx_writer.writer_code.uintType, 'pu')
         processorElements.append(totCyclesAttribute)
@@ -1003,9 +1002,12 @@ def getCPPProc(self, model, trace):
         constrCode += 'this->totalCycles = 0;\n'
     constrCode += 'end_module();'
     constructorBody = cxx_writer.writer_code.Code(constrCode)
-    constructorParams = [cxx_writer.writer_code.Parameter('name', cxx_writer.writer_code.sc_module_nameType),
-                cxx_writer.writer_code.Parameter('latency', cxx_writer.writer_code.sc_timeType)]
-    publicConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['sc_module(name)'] + initElements)
+    constructorParams = [cxx_writer.writer_code.Parameter('name', cxx_writer.writer_code.sc_module_nameType)]
+    constructorInit = ['sc_module(name)']
+    if self.systemc or model.startswith('acc'):
+        constructorParams.append(cxx_writer.writer_code.Parameter('latency', cxx_writer.writer_code.sc_timeType))
+        constructorInit.append('latency(latency)')
+    publicConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, constructorInit + initElements)
     destrCode = """Processor::numInstances--;
     if(Processor::numInstances == 0){
         for(int i = 0; i < """ + str(maxInstrId + 1) + """; i++){
@@ -1255,9 +1257,10 @@ def getMainCode(self, model):
     boost::program_options::options_description desc("Processor simulator for """ + self.name + """");
     desc.add_options()
         ("help,h", "produces the help message")
-        ("debugger,d", "activates the use of the software debugger")
-        ("frequency,f", boost::program_options::value<double>(), "processor clock frequency specified in MHz [Default 1MHz]")
-        ("application,a", boost::program_options::value<std::string>(), "application to be executed on the simulator")
+        ("debugger,d", "activates the use of the software debugger")"""
+    if self.systemc or model.startswith('acc'):
+        code += """("frequency,f", boost::program_options::value<double>(), "processor clock frequency specified in MHz [Default 1MHz]")"""
+    code += """("application,a", boost::program_options::value<std::string>(), "application to be executed on the simulator")
     ;
 
     boost::program_options::variables_map vm;
@@ -1273,14 +1276,20 @@ def getMainCode(self, model):
         std::cerr << "It is necessary to specify the application which has to be simulated using the --application command line option" << std::endl << std::endl;
         std::cerr << desc << std::endl;
         return -1;
-    }
-    double latency = 10e-6; // 1us
-    if(vm.count("frequency") != 0){
-        latency = 1/(vm["frequency"].as<double>());
-    }
-    //Now we can procede with the actual instantiation of the processor
-    Processor procInst(\"""" + self.name + """\", sc_time(latency, SC_NS));
-    //And with the loading of the executable code
+    }"""
+    if self.systemc or model.startswith('acc'):
+        code += """double latency = 10e-6; // 1us
+        if(vm.count("frequency") != 0){
+            latency = 1/(vm["frequency"].as<double>());
+        }
+        //Now we can procede with the actual instantiation of the processor
+        Processor procInst(\"""" + self.name + """\", sc_time(latency*10e9, SC_NS));
+        """
+    else:
+        code += """//Now we can procede with the actual instantiation of the processor
+        Processor procInst(\"""" + self.name + """\");
+        """
+    code += """//And with the loading of the executable code
     ExecLoader loader(vm["application"].as<std::string>(), false);
     //Lets copy the binary code into memory
     unsigned char * programData = loader.getProgData();
@@ -1309,7 +1318,7 @@ def getMainCode(self, model):
     std::cout << "Execution Speed " << (double)procInst.numInstructions/(elapsedSec*1e6) << " MIPS" << std::endl;
     """
     if self.systemc or model.startswith('acc'):
-        code += 'std::cout << \"Simulated time \" << sc_simulation_time()/10e3 << \" ns\" << std::endl;\n'
+        code += 'std::cout << \"Simulated time \" << sc_time_stamp()/10e3 << std::endl;\n'
     else:
         code += 'std::cout << \"Elapsed \" << procInst.totalCycles << \" cycles\" << std::endl;\n'
     if self.endOp:
