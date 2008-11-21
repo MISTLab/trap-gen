@@ -603,9 +603,6 @@ def getCPPMemoryIf(self, model):
         publicMemDestr = cxx_writer.writer_code.Destructor(destructorBody, 'pu', True)
         localMemDecl.addDestructor(publicMemDestr)
         classes.append(localMemDecl)
-    # Finally I create all the necessary TLM memory ports
-    # TODO: create using all the newest TLM 2.0 the TLM ports; remember also
-    # to consider endianess issues
     return classes
 
 def getCPPProc(self, model, trace):
@@ -1233,10 +1230,118 @@ def getCPPIf(self, model):
     return ifClassDecl
 
 def getCPPExternalPorts(self, model):
+    return None
     # creates the processor external ports used for the
     # communication with the external world (the memory port
     # is not among this ports, it is treated separately)
-    return None
+    memIfType = cxx_writer.writer_code.Type('MemoryInterface', 'memory.hpp')
+    TLMMemoryType = cxx_writer.writer_code.Type('TLMMemory')
+    tlminitsocketType = cxx_writer.writer_code.Type('tlm_utils::simple_initiator_socket', [TLMMemoryType], 'tlm_utils/simple_initiator_socket.h')
+
+    readMemAliasCode = ''
+    writeMemAliasCode = ''
+    aliasAttrs = []
+    aliasParams = []
+    aliasInit = []
+    for alias in self.memAlias:
+        aliasAttrs.append(cxx_writer.writer_code.Attribute(alias.alias, resourceType[alias.alias].makeRef(), 'pri'))
+        aliasParams.append(cxx_writer.writer_code.Parameter(alias.alias, resourceType[alias.alias].makeRef()))
+        aliasInit.append(alias.alias + '(' + alias.alias + ')')
+        readMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\nreturn ' + alias.alias + ';\n}\n'
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n' + alias.alias + ' = datum;\nreturn;\n}\n'
+
+    tlmPortElements = []
+    emptyBody = cxx_writer.writer_code.Code('')
+    readCode = """
+        tlm::tlm_generic_payload trans;
+        //Check the delay .... how do we deal with it? we need to communicate with
+        //the main processor loop???
+        sc_time delay = sc_time(10, SC_NS);
+        if (dmi_ptr_valid){
+            if ( cmd == tlm::TLM_READ_COMMAND ){
+                memcpy(&data, dmi_data.get_dmi_ptr() + i, 4);
+                wait( dmi_data.get_read_latency() );
+            }
+        }
+        else{
+            trans.set_command(cmd);
+            trans.set_address( i );
+            tran.set_data_ptr( reinterpret_cast<unsigned char*>(&data) );
+            trans.set_data_length( 4 );
+            trans.et_streaming_width( 4 );
+            trans.set_byte_enable_ptr( 0 );
+            trans.set_dmi_allowed( false );
+            trans.set_response_status( tlm::TLM_INCOMPLETE_RESPONSE );
+
+            socket->b_transport(trans, delay);
+
+            if ( trans->is_response_error() ){
+                char txt[100];
+                sprintf(txt, "Error from b_transport, response status = %s",
+                        trans->get_response_string().c_str());
+                SC_REPORT_ERROR("TLM-2", txt);
+            }
+            if ( trans->is_dmi_allowed() ){
+                dmi_ptr_valid = socket->get_direct_mem_ptr( *trans, dmi_data );
+        }
+
+        //This is the debug interface ........
+        trans->set_address(0);
+        trans->set_read();
+        trans->set_data_length(128);
+
+        unsigned char* data = new unsigned char[128];
+        trans->set_data_ptr(data);
+
+        unsigned int n_bytes = socket->transport_dbg( *trans );
+
+        for (unsigned int i = 0; i < n_bytes; i += 4){
+        cout << "mem[" << i << "] = "
+            << *(reinterpret_cast<unsigned int*>( &data[i] )) << endl;
+        }
+        """
+    readBody = cxx_writer.writer_code.Code(readMemAliasCode + readCode)
+    readBody.addInclude('utils.hpp')
+    readBody.addInclude('tlm.h')
+    addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
+    readDecl = cxx_writer.writer_code.Method('read_word', readBody, archWordType, 'pu', [addressParam], const = True, inline = True, noException = True)
+    tlmPortElements.append(readDecl)
+    readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + 'return *(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
+    readDecl = cxx_writer.writer_code.Method('read_half', readBody, archHWordType, 'pu', [addressParam], const = True, noException = True)
+    memoryElements.append(readDecl)
+    readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + 'return *(' + str(archByteType.makePointer()) + ')(this->memory + (unsigned long)address);')
+    readDecl = cxx_writer.writer_code.Method('read_byte', readBody, archByteType, 'pu', [addressParam], const = True, noException = True)
+    tlmPortElements.append(readDecl)
+    writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '*(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
+    addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
+    datumParam = cxx_writer.writer_code.Parameter('datum', archWordType.makeRef().makeConst())
+    writeDecl = cxx_writer.writer_code.Method('write_word', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], inline = True, noException = True)
+    tlmPortElements.append(writeDecl)
+    writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '*(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
+    datumParam = cxx_writer.writer_code.Parameter('datum', archHWordType.makeRef().makeConst())
+    writeDecl = cxx_writer.writer_code.Method('write_half', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
+    tlmPortElements.append(writeDecl)
+    writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '*(' + str(archByteType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
+    datumParam = cxx_writer.writer_code.Parameter('datum', archByteType.makeRef().makeConst())
+    writeDecl = cxx_writer.writer_code.Method('write_byte', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
+    tlmPortElements.append(writeDecl)
+    lockDecl = cxx_writer.writer_code.Method('lock', emptyBody, cxx_writer.writer_code.voidType, 'pu')
+    tlmPortElements.append(lockDecl)
+    unlockDecl = cxx_writer.writer_code.Method('unlock', emptyBody, cxx_writer.writer_code.voidType, 'pu')
+    tlmPortElements.append(unlockDecl)
+    initSockAttr = cxx_writer.writer_code.Attribute('initSocket', tlminitsocketType, 'pu')
+    tlmPortElements.append(initSockAttr)
+
+    extPortDecl = cxx_writer.writer_code.ClassDeclaration('TLMMemory', tlmPortElements, [memIfType, cxx_writer.writer_code.sc_moduleType])
+    constructorBody = cxx_writer.writer_code.Code('this->memory = new char[size];')
+    constructorParams = [cxx_writer.writer_code.Parameter('size', cxx_writer.writer_code.uintType)]
+    publicExtPortConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams + aliasParams, ['size(size)'] + aliasInit)
+    extPortDecl.addConstructor(publicExtPortConstr)
+    destructorBody = cxx_writer.writer_code.Code('delete [] this->memory;')
+    publicExtPortDestr = cxx_writer.writer_code.Destructor(destructorBody, 'pu', True)
+    extPortDecl.addDestructor(publicExtPortDestr)
+
+    return extPortDecl
 
 def getTestMainCode(self):
     # Returns the code for the file which contains the main
