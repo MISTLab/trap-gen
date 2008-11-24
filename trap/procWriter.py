@@ -1265,13 +1265,18 @@ def getCPPIf(self, model):
     return ifClassDecl
 
 def getCPPExternalPorts(self, model):
-    return None
     # creates the processor external ports used for the
     # communication with the external world (the memory port
     # is not among this ports, it is treated separately)
+    from isa import resolveBitType
+    archWordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>')
+    archHWordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize/2) + '>')
+    archByteType = resolveBitType('BIT<' + str(self.byteSize) + '>')
+
     memIfType = cxx_writer.writer_code.Type('MemoryInterface', 'memory.hpp')
+    tlm_dmiType = cxx_writer.writer_code.Type('tlm::tlm_dmi', 'tlm.h')
     TLMMemoryType = cxx_writer.writer_code.Type('TLMMemory')
-    tlminitsocketType = cxx_writer.writer_code.TemplateType('tlm_utils::simple_initiator_socket', [TLMMemoryType], 'tlm_utils/simple_initiator_socket.h')
+    tlminitsocketType = cxx_writer.writer_code.TemplateType('tlm_utils::simple_initiator_socket', [TLMMemoryType, self.wordSize], 'tlm_utils/simple_initiator_socket.h')
     quantumKeeperType = cxx_writer.writer_code.Type('tlm_utils::tlm_quantumkeeper', 'tlm_utils/tlm_quantumkeeper.h')
 
     readMemAliasCode = ''
@@ -1288,84 +1293,103 @@ def getCPPExternalPorts(self, model):
 
     tlmPortElements = []
     emptyBody = cxx_writer.writer_code.Code('')
-    readCode = """
-        tlm::tlm_generic_payload trans;
-        //Check the delay .... how do we deal with it? we need to communicate with
-        //the main processor loop???
-        sc_time delay = sc_time(10, SC_NS);
-        if (dmi_ptr_valid){
-            if ( cmd == tlm::TLM_READ_COMMAND ){
-                memcpy(&data, dmi_data.get_dmi_ptr() + i, 4);
-                wait( dmi_data.get_read_latency() );
-            }
+
+    readCode = """ data = 0;
+        if (this->dmi_ptr_valid){
+            memcpy(&data, this->dmi_data.get_dmi_ptr() - this->dmi_data.get_start_address(), sizeof(data));
+            this->quantKeeper.inc(this->dmi_data.get_read_latency());
         }
         else{
-            trans.set_command(cmd);
-            trans.set_address( i );
-            tran.set_data_ptr( reinterpret_cast<unsigned char*>(&data) );
-            trans.set_data_length( 4 );
-            trans.et_streaming_width( 4 );
-            trans.set_byte_enable_ptr( 0 );
-            trans.set_dmi_allowed( false );
+            sc_time delay = this->quantKeeper.get_local_time();
+            tlm::tlm_generic_payload trans;
+            trans.set_address(address);
+            trans.set_read();
+            trans.set_data_ptr(data);
+            trans.set_data_length(sizeof(data));
+            trans.set_byte_enable_ptr(0);
+            trans.set_dmi_allowed(false);
             trans.set_response_status( tlm::TLM_INCOMPLETE_RESPONSE );
+            this->socket->b_transport(trans, delay);
 
-            socket->b_transport(trans, delay);
-
-            if ( trans->is_response_error() ){
-                char txt[100];
-                sprintf(txt, "Error from b_transport, response status = %s",
-                        trans->get_response_string().c_str());
-                SC_REPORT_ERROR("TLM-2", txt);
+            if(trans.is_response_error()){
+                std::string errorStr("Error from b_transport, response status = " + trans.get_response_string());
+                SC_REPORT_ERROR("TLM-2", errorStr.c_str());
             }
-            if ( trans->is_dmi_allowed() ){
-                dmi_ptr_valid = socket->get_direct_mem_ptr( *trans, dmi_data );
+            if(trans.is_dmi_allowed()){
+                this->dmi_data.init();
+                this->dmi_ptr_valid = this->socket->get_direct_mem_ptr(trans, this->dmi_data);
+            }
+            //Now lets keep track of time
+            this->quantKeeper.set(delay);
         }
+        //Now the code for endianess conversion: the processor is always modeled
+        //with the host endianess; in case they are different, the endianess
+        //is turned
         """
-    readBody = cxx_writer.writer_code.Code(readMemAliasCode + readCode)
+    if self.isBigEndian:
+        readCode += '#ifdef LITTLE_ENDIAN_BO\n'
+    else:
+        readCode += '#ifdef BIG_ENDIAN_BO\n'
+    readCode += """tlm_from_hostendian(&trans, """ + str(self.wordSize) + """);
+        #endif
+        return data;
+        """
+    readBody = cxx_writer.writer_code.Code(readMemAliasCode + str(archWordType) + readCode)
     readBody.addInclude('utils.hpp')
     readBody.addInclude('tlm.h')
     addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
     readDecl = cxx_writer.writer_code.Method('read_word', readBody, archWordType, 'pu', [addressParam], const = True, inline = True, noException = True)
     tlmPortElements.append(readDecl)
-    readBody = cxx_writer.writer_code.Code(readMemAliasCode + readCode)
+    readBody = cxx_writer.writer_code.Code(readMemAliasCode + str(archHWordType) + readCode)
     readDecl = cxx_writer.writer_code.Method('read_half', readBody, archHWordType, 'pu', [addressParam], const = True, noException = True)
-    memoryElements.append(readDecl)
-    readBody = cxx_writer.writer_code.Code(readMemAliasCode + readCode)
+    tlmPortElements.append(readDecl)
+    readBody = cxx_writer.writer_code.Code(readMemAliasCode + str(archByteType) + readCode)
     readDecl = cxx_writer.writer_code.Method('read_byte', readBody, archByteType, 'pu', [addressParam], const = True, noException = True)
     tlmPortElements.append(readDecl)
-    writeCode = """
-        tlm::tlm_generic_payload trans;
-        //Check the delay .... how do we deal with it? we need to communicate with
-        //the main processor loop???
-        sc_time delay = sc_time(10, SC_NS);
-        if (dmi_ptr_valid){
-            if ( cmd == tlm::TLM_READ_COMMAND ){
-                memcpy(&data, dmi_data.get_dmi_ptr() + i, 4);
-                wait( dmi_data.get_read_latency() );
-            }
+    writeCode = """if (this->dmi_ptr_valid){"""
+    if self.isBigEndian:
+        readCode += '#ifdef LITTLE_ENDIAN_BO'
+    else:
+        readCode += '#ifdef BIG_ENDIAN_BO'
+    readCode += """tlm_from_hostendian(&trans, """ + str(self.wordSize) + """);
+            #endif
+            memcpy(this->dmi_data.get_dmi_ptr() - this->dmi_data.get_start_address(), &datum, sizeof(datum));
+            this->quantKeeper.inc(this->dmi_data.get_write_latency());
         }
         else{
-            trans.set_command(cmd);
-            trans.set_address( i );
-            tran.set_data_ptr( reinterpret_cast<unsigned char*>(&data) );
-            trans.set_data_length( 4 );
-            trans.et_streaming_width( 4 );
-            trans.set_byte_enable_ptr( 0 );
-            trans.set_dmi_allowed( false );
-            trans.set_response_status( tlm::TLM_INCOMPLETE_RESPONSE );
+            sc_time delay = this->quantKeeper.get_local_time();
+            tlm::tlm_generic_payload trans;
+            trans.set_address(address);
+            trans.set_write();
+            trans.set_data_ptr(datum);
+            trans.set_data_length(sizeof(datum));
+            trans.set_byte_enable_ptr(0);
+            trans.set_dmi_allowed(false);
+            trans.set_response_status(tlm::TLM_INCOMPLETE_RESPONSE);
+            //Now the code for endianess conversion: the processor is always modeled
+            //with the host endianess; in case they are different, the endianess
+            //is turned
+            """
+    if self.isBigEndian:
+        readCode += '#ifdef LITTLE_ENDIAN_BO\n'
+    else:
+        readCode += '#ifdef BIG_ENDIAN_BO\n'
+    readCode += """tlm_from_hostendian(&trans, """ + str(self.wordSize) + """);
+            #endif
+            this->socket->b_transport(trans, delay);
 
-            socket->b_transport(trans, delay);
-
-            if ( trans->is_response_error() ){
-                char txt[100];
-                sprintf(txt, "Error from b_transport, response status = %s",
-                        trans->get_response_string().c_str());
-                SC_REPORT_ERROR("TLM-2", txt);
+            if(trans.is_response_error()){
+                std::string errorStr("Error from b_transport, response status = " + trans.get_response_string());
+                SC_REPORT_ERROR("TLM-2", errorStr.c_str());
             }
-            if ( trans->is_dmi_allowed() ){
-                dmi_ptr_valid = socket->get_direct_mem_ptr( *trans, dmi_data );
+            if(trans.is_dmi_allowed()){
+                this->dmi_data.init();
+                this->dmi_ptr_valid = this->socket->get_direct_mem_ptr(trans, this->dmi_data);
+            }
+            //Now lets keep track of time
+            this->quantKeeper.set(delay);
         }
-        """
+    """
     writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + writeCode)
     datumParam = cxx_writer.writer_code.Parameter('datum', archWordType.makeRef().makeConst())
     writeDecl = cxx_writer.writer_code.Method('write_word', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], inline = True, noException = True)
@@ -1377,58 +1401,59 @@ def getCPPExternalPorts(self, model):
     writeDecl = cxx_writer.writer_code.Method('write_byte', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
     tlmPortElements.append(writeDecl)
 
-    readCode = """
-        tlm::tlm_generic_payload trans;
-        trans->set_address(0);
-        trans->set_read();
-        trans->set_data_length(128);
-
-        unsigned char* data = new unsigned char[128];
-        trans->set_data_ptr(data);
-
-        unsigned int n_bytes = socket->transport_dbg( *trans );
-
-        for (unsigned int i = 0; i < n_bytes; i += 4){
-        cout << "mem[" << i << "] = "
-            << *(reinterpret_cast<unsigned int*>( &data[i] )) << endl;
-        }
+    readCode1 = """tlm::tlm_generic_payload trans;
+        trans->set_address(address);
+        trans->set_read();"""
+    readCode2 = """trans->set_data_ptr(data);
+        this->socket->transport_dbg(trans);
+        //Now the code for endianess conversion: the processor is always modeled
+        //with the host endianess; in case they are different, the endianess
+        //is turned
         """
-    readBody = cxx_writer.writer_code.Code(readMemAliasCode + readCode)
+    if self.isBigEndian:
+        readCode2 += '#ifdef LITTLE_ENDIAN_BO\n'
+    else:
+        readCode2 += '#ifdef BIG_ENDIAN_BO\n'
+    readCode2 += """tlm_from_hostendian(&trans, """ + str(self.wordSize) + """);
+        #endif
+        return data;
+        """
+    readBody = cxx_writer.writer_code.Code(readMemAliasCode + readCode1 + 'trans->set_data_length(' + str(self.wordSize) + ');\n' + str(archWordType) + ' data = 0;\n' + readCode2)
     readBody.addInclude('utils.hpp')
     readBody.addInclude('tlm.h')
     addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
-    readDecl = cxx_writer.writer_code.Method('read_word_dbg', readBody, archWordType, 'pu', [addressParam], const = True, inline = True, noException = True)
+    readDecl = cxx_writer.writer_code.Method('read_word_dbg', readBody, archWordType, 'pu', [addressParam], const = True, noException = True)
     tlmPortElements.append(readDecl)
-    readBody = cxx_writer.writer_code.Code(readMemAliasCode + readCode)
+    readBody = cxx_writer.writer_code.Code(readMemAliasCode + readCode1 + 'trans->set_data_length(' + str(self.wordSize/2) + ');\n' + str(archHWordType) + ' data = 0;\n' + readCode2)
     readDecl = cxx_writer.writer_code.Method('read_half_dbg', readBody, archHWordType, 'pu', [addressParam], const = True, noException = True)
-    memoryElements.append(readDecl)
-    readBody = cxx_writer.writer_code.Code(readMemAliasCode + readCode)
+    tlmPortElements.append(readDecl)
+    readBody = cxx_writer.writer_code.Code(readMemAliasCode + readCode1 + 'trans->set_data_length(1);\n' + str(archByteType) + ' data = 0;\n' + readCode2)
     readDecl = cxx_writer.writer_code.Method('read_byte_dbg', readBody, archByteType, 'pu', [addressParam], const = True, noException = True)
     tlmPortElements.append(readDecl)
-    writeCode = """
-        tlm::tlm_generic_payload trans;
-        trans->set_address(0);
-        trans->set_read();
-        trans->set_data_length(128);
-
-        unsigned char* data = new unsigned char[128];
-        trans->set_data_ptr(data);
-
-        unsigned int n_bytes = socket->transport_dbg( *trans );
-
-        for (unsigned int i = 0; i < n_bytes; i += 4){
-        cout << "mem[" << i << "] = "
-            << *(reinterpret_cast<unsigned int*>( &data[i] )) << endl;
-        }
+    writeCode1 = """tlm::tlm_generic_payload trans;
+        trans->set_address(address);
+        trans->set_write();"""
+    writeCode2 = """trans->set_data_ptr(&datum);
+        //Now the code for endianess conversion: the processor is always modeled
+        //with the host endianess; in case they are different, the endianess
+        //is turned
         """
-    writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + writeCode)
+    if self.isBigEndian:
+        writeCode2 += '#ifdef LITTLE_ENDIAN_BO\n'
+    else:
+        writeCode2 += '#ifdef BIG_ENDIAN_BO\n'
+    writeCode2 += """tlm_from_hostendian(&trans, """ + str(self.wordSize) + """);
+        #endif
+        this->socket->transport_dbg(trans);
+        """
+    writeBody = cxx_writer.writer_code.Code(readMemAliasCode + writeCode1 + 'trans->set_data_length(' + str(self.wordSize) + ');\n' + writeCode2)
     datumParam = cxx_writer.writer_code.Parameter('datum', archWordType.makeRef().makeConst())
-    writeDecl = cxx_writer.writer_code.Method('write_word_dbg', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], inline = True, noException = True)
+    writeDecl = cxx_writer.writer_code.Method('write_word_dbg', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
     tlmPortElements.append(writeDecl)
-    writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + writeCode)
+    writeBody = cxx_writer.writer_code.Code(readMemAliasCode + writeCode1 + 'trans->set_data_length(' + str(self.wordSize/2) + ');\n' + writeCode2)
     writeDecl = cxx_writer.writer_code.Method('write_half_dbg', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
     tlmPortElements.append(writeDecl)
-    writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + writeCode)
+    writeBody = cxx_writer.writer_code.Code(readMemAliasCode + writeCode1 + 'trans->set_data_length(1);\n' + writeCode2)
     writeDecl = cxx_writer.writer_code.Method('write_byte_dbg', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
     tlmPortElements.append(writeDecl)
 
@@ -1441,6 +1466,10 @@ def getCPPExternalPorts(self, model):
     tlmPortElements.append(initSockAttr)
     quantumKeeperAttribute = cxx_writer.writer_code.Attribute('quantKeeper', quantumKeeperType.makeRef(), 'pri')
     tlmPortElements.append(quantumKeeperAttribute)
+    dmi_ptr_validAttribute = cxx_writer.writer_code.Attribute('dmi_ptr_valid', cxx_writer.writer_code.boolType, 'pri')
+    tlmPortElements.append(dmi_ptr_validAttribute)
+    dmi_dataAttribute = cxx_writer.writer_code.Attribute('dmi_data', tlm_dmiType, 'pri')
+    tlmPortElements.append(dmi_dataAttribute)
 
     extPortDecl = cxx_writer.writer_code.ClassDeclaration('TLMMemory', tlmPortElements, [memIfType, cxx_writer.writer_code.sc_moduleType])
     constructorBody = cxx_writer.writer_code.Code('this->memory = new char[size];')
