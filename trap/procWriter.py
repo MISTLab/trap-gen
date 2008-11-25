@@ -1315,7 +1315,7 @@ def getCPPExternalPorts(self, model):
             tlm::tlm_generic_payload trans;
             trans.set_address(address);
             trans.set_read();
-            trans.set_data_ptr((unsigned char *)&data);
+            trans.set_data_ptr(reinterpret_cast<unsigned char*>(&data));
             trans.set_data_length(sizeof(data));
             trans.set_byte_enable_ptr(0);
             trans.set_dmi_allowed(false);
@@ -1372,7 +1372,7 @@ def getCPPExternalPorts(self, model):
             tlm::tlm_generic_payload trans;
             trans.set_address(address);
             trans.set_write();
-            trans.set_data_ptr((unsigned char *)&datum);
+            trans.set_data_ptr(reinterpret_cast<unsigned char*>(&datum));
             trans.set_data_length(sizeof(datum));
             trans.set_byte_enable_ptr(0);
             trans.set_dmi_allowed(false);
@@ -1556,6 +1556,20 @@ def getMainCode(self, model):
         code += """//Now we can procede with the actual instantiation of the processor
         Processor procInst(\"""" + self.name + """\");
         """
+    if len(self.tlmPorts) > 0:
+        code += """//Here we instantiate the memory and connect it
+        //wtih the processor
+        """
+        if model.endswith('LT'):
+            code += """MemoryLT<""" + str(len(self.tlmPorts)) + """, """ + str(self.wordSize) + """> mem("procMem", 1024*1024*2, sc_time(latency*10e9*2, SC_NS));
+            """
+        else:
+            code += """MemoryAT<""" + str(len(self.tlmPorts)) + """, """ + str(self.wordSize) + """> mem("procMem", 1024*1024*2, sc_time(latency*10e9*2, SC_NS));
+            """
+        numPort = 0
+        for tlmPortName in self.tlmPorts.keys():
+            code += 'procInst.' + tlmPortName + 'socket.bind(*(mem.socket[' + str(numPort) + ']));'
+            numPort += 1
     code += """//And with the loading of the executable code
     ExecLoader loader(vm["application"].as<std::string>(), false);
     //Lets copy the binary code into memory
@@ -1594,6 +1608,10 @@ def getMainCode(self, model):
     return 0;
     """
     mainCode = cxx_writer.writer_code.Code(code)
+    if model.endswith('LT'):
+        mainCode.addInclude('MemoryLT.hpp')
+    else:
+        mainCode.addInclude('MemoryAT.hpp')
     mainCode.addInclude('processor.hpp')
     mainCode.addInclude('utils.hpp')
     mainCode.addInclude('systemc.h')
