@@ -544,7 +544,7 @@ switch(shift_op) {
         }
         else if (shift_amm < 32){
             operand = rm >> shift_amm;
-            carry = ((rm & (0x01 << shift_amm - 1)) != 0);
+            carry = ((rm & (0x01 << (shift_amm - 1))) != 0);
         }
         else if (shift_amm == 32){
             operand = 0;
@@ -588,7 +588,7 @@ switch(shift_op) {
         }
         else{
             operand = RotateRight(shift_amm & 0x0000001F, rm);
-            carry = (rm & (0x01 << ((shift_amm & 0x0000001F) -1)) != 0);
+            carry = ((rm & (0x01 << ((shift_amm & 0x0000001F) -1))) != 0);
         }
         break;}
     default:{

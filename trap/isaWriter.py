@@ -471,8 +471,8 @@ def getCPPClasses(self, processor, modelType, trace):
         baseInitElement += processor.memory[0] + ', '
         instructionElements.append(attribute)
     for tlmPorts in processor.tlmPorts.keys():
-        attribute = cxx_writer.writer_code.Attribute(tlmPorts, cxx_writer.writer_code.Type('TLMPORT', 'memory.hpp'.makeRef()).makeRef(), 'pro')
-        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(tlmPorts, cxx_writer.writer_code.Type('TLMPORT', 'memory.hpp').makeRef()))
+        attribute = cxx_writer.writer_code.Attribute(tlmPorts, cxx_writer.writer_code.Type('TLMMemory', 'externalPorts.hpp').makeRef(), 'pro')
+        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(tlmPorts, cxx_writer.writer_code.Type('TLMMemory', 'externalPorts.hpp').makeRef()))
         initElements.append(tlmPorts + '(' + tlmPorts + ')')
         baseInitElement += tlmPorts + ', '
         instructionElements.append(attribute)
@@ -533,6 +533,8 @@ def getCPPClasses(self, processor, modelType, trace):
     return classes
 
 def getCPPTests(self, processor, modelType):
+    if not processor.memory:
+        return None
     # for each instruction I print the test: I do have to add some custom
     # code at the beginning in order to being able to access the private
     # part of the instructions
