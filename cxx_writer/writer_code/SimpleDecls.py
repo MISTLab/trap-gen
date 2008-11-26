@@ -179,6 +179,7 @@ charType = Type('char')
 ucharType = Type('unsigned char')
 boolType = Type('bool')
 sc_uint64Type = Type('sc_dt::uint64', 'systemc.h')
+sc_eventType = Type('sc_event', 'systemc.h')
 sc_moduleType = Type('sc_module', 'systemc.h')
 sc_module_nameType = Type('sc_module_name', 'systemc.h')
 sc_timeType = Type('sc_time', 'systemc.h')
@@ -194,6 +195,7 @@ charRefType = charType.makeRef()
 ucharRefType = ucharType.makeRef()
 boolRefType = boolType.makeRef()
 sc_uint64RefType = sc_uint64Type.makeRef()
+sc_eventRefType = sc_eventType.makeRef()
 sc_moduleRefType = sc_moduleType.makeRef()
 sc_module_nameRefType = sc_module_nameType.makeRef()
 sc_timeRefType = sc_timeType.makeRef()
@@ -208,6 +210,7 @@ charPtrType = charType.makePointer()
 ucharPtrType = ucharType.makePointer()
 boolPtrType = boolType.makePointer()
 sc_uint64PtrType = sc_uint64Type.makePointer()
+sc_eventPtrType = sc_eventType.makePointer()
 sc_modulePtrType = sc_moduleType.makePointer()
 sc_module_namePtrType = sc_module_nameType.makePointer()
 sc_timePtrType = sc_timeType.makeRef()
@@ -242,6 +245,19 @@ class Parameter(DumpElement):
 
     def getIncludes(self):
         return self.type.getIncludes()
+
+    def __str__(self):
+        outStr = str(self.type)
+        if self.input:
+            if self.restrict:
+                outStr += ' restrict'
+            outStr += ' ' + self.name
+            if self.initValue:
+                outStr += ' = ' + self.initValue
+        return outStr
+
+    def __repr__(self):
+        return self.__str__()
 
 class Variable(DumpElement):
     """Represents a variable of the program; this is a global variable, in the

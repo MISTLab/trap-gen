@@ -61,12 +61,16 @@ class Code:
 
     def addInclude(self, include):
         if type(include) == type(''):
-            self.includes.append(include)
+            if not include in self.includes.
+                self.includes.append(include)
         else:
-            self.includes += include
+            for i in include:
+                if not i in self.includes.
+                    self.includes.append(i)
 
     def addVariable(self, variable):
-        self.variables.append(variable)
+        if not variable in self.variables:
+            self.variables.append(variable)
 
     def __str__(self):
         codeStr = ''

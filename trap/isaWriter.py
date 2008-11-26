@@ -82,6 +82,7 @@ def getCppOperation(self, parameters = False):
 def getCppOpClass(self):
     # Returns a class (directly deriving from instruction) implementing the
     # method corresponding to the current operation
+    global baseInstrConstrParams
     from procWriter import baseInstrInitElement
     aliasType = cxx_writer.writer_code.Type('Alias', 'alias.hpp')
     instructionType = cxx_writer.writer_code.Type('Instruction', 'instructions.hpp')
@@ -121,8 +122,10 @@ def getCPPInstr(self, model, trace):
     behVars = []
     from procWriter import baseInstrInitElement
     global baseInstrConstrParams
+    baseInstrConstrParams = []
     constrInitList = ['Instruction(' + baseInstrInitElement + ')']
     global alreadyDeclared
+    global behClass
     for behaviors in self.postbehaviors.values() + self.prebehaviors.values():
         for beh in behaviors:
             if behClass.has_key(beh.name):
@@ -417,7 +420,9 @@ def getCPPClasses(self, processor, modelType, trace):
     # we now have to check if there is a non-inline behavior common to all instructions:
     # in this case I declare it here in the base instruction class
     global alreadyDeclared
+    alreadyDeclared = []
     global baseBehaviors
+    baseBehaviors = []
     for instr in self.instructions.values():
         for behaviors in instr.postbehaviors.values() + instr.prebehaviors.values():
             for beh in behaviors:
@@ -490,6 +495,7 @@ def getCPPClasses(self, processor, modelType, trace):
     # we now have to check all the operation and the behaviors of the instructions and create
     # the classes for each shared non-inline behavior
     global behClass
+    behClass = {}
     for instr in self.instructions.values():
         for behaviors in instr.postbehaviors.values() + instr.prebehaviors.values():
             for beh in behaviors:

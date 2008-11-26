@@ -57,9 +57,9 @@ template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryLT: publi
                                             sc_module(name), size(size), latency(latency){
         for(int i = 0; i < N_INITIATORS; i++){
             this->socket[i] = new tlm_utils::simple_target_socket<MemoryLT, sockSize>("mem_socket_" + boost::lexical_cast<std::string>(i));
-            this->socket[i]->register_b_transport(this, &Memory::b_transport);
-            this->socket[i]->register_get_direct_mem_ptr(this, &Memory::get_direct_mem_ptr);
-            this->socket[i]->register_transport_dbg(this, &Memory::transport_dbg);
+            this->socket[i]->register_b_transport(this, &MemoryLT::b_transport);
+            this->socket[i]->register_get_direct_mem_ptr(this, &MemoryLT::get_direct_mem_ptr);
+            this->socket[i]->register_transport_dbg(this, &MemoryLT::transport_dbg);
         }
 
         // Reset memory
@@ -69,10 +69,10 @@ template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryLT: publi
     ~MemoryLT(){
         for(int i = 0; i < N_INITIATORS; i++){
             delete this->socket[i];
-        }        
+        }
     }
 
-    void b_transport( tlm::tlm_generic_payload& trans, sc_time& delay ){
+    void b_transport(tlm::tlm_generic_payload& trans, sc_time& delay){
         tlm::tlm_command cmd = trans.get_command();
         sc_dt::uint64    adr = trans.get_address();
         unsigned char*   ptr = trans.get_data_ptr();
@@ -80,22 +80,22 @@ template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryLT: publi
         unsigned char*   byt = trans.get_byte_enable_ptr();
         unsigned int     wid = trans.get_streaming_width();
 
-        if (adr > this->size) {
-            trans.set_response_status( tlm::TLM_ADDRESS_ERROR_RESPONSE );
+        if(adr > this->size){
+            trans.set_response_status(tlm::TLM_ADDRESS_ERROR_RESPONSE );
             return;
         }
-        if (byt != 0) {
-            trans.set_response_status( tlm::TLM_BYTE_ENABLE_ERROR_RESPONSE );
+        if(byt != 0){
+            trans.set_response_status(tlm::TLM_BYTE_ENABLE_ERROR_RESPONSE );
             return;
         }
-        if (len > 4 || wid < len) {
+        if(len > 4 || wid < len){
             trans.set_response_status( tlm::TLM_BURST_ERROR_RESPONSE );
             return;
         }
 
-        if (trans.get_command() == tlm::TLM_READ_COMMAND)
+        if(trans.get_command() == tlm::TLM_READ_COMMAND)
             memcpy(ptr, &mem[adr], len);
-        else if (cmd == tlm::TLM_WRITE_COMMAND)
+        else if(cmd == tlm::TLM_WRITE_COMMAND)
             memcpy(&mem[adr], ptr, len);
 
         // Use temporal decoupling: add memory latency to delay argument
@@ -125,16 +125,16 @@ template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryLT: publi
     // TLM-2 debug transaction method
     unsigned int transport_dbg(tlm::tlm_generic_payload& trans){
         tlm::tlm_command cmd = trans.get_command();
-        sc_dt::uint64    adr = trans.get_address() / 4;
+        sc_dt::uint64    adr = trans.get_address()
         unsigned char*   ptr = trans.get_data_ptr();
         unsigned int     len = trans.get_data_length();
 
         // Calculate the number of bytes to be actually copied
         unsigned int num_bytes = (len < SIZE - adr) ? len : SIZE - adr;
 
-        if ( cmd == tlm::TLM_READ_COMMAND )
+        if(cmd == tlm::TLM_READ_COMMAND)
             memcpy(ptr, &mem[adr], num_bytes);
-        else if ( cmd == tlm::TLM_WRITE_COMMAND )
+        else if(cmd == tlm::TLM_WRITE_COMMAND)
             memcpy(&mem[adr], ptr, num_bytes);
 
         return num_bytes;
