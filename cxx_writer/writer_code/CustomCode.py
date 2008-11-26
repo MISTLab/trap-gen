@@ -61,11 +61,11 @@ class Code:
 
     def addInclude(self, include):
         if type(include) == type(''):
-            if not include in self.includes.
+            if not include in self.includes:
                 self.includes.append(include)
         else:
             for i in include:
-                if not i in self.includes.
+                if not i in self.includes:
                     self.includes.append(i)
 
     def addVariable(self, variable):

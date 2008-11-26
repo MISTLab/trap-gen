@@ -57,7 +57,7 @@ template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryAT: publi
                         sc_module(name), size(size), latency(latency), n_trans(0), response_in_progress(false),
                                             next_response_pending(0), end_req_pending(0), m_peq(this, &Target::peq_cb){
         for(int i = 0; i < N_INITIATORS; i++){
-            this->socket[i] = new tlm_utils::simple_target_socket<MemoryAT, sockSize>("mem_socket_" + boost::lexical_cast<std::string>(i));
+            this->socket[i] = new tlm_utils::simple_target_socket<MemoryAT, sockSize>(("mem_socket_" + boost::lexical_cast<std::string>(i)).c_str());
             this->socket[i]->register_nb_transport_fw(this, &MemoryAT::nb_transport_fw);
             this->socket[i]->register_transport_dbg(this, &MemoryAT::transport_dbg);
         }
@@ -78,10 +78,6 @@ template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryAT: publi
         // and to generate the appropriate error response
         if (byt != 0){
             trans.set_response_status( tlm::TLM_BYTE_ENABLE_ERROR_RESPONSE );
-            return tlm::TLM_COMPLETED;
-        }
-        if(len > 4 || wid < len){
-            trans.set_response_status( tlm::TLM_BURST_ERROR_RESPONSE );
             return tlm::TLM_COMPLETED;
         }
 

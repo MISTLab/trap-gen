@@ -122,7 +122,6 @@ def getCPPInstr(self, model, trace):
     behVars = []
     from procWriter import baseInstrInitElement
     global baseInstrConstrParams
-    baseInstrConstrParams = []
     constrInitList = ['Instruction(' + baseInstrInitElement + ')']
     global alreadyDeclared
     global behClass
@@ -443,6 +442,7 @@ def getCPPClasses(self, processor, modelType, trace):
     # initialize them through the constructor
     initElements = []
     global baseInstrConstrParams
+    baseInstrConstrParams = []
     baseInitElement = 'Instruction('
     from procWriter import resourceType
     for reg in processor.regs:

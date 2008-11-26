@@ -1645,7 +1645,7 @@ def getMainCode(self, model):
             """
         numPort = 0
         for tlmPortName in self.tlmPorts.keys():
-            code += 'procInst.' + tlmPortName + 'socket.bind(*(mem.socket[' + str(numPort) + ']));'
+            code += 'procInst.' + tlmPortName + '.initSocket.bind(*(mem.socket[' + str(numPort) + ']));'
             numPort += 1
     code += """//And with the loading of the executable code
     ExecLoader loader(vm["application"].as<std::string>(), false);
