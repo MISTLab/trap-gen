@@ -1633,6 +1633,7 @@ def getMainCode(self, model):
         code += """//Now we can procede with the actual instantiation of the processor
         Processor procInst(\"""" + self.name + """\");
         """
+    instrMemName = ''
     if len(self.tlmPorts) > 0:
         code += """//Here we instantiate the memory and connect it
         //wtih the processor
@@ -1644,15 +1645,19 @@ def getMainCode(self, model):
             code += """MemoryAT<""" + str(len(self.tlmPorts)) + """, """ + str(self.wordSize) + """> mem("procMem", 1024*1024*2, sc_time(latency*10e9*2, SC_NS));
             """
         numPort = 0
-        for tlmPortName in self.tlmPorts.keys():
-            code += 'procInst.' + tlmPortName + '.initSocket.bind(*(mem.socket[' + str(numPort) + ']));'
+        for tlmPortName, fetch in self.tlmPorts.items():
+            code += 'procInst.' + tlmPortName + '.initSocket.bind(*(mem.socket[' + str(numPort) + ']));\n'
             numPort += 1
+            if fetch:
+                instrMemName = 'mem'
+    if instrMemName == '' and self.memory:
+        instrMemName = 'procInst.' + self.memory[0]
     code += """//And with the loading of the executable code
     ExecLoader loader(vm["application"].as<std::string>(), false);
     //Lets copy the binary code into memory
     unsigned char * programData = loader.getProgData();
     for(unsigned int i = 0; i < loader.getProgDim(); i++){
-        procInst.dataMem.write_byte(loader.getDataStart() + i, programData[i]);
+        """ + instrMemName + """.write_byte(loader.getDataStart() + i, programData[i]);
     }
     //Finally I can set the processor variables
     procInst.ENTRY_POINT = loader.getProgStart();

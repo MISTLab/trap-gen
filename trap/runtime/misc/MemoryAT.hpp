@@ -49,6 +49,8 @@
 #include <boost/lexical_cast.hpp>
 #include <string>
 
+#include <utils.hpp>
+
 template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryAT: public sc_module{
     public:
     tlm_utils::simple_target_socket<MemoryLT, sockSize> * socket[N_INITIATORS];
@@ -228,6 +230,14 @@ template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryAT: publi
         return num_bytes;
     }
 
+    //Method used to directly write a word into memory; it is mainly used to load the
+    //application program into memory
+    void write_byte(const unsigned int & address, const unsigned char & datum){
+        if(address >= this->size){
+            THROW_ERROR("Address " << std::hex << std::showbase << address << " out of memory");
+        }
+        memcpy(&this->mem[address], &datum, 1);
+    }
 
     private:
     const sc_time latency;
