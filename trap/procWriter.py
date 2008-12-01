@@ -1327,7 +1327,7 @@ def getCPPExternalPorts(self, model):
             // Transaction could have arrived through return path or backward path
             if (phase == tlm::END_REQ || (&trans == request_in_progress && phase == tlm::BEGIN_RESP)){
                 // The end of the BEGIN_REQ phase
-                request_in_progress = 0;
+                request_in_progress = NULL;
                 end_request_event.notify();
             }
             else if (phase == tlm::BEGIN_REQ || phase == tlm::END_RESP){
@@ -1335,39 +1335,29 @@ def getCPPExternalPorts(self, model):
             }
 
             if (phase == tlm::BEGIN_RESP){
-                check_transaction( trans );
+                if (trans.is_response_error()){
+                    SC_REPORT_ERROR("TLM-2", ("Transaction returned with error, response status = " + trans.get_response_string()).c_str());
+                }
 
                 // Send final phase transition to target
                 tlm::tlm_phase fw_phase = tlm::END_RESP;
-                sc_time delay = sc_time(rand_ps(), SC_PS);
-                socket->nb_transport_fw( trans, fw_phase, delay );
-                // Ignore return value
+                sc_time delay = SC_ZERO_TIME;
+                initSocket->nb_transport_fw(trans, fw_phase, delay);
+                if (trans.is_response_error()){
+                    SC_REPORT_ERROR("TLM-2", ("Transaction returned with error, response status = " + \
+                        trans.get_response_string()).c_str());
+                }
+                this->end_response_event.notify(delay);
             }
             """
         helperBody = cxx_writer.writer_code.Code(helperCode)
-        helperDecl = cxx_writer.writer_code.Method('peq_cb', helperBody, cxx_writer.writer_code.voidType, 'pu', [transParam, phaseParam], inline = True, noException = True)
-        tlmPortElements.append(helperDecl)
-
-        helperCode = """// Called on receiving BEGIN_RESP or TLM_COMPLETED
-            if (trans.is_response_error()){
-                SC_REPORT_ERROR("TLM-2", ("Transaction returned with error, response status = " + trans.get_response_string()).c_str());
-            }
-
-            tlm::tlm_command cmd = trans.get_command();
-            sc_dt::uint64    adr = trans.get_address();
-            int*             ptr = reinterpret_cast<int*>( trans.get_data_ptr() );
-
-            // Allow the memory manager to free the transaction object
-            trans.release();
-            """
-        helperBody = cxx_writer.writer_code.Code(helperCode)
-        helperDecl = cxx_writer.writer_code.Method('check_transaction', helperBody, cxx_writer.writer_code.voidType, 'pu', [transParam], inline = True, noException = True)
+        phaseParam = cxx_writer.writer_code.Parameter('phase', phaseType.makeRef().makeConst())
+        helperDecl = cxx_writer.writer_code.Method('peq_cb', helperBody, cxx_writer.writer_code.voidType, 'pu', [transParam, phaseParam])
         tlmPortElements.append(helperDecl)
 
         tlmPortElements.append(cxx_writer.writer_code.Attribute('request_in_progress', payloadType.makePointer(), 'pri'))
         tlmPortElements.append(cxx_writer.writer_code.Attribute('end_request_event', cxx_writer.writer_code.sc_eventType, 'pri'))
-        peqType = cxx_writer.writer_code.TemplateType('tlm_utils::peq_with_cb_and_phase', [TLMMemoryType], 'tlm_utils/peq_with_cb_and_phase.h')
-        tlmPortElements.append(cxx_writer.writer_code.Attribute('m_peq', peqType, 'pri'))
+        tlmPortElements.append(cxx_writer.writer_code.Attribute('end_response_event', cxx_writer.writer_code.sc_eventType, 'pri'))
 
     if model.endswith('LT'):
         readCode = """ data = 0;
@@ -1402,16 +1392,57 @@ def getCPPExternalPorts(self, model):
             //with the host endianess; in case they are different, the endianess
             //is turned
             """
-        if self.isBigEndian:
-            readCode += '#ifdef LITTLE_ENDIAN_BO\n'
-        else:
-            readCode += '#ifdef BIG_ENDIAN_BO\n'
-        readCode += """tlm_from_hostendian(&trans, """ + str(self.wordSize) + """);
-            #endif
-            return data;
-            """
     else:
-        readCode = """"""
+        readCode = """ data = 0;
+        tlm::tlm_generic_payload trans;
+        trans.set_address(address);
+        trans.set_read();
+        trans.set_data_ptr(reinterpret_cast<unsigned char*>(&data));
+        trans.set_data_length(sizeof(data));
+        trans.set_byte_enable_ptr(0);
+        trans.set_dmi_allowed(false);
+        trans.set_response_status(tlm::TLM_INCOMPLETE_RESPONSE);
+
+        if(this->request_in_progress != NULL){
+            wait(this->end_request_event);
+        }
+        request_in_progress = &trans;
+
+        // Non-blocking transport call on the forward path
+        sc_time delay = SC_ZERO_TIME;
+        tlm::tlm_phase phase = tlm::BEGIN_REQ;
+        tlm::tlm_sync_enum status;
+        status = initSocket->nb_transport_fw(trans, phase, delay);
+
+        if(trans.is_response_error()){
+            std::string errorStr("Error from nb_transport_fw, response status = " + trans.get_response_string());
+            SC_REPORT_ERROR("TLM-2", errorStr.c_str());
+        }
+
+        // Check value returned from nb_transport_fw
+        if(status == tlm::TLM_UPDATED){
+            // The timing annotation must be honored
+            m_peq.notify(trans, phase, delay);
+            wait(this->end_response_event);
+        }
+        else if(status == tlm::TLM_COMPLETED){
+            // The completion of the transaction necessarily ends the BEGIN_REQ phase
+            this->request_in_progress = NULL;
+            // The target has terminated the transaction, I check the correctness
+            if(trans.is_response_error()){
+                SC_REPORT_ERROR("TLM-2", ("Transaction returned with error, response status = " + trans.get_response_string()).c_str());
+            }
+        }
+        wait(this->end_response_event);
+        """
+    if self.isBigEndian:
+        readCode += '#ifdef LITTLE_ENDIAN_BO\n'
+    else:
+        readCode += '#ifdef BIG_ENDIAN_BO\n'
+    readCode += """tlm_from_hostendian(&trans, """ + str(self.wordSize) + """);
+        #endif
+        return data;
+        """
     readBody = cxx_writer.writer_code.Code(readMemAliasCode + str(archWordType) + readCode)
     readBody.addInclude('utils.hpp')
     readBody.addInclude('tlm.h')
@@ -1470,7 +1501,56 @@ def getCPPExternalPorts(self, model):
             }
         """
     else:
-        writeCode = """"""
+        writeCode = """tlm::tlm_generic_payload trans;
+        trans.set_address(address);
+        trans.set_write();
+        trans.set_data_ptr((unsigned char*)&datum);
+        trans.set_data_length(sizeof(datum));
+        trans.set_byte_enable_ptr(0);
+        trans.set_dmi_allowed(false);
+        trans.set_response_status(tlm::TLM_INCOMPLETE_RESPONSE);
+
+        if(this->request_in_progress != NULL){
+            wait(this->end_request_event);
+        }
+        request_in_progress = &trans;
+        //Now the code for endianess conversion: the processor is always modeled
+        //with the host endianess; in case they are different, the endianess
+        //is turned
+        """
+        if self.isBigEndian:
+            writeCode += '#ifdef LITTLE_ENDIAN_BO\n'
+        else:
+            writeCode += '#ifdef BIG_ENDIAN_BO\n'
+        writeCode += """tlm_from_hostendian(&trans, """ + str(self.wordSize) + """);
+                #endif
+        // Non-blocking transport call on the forward path
+        sc_time delay = SC_ZERO_TIME;
+        tlm::tlm_phase phase = tlm::BEGIN_REQ;
+        tlm::tlm_sync_enum status;
+        status = initSocket->nb_transport_fw(trans, phase, delay);
+
+        if(trans.is_response_error()){
+            std::string errorStr("Error from nb_transport_fw, response status = " + trans.get_response_string());
+            SC_REPORT_ERROR("TLM-2", errorStr.c_str());
+        }
+
+        // Check value returned from nb_transport_fw
+        if(status == tlm::TLM_UPDATED){
+            // The timing annotation must be honored
+            m_peq.notify(trans, phase, delay);
+            wait(this->end_response_event);
+        }
+        else if(status == tlm::TLM_COMPLETED){
+            // The completion of the transaction necessarily ends the BEGIN_REQ phase
+            this->request_in_progress = NULL;
+            // The target has terminated the transaction, I check the correctness
+            if(trans.is_response_error()){
+                SC_REPORT_ERROR("TLM-2", ("Transaction returned with error, response status = " + trans.get_response_string()).c_str());
+            }
+        }
+        wait(this->end_response_event);
+        """
     writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + writeCode)
     datumParam = cxx_writer.writer_code.Parameter('datum', archWordType.makeRef().makeConst())
     writeDecl = cxx_writer.writer_code.Method('write_word', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], inline = True, noException = True)
@@ -1566,6 +1646,10 @@ def getCPPExternalPorts(self, model):
         tlmPortElements.append(dmi_dataAttribute)
         constructorCode += 'this->dmi_ptr_valid = false;\n'
     else:
+        peqType = cxx_writer.writer_code.TemplateType('tlm_utils::peq_with_cb_and_phase', [TLMMemoryType], 'tlm_utils/peq_with_cb_and_phase.h')
+        tlmPortElements.append(cxx_writer.writer_code.Attribute('m_peq', peqType, 'pri'))
+        tlmPortInit.append('m_peq(this, &TLMMemory::peq_cb)')
+        tlmPortInit.append('request_in_progress(NULL)')
         constructorCode += """// Register callbacks for incoming interface method calls
             this->initSocket.register_nb_transport_bw(this, &TLMMemory::nb_transport_bw);
             """
