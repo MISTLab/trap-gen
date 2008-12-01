@@ -91,10 +91,12 @@ template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryLT: publi
             return;
         }
 
-        if(trans.get_command() == tlm::TLM_READ_COMMAND)
+        if(trans.get_command() == tlm::TLM_READ_COMMAND){
             memcpy(ptr, &mem[adr], len);
-        else if(cmd == tlm::TLM_WRITE_COMMAND)
+        }
+        else if(cmd == tlm::TLM_WRITE_COMMAND){
             memcpy(&mem[adr], ptr, len);
+        }
 
         // Use temporal decoupling: add memory latency to delay argument
         delay += this->latency;
@@ -144,7 +146,7 @@ template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryLT: publi
         if(address >= this->size){
             THROW_ERROR("Address " << std::hex << std::showbase << address << " out of memory");
         }
-        memcpy(&this->mem[address], &datum, 1);
+        this->mem[address] = datum;
     }
 
     private:

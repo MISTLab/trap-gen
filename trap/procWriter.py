@@ -1372,7 +1372,7 @@ def getCPPExternalPorts(self, model):
     if model.endswith('LT'):
         readCode = """ data = 0;
             if (this->dmi_ptr_valid){
-                memcpy(&data, this->dmi_data.get_dmi_ptr() - this->dmi_data.get_start_address(), sizeof(data));
+                memcpy(&data, this->dmi_data.get_dmi_ptr() - this->dmi_data.get_start_address() + address, sizeof(data));
                 this->quantKeeper.inc(this->dmi_data.get_read_latency());
             }
             else{
@@ -1432,7 +1432,7 @@ def getCPPExternalPorts(self, model):
             writeCode += '#ifdef BIG_ENDIAN_BO\n'
         writeCode += """tlm_from_hostendian(&trans, """ + str(self.wordSize) + """);
                 #endif
-                memcpy(this->dmi_data.get_dmi_ptr() - this->dmi_data.get_start_address(), &datum, sizeof(datum));
+                memcpy(this->dmi_data.get_dmi_ptr() - this->dmi_data.get_start_address() + address, &datum, sizeof(datum));
                 this->quantKeeper.inc(this->dmi_data.get_write_latency());
             }
             else{
@@ -1639,10 +1639,10 @@ def getMainCode(self, model):
         //wtih the processor
         """
         if model.endswith('LT'):
-            code += """MemoryLT<""" + str(len(self.tlmPorts)) + """, """ + str(self.wordSize) + """> mem("procMem", 1024*1024*2, sc_time(latency*10e9*2, SC_NS));
+            code += """MemoryLT<""" + str(len(self.tlmPorts)) + """, """ + str(self.wordSize) + """> mem("procMem", 1024*1024*10, sc_time(latency*10e9*2, SC_NS));
             """
         else:
-            code += """MemoryAT<""" + str(len(self.tlmPorts)) + """, """ + str(self.wordSize) + """> mem("procMem", 1024*1024*2, sc_time(latency*10e9*2, SC_NS));
+            code += """MemoryAT<""" + str(len(self.tlmPorts)) + """, """ + str(self.wordSize) + """> mem("procMem", 1024*1024*10, sc_time(latency*10e9*2, SC_NS));
             """
         numPort = 0
         for tlmPortName, fetch in self.tlmPorts.items():
@@ -1652,7 +1652,8 @@ def getMainCode(self, model):
                 instrMemName = 'mem'
     if instrMemName == '' and self.memory:
         instrMemName = 'procInst.' + self.memory[0]
-    code += """//And with the loading of the executable code
+    code += """
+    //And with the loading of the executable code
     ExecLoader loader(vm["application"].as<std::string>(), false);
     //Lets copy the binary code into memory
     unsigned char * programData = loader.getProgData();

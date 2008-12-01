@@ -114,8 +114,6 @@ LR_FIQ = trap.AliasRegister('LR_FIQ', 'RB[29]')
 processor.addAliasReg(LR_FIQ)
 PC = trap.AliasRegister('PC', 'REGS[15]')
 # Special default value, others are PROGRAM_LIMIT ...
-# I also set the offset
-#PC.setDefaultValue(('ENTRY_POINT', 8))
 PC.setDefaultValue('ENTRY_POINT')
 processor.addAliasReg(PC)
 # Memory alias: registers which are memory mapped:
@@ -165,6 +163,6 @@ processor.setABI(abi)
 
 # Finally we can dump the processor on file
 #processor.write(folder = 'processor', models = ['funcLT'], dumpDecoderName = 'decoder.dot')
-processor.write(folder = 'processor', models = ['funcLT'], trace = True)
-#processor.write(folder = 'processor', models = ['funcLT'])
+#processor.write(folder = 'processor', models = ['funcLT'], trace = True)
+processor.write(folder = 'processor', models = ['funcLT'])
 #processor.write(folder = 'processor', models = ['funcAT', 'funcLT'])
