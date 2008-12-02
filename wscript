@@ -163,7 +163,6 @@ def set_options(opt):
     opt.tool_options('compiler_cc')
     opt.tool_options('compiler_cxx')
     opt.add_option('--py-install-dir', type='string', help='Folder where the python files will be installed', dest='pyinstalldir')
-#    opt.tool_options('boost', option_group=build_options)
+    opt.tool_options('boost', option_group=build_options)
     # Specify SystemC and TLM path
     opt.add_option('--with-systemc', type='string', help='SystemC installation directory', dest='systemcdir' )
-#    opt.add_option('--with-tlm', type='string', help='TLM installation directory', dest='tlmdir')
