@@ -152,7 +152,7 @@ def configure(conf):
     if Options.options.pyinstalldir:
         conf.env['PYTHON_INSTALL_DIR'] = Options.options.pyinstalldir
     else:
-        conf.env['PYTHON_INSTALL_DIR'] = '${PYTHONDIR}'
+        conf.env['PYTHON_INSTALL_DIR'] = conf.env['PYTHONDIR']
 
 def set_options(opt):
 
