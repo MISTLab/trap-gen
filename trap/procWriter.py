@@ -57,6 +57,26 @@ resourceType = {}
 baseInstrInitElement = ''
 aliasGraph = None
 
+hash_map_include = """
+#ifdef __GNUC__
+#ifdef __GNUC_MINOR__
+#if (__GNUC__ >= 4 && __GNUC_MINOR__ >= 3)
+#include <tr1/unordered_map>
+#define template_map std::tr1::unordered_map
+#else
+#include <ext/hash_map>
+#define  template_map __gnu_cxx::hash_map
+#endif
+#else
+#include <ext/hash_map>
+#define  template_map __gnu_cxx::hash_map
+#endif
+#else
+#include <ext/hash_map>
+#define  template_map __gnu_cxx::hash_map
+#endif
+"""
+
 def getRegistersBitfields(self):
     addedKeys = []
     defineCode = ''
@@ -637,7 +657,7 @@ def getCPPProc(self, model, trace):
     ToolsManagerType = cxx_writer.writer_code.TemplateType('ToolsManager', [fetchWordType], 'ToolsIf.hpp')
     codeString = ''
     if self.instructionCache:
-        codeString += '__gnu_cxx::hash_map< ' + str(fetchWordType) + ', Instruction * >::iterator instrCacheEnd = Processor::instrCache.end();\n'
+        codeString += 'template_map< ' + str(fetchWordType) + ', Instruction * >::iterator instrCacheEnd = Processor::instrCache.end();\n'
     codeString += 'while(true){\n'
     codeString += 'unsigned int numCycles = 0;\n'
 
@@ -676,7 +696,7 @@ def getCPPProc(self, model, trace):
             codeString += fetchAddress
         codeString += ' << std::endl;\n'
     if self.instructionCache:
-        codeString += '__gnu_cxx::hash_map< ' + str(fetchWordType) + ', Instruction * >::iterator cachedInstr = Processor::instrCache.find('
+        codeString += 'template_map< ' + str(fetchWordType) + ', Instruction * >::iterator cachedInstr = Processor::instrCache.find('
         if self.fastFetch:
             codeString += 'curPC);'
         else:
@@ -1004,8 +1024,8 @@ def getCPPProc(self, model, trace):
     processorElements.append(instructionsAttribute)
     if self.instructionCache:
         cacheAttribute = cxx_writer.writer_code.Attribute('instrCache',
-                        cxx_writer.writer_code.TemplateType('__gnu_cxx::hash_map',
-                            [fetchWordType, IntructionTypePtr], 'ext/hash_map'), 'pri', True)
+                        cxx_writer.writer_code.TemplateType('template_map',
+                            [fetchWordType, IntructionTypePtr], hash_map_include), 'pri', True)
         processorElements.append(cacheAttribute)
     numProcAttribute = cxx_writer.writer_code.Attribute('numInstances',
                             cxx_writer.writer_code.intType, 'pri', True, '0')
@@ -1058,7 +1078,7 @@ def getCPPProc(self, model, trace):
     """
     if self.instructionCache:
         destrCode += """Processor::INSTRUCTIONS = NULL;
-        __gnu_cxx::hash_map< """ + str(fetchWordType) + """, Instruction * >::const_iterator cacheIter, cacheEnd;
+        template_map< """ + str(fetchWordType) + """, Instruction * >::const_iterator cacheIter, cacheEnd;
         for(cacheIter = Processor::instrCache.begin(), cacheEnd = Processor::instrCache.end(); cacheIter != cacheEnd; cacheIter++){
             delete cacheIter->second;
         }

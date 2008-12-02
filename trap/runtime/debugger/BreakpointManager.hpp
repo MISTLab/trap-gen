@@ -45,8 +45,25 @@
 
 #include <iostream>
 #include <vector>
-#include <ext/hash_map>
 #include <string>
+
+#ifdef __GNUC__
+#ifdef __GNUC_MINOR__
+#if (__GNUC__ >= 4 && __GNUC_MINOR__ >= 3)
+#include <tr1/unordered_map>
+#define template_map std::tr1::unordered_map
+#else
+#include <ext/hash_map>
+#define  template_map __gnu_cxx::hash_map
+#endif
+#else
+#include <ext/hash_map>
+#define  template_map __gnu_cxx::hash_map
+#endif
+#else
+#include <ext/hash_map>
+#define  template_map __gnu_cxx::hash_map
+#endif
 
 template <class AddressType> struct Breakpoint{
     enum Type{MEM=0, HW, WRITE, READ, ACCESS};
@@ -57,8 +74,8 @@ template <class AddressType> struct Breakpoint{
 
 template <class AddressType> class BreakpointManager{
   private:
-    __gnu_cxx::hash_map<AddressType, Breakpoint<AddressType> > breakpoints;
-    typename __gnu_cxx::hash_map<AddressType, Breakpoint<AddressType> >::iterator lastBreak;
+    template_map<AddressType, Breakpoint<AddressType> > breakpoints;
+    typename template_map<AddressType, Breakpoint<AddressType> >::iterator lastBreak;
   public:
     BreakpointManager(){
         this->lastBreak = this->breakpoints.end();
@@ -95,7 +112,7 @@ template <class AddressType> class BreakpointManager{
             return &(this->breakpoints[address]);
     }
 
-    __gnu_cxx::hash_map<AddressType, Breakpoint<AddressType> > & getBreakpoints(){
+    template_map<AddressType, Breakpoint<AddressType> > & getBreakpoints(){
         return this->breakpoints;
     }
 };

@@ -11,13 +11,6 @@ def build(bld):
     bld.add_subdirs('trap cxx_writer')
 
 def configure(conf):
-    # Set Optimized as the default compilation mode, enabled if no other is selected on the command line
-    try:
-        if Params.g_options.debug_level == '':
-            Params.g_options.debug_level = "OPTIMIZED"
-    except:
-        pass
-
     # Check for standard tools
     conf.check_tool('gcc g++ misc')
     # Check for python

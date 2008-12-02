@@ -45,7 +45,24 @@
 
 #include <map>
 #include <string>
+
+#ifdef __GNUC__
+#ifdef __GNUC_MINOR__
+#if (__GNUC__ >= 4 && __GNUC_MINOR__ >= 3)
+#include <tr1/unordered_map>
+#define template_map std::tr1::unordered_map
+#else
 #include <ext/hash_map>
+#define  template_map __gnu_cxx::hash_map
+#endif
+#else
+#include <ext/hash_map>
+#define  template_map __gnu_cxx::hash_map
+#endif
+#else
+#include <ext/hash_map>
+#define  template_map __gnu_cxx::hash_map
+#endif
 
 #include "ABIIf.hpp"
 #include "bfdFrontend.hpp"
@@ -55,9 +72,9 @@
 
 template<class issueWidth> class OSEmulator : public ToolsIf<issueWidth>, OSEmulatorBase{
   private:
-    __gnu_cxx::hash_map<issueWidth, SyscallCB<issueWidth>* > syscCallbacks;
+    template_map<issueWidth, SyscallCB<issueWidth>* > syscCallbacks;
     ABIIf<issueWidth> &processorInstance;
-    typename __gnu_cxx::hash_map<issueWidth, SyscallCB<issueWidth>* >::const_iterator syscCallbacksEnd;
+    typename template_map<issueWidth, SyscallCB<issueWidth>* >::const_iterator syscCallbacksEnd;
 
     unsigned int countBits(issueWidth bits){
         unsigned int numBits = 0;
@@ -76,10 +93,10 @@ template<class issueWidth> class OSEmulator : public ToolsIf<issueWidth>, OSEmul
             return false;
         }
 
-        typename __gnu_cxx::hash_map<issueWidth, SyscallCB<issueWidth>* >::iterator foundSysc = this->syscCallbacks.find(symAddr);
+        typename template_map<issueWidth, SyscallCB<issueWidth>* >::iterator foundSysc = this->syscCallbacks.find(symAddr);
         if(foundSysc != this->syscCallbacks.end()){
             int numMatch = 0;
-            typename __gnu_cxx::hash_map<issueWidth, SyscallCB<issueWidth>* >::iterator allCallIter, allCallEnd;
+            typename template_map<issueWidth, SyscallCB<issueWidth>* >::iterator allCallIter, allCallEnd;
             for(allCallIter = this->syscCallbacks.begin(), allCallEnd = this->syscCallbacks.end(); allCallIter != allCallEnd; allCallIter++){
                 if(allCallIter->second == foundSysc->second)
                     numMatch++;
@@ -239,7 +256,7 @@ template<class issueWidth> class OSEmulator : public ToolsIf<issueWidth>, OSEmul
         //I have to go over all the registered system calls and check if there is one
         //that matches the current program counter. In case I simply call the corresponding
         //callback.
-        typename __gnu_cxx::hash_map<issueWidth, SyscallCB<issueWidth>* >::const_iterator foundSysc = this->syscCallbacks.find(curPC);
+        typename template_map<issueWidth, SyscallCB<issueWidth>* >::const_iterator foundSysc = this->syscCallbacks.find(curPC);
         if(foundSysc != this->syscCallbacksEnd){
             return (*(foundSysc->second))();
         }

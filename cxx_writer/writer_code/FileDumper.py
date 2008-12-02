@@ -128,7 +128,10 @@ class FileDumper:
         if self.includes:
             writer.write('\n')
         for include in self.includes:
-            if include != self.name:
+            include = include.lstrip()
+            if include.startswith('#'):
+                writer.write(include + '\n')
+            elif include != self.name:
                 writer.write('#include <' + include + '>\n')
         writer.write('\n')
         # Now I simply have to print in order all the members
@@ -256,13 +259,6 @@ class Folder:
         if configure:
             print >> wscriptFile, 'def configure(conf):'
             print >> wscriptFile, """
-    # Set Optimized as the default compilation mode, enabled if no other is selected on the command line
-    try:
-        if Options.options.debug_level == '':
-            Options.options.debug_level = 'OPTIMIZED'
-    except:
-        pass
-
     # Check for standard tools
     conf.check_tool('g++ gcc misc')
     # Check for python
