@@ -11,25 +11,6 @@ def build(bld):
     bld.add_subdirs('trap cxx_writer')
 
 def configure(conf):
-
-    # I make sure that the search paths really exists and eliminates the non
-    # existing ones (usefull in case your PC doesn't have the /usr/local/include
-    # folder for example)
-    import config_c
-
-    incl_path = []
-    for path in config_c.stdincpath:
-        if os.path.exists(path):
-            incl_path.append(path)
-    config_c.stdincpath = incl_path
-    lib_path = []
-
-    config_c.stdlibpath += ['/usr/lib64/']
-    for path in config_c.stdlibpath:
-        if os.path.exists(path):
-            lib_path.append(path)
-    config_c.stdlibpath = lib_path
-
     # Set Optimized as the default compilation mode, enabled if no other is selected on the command line
     try:
         if Params.g_options.debug_level == '':
@@ -38,7 +19,7 @@ def configure(conf):
         pass
 
     # Check for standard tools
-    conf.check_tool('g++ gcc misc')
+    conf.check_tool('gcc g++ misc')
     # Check for python
     conf.check_tool('python')
     conf.check_python_version((2,4))
@@ -46,8 +27,14 @@ def configure(conf):
     ########################################
     # Check for special gcc flags
     ########################################
-    if not conf.check_flags(''):
-        Params.fatal('gcc does not support the custom flags used. Please change the gcc version or the custom flags')
+    if conf.env['CPPFLAGS']:
+        conf.check_cc(cflags=conf.env['CPPFLAGS'])
+    if conf.env['CFLAGS']:
+        conf.check_cc(cflags=conf.env['CFLAGS'])
+    if conf.env['CXXFLAGS']:
+        conf.check_cxx(cxxflags=conf.env['CXXFLAGS'])
+    if conf.env['LINKFLAGS']:
+        conf.check_cxx(linkflags=conf.env['LINKFLAGS'])
 
     ########################################
     # Setting the host endianess
@@ -63,10 +50,7 @@ def configure(conf):
     # Check for boost libraries
     ########################################
     conf.check_tool('boost')
-    boostconf = conf.create_boost_configurator()
-    boostconf.lib = ['regex', 'thread']
-    boostconf.min_version = '1.35.0'
-    boostconf.run()
+    conf.check_boost(lib='regex thread', kind='STATIC_NOSTATIC', min_version='1.35.0')
 
     ##################################################
     # Check for BFD library and header
@@ -88,7 +72,7 @@ def configure(conf):
     import glob
     foundStatic = []
     foundShared = []
-    for directory in config_c.stdlibpath + searchDirs:
+    for directory in searchDirs:
         foundShared += glob.glob(os.path.join(directory, conf.env['shlib_PATTERN'].split('%s')[0] + 'bfd*' + conf.env['shlib_PATTERN'].split('%s')[1]))
         foundStatic += glob.glob(os.path.join(directory, conf.env['staticlib_PATTERN'].split('%s')[0] + 'bfd*' + conf.env['staticlib_PATTERN'].split('%s')[1]))
     if not foundStatic and not foundShared:
@@ -112,37 +96,20 @@ def configure(conf):
         else:
             bfd_lib_name = foundStatic[0]
 
-    le = conf.create_library_enumerator()
-    le.mandatory = 1
-    le.uselib_store = 'BFD'
-    le.name = bfd_lib_name
-    le.message = 'BFD library not found'
-    le.path = config_c.stdlibpath + searchDirs
-    le.run()
-
-    he = conf.create_header_configurator()
-    he.mandatory = 1
-    he.name = 'bfd.h'
-    he.message = 'BFD header not found'
-    he.uselib_store = 'BFD'
-    he.run()
+    conf.check_cc(lib=bfd_lib_name, uselib_store='BFD', mandatory=1, libpath=searchDirs)
+    conf.check_cc(header_name='bfd.h', uselib_store='BFD', mandatory=1)
 
     ##################################################
     # Check for pthread library/flag
     ##################################################
-    if conf.check_flags('-pthread'):
+    if conf.check_cxx(linkflags='-pthread') is None or conf.check_cxx(cxxflags='-pthread') is None:
+        conf.env.append_unique('LIB', 'pthread')
+    else:
         conf.env.append_unique('LINKFLAGS', '-pthread')
         conf.env.append_unique('CXXFLAGS', '-pthread')
         conf.env.append_unique('CFLAGS', '-pthread')
         conf.env.append_unique('CCFLAGS', '-pthread')
         pthread_uselib = []
-    else:
-        le = conf.create_library_enumerator()
-        le.mandatory = 1
-        le.name = 'pthread'
-        le.message = 'pthread library'
-        pthread_uselib = ['pthread']
-        conf.env.append_unique('LIB', le.run())
 
     ##################################################
     # Is SystemC compiled? Check for SystemC library
@@ -154,16 +121,11 @@ def configure(conf):
     elif 'SYSTEMC' in os.environ:
         syscpath = ([os.path.abspath(os.path.join(os.environ['SYSTEMC'], 'include'))])
 
-    le = conf.create_library_enumerator()
-    le.mandatory = 1
-    le.uselib_store = 'SYSTEMC'
-    le.name = 'systemc'
-    le.message = 'Library SystemC ver. 2.2.0 not found'
-    le.nosystem = 1
     import glob
+    sysclib = ''
     if syscpath:
-        sysclib = le.path = glob.glob(os.path.join(os.path.abspath(os.path.join(syscpath[0], '..')), 'lib-*'))
-    le.run()
+        sysclib = glob.glob(os.path.join(os.path.abspath(os.path.join(syscpath[0], '..')), 'lib-*'))
+    conf.check_cxx(lib='systemc', uselib_store='SYSTEMC', mandatory=1, libpath=sysclib)
     ######################################################
     # Check if systemc is compiled with quick threads or not
     ######################################################
@@ -173,9 +135,8 @@ def configure(conf):
     ##################################################
     # Check for SystemC header and test the library
     ##################################################
-    he = conf.create_header_configurator()
-    he.mandatory = 1
-    he.header_code = """
+    conf.check_cxx(header_name='systemc.h', uselib='SYSTEMC', uselib_store='SYSTEMC', mandatory=1, includes=syscpath)
+    conf.check_cxx(fragment="""
         #include <systemc.h>
 
         #ifndef SYSTEMC_VERSION
@@ -193,53 +154,12 @@ def configure(conf):
                 return 0;
             };
         }
-    """
-    he.path = syscpath
-    he.name = "systemc.h"
-    he.message = 'Library and Headers for SystemC ver. 2.2.0 or greater not found'
-    he.uselib = 'SYSTEMC'
-    he.uselib_store = 'SYSTEMC'
-    he.lib_paths = sysclib
-    he.run()
+    """, msg='Check for SystemC version (2.2.0 or greater required)', uselib='SYSTEMC', mandatory=1)
 
-    ##################################################
-    # Check for TLM header
-    ##################################################
-#    he = conf.create_header_configurator()
-#    he.mandatory = 1
-#    he.name = "tlm.h"
-#    he.uselib = 'SYSTEMC'
-#    he.lib_paths = sysclib
-#    he.uselib_store = 'TLM'
-#    he.header_code = """
-#        #include <systemc.h>
-#        #include <tlm.h>
-#
-#        #ifndef TLM_VERSION_MAJOR
-#        #error TLM_VERSION_MAJOR undefined in the TLM library
-#        #endif
-#        #ifndef TLM_VERSION_MINOR
-#        #error TLM_VERSION_MINOR undefined in the TLM library
-#        #endif
-#        #ifndef TLM_VERSION_PATCH
-#        #error TLM_VERSION_PATCH undefined in the TLM library
-#        #endif
-#
-#        #if TLM_VERSION_MAJOR < 2
-#        #error Wrong TLM version; required 2.0
-#        #endif
-#
-#        extern "C" int sc_main(int argc, char **argv){
-#            return 0;
-#        }
-#    """
-#    he.message = 'Library and Headers for TLM ver. 2.0 not found'
-#    if Options.options.tlmdir:
-#        he.path = [os.path.abspath(os.path.join(Options.options.tlmdir, 'tlm'))]
-#    elif 'TLM' in os.environ:
-#        he.path = [os.path.abspath(os.path.join(os.environ['TLM'], 'tlm'))]
-#    he.run()
-
+    if Options.options.pyinstalldir:
+        conf.env['PYTHON_INSTALL_DIR'] = Options.options.pyinstalldir
+    else:
+        conf.env['PYTHON_INSTALL_DIR'] = '${PYTHONDIR}'
 
 def set_options(opt):
 

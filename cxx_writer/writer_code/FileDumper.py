@@ -256,24 +256,6 @@ class Folder:
         if configure:
             print >> wscriptFile, 'def configure(conf):'
             print >> wscriptFile, """
-    # I make sure that the search paths really exists and eliminates the non
-    # existing ones (usefull in case your PC doesn't have the /usr/local/include
-    # folder for example)
-    import config_c
-
-    incl_path = []
-    for path in config_c.stdincpath:
-        if os.path.exists(path):
-            incl_path.append(path)
-    config_c.stdincpath = incl_path
-    lib_path = []
-
-    config_c.stdlibpath += ['/usr/lib64/']
-    for path in config_c.stdlibpath:
-        if os.path.exists(path):
-            lib_path.append(path)
-    config_c.stdlibpath = lib_path
-
     # Set Optimized as the default compilation mode, enabled if no other is selected on the command line
     try:
         if Options.options.debug_level == '':
@@ -286,14 +268,18 @@ class Folder:
     # Check for python
     conf.check_tool('python')
     conf.check_python_version((2,4))
-    conf.gxx_modifier_debug()
-    conf.gcc_modifier_debug()
 
     ########################################
     # Check for special gcc flags
     ########################################
-    if not conf.check_flags(''):
-        conf.fatal('gcc does not support the custom flags used. Please change gcc version or the custom flags')
+    if conf.env['CPPFLAGS']:
+        conf.check_cc(cflags=conf.env['CPPFLAGS'])
+    if conf.env['CFLAGS']:
+        conf.check_cc(cflags=conf.env['CFLAGS'])
+    if conf.env['CXXFLAGS']:
+        conf.check_cxx(cxxflags=conf.env['CXXFLAGS'])
+    if conf.env['LINKFLAGS']:
+        conf.check_cxx(linkflags=conf.env['LINKFLAGS'])
 
     ########################################
     # Setting the host endianess
@@ -308,11 +294,8 @@ class Folder:
     ########################################
     # Check for boost libraries
     ########################################
-    boostconf = conf.create_boost_configurator()
-    #boostconf.lib = ['thread', 'regex', 'date_time', 'program_options', 'system', 'filesystem','unit_test_framework']
-    boostconf.lib = ['thread', 'regex', 'date_time', 'program_options', 'filesystem', 'unit_test_framework']
-    boostconf.min_version = '1.35.0'
-    boostconf.run()
+    conf.check_tool('boost')
+    conf.check_boost(lib='thread regex date_time program_options filesystem unit_test_framework', kind='STATIC_NOSTATIC', min_version='1.35.0')
 
     ##################################################
     # Check for BFD library and header
@@ -334,7 +317,7 @@ class Folder:
     import glob
     foundStatic = []
     foundShared = []
-    for directory in config_c.stdlibpath + searchDirs:
+    for directory in searchDirs:
         foundShared += glob.glob(os.path.join(directory, conf.env['shlib_PATTERN'].split('%s')[0] + 'bfd*' + conf.env['shlib_PATTERN'].split('%s')[1]))
         foundStatic += glob.glob(os.path.join(directory, conf.env['staticlib_PATTERN'].split('%s')[0] + 'bfd*' + conf.env['staticlib_PATTERN'].split('%s')[1]))
     if not foundStatic and not foundShared:
@@ -358,57 +341,32 @@ class Folder:
         else:
             bfd_lib_name = foundStatic[0]
 
-    le = conf.create_library_enumerator()
-    le.mandatory = 1
-    le.uselib_store = 'BFD'
-    le.name = bfd_lib_name
-    le.message = 'BFD library not found'
-    le.path = config_c.stdlibpath + searchDirs
-    le.run()
-
-    he = conf.create_header_configurator()
-    he.mandatory = 1
-    he.name = 'bfd.h'
-    he.message = 'BFD header not found'
-    he.uselib_store = 'BFD'
-    he.run()
+    conf.check_cc(lib=bfd_lib_name, uselib_store='BFD', mandatory=1, libpath=searchDirs)
+    conf.check_cc(header_name='bfd.h', uselib_store='BFD', mandatory=1)
 
     ##################################################
     # Check for pthread library/flag
     ##################################################
-    if conf.check_flags('-pthread'):
+    if conf.check_cxx(linkflags='-pthread') is None or conf.check_cxx(cxxflags='-pthread') is None:
+        conf.env.append_unique('LIB', 'pthread')
+    else:
         conf.env.append_unique('LINKFLAGS', '-pthread')
         conf.env.append_unique('CXXFLAGS', '-pthread')
         conf.env.append_unique('CFLAGS', '-pthread')
         conf.env.append_unique('CCFLAGS', '-pthread')
         pthread_uselib = []
-    else:
-        le = conf.create_library_enumerator()
-        le.mandatory = 1
-        le.name = 'pthread'
-        le.message = 'pthread library'
-        pthread_uselib = ['pthread']
-        conf.env.append_unique('LIB', le.run())
 
     ##################################################
     # Check for TRAP runtime libraries and headers
     ##################################################
-    le = conf.create_library_configurator()
-    le.mandatory = 1
-    le.uselib_store = 'TRAP'
-    le.name = 'trap'
-    le.message = 'TRAP runtime library'
+    trapDirLib = ''
+    trapDirInc = ''
     if Options.options.trapdir:
-        le.path = os.path.expandvars(os.path.expanduser(os.path.join(Options.options.trapdir, 'lib')))
-    le.run()
-    he = conf.create_header_configurator()
-    he.mandatory = 1
-    he.uselib_store = 'TRAP'
-    he.name = 'trap.hpp'
-    he.message = 'TRAP runtime headers'
-    if Options.options.trapdir:
-        he.path = os.path.expandvars(os.path.expanduser(os.path.join(Options.options.trapdir, 'include')))
-    he.header_code = \"\"\"
+        trapDirLib = os.path.expandvars(os.path.expanduser(os.path.join(Options.options.trapdir, 'lib')))
+        trapDirInc = os.path.expandvars(os.path.expanduser(os.path.join(Options.options.trapdir, 'include')))
+    conf.check_cxx(lib='trap', uselib_store='TRAP', mandatory=1, libpath=trapDirLib)
+    conf.check_cxx(header_name='trap.hpp', uselib='TRAP', uselib_store='TRAP', mandatory=1, includes=trapDirInc)
+    conf.check_cxx(fragment='''
         #include "trap.hpp"
 
         #ifndef TRAP_REVISION
@@ -418,8 +376,8 @@ class Folder:
         #if TRAP_REVISION < 63
         #error Wrong version of the TRAP runtime: too old
         #endif
-    \"\"\"
-    he.run()
+        int main(int argc, char * argv[]){return 0;}
+    ''', msg='Check for TRAP version', uselib='TRAP', mandatory=1)
 
     ##################################################
     # Is SystemC compiled? Check for SystemC library
@@ -434,28 +392,20 @@ class Folder:
     elif 'SYSTEMC' in os.environ:
         syscpath = ([os.path.abspath(os.path.join(os.environ['SYSTEMC'], 'include'))])
 
-    le = conf.create_library_enumerator()
-    le.mandatory = 1
-    le.uselib_store = 'SYSTEMC'
-    le.name = 'systemc'
-    le.message = 'Library SystemC ver. 2.2.0 not found'
-    le.nosystem = 1
     import glob
+    sysclib = ''
     if syscpath:
-        sysclib = le.path = glob.glob(os.path.join(os.path.abspath(os.path.join(syscpath[0], '..')), 'lib-*'))
-    le.run()
-    ######################################################
-    # Check if systemc is compiled with quick threads or not
-    ######################################################
+        sysclib = glob.glob(os.path.join(os.path.abspath(os.path.join(syscpath[0], '..')), 'lib-*'))
+    conf.check_cxx(lib='systemc', uselib_store='SYSTEMC', mandatory=1, libpath=sysclib)
+
     if not os.path.exists(os.path.join(syscpath[0] , 'sysc' , 'qt')):
         conf.env.append_unique('CPPFLAGS', '-DSC_USE_PTHREADS')
 
     ##################################################
     # Check for SystemC header and test the library
     ##################################################
-    he = conf.create_header_configurator()
-    he.mandatory = 1
-    he.header_code = \"\"\"
+    conf.check_cxx(header_name='systemc.h', uselib='SYSTEMC', uselib_store='SYSTEMC', mandatory=1, includes=syscpath)
+    conf.check_cxx(fragment='''
         #include <systemc.h>
 
         #ifndef SYSTEMC_VERSION
@@ -473,25 +423,19 @@ class Folder:
                 return 0;
             };
         }
-    \"\"\"
-    he.path = syscpath
-    he.name = "systemc.h"
-    he.message = 'Library and Headers for SystemC ver. 2.2.0 or greater not found'
-    he.uselib = 'SYSTEMC'
-    he.uselib_store = 'SYSTEMC'
-    he.lib_paths = sysclib
-    he.run()
+    ''', msg='Check for SystemC version (2.2.0 or greater required)', uselib='SYSTEMC', mandatory=1)
 
     ##################################################
     # Check for TLM header
     ##################################################
-    he = conf.create_header_configurator()
-    he.mandatory = 1
-    he.name = "tlm.h"
-    he.uselib = 'SYSTEMC'
-    he.lib_paths = sysclib
-    he.uselib_store = 'TLM'
-    he.header_code = \"\"\"
+    tlmPath = ''
+    if Options.options.tlmdir:
+        tlmPath = [os.path.abspath(os.path.join(Options.options.tlmdir, 'tlm'))]
+    elif 'TLM' in os.environ:
+        tlmPath = [os.path.abspath(os.path.join(os.environ['TLM'], 'tlm'))]
+
+    conf.check_cxx(header_name='tlm.h', uselib='SYSTEMC', uselib_store='TLM', mandatory=1, includes=tlmPath)
+    conf.check_cxx(fragment='''
         #include <systemc.h>
         #include <tlm.h>
 
@@ -512,13 +456,7 @@ class Folder:
         extern "C" int sc_main(int argc, char **argv){
             return 0;
         }
-    \"\"\"
-    he.message = 'Library and Headers for TLM ver. 2.0 not found'
-    if Options.options.tlmdir:
-        he.path = [os.path.abspath(os.path.join(Options.options.tlmdir, 'tlm'))]
-    elif 'TLM' in os.environ:
-        he.path = [os.path.abspath(os.path.join(os.environ['TLM'], 'tlm'))]
-    he.run()
+    ''', msg='Check for TLM version (2.0 or greater required)', uselib='SYSTEMC TLM', mandatory=1)
 
 """
             # Finally now I can add the options

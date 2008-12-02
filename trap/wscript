@@ -5,7 +5,7 @@ import os, Options
 def build(bld):
     bld.add_subdirs('runtime')
 
-    obj = bld.new_task_gen('cxx', 'staticlib')
+    obj = bld.new_task_gen('cxx', 'staticlib', 'objects')
     obj.add_objects = 'loader syscall bfdFrontend tools debugger'
     obj.name = 'trap'
     obj.target = 'trap'
@@ -13,7 +13,4 @@ def build(bld):
 
     obj = bld.new_task_gen('py')
     obj.find_sources_in_dirs('.', exts=['.py'])
-    if Options.options.pyinstalldir:
-        obj.install_path = os.path.join(Options.options.pyinstalldir, 'trap')
-    else:
-        obj.install_path = os.path.join(obj.default_install_path, 'trap')
+    obj.install_path = os.path.join('${PYTHON_INSTALL_DIR}', 'trap')

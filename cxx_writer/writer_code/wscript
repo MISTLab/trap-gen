@@ -5,7 +5,4 @@ import os, Options
 def build(bld):
     obj = bld.new_task_gen('py')
     obj.find_sources_in_dirs('.', exts=['.py'])
-    if Options.options.pyinstalldir:
-        obj.install_path = os.path.join(Options.options.pyinstalldir, 'writer_code')
-    else:
-        obj.install_path = os.path.join(obj.default_install_path, 'writer_code')
+    obj.install_path = os.path.join('${PYTHON_INSTALL_DIR}', 'cxx_writer', 'writer_code')
