@@ -41,56 +41,6 @@ import cxx_writer
 # Miscellaneous operations which can be used and
 # accessed by any instruction
 #-------------------------------------------------------
-# This is the code which is called before fecthing each instruction
-# to check if an interrupt has been raised and take the appropriate action
-# TODO: I do not like this way: I would like to make it more automatic
-IRQOperation = cxx_writer.Code("""
-if(FIQ.read() && (CPSR[key_F] == 0)){
-    triggerFIQ();
-    flush();
-}
-if(IRQ.read() && (CPSR[key_I] == 0)){
-    triggerIRQ();
-    flush();
-}
-""")
-# Now I also have to implement the triggerFIQ() and triggerIRQ()
-# operations
-opCode = cxx_writer.Code("""
-//Save LR_irq
-LR_IRQ = PC;
-//Save the current PSR
-SPSR[1] = CPSR;
-//I switch the register bank (i.e. I update the
-//alias)
-REGS[13].updateAlias(RB[21]);
-REGS[14].updateAlias(RB[22]);
-//Create the new PSR
-CPSR = (CPSR & 0xFFFFFFD0) | 0x00000092;
-//Finally I update the PC
-PC = 0x18;
-""")
-triggerIRQ = trap.HelperMethod('triggerIRQ', opCode)
-opCode = cxx_writer.Code("""
-//Save LR_irq
-LR_FIQ = PC;
-//Save the current PSR
-SPSR[0] = CPSR;
-//I switch the register bank (i.e. I update the
-//alias)
-REGS[8].updateAlias(RB[23]);
-REGS[9].updateAlias(RB[24]);
-REGS[10].updateAlias(RB[25]);
-REGS[11].updateAlias(RB[26]);
-REGS[12].updateAlias(RB[27]);
-REGS[13].updateAlias(RB[28]);
-REGS[14].updateAlias(RB[29]);
-//Create the new PSR
-CPSR = (CPSR & 0xFFFFFFD0) | 0x000000D1;
-//Finally I update the PC
-PC = 0x1C;
-""")
-triggerFIQ = trap.HelperMethod('triggerFIQ', opCode)
 # *******
 # Here we define some helper methods, which are not directly part of the
 # instructions, but which can be called by the instruction body

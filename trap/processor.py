@@ -238,7 +238,6 @@ class Processor:
         self.resetOp = None
         self.irqs = []
         self.pins = []
-        self.irqOp = None
         self.fetchReg = None
         self.memory = None
         self.tlmPorts = {}
@@ -384,11 +383,6 @@ class Processor:
             if i.name == pin.name:
                 raise Exception('An external pin with name ' + i.name + ' already exists in processor ' + self.name)
         self.pins.append(pin)
-
-    def setIRQOperation(self, code):
-        # if is an instance of cxx_writer.CustomCode,
-        # containing the code for the behavior
-        self.irqOp = code
 
     def setFetchRegister(self, fetchReg,  offset = 0):
         # Sets the correspondence between the fetch address
@@ -572,6 +566,10 @@ class Processor:
         # in order to execute simulations
         return procWriter.getMainCode(self, model)
 
+    def getGetIRQPorts(self):
+        # Returns the code implementing the interrupt ports
+        return procWriter.getGetIRQPorts(self)
+
     def write(self, folder = '', models = validModels, dumpDecoderName = '', trace = False):
         # Ok: this method does two things: first of all it performs all
         # the possible checks to ensure that the processor description is
@@ -616,6 +614,7 @@ class Processor:
                 IfClass = self.getCPPIf(model)
             MemClass = self.getCPPMemoryIf(model)
             ExternalIf = self.getCPPExternalPorts(model)
+            IRQClasses = self.getGetIRQPorts()
             ISAClasses = self.isa.getCPPClasses(self, model, trace)
             ISATests = self.isa.getCPPTests(self, model)
             # Ok, now that we have all the classes it is time to write
@@ -654,7 +653,7 @@ class Processor:
             implFileMem = cxx_writer.writer_code.FileDumper('memory.cpp', False)
             implFileMem.addInclude('memory.hpp')
             headFileMem = cxx_writer.writer_code.FileDumper('memory.hpp', True)
-            for i  in MemClass:
+            for i in MemClass:
                 implFileMem.addMember(i)
                 headFileMem.addMember(i)
             implFileExt = cxx_writer.writer_code.FileDumper('externalPorts.cpp', False)
@@ -662,6 +661,12 @@ class Processor:
             headFileExt = cxx_writer.writer_code.FileDumper('externalPorts.hpp', True)
             implFileExt.addMember(ExternalIf)
             headFileExt.addMember(ExternalIf)
+            implFileIRQ = cxx_writer.writer_code.FileDumper('irqPorts.cpp', False)
+            implFileIRQ.addInclude('irqPorts.hpp')
+            headFileIRQ = cxx_writer.writer_code.FileDumper('irqPorts.hpp', True)
+            for i in IRQClasses:
+                implFileIRQ.addMember(i)
+                headFileIRQ.addMember(i)
             mainFile = cxx_writer.writer_code.FileDumper('main.cpp', False)
             mainFile.addMember(self.getMainCode(model))
 
@@ -694,6 +699,8 @@ class Processor:
             curFolder.addCode(implFileMem)
             curFolder.addHeader(headFileExt)
             curFolder.addCode(implFileExt)
+            curFolder.addHeader(headFileIRQ)
+            curFolder.addCode(implFileIRQ)
             curFolder.addCode(mainFile)
             curFolder.setMain(mainFile.name)
             curFolder.create()
@@ -790,6 +797,12 @@ class Interrupt:
         self.level = level
         self.high = high
         self.priority = priority
+        self.condition = ''
+        self.operation = None
+
+    def setOperation(self, condition, operation):
+        self.condition = condition
+        self.operation = operation
 
 class Pins:
     """Custom pins; checking them or writing to them is responsibility of

@@ -47,8 +47,6 @@ isa = trap.ISA()
 
 # Now I add to the ISA all the helper methods and operations which will be
 # called from the instructions
-isa.addMethod(triggerIRQ)
-isa.addMethod(triggerFIQ)
 isa.addMethod(restoreSPSR_method)
 isa.addMethod(updateAlias_method)
 isa.addMethod(AShiftRight_method)

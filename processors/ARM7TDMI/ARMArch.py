@@ -132,15 +132,40 @@ processor.addTLMPort('dataMem')
 #processor.setMemory('dataMem', 10*1024*1024)
 # Now lets add the interrupt ports
 irq = trap.Interrupt('IRQ', priority = 0)
+irq.setOperation('CPSR[key_I] == 0', """
+//Save LR_irq
+LR_IRQ = PC;
+//Save the current PSR
+SPSR[1] = CPSR;
+//I switch the register bank (i.e. I update the
+//alias)
+REGS[13].updateAlias(RB[21]);
+REGS[14].updateAlias(RB[22]);
+//Create the new PSR
+CPSR = (CPSR & 0xFFFFFFD0) | 0x00000092;
+//Finally I update the PC
+PC = 0x18;""")
 processor.addIrq(irq)
 fiq = trap.Interrupt('FIQ', priority = 1)
+fiq.setOperation('CPSR[key_F] == 0', """
+//Save LR_irq
+LR_FIQ = PC;
+//Save the current PSR
+SPSR[0] = CPSR;
+//I switch the register bank (i.e. I update the
+//alias)
+REGS[8].updateAlias(RB[23]);
+REGS[9].updateAlias(RB[24]);
+REGS[10].updateAlias(RB[25]);
+REGS[11].updateAlias(RB[26]);
+REGS[12].updateAlias(RB[27]);
+REGS[13].updateAlias(RB[28]);
+REGS[14].updateAlias(RB[29]);
+//Create the new PSR
+CPSR = (CPSR & 0xFFFFFFD0) | 0x000000D1;
+//Finally I update the PC
+PC = 0x1C;""")
 processor.addIrq(fiq)
-# I also have to set the behavior method which is called to check for the
-# interrupts and take the appropriate action. This method is
-# called before every instruction is issued.
-# TODO: I do not like it too much ... any better ideas?; is there
-# a way of making this more automatic?
-processor.setIRQOperation(ARMIsa.IRQOperation)
 
 # Now it is time to add the pipeline stages
 fetchStage = trap.PipeStage('fetch')
