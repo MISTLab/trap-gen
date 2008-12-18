@@ -109,7 +109,7 @@ def getCppOpClass(self):
     opDecl.addConstructor(opConstr)
     return opDecl
 
-def getCPPInstr(self, model, trace):
+def getCPPInstr(self, model, pipeline, trace):
     # Returns the code implementing the current instruction: we have to provide the
     # implementation of all the abstract methods and call from the behavior method
     # all the different behaviors contained in the type hierarchy of this class
@@ -140,57 +140,114 @@ def getCPPInstr(self, model, trace):
                     behVars.append(var.name)
     if not baseClasses:
         baseClasses.append(instructionType)
-    behaviorCode = 'this->totalInstrCycles = 0;\n'
-    for behaviors in self.prebehaviors.values():
-        for beh in behaviors:
-            if beh.name in toInline:
-                behaviorCode += str(beh.code)
-            elif behClass.has_key(beh.name) or beh.name in baseBehaviors:
-                behaviorCode += 'this->' + beh.name + '('
-                for elem in beh.archElems:
-                    behaviorCode += 'this->' + elem + ', '
-                    behaviorCode += 'this->' + elem + '_bit'
-                    if beh.archVars or beh.instrvars or elem != beh.archElems[-1]:
-                        behaviorCode += ', '
-                for elem in beh.archVars:
-                    behaviorCode += 'this->' + elem
-                    if beh.instrvars or elem != beh.archVars[-1]:
-                        behaviorCode += ', '
-                for var in beh.instrvars:
-                    behaviorCode += 'this->' + var.name
-                    if var != beh.instrvars[-1]:
-                        behaviorCode += ', '
-                behaviorCode += ');\n'
-            else:
-                behaviorCode += 'this->' + beh.name + '();\n'
-    for code in self.code.values():
-        behaviorCode += str(code.code)
-    for behaviors in self.postbehaviors.values():
-        for beh in behaviors:
-            if beh.name in toInline:
-                behaviorCode += str(beh.code)
-            elif behClass.has_key(beh.name) or beh.name in baseBehaviors:
-                behaviorCode += 'this->' + beh.name + '('
-                for elem in beh.archElems:
-                    behaviorCode += 'this->' + elem + ', '
-                    behaviorCode += 'this->' + elem + '_bit'
-                    if beh.archVars or beh.instrvars or elem != beh.archElems[-1]:
-                        behaviorCode += ', '
-                for elem in beh.archVars:
-                    behaviorCode += 'this->' + elem
-                    if beh.instrvars or elem != beh.archVars[-1]:
-                        behaviorCode += ', '
-                for var in beh.instrvars:
-                    behaviorCode += 'this->' + var.name
-                    if var != beh.instrvars[-1]:
-                        behaviorCode += ', '
-                behaviorCode += ');\n'
-            else:
-                behaviorCode += 'this->' + beh.name + '();\n'
-    behaviorCode += 'return this->totalInstrCycles;'
-    behaviorBody = cxx_writer.writer_code.Code(behaviorCode)
-    behaviorDecl = cxx_writer.writer_code.Method('behavior', behaviorBody, cxx_writer.writer_code.uintType, 'pu')
-    classElements.append(behaviorDecl)
+    if not model.startswith('acc'):
+        # This is not a cycle accurate processor, so pipeline is not modelled
+        behaviorCode = 'this->totalInstrCycles = 0;\n'
+        for behaviors in self.prebehaviors.values():
+            for beh in behaviors:
+                if beh.name in toInline:
+                    behaviorCode += str(beh.code)
+                elif behClass.has_key(beh.name) or beh.name in baseBehaviors:
+                    behaviorCode += 'this->' + beh.name + '('
+                    for elem in beh.archElems:
+                        behaviorCode += 'this->' + elem + ', '
+                        behaviorCode += 'this->' + elem + '_bit'
+                        if beh.archVars or beh.instrvars or elem != beh.archElems[-1]:
+                            behaviorCode += ', '
+                    for elem in beh.archVars:
+                        behaviorCode += 'this->' + elem
+                        if beh.instrvars or elem != beh.archVars[-1]:
+                            behaviorCode += ', '
+                    for var in beh.instrvars:
+                        behaviorCode += 'this->' + var.name
+                        if var != beh.instrvars[-1]:
+                            behaviorCode += ', '
+                    behaviorCode += ');\n'
+                else:
+                    behaviorCode += 'this->' + beh.name + '();\n'
+        for code in self.code.values():
+            behaviorCode += str(code.code)
+        for behaviors in self.postbehaviors.values():
+            for beh in behaviors:
+                if beh.name in toInline:
+                    behaviorCode += str(beh.code)
+                elif behClass.has_key(beh.name) or beh.name in baseBehaviors:
+                    behaviorCode += 'this->' + beh.name + '('
+                    for elem in beh.archElems:
+                        behaviorCode += 'this->' + elem + ', '
+                        behaviorCode += 'this->' + elem + '_bit'
+                        if beh.archVars or beh.instrvars or elem != beh.archElems[-1]:
+                            behaviorCode += ', '
+                    for elem in beh.archVars:
+                        behaviorCode += 'this->' + elem
+                        if beh.instrvars or elem != beh.archVars[-1]:
+                            behaviorCode += ', '
+                    for var in beh.instrvars:
+                        behaviorCode += 'this->' + var.name
+                        if var != beh.instrvars[-1]:
+                            behaviorCode += ', '
+                    behaviorCode += ');\n'
+                else:
+                    behaviorCode += 'this->' + beh.name + '();\n'
+        behaviorCode += 'return this->totalInstrCycles;'
+        behaviorBody = cxx_writer.writer_code.Code(behaviorCode)
+        behaviorDecl = cxx_writer.writer_code.Method('behavior', behaviorBody, cxx_writer.writer_code.uintType, 'pu')
+        classElements.append(behaviorDecl)
+    else:
+        # cycle accurate model, I have to separate the behavior in the different pipeline stages
+        for pipeStage in pipeline:
+            behaviorCode = 'this->stageCycles = 0;\n'
+            if self.prebehaviors.has_key(pipeStage):
+                for beh in self.prebehaviors[pipeStage]:
+                    if beh.name in toInline:
+                        behaviorCode += str(beh.code)
+                    elif behClass.has_key(beh.name) or beh.name in baseBehaviors:
+                        behaviorCode += 'this->' + beh.name + '('
+                        for elem in beh.archElems:
+                            behaviorCode += 'this->' + elem + ', '
+                            behaviorCode += 'this->' + elem + '_bit'
+                            if beh.archVars or beh.instrvars or elem != beh.archElems[-1]:
+                                behaviorCode += ', '
+                        for elem in beh.archVars:
+                            behaviorCode += 'this->' + elem
+                            if beh.instrvars or elem != beh.archVars[-1]:
+                                behaviorCode += ', '
+                        for var in beh.instrvars:
+                            behaviorCode += 'this->' + var.name
+                            if var != beh.instrvars[-1]:
+                                behaviorCode += ', '
+                        behaviorCode += ');\n'
+                    else:
+                        behaviorCode += 'this->' + beh.name + '();\n'
+            if self.code.has_key(pipeStage):
+                behaviorCode += str(code[pipeStage].code)
+            if self.postbehaviors.has_key(pipeStage):
+                for beh in self.postbehaviors[pipeStage]:
+                    if beh.name in toInline:
+                        behaviorCode += str(beh.code)
+                    elif behClass.has_key(beh.name) or beh.name in baseBehaviors:
+                        behaviorCode += 'this->' + beh.name + '('
+                        for elem in beh.archElems:
+                            behaviorCode += 'this->' + elem + ', '
+                            behaviorCode += 'this->' + elem + '_bit'
+                            if beh.archVars or beh.instrvars or elem != beh.archElems[-1]:
+                                behaviorCode += ', '
+                        for elem in beh.archVars:
+                            behaviorCode += 'this->' + elem
+                            if beh.instrvars or elem != beh.archVars[-1]:
+                                behaviorCode += ', '
+                        for var in beh.instrvars:
+                            behaviorCode += 'this->' + var.name
+                            if var != beh.instrvars[-1]:
+                                behaviorCode += ', '
+                        behaviorCode += ');\n'
+                    else:
+                        behaviorCode += 'this->' + beh.name + '();\n'
+            behaviorCode += 'return this->stageCycles;'
+            behaviorBody = cxx_writer.writer_code.Code(behaviorCode)
+            behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage.name, behaviorBody, cxx_writer.writer_code.uintType, 'pu')
+            classElements.append(behaviorDecl)
+
     replicateBody = cxx_writer.writer_code.Code('return new ' + self.name + '(' + baseInstrInitElement + ');')
     replicateDecl = cxx_writer.writer_code.Method('replicate', replicateBody, instructionType.makePointer(), 'pu', noException = True, const = True)
     classElements.append(replicateDecl)
@@ -353,7 +410,13 @@ def getCPPInstrTest(self, processor, model):
             else:
                 code += resource + ' = ' + str(value) + ';\n'
         code += 'toTest.setParams(' + hex(int(''.join(instrCode), 2)) + ');\n'
-        code += 'try{\ntoTest.behavior();\n}\ncatch(flush_exception &etc){\n}\n\n'
+        code += 'try{\n'
+        if not model.startswith('acc'):
+            code += 'toTest.behavior();'
+        else:
+            for pipeStage in processor.pipes:
+                code += 'toTest.behavior_' + pipeStage + '();'
+        code += '\n}\ncatch(flush_exception &etc){\n}\n\n'
         for resource, value in test[2].items():
             # I check the value of the listed resources to make sure that the
             # computation executed correctly
@@ -374,7 +437,7 @@ def getCPPInstrTest(self, processor, model):
         tests.append(curTest)
     return tests
 
-def getCPPClasses(self, processor, modelType, trace):
+def getCPPClasses(self, processor, model, trace):
     # I go over each instruction and print the class representing it
     from isa import resolveBitType
     global archWordType
@@ -386,8 +449,13 @@ def getCPPClasses(self, processor, modelType, trace):
     instructionType = cxx_writer.writer_code.Type('Instruction')
     instructionElements = []
     emptyBody = cxx_writer.writer_code.Code('')
-    behaviorDecl = cxx_writer.writer_code.Method('behavior', emptyBody, cxx_writer.writer_code.uintType, 'pu', pure = True)
-    instructionElements.append(behaviorDecl)
+    if not model.startswith('acc'):
+        behaviorDecl = cxx_writer.writer_code.Method('behavior', emptyBody, cxx_writer.writer_code.uintType, 'pu', pure = True)
+        instructionElements.append(behaviorDecl)
+    else:
+        for pipeStage in processor.pipes:
+            behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage, emptyBody, cxx_writer.writer_code.uintType, 'pu', pure = True)
+            instructionElements.append(behaviorDecl)
     replicateDecl = cxx_writer.writer_code.Method('replicate', emptyBody, instructionType.makePointer(), 'pu', pure = True, noException = True, const = True)
     instructionElements.append(replicateDecl)
     setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
@@ -408,12 +476,16 @@ def getCPPClasses(self, processor, modelType, trace):
         instructionElements.append(printTraceDecl)
 
     # Note how the flush operation also stops the execution of the current operation
-    flushBody = cxx_writer.writer_code.Code('throw flush_exception();')
+    flushCode = 'throw flush_exception();'
+    flushBody = cxx_writer.writer_code.Code(flushCode)
     flushBody.addInclude('customExceptions.hpp')
     flushDecl = cxx_writer.writer_code.Method('flush', flushBody, cxx_writer.writer_code.voidType, 'pu', inline = True)
     instructionElements.append(flushDecl)
     stallParam = cxx_writer.writer_code.Parameter('numCycles', archWordType.makeRef().makeConst())
-    stallBody = cxx_writer.writer_code.Code('this->totalInstrCycles += numCycles;')
+    if not model.startswith('acc'):
+        stallBody = cxx_writer.writer_code.Code('this->totalInstrCycles += numCycles;')
+    else:
+        stallBody = cxx_writer.writer_code.Code('this->stageCycles += numCycles;')
     stallDecl = cxx_writer.writer_code.Method('stall', stallBody, cxx_writer.writer_code.voidType, 'pu', [stallParam], inline = True)
     instructionElements.append(stallDecl)
     # we now have to check if there is a non-inline behavior common to all instructions:
@@ -483,8 +555,12 @@ def getCPPClasses(self, processor, modelType, trace):
         instructionElements.append(attribute)
     baseInitElement = baseInitElement[:-2]
     baseInitElement += ')'
-    instructionElements.append(cxx_writer.writer_code.Attribute('totalInstrCycles', cxx_writer.writer_code.uintType, 'pro'))
-    constrBody = 'this->totalInstrCycles = 0;'
+    if not model.startswith('acc'):
+        instructionElements.append(cxx_writer.writer_code.Attribute('totalInstrCycles', cxx_writer.writer_code.uintType, 'pro'))
+        constrBody = 'this->totalInstrCycles = 0;'
+    else:
+        instructionElements.append(cxx_writer.writer_code.Attribute('stageCycles', cxx_writer.writer_code.uintType, 'pro'))
+        constrBody = 'this->stageCycles = 0;'
     publicConstr = cxx_writer.writer_code.Constructor(cxx_writer.writer_code.Code(constrBody), 'pu', baseInstrConstrParams, initElements)
     instructionDecl = cxx_writer.writer_code.ClassDeclaration('Instruction', instructionElements)
     instructionDecl.addConstructor(publicConstr)
@@ -505,16 +581,25 @@ def getCPPClasses(self, processor, modelType, trace):
 
     # Now I print the invalid instruction
     invalidInstrElements = []
+    behaviorReturnBody = cxx_writer.writer_code.Code('return 0;')
     codeString = 'THROW_EXCEPTION(\"Unknown Instruction at PC: \" << this->' + processor.fetchReg[0]
-    if modelType.startswith('func'):
+    if model.startswith('func'):
         if processor.fetchReg[1] < 0:
             codeString += str(processor.fetchReg[1])
         else:
             codeString += '+' + str(processor.fetchReg[1])
     codeString += ');\nreturn 0;'
     behaviorBody = cxx_writer.writer_code.Code(codeString)
-    behaviorDecl = cxx_writer.writer_code.Method('behavior', behaviorBody, cxx_writer.writer_code.uintType, 'pu')
-    invalidInstrElements.append(behaviorDecl)
+    if model.startswith('acc'):
+        for pipeStage in processor.pipes:
+            if pipeStage.checkUnknown:
+                behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage.name, behaviorBody, cxx_writer.writer_code.uintType, 'pu')
+            else:
+                behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage.name, behaviorReturnBody, cxx_writer.writer_code.uintType, 'pu')
+            invalidInstrElements.append(behaviorDecl)
+    else:
+        behaviorDecl = cxx_writer.writer_code.Method('behavior', behaviorBody, cxx_writer.writer_code.uintType, 'pu')
+        invalidInstrElements.append(behaviorDecl)
     from procWriter import baseInstrInitElement
     replicateBody = cxx_writer.writer_code.Code('return new InvalidInstr(' + baseInstrInitElement + ');')
     replicateDecl = cxx_writer.writer_code.Method('replicate', replicateBody, instructionType.makePointer(), 'pu', noException = True, const = True)
@@ -533,9 +618,33 @@ def getCPPClasses(self, processor, modelType, trace):
     publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
     invalidInstrDecl.addDestructor(publicDestr)
     classes.append(invalidInstrDecl)
+    if model.startswith('acc'):
+        # finally I print the NOP instruction, which I put in the pipeline when flushes occurr
+        NOPInstructionElements = []
+        for pipeStage in processor.pipes:
+            behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage.name, behaviorReturnBody, cxx_writer.writer_code.uintType, 'pu')
+            NOPInstructionElements.append(behaviorDecl)
+        from procWriter import baseInstrInitElement
+        replicateBody = cxx_writer.writer_code.Code('return new NOPInstruction(' + baseInstrInitElement + ');')
+        replicateDecl = cxx_writer.writer_code.Method('replicate', replicateBody, instructionType.makePointer(), 'pu', noException = True, const = True)
+        NOPInstructionElements.append(replicateDecl)
+        setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
+        setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam], noException = True)
+        NOPInstructionElements.append(setparamsDecl)
+        if trace:
+            getIstructionNameBody = cxx_writer.writer_code.Code('return \"InvalidInstruction\"\n;')
+            getIstructionNameDecl = cxx_writer.writer_code.Method('getIstructionName', getIstructionNameBody, cxx_writer.writer_code.stringType, 'pu')
+            NOPInstructionElements.append(getIstructionNameDecl)
+        from procWriter import baseInstrInitElement
+        publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, ['Instruction(' + baseInstrInitElement + ')'])
+        NOPInstructionElements = cxx_writer.writer_code.ClassDeclaration('NOPInstructionElements', NOPInstructionElements, [instructionDecl.getType()])
+        NOPInstructionElements.addConstructor(publicConstr)
+        publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
+        NOPInstructionElements.addDestructor(publicDestr)
+        classes.append(NOPInstructionElements)
     # Now I go over all the other instructions and I declare them
     for instr in self.instructions.values():
-        classes.append(instr.getCPPClass(modelType, trace))
+        classes.append(instr.getCPPClass(model, processor.pipes, trace))
     return classes
 
 def getCPPTests(self, processor, modelType):

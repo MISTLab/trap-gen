@@ -195,11 +195,11 @@ class ISA:
                 if not checkerMethod(reg):
                     raise Exception('Register ' + reg + ' used in the MachineCode description does not exists')
 
-    def getCPPClasses(self, processor, modelType, trace):
-        return isaWriter.getCPPClasses(self, processor, modelType, trace)
+    def getCPPClasses(self, processor, model, trace):
+        return isaWriter.getCPPClasses(self, processor, model, trace)
 
-    def getCPPTests(self, processor, modelType):
-        return isaWriter.getCPPTests(self, processor, modelType)
+    def getCPPTests(self, processor, model):
+        return isaWriter.getCPPTests(self, processor, model)
 
 class Instruction:
     """Represents an instruction of the processor. The instruction
@@ -221,13 +221,13 @@ class Instruction:
     in the cycle accurate processor and not in the functional one
     (useful for branch prediction for example)
     Also forwardging can be disabled by the instruction"""
-    def __init__(self, name, modifyPc = False, isCoprocessor = False, frequency = 1):
+    def __init__(self, name, modifyPc = True, isCoprocessor = False, frequency = 1):
         self.name = name
         # Estimated frequency of the instruction. It is used to build the decoder.
         # the more the frequency repspects the real frequency of the instruction
         # in the better will be the decoder
         if frequency < 1:
-            raise Exception('Error in the frequency value for instruction ' + name + ': it has to be a non-zero positive number')
+            raise Exception('Error in the frequency value for instruction ' + name + ': it has to be a non-zero positive integer number')
         self.frequency = frequency
         # Instruction id; note that the ID is automatically assigned to
         # the instruction by the ISA class
@@ -237,8 +237,6 @@ class Instruction:
         self.prebehaviors = {}
         self.postbehaviors = {}
         self.code = {}
-        # also delays are per stage
-        self.delay = {}
         self.isCoprocessor = isCoprocessor
         self.modifyPc = modifyPc
         # List of variables which are global to this instruction
@@ -248,14 +246,11 @@ class Instruction:
         self.docString = ''
         self.machineCode = None
         self.machineBits = None
-        # stages at which I check for hazards,
-        # perform the writeback and perform the
-        # bypassing
+        # stages at which I check for hazards
         self.hazardStage = ''
         self.wbStage = ''
-        self.byPassStage = ''
-        # can this instruction do forwarding?
-        self.forwarding = True
+        # Registers which are written by the current instruction
+        self.writeRegs = []
         # The bits of the machine code of the instruction; the elements of
         # this list can be 0, 1 or None (don't care)
         self.bitstring = []
@@ -321,6 +316,13 @@ class Instruction:
                     behavior.archVars.append(procElem)
             behavior.archElems = newProcElem
 
+        if self.writeRegs:
+            # I check that the registers that I set for writing are actually part of
+            # the machine code for this instruction
+            for reg in self.writeRegs:
+                if not reg in [i[0] for i in self.machineCode.bitFields]:
+                    raise Exception('Register ' + reg + ' specified among the written registers of instruction ' + self.name + ' is not present in the associated machine code')
+
     def addBehavior(self, behavior, stage, pre = True):
         # adds a behavior (an instance of the class
         # HelperOperation)
@@ -381,19 +383,29 @@ class Instruction:
     def addDocString(self, docString):
         self.docString += docString + '\n'
 
-    def setPipeProperties(self, hazardStage = '', wbStage = '', byPassStage = '', forwarding = True):
+    def setPipeProperties(self, hazardStage = '', wbStage = ''):
         # Sets the stage in which the checks for hazards are performed,
-        # write backs are performed, the bypass starts. It also sets
-        # if the forwarding is enabled or not.
         self.hazardStage = hazardStage
         self.wbStage = wbStage
-        self.byPassStage = byPassStage
-        self.forwarding = forwarding
 
     def setTemplateString(self, templateString):
         # This information is used for gcc retargeting.
         raise Exception('GCC Retargeting not yet supported')
         self.templateString = templateString
+
+    def setWriteRegs(self, writeRegs):
+        # Specifies which registers are written
+        # by the instruction
+        try:
+            self.writeRegs = list(writeRegs)
+        except:
+            self.writeRegs = [writeRegs]
+        if self.machineCode:
+            # I check that the registers that I set for writing are actually part of
+            # the machine code for this instruction
+            for reg in self.writeRegs:
+                if not reg in [i[0] for i in self.machineCode.bitFields]:
+                    raise Exception('Register ' + reg + ' specified among the written registers of instruction ' + self.name + ' is not present in the associated machine code')
 
     def addTest(self, variables, input, expOut):
         # input and expected output are two maps, each one containing the
@@ -410,8 +422,8 @@ class Instruction:
     def __str__(self):
         return repr(self)
 
-    def getCPPClass(self, model, trace):
-        return isaWriter.getCPPInstr(self, model, trace)
+    def getCPPClass(self, model, pipeline, trace):
+        return isaWriter.getCPPInstr(self, model, pipeline, trace)
 
     def getCPPTest(self, processor, model):
         return isaWriter.getCPPInstrTest(self, processor, model)

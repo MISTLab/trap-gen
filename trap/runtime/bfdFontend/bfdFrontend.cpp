@@ -46,7 +46,7 @@ extern "C" {
 
 #include <sys/types.h>
 #include <cstdio>
-#include <stdarg.h>
+#include <cstdarg>
 
 #include <map>
 #include <string>

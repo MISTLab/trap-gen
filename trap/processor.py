@@ -219,7 +219,7 @@ class Processor:
     functional processor in case a local memory is used (in case TLM ports
     are used the systemc parameter is not taken into account)
     """
-    def __init__(self, name, version = 0.1, systemc = True, coprocessor = False, instructionCache = True, fastFetch = False):
+    def __init__(self, name, version = 0.1, systemc = True, coprocessor = False, instructionCache = True, fastFetch = False, externalClock = False):
         self.name = name
         self.version = version
         self.isBigEndian = None
@@ -245,6 +245,7 @@ class Processor:
         self.systemc = systemc
         self.instructionCache = instructionCache
         self.fastFetch = fastFetch
+        self.externalClock = externalClock
 
     def setISA(self, isa):
         self.isa = isa
@@ -350,6 +351,7 @@ class Processor:
         for i in self.pipes:
             if i.name == pipe.name:
                 raise Exception('A pipeline stage with name ' + pipe.name + ' already exists in processor ' + self.name)
+        self.pipes.append(pipe)
 
     def setBeginOperation(self, code):
         # if is an instance of cxx_writer.CustomCode,
@@ -442,6 +444,12 @@ class Processor:
             if bankName == i.name:
                 return True
         return False
+
+    def checkPipeStages(self):
+        for instrName, instr in self.isa.instructions.items():
+            for stage, beh in instr.prebehaviors.items():
+                if not stage in [i.name for i in self.pipes]:
+                    raise Exception('Pipeline stage ' + stage + ' declared for behavior ' + beh.name + ' in instruction ' + instrName + ' does not exist')
 
     def checkAliases(self):
         # checks that the declared aliases actually refer to
@@ -570,6 +578,10 @@ class Processor:
         # Returns the code implementing the interrupt ports
         return procWriter.getGetIRQPorts(self)
 
+    def getGetPipelineStages(self):
+        # Returns the code implementing the pipeline stages
+        return procWriter.getGetPipelineStages(self)
+
     def write(self, folder = '', models = validModels, dumpDecoderName = '', trace = False):
         # Ok: this method does two things: first of all it performs all
         # the possible checks to ensure that the processor description is
@@ -581,6 +593,7 @@ class Processor:
         self.isa.computeCoding()
         self.isa.checkCoding()
         self.checkAliases()
+        self.checkPipeStages()
         if self.abi:
             self.checkABI()
         self.isa.checkRegisters(extractRegInterval, self.isRegExisting)
@@ -612,6 +625,8 @@ class Processor:
             ProcClass = self.getCPPProc(model, trace)
             if self.abi:
                 IfClass = self.getCPPIf(model)
+            if model.startswith('acc'):
+                pipeClass = self.getGetPipelineStages()
             MemClass = self.getCPPMemoryIf(model)
             ExternalIf = self.getCPPExternalPorts(model)
             IRQClasses = self.getGetIRQPorts()
@@ -639,6 +654,13 @@ class Processor:
             implFileProc.addMember(ProcClass)
             headFileProc.addMember(ProcClass)
             implFileProc.addInclude('processor.hpp')
+            if model.startswith('acc'):
+                implFilePipe = cxx_writer.writer_code.FileDumper('pipeline.cpp', False)
+                headFilePie = cxx_writer.writer_code.FileDumper('pipeline.hpp', True)
+                for i in pipeClass:
+                    implFilePipe.addMember(i)
+                    headFilePipe.addMember(i)
+                implFileProc.addInclude('pipeline.hpp')
             implFileInstr = cxx_writer.writer_code.FileDumper('instructions.cpp', False)
             headFileInstr = cxx_writer.writer_code.FileDumper('instructions.hpp', True)
             for i in ISAClasses:
@@ -717,18 +739,18 @@ class PipeStage:
     information which can be overridden by each instruction"""
     def __init__(self, name):
         self.wb = False
-        self.bypass = False
         self.checkHazard = False
         self.name = name
+        self.checkUnknown = False
 
     def setWriteBack(self):
         self.wb = True
 
-    def setBypass(self):
-        self.bypass = True
-
     def setHazard(self):
         self.checkHazard = True
+
+    def setCheckUnknownInstr(self):
+        self.checkUnknown = True
 
 class Coprocessor:
     """Specifies the presence of a specific coprocessor; in particular

@@ -44,7 +44,7 @@
 #include <vector>
 #include <iostream>
 #include <iomanip>
-#include <signal.h>
+#include <csignal>
 #include <boost/asio.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/thread/condition.hpp>

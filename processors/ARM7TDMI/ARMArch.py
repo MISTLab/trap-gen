@@ -145,7 +145,7 @@ REGS[14].updateAlias(RB[22]);
 CPSR = (CPSR & 0xFFFFFFD0) | 0x00000092;
 //Finally I update the PC
 PC = 0x18;""")
-processor.addIrq(irq)
+#processor.addIrq(irq)
 fiq = trap.Interrupt('FIQ', priority = 1)
 fiq.setOperation('CPSR[key_F] == 0', """
 //Save LR_irq
@@ -165,14 +165,17 @@ REGS[14].updateAlias(RB[29]);
 CPSR = (CPSR & 0xFFFFFFD0) | 0x000000D1;
 //Finally I update the PC
 PC = 0x1C;""")
-processor.addIrq(fiq)
+#processor.addIrq(fiq)
 
 # Now it is time to add the pipeline stages
 fetchStage = trap.PipeStage('fetch')
 processor.addPipeStage(fetchStage)
 decodeStage = trap.PipeStage('decode')
+decodeStage.setHazard()
 processor.addPipeStage(decodeStage)
 executeStage = trap.PipeStage('execute')
+executeStage.setWriteBack()
+executeStage.setCheckUnknownInstr()
 processor.addPipeStage(executeStage)
 
 # The ABI is necessary to emulate system calls, personalize the GDB stub and,
@@ -192,3 +195,4 @@ processor.setABI(abi)
 #processor.write(folder = 'processor', models = ['funcLT'])
 #processor.write(folder = 'processor', models = ['funcAT'], trace = True)
 processor.write(folder = 'processor', models = ['funcAT', 'funcLT'])
+#processor.write(folder = 'processor', models = ['accAT'])

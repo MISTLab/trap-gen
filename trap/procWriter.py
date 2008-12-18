@@ -658,7 +658,10 @@ def getCPPProc(self, model, trace):
     codeString = ''
     if self.instructionCache:
         codeString += 'template_map< ' + str(fetchWordType) + ', Instruction * >::iterator instrCacheEnd = Processor::instrCache.end();\n'
-    codeString += 'while(true){\n'
+    if model.endswith('AT') and self.externalClock:
+        codeString += 'if(this->waitCycles > 0){this->waitCycles--;\nreturn;\n}\n\n'
+    else:
+        codeString += 'while(true){\n'
     codeString += 'unsigned int numCycles = 0;\n'
 
     #Here is the code to deal with interrupts
@@ -792,10 +795,15 @@ def getCPPProc(self, model, trace):
     if len(self.tlmPorts) > 0 and model.endswith('LT'):
       codeString += 'this->quantKeeper.inc(numCycles*this->latency);\nif(this->quantKeeper.need_sync()) this->quantKeeper.sync();\n'
     elif model.startswith('acc') or self.systemc:
-        codeString += 'wait(numCycles*this->latency);\n'
+        if model.endswith('AT') and self.externalClock:
+            codeString += 'this->waitCycles = numCycles;\n'
+        else:
+            codeString += 'wait(numCycles*this->latency);\n'
     else:
         codeString += 'this->totalCycles += numCycles;\n'
-    codeString += 'this->numInstructions++;\n\n}'
+    codeString += 'this->numInstructions++;\n\n'
+    if not (model.endswith('AT') and self.externalClock):
+        codeString += '}'
 
     processorElements = []
     mainLoopCode = cxx_writer.writer_code.Code(codeString)
@@ -1009,8 +1017,15 @@ def getCPPProc(self, model, trace):
         initElements.append(initPortCode)
         processorElements.append(attribute)
     if self.systemc or model.startswith('acc'):
-        latencyAttribute = cxx_writer.writer_code.Attribute('latency', cxx_writer.writer_code.sc_timeType, 'pu')
-        processorElements.append(latencyAttribute)
+        if model.endswith('AT') and self.externalClock:
+            totCyclesAttribute = cxx_writer.writer_code.Attribute('waitCycles', cxx_writer.writer_code.uintType, 'pu')
+            processorElements.append(totCyclesAttribute)
+            bodyInits += 'this->waitCycles = 0;\n'
+            clockAttribute = cxx_writer.writer_code.Attribute('clock', cxx_writer.writer_code.TemplateType('sc_in', [cxx_writer.writer_code.boolType], 'systemc.h'), 'pu')
+            processorElements.append(clockAttribute)
+        else:
+            latencyAttribute = cxx_writer.writer_code.Attribute('latency', cxx_writer.writer_code.sc_timeType, 'pu')
+            processorElements.append(latencyAttribute)
     else:
         totCyclesAttribute = cxx_writer.writer_code.Attribute('totalCycles', cxx_writer.writer_code.uintType, 'pu')
         processorElements.append(totCyclesAttribute)
@@ -1084,14 +1099,18 @@ def getCPPProc(self, model, trace):
     constrCode += 'Processor::INSTRUCTIONS[' + str(maxInstrId) + '] = new InvalidInstr(' + baseInstrInitElement + ');\n'
     constrCode += '}\n'
     constrCode += bodyInits
-    constrCode += 'SC_THREAD(mainLoop);\n'
+    if model.endswith('AT') and self.externalClock:
+        constrCode += 'SC_METHOD(mainLoop);\nsensitive << this->clock.pos();\n'
+    else:
+        constrCode += 'SC_THREAD(mainLoop);\n'
+    constrCode += 'dont_initialize();\n'
     if not self.systemc and not model.startswith('acc'):
         constrCode += 'this->totalCycles = 0;\n'
     constrCode += 'end_module();'
     constructorBody = cxx_writer.writer_code.Code(constrCode)
     constructorParams = [cxx_writer.writer_code.Parameter('name', cxx_writer.writer_code.sc_module_nameType)]
     constructorInit = ['sc_module(name)']
-    if self.systemc or model.startswith('acc') or len(self.tlmPorts) > 0:
+    if (self.systemc or model.startswith('acc') or len(self.tlmPorts) > 0) and not (model.endswith('AT') and self.externalClock):
         constructorParams.append(cxx_writer.writer_code.Parameter('latency', cxx_writer.writer_code.sc_timeType))
         constructorInit.append('latency(latency)')
     publicConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, constructorInit + initElements)
@@ -1794,6 +1813,76 @@ def getGetIRQPorts(self):
         classes.append(irqPortDecl)
     return classes
 
+def getGetPipelineStages(self):
+    # Returns the code implementing the class representing a pipeline stage
+    pipeCodeElements = []
+
+    pipeNum = 0
+    defineCode = ''
+    for i in self.pipes:
+        defineCode += '#define ' + i.name.upper() + ' ' + str(pipeNum)
+        pipeNum += 1
+    pipeCodeElements.append(cxx_writer.writer_code.Code(defineCode + '\n'))
+
+    pipelineElements = []
+    constructorCode = ''
+    constructorParams = []
+    constructorInit = []
+    pipeType = cxx_writer.writer_code.Type('BasePipeStage')
+
+    stageReadyFlag = cxx_writer.writer_code.Attribute('stageReadyFlag', cxx_writer.writer_code.boolType, 'pri')
+    pipelineElements.append(stageReadyFlag)
+    constructorCode += 'this->stageReadyFlag = false;\n'
+    stageReadyEvent = cxx_writer.writer_code.Attribute('stageReadyEv', cxx_writer.writer_code.sc_eventType, 'pri')
+    pipelineElements.append(stageReadyEvent)
+    stageAttr = cxx_writer.writer_code.Attribute('prevStage', pipeType.makePointer(), 'pri')
+    pipelineElements.append(stageAttr)
+    stageAttr = cxx_writer.writer_code.Attribute('succStage', pipeType.makePointer(), 'pri')
+    pipelineElements.append(stageAttr)
+    constructorParams.append(cxx_writer.writer_code.Parameter('pipeName', cxx_writer.writer_code.sc_module_nameType))
+    constructorParams.append(cxx_writer.writer_code.Parameter('prevStage', pipeType.makePointer(), initValue = 'NULL'))
+    constructorParams.append(cxx_writer.writer_code.Parameter('succStage', pipeType.makePointer(), initValue = 'NULL'))
+    constructorInit.append('sc_module(pipeName)')
+    constructorInit.append('prevStage(prevStage)')
+    constructorInit.append('succStage(succStage)')
+    pipelineDecl = cxx_writer.writer_code.ClassDeclaration('BasePipeStage', pipelineElements, [cxx_writer.writer_code.sc_moduleType])
+    constructorBody = cxx_writer.writer_code.Code(constructorCode + 'end_module();')
+    publicPipelineConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, constructorInit)
+    pipelineDecl.addConstructor(publicPipelineConstr)
+    pipeCodeElements.append(pipelineDecl)
+
+    fetchPipeElements = []
+    constructorCode = ''
+    constructorInit = []
+    behaviorMethodCode = ''
+    behaviorMethodBody = cxx_writer.writer_code.Code(behaviorMethodCode)
+    behaviorMethodDecl = cxx_writer.writer_code.Method('behavior', behaviorMethodBody, cxx_writer.writer_code.voidType, 'pu', inline = True)
+    fetchPipeElements.append(behaviorMethodDecl)
+
+    constructorInit.append('BasePipeStage(pipeName, prevStage, succStage)')
+    fetchPipeDecl = cxx_writer.writer_code.ClassDeclaration('FetchPipeStage', fetchPipeElements, [pipeType])
+    constructorBody = cxx_writer.writer_code.Code(constructorCode + 'end_module();')
+    publicFetchPipeConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, constructorInit)
+    fetchPipeDecl.addConstructor(publicFetchPipeConstr)
+    pipeCodeElements.append(fetchPipeDecl)
+
+    executePipeElements = []
+    constructorCode = ''
+    constructorInit = []
+    behaviorMethodCode = ''
+    behaviorMethodBody = cxx_writer.writer_code.Code(behaviorMethodCode)
+    behaviorMethodDecl = cxx_writer.writer_code.Method('behavior', behaviorMethodBody, cxx_writer.writer_code.voidType, 'pu', inline = True)
+    executePipeElements.append(behaviorMethodDecl)
+
+    constructorInit.append('BasePipeStage(pipeName, prevStage, succStage)')
+    executePipeDecl = cxx_writer.writer_code.ClassDeclaration('ExecutePipeStage', fetchPipeElements, [pipeType])
+    constructorBody = cxx_writer.writer_code.Code(constructorCode + 'end_module();')
+    publicExecutePipeConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, constructorInit)
+    executePipeDecl.addConstructor(publicExecutePipeConstr)
+    pipeCodeElements.append(executePipeDecl)
+
+    return pipeCodeElements
+
 def getTestMainCode(self):
     # Returns the code for the file which contains the main
     # routine for the execution of the tests.
@@ -1845,6 +1934,8 @@ def getMainCode(self, model):
         code += """//Now we can procede with the actual instantiation of the processor
         Processor procInst(\"""" + self.name + """\");
         """
+    if model.endswith('AT') and self.externalClock:
+        code += '//** Here we have to connect the external clock to the procInst.clock input port **//'
     instrMemName = ''
     if len(self.tlmPorts) > 0:
         code += """//Here we instantiate the memory and connect it

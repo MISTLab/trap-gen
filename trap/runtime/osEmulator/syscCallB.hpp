@@ -52,9 +52,9 @@
 #include <string>
 #include <map>
 #include <systemc.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -63,13 +63,13 @@
 #if !(defined(__MACOSX__) || defined(__DARWIN__) || defined(__APPLE__))
 #include <error.h>
 #endif
-#include <errno.h>
+#include <cerrno>
 #if !defined(errno) && !defined(HAVE_ERRNO_DECL)
 extern int errno;
 #endif
 #include <sstream>
 #include <sys/times.h>
-#include <time.h>
+#include <ctime>
 
 class OSEmulatorBase{
     public:
