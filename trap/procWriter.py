@@ -655,81 +655,119 @@ def getCPPProc(self, model, trace):
     includes = fetchWordType.getIncludes()
     interfaceType = cxx_writer.writer_code.Type(self.name + '_ABIIf', 'interface.hpp')
     ToolsManagerType = cxx_writer.writer_code.TemplateType('ToolsManager', [fetchWordType], 'ToolsIf.hpp')
+    processorElements = []
     codeString = ''
-    if self.instructionCache:
-        codeString += 'template_map< ' + str(fetchWordType) + ', Instruction * >::iterator instrCacheEnd = Processor::instrCache.end();\n'
-    if model.endswith('AT') and self.externalClock:
-        codeString += 'if(this->waitCycles > 0){this->waitCycles--;\nreturn;\n}\n\n'
-    else:
-        codeString += 'while(true){\n'
-    codeString += 'unsigned int numCycles = 0;\n'
 
-    #Here is the code to deal with interrupts
-    orderedIrqList = sorted(self.irqs, lambda x,y: cmp(y.priority, x.priority))
-    for irqPort in orderedIrqList:
-        if irqPort != orderedIrqList[0]:
-            codeString += 'else '
-        codeString += 'if('
-        if not irqPort.high:
-            codeString += '!'
-        codeString += irqPort.name
-        if(irqPort.condition):
-            codeString += ' && (' + irqPort.condition + ')'
-        codeString += '){\n'
-        codeString += irqPort.operation + '\n}\n'
+    if not model.startswith('acc'):
+        if self.instructionCache:
+            codeString += 'template_map< ' + str(fetchWordType) + ', Instruction * >::iterator instrCacheEnd = Processor::instrCache.end();\n'
+        if model.endswith('AT') and self.externalClock:
+            codeString += 'if(this->waitCycles > 0){this->waitCycles--;\nreturn;\n}\n\n'
+        else:
+            codeString += 'while(true){\n'
+        codeString += 'unsigned int numCycles = 0;\n'
 
-    fetchCode = str(fetchWordType) + ' bitString = this->'
-    # Now I have to check what is the fetch: if there is a TLM port or
-    # if I have to access local memory
-    if self.memory:
-        # I perform the fetch from the local memory
-        fetchCode += self.memory[0]
-    else:
-        for name, isFetch  in self.tlmPorts.items():
-            if isFetch:
-                fetchCode += name
-        if codeString.endswith('= '):
-            raise Exception('No TLM port was chosen for the instruction fetch')
-    fetchCode += '.read_word('
-    if self.instructionCache and self.fastFetch:
-        fetchAddress = 'curPC'
-    else:
-        fetchAddress = 'this->' + self.fetchReg[0]
-    if model.startswith('func'):
-        if self.fetchReg[1] < 0:
-            fetchAddress += str(self.fetchReg[1])
+        #Here is the code to deal with interrupts
+        orderedIrqList = sorted(self.irqs, lambda x,y: cmp(y.priority, x.priority))
+        for irqPort in orderedIrqList:
+            if irqPort != orderedIrqList[0]:
+                codeString += 'else '
+            codeString += 'if('
+            if not irqPort.high:
+                codeString += '!'
+            codeString += irqPort.name
+            if(irqPort.condition):
+                codeString += ' && (' + irqPort.condition + ')'
+            codeString += '){\n'
+            codeString += irqPort.operation + '\n}\n'
+
+        fetchCode = str(fetchWordType) + ' bitString = this->'
+        # Now I have to check what is the fetch: if there is a TLM port or
+        # if I have to access local memory
+        if self.memory:
+            # I perform the fetch from the local memory
+            fetchCode += self.memory[0]
         else:
-            fetchAddress += ' + ' + str(self.fetchReg[1])
-    fetchCode += fetchAddress + ');\n'
-    if self.instructionCache and self.fastFetch:
-        codeString += str(fetchWordType) + ' curPC = this->' + self.fetchReg[0] + ';\n'
-    else:
-        codeString += fetchCode
-    if trace:
-        codeString += 'std::cerr << \"Current PC: \" << std::hex << std::showbase << '
-        if self.fastFetch and self.instructionCache:
-            codeString += 'curPC'
+            for name, isFetch  in self.tlmPorts.items():
+                if isFetch:
+                    fetchCode += name
+            if codeString.endswith('= '):
+                raise Exception('No TLM port was chosen for the instruction fetch')
+        fetchCode += '.read_word('
+        if self.instructionCache and self.fastFetch:
+            fetchAddress = 'curPC'
         else:
-            codeString += fetchAddress
-        codeString += ' << std::endl;\n'
-    if self.instructionCache:
-        codeString += 'template_map< ' + str(fetchWordType) + ', Instruction * >::iterator cachedInstr = Processor::instrCache.find('
-        if self.fastFetch:
-            codeString += 'curPC);'
+            fetchAddress = 'this->' + self.fetchReg[0]
+        if model.startswith('func'):
+            if self.fetchReg[1] < 0:
+                fetchAddress += str(self.fetchReg[1])
+            else:
+                fetchAddress += ' + ' + str(self.fetchReg[1])
+        fetchCode += fetchAddress + ');\n'
+        if self.instructionCache and self.fastFetch:
+            codeString += str(fetchWordType) + ' curPC = this->' + self.fetchReg[0] + ';\n'
         else:
-            codeString += 'bitString);'
-        codeString += """
-        if(cachedInstr != instrCacheEnd){
-            // I can call the instruction, I have found it
+            codeString += fetchCode
+        if trace:
+            codeString += 'std::cerr << \"Current PC: \" << std::hex << std::showbase << '
+            if self.fastFetch and self.instructionCache:
+                codeString += 'curPC'
+            else:
+                codeString += fetchAddress
+            codeString += ' << std::endl;\n'
+        if self.instructionCache:
+            codeString += 'template_map< ' + str(fetchWordType) + ', Instruction * >::iterator cachedInstr = Processor::instrCache.find('
+            if self.fastFetch:
+                codeString += 'curPC);'
+            else:
+                codeString += 'bitString);'
+            codeString += """
+            if(cachedInstr != instrCacheEnd){
+                // I can call the instruction, I have found it
+                try{
+                    #ifndef DISABLE_TOOLS
+                    if(!(this->toolManager.newIssue(""" + fetchAddress + """))){
+                    #endif
+                    numCycles = cachedInstr->second->behavior();
+            """
+            if trace:
+                codeString += """
+                    cachedInstr->second->printTrace();
+                """
+            codeString += """
+                    #ifndef DISABLE_TOOLS
+                    }
+                    #endif
+                }
+                catch(flush_exception &etc){
+            """
+            if trace:
+                codeString += """
+                        std::cerr << "Skipped Instruction" << std::endl << std::endl;
+                """
+            codeString += """
+                    numCycles = 0;
+                }
+            }
+            else{
+                // The current instruction is not present in the cache:
+                // I have to perform the normal decoding phase ...
+            """
+        if self.instructionCache and self.fastFetch:
+            codeString += fetchCode
+        codeString += """int instrId = decoder.decode(bitString);
+        Instruction * instr = Processor::INSTRUCTIONS[instrId];
+        """
+        codeString += """instr->setParams(bitString);
             try{
                 #ifndef DISABLE_TOOLS
                 if(!(this->toolManager.newIssue(""" + fetchAddress + """))){
                 #endif
-                numCycles = cachedInstr->second->behavior();
+                numCycles = instr->behavior();
         """
         if trace:
             codeString += """
-                cachedInstr->second->printTrace();
+                instr->printTrace();
             """
         codeString += """
                 #ifndef DISABLE_TOOLS
@@ -745,72 +783,36 @@ def getCPPProc(self, model, trace):
         codeString += """
                 numCycles = 0;
             }
-        }
-        else{
-            // The current instruction is not present in the cache:
-            // I have to perform the normal decoding phase ...
+            // ... and then add the instruction to the cache
         """
-    if self.instructionCache and self.fastFetch:
-        codeString += fetchCode
-    codeString += """int instrId = decoder.decode(bitString);
-    Instruction * instr = Processor::INSTRUCTIONS[instrId];
-    """
-    codeString += """instr->setParams(bitString);
-        try{
-            #ifndef DISABLE_TOOLS
-            if(!(this->toolManager.newIssue(""" + fetchAddress + """))){
-            #endif
-            numCycles = instr->behavior();
-    """
-    if trace:
-        codeString += """
-            instr->printTrace();
-        """
-    codeString += """
-            #ifndef DISABLE_TOOLS
+        if self.instructionCache:
+            if self.fastFetch:
+                codeString += 'instrCache[curPC] = instr;'
+            else:
+                codeString += 'instrCache[bitString] = instr;'
+            codeString += """
+                instrCacheEnd = Processor::instrCache.end();
+                Processor::INSTRUCTIONS[instrId] = instr->replicate();
             }
-            #endif
-        }
-        catch(flush_exception &etc){
-    """
-    if trace:
-        codeString += """
-                std::cerr << "Skipped Instruction" << std::endl << std::endl;
-        """
-    codeString += """
-            numCycles = 0;
-        }
-        // ... and then add the instruction to the cache
-    """
-    if self.instructionCache:
-        if self.fastFetch:
-            codeString += 'instrCache[curPC] = instr;'
+            """
+        if len(self.tlmPorts) > 0 and model.endswith('LT'):
+            codeString += 'this->quantKeeper.inc(numCycles*this->latency);\nif(this->quantKeeper.need_sync()) this->quantKeeper.sync();\n'
+        elif model.startswith('acc') or self.systemc:
+            if model.endswith('AT') and self.externalClock:
+                codeString += 'this->waitCycles = numCycles;\n'
+            else:
+                codeString += 'wait(numCycles*this->latency);\n'
         else:
-            codeString += 'instrCache[bitString] = instr;'
-        codeString += """
-            instrCacheEnd = Processor::instrCache.end();
-            Processor::INSTRUCTIONS[instrId] = instr->replicate();
-        }
-        """
-    if len(self.tlmPorts) > 0 and model.endswith('LT'):
-      codeString += 'this->quantKeeper.inc(numCycles*this->latency);\nif(this->quantKeeper.need_sync()) this->quantKeeper.sync();\n'
-    elif model.startswith('acc') or self.systemc:
-        if model.endswith('AT') and self.externalClock:
-            codeString += 'this->waitCycles = numCycles;\n'
-        else:
-            codeString += 'wait(numCycles*this->latency);\n'
-    else:
-        codeString += 'this->totalCycles += numCycles;\n'
-    codeString += 'this->numInstructions++;\n\n'
-    if not (model.endswith('AT') and self.externalClock):
-        codeString += '}'
+            codeString += 'this->totalCycles += numCycles;\n'
+        codeString += 'this->numInstructions++;\n\n'
+        if not (model.endswith('AT') and self.externalClock):
+            codeString += '}'
+        mainLoopCode = cxx_writer.writer_code.Code(codeString)
+        mainLoopCode.addInclude(includes)
+        mainLoopCode.addInclude('customExceptions.hpp')
+        mainLoopMethod = cxx_writer.writer_code.Method('mainLoop', mainLoopCode, cxx_writer.writer_code.voidType, 'pu')
+        processorElements.append(mainLoopMethod)
 
-    processorElements = []
-    mainLoopCode = cxx_writer.writer_code.Code(codeString)
-    mainLoopCode.addInclude(includes)
-    mainLoopCode.addInclude('customExceptions.hpp')
-    mainLoopMethod = cxx_writer.writer_code.Method('mainLoop', mainLoopCode, cxx_writer.writer_code.voidType, 'pu')
-    processorElements.append(mainLoopMethod)
     if self.beginOp:
         beginOpMethod = cxx_writer.writer_code.Method('beginOp', self.beginOp, cxx_writer.writer_code.voidType, 'pri')
         processorElements.append(beginOpMethod)
@@ -1071,6 +1073,37 @@ def getCPPProc(self, model, trace):
         processorElements.append(irqPortAttr)
         initElements.append(irqPort.name + '_port(\"' + irqPort.name + '_IRQ\", ' + irqPort.name + ')')
 
+    if model.startswith('acc'):
+        # I have to instantiate the pipeline and its stages ...
+        prevStage = ''
+        for pipeStage in self.pipes:
+            pipelineType = cxx_writer.writer_code.Type(pipeStage.name.upper() + '_PipeStage', 'pipeline.hpp')
+            curStageAttr = cxx_writer.writer_code.Attribute(pipeStage.name + '_stage', pipelineType, 'pu')
+            processorElements.append(curStageAttr)
+            curPipeInit = ['\"' + pipeStage.name + '\"']
+            if prevStage:
+                curPipeInit.append('&' + prevStage)
+            if self.pipes.index(pipeStage) + 1 < len(self.pipes):
+                curPipeInit.append('&' + self.pipes[self.pipes.index(pipeStage) + 1].name + '_stage')
+            if pipeStage == self.pipes[0]:
+                # It is the first stage, I also have to allocate the memory
+                if self.memory:
+                    # I perform the fetch from the local memory
+                    memName = self.memory[0]
+                else:
+                    for name, isFetch  in self.tlmPorts.items():
+                        if isFetch:
+                            memName = name
+                curPipeInit = ['Processor::INSTRUCTIONS', memName] + curPipeInit
+                if self.instructionCache:
+                    curPipeInit = ['Processor::instrCache'] + curPipeInit
+            initString += ')'
+            initElements.append(pipeStage.name + '_stage(' + ', '.join(curPipeInit)  + ')')
+            prevStage = pipeStage.name + '_stage'
+        NOPIntructionType = cxx_writer.writer_code.Type('NOPInstruction', 'instructions.hpp')
+        NOPinstructionsAttribute = cxx_writer.writer_code.Attribute('NOPInstrInstance', NOPIntructionType.makePointer(), 'pri', True)
+        processorElements.append(NOPinstructionsAttribute)
+
     # Ok, here I have to create the code for the constructor: I have to
     # initialize the INSTRUCTIONS array, the local memory (if present)
     # the TLM ports
@@ -1097,13 +1130,18 @@ def getCPPProc(self, model, trace):
     for name, instr in self.isa.instructions.items():
         constrCode += 'Processor::INSTRUCTIONS[' + str(instr.id) + '] = new ' + name + '(' + baseInstrInitElement +');\n'
     constrCode += 'Processor::INSTRUCTIONS[' + str(maxInstrId) + '] = new InvalidInstr(' + baseInstrInitElement + ');\n'
+    if model.startswith('acc'):
+        constrCode += 'Processor::NOPInstrInstance = new NOPInstruction(' + baseInstrInitElement + ');\n'
+        for pipeStage in self.pipes:
+            constrCode += pipeStage.name + '_stage.NOPInstrInstance = Processor::NOPInstrInstance;\n'
     constrCode += '}\n'
     constrCode += bodyInits
-    if model.endswith('AT') and self.externalClock:
-        constrCode += 'SC_METHOD(mainLoop);\nsensitive << this->clock.pos();\n'
-    else:
-        constrCode += 'SC_THREAD(mainLoop);\n'
-    constrCode += 'dont_initialize();\n'
+    if not model.startswith('acc'):
+        if model.endswith('AT') and self.externalClock:
+            constrCode += 'SC_METHOD(mainLoop);\nsensitive << this->clock.pos();\n'
+        else:
+            constrCode += 'SC_THREAD(mainLoop);\n'
+        constrCode += 'dont_initialize();\n'
     if not self.systemc and not model.startswith('acc'):
         constrCode += 'this->totalCycles = 0;\n'
     constrCode += 'end_module();'
@@ -1813,14 +1851,14 @@ def getGetIRQPorts(self):
         classes.append(irqPortDecl)
     return classes
 
-def getGetPipelineStages(self):
+def getGetPipelineStages(self, trace):
     # Returns the code implementing the class representing a pipeline stage
     pipeCodeElements = []
 
     pipeNum = 0
     defineCode = ''
     for i in self.pipes:
-        defineCode += '#define ' + i.name.upper() + ' ' + str(pipeNum)
+        defineCode += '#define ' + i.name.upper() + ' ' + str(pipeNum) + '\n'
         pipeNum += 1
     pipeCodeElements.append(cxx_writer.writer_code.Code(defineCode + '\n'))
 
@@ -1829,57 +1867,342 @@ def getGetPipelineStages(self):
     constructorParams = []
     constructorInit = []
     pipeType = cxx_writer.writer_code.Type('BasePipeStage')
+    IntructionType = cxx_writer.writer_code.Type('Instruction', include = 'instructions.hpp')
 
-    stageReadyFlag = cxx_writer.writer_code.Attribute('stageReadyFlag', cxx_writer.writer_code.boolType, 'pri')
+    stageReadyFlag = cxx_writer.writer_code.Attribute('stageReadyFlag', cxx_writer.writer_code.boolType, 'pu')
     pipelineElements.append(stageReadyFlag)
     constructorCode += 'this->stageReadyFlag = false;\n'
-    stageReadyEvent = cxx_writer.writer_code.Attribute('stageReadyEv', cxx_writer.writer_code.sc_eventType, 'pri')
-    pipelineElements.append(stageReadyEvent)
-    stageAttr = cxx_writer.writer_code.Attribute('prevStage', pipeType.makePointer(), 'pri')
+    if not self.externalClock:
+        stageReadyEvent = cxx_writer.writer_code.Attribute('stageReadyEv', cxx_writer.writer_code.sc_eventType, 'pu')
+        pipelineElements.append(stageReadyEvent)
+        instrPresentEvent = cxx_writer.writer_code.Attribute('instrPresentEv', cxx_writer.writer_code.sc_eventType, 'pro')
+        pipelineElements.append(instrPresentEvent)
+    stageAttr = cxx_writer.writer_code.Attribute('prevStage', pipeType.makePointer(), 'pro')
     pipelineElements.append(stageAttr)
-    stageAttr = cxx_writer.writer_code.Attribute('succStage', pipeType.makePointer(), 'pri')
+    stageAttr = cxx_writer.writer_code.Attribute('succStage', pipeType.makePointer(), 'pro')
     pipelineElements.append(stageAttr)
-    constructorParams.append(cxx_writer.writer_code.Parameter('pipeName', cxx_writer.writer_code.sc_module_nameType))
-    constructorParams.append(cxx_writer.writer_code.Parameter('prevStage', pipeType.makePointer(), initValue = 'NULL'))
-    constructorParams.append(cxx_writer.writer_code.Parameter('succStage', pipeType.makePointer(), initValue = 'NULL'))
-    constructorInit.append('sc_module(pipeName)')
+    NOPIntructionType = cxx_writer.writer_code.Type('NOPInstruction', 'instructions.hpp')
+    NOPinstructionsAttribute = cxx_writer.writer_code.Attribute('NOPInstrInstance', NOPIntructionType.makePointer(), 'pu')
+    pipelineElements.append(NOPinstructionsAttribute)
+
+    if self.externalClock:
+        clockAttribute = cxx_writer.writer_code.Attribute('clock', cxx_writer.writer_code.TemplateType('sc_in', [cxx_writer.writer_code.boolType], 'systemc.h'), 'pu')
+        pipelineElements.append(clockAttribute)
+        waitForNextAttr = cxx_writer.writer_code.Attribute('waitForNext', cxx_writer.writer_code.boolType, 'pro')
+        pipelineElements.append(waitForNextAttr)
+
+    curInstrAttr = cxx_writer.writer_code.Attribute('curInstruction', IntructionType.makePointer(), 'pro')
+    pipelineElements.append(curInstrAttr)
+
+    newInstrCode = """this->curInstruction = newInstr;
+    this->instrPresentEv.notify();
+    """
+    newInstrBody = cxx_writer.writer_code.Code(newInstrCode)
+    newInstrParam = cxx_writer.writer_code.Parameter('newInstr', IntructionType.makePointer())
+    newInstrDecl = cxx_writer.writer_code.Method('setNewInstruction', newInstrBody, cxx_writer.writer_code.voidType, 'pu', [newInstrParam], noException = True)
+    pipelineElements.append(newInstrDecl)
+    constructorCode += 'this->curInstruction = NULL;\n'
+    prevStageParam = cxx_writer.writer_code.Parameter('prevStage', pipeType.makePointer(), initValue = 'NULL')
+    succStageParam = cxx_writer.writer_code.Parameter('succStage', pipeType.makePointer(), initValue = 'NULL')
+    constructorParams.append(prevStageParam)
+    constructorParams.append(succStageParam)
     constructorInit.append('prevStage(prevStage)')
     constructorInit.append('succStage(succStage)')
-    pipelineDecl = cxx_writer.writer_code.ClassDeclaration('BasePipeStage', pipelineElements, [cxx_writer.writer_code.sc_moduleType])
-    constructorBody = cxx_writer.writer_code.Code(constructorCode + 'end_module();')
+    pipelineDecl = cxx_writer.writer_code.ClassDeclaration('BasePipeStage', pipelineElements)
+    constructorBody = cxx_writer.writer_code.Code(constructorCode)
     publicPipelineConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, constructorInit)
     pipelineDecl.addConstructor(publicPipelineConstr)
     pipeCodeElements.append(pipelineDecl)
 
-    fetchPipeElements = []
-    constructorCode = ''
-    constructorInit = []
-    behaviorMethodCode = ''
-    behaviorMethodBody = cxx_writer.writer_code.Code(behaviorMethodCode)
-    behaviorMethodDecl = cxx_writer.writer_code.Method('behavior', behaviorMethodBody, cxx_writer.writer_code.voidType, 'pu', inline = True)
-    fetchPipeElements.append(behaviorMethodDecl)
+    # Now I have to actually declare the different pipeline stages, all of them being equal a part from
+    # the fecth stage which have to fetch instructions and check interrupts before calling
+    # the appropriate behavior method
+    for pipeStage in self.pipes:
+        from isa import resolveBitType
+        fetchWordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>')
 
-    constructorInit.append('BasePipeStage(pipeName, prevStage, succStage)')
-    fetchPipeDecl = cxx_writer.writer_code.ClassDeclaration('FetchPipeStage', fetchPipeElements, [pipeType])
-    constructorBody = cxx_writer.writer_code.Code(constructorCode + 'end_module();')
-    publicFetchPipeConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, constructorInit)
-    fetchPipeDecl.addConstructor(publicFetchPipeConstr)
-    pipeCodeElements.append(fetchPipeDecl)
+        pipeNameParam = cxx_writer.writer_code.Parameter('pipeName', cxx_writer.writer_code.sc_module_nameType)
+        curPipeElements = []
+        constructorCode = ''
+        constructorInit = []
+        constructorParams = [pipeNameParam, prevStageParam, succStageParam]
+        codeString = ''
 
-    executePipeElements = []
-    constructorCode = ''
-    constructorInit = []
-    behaviorMethodCode = ''
-    behaviorMethodBody = cxx_writer.writer_code.Code(behaviorMethodCode)
-    behaviorMethodDecl = cxx_writer.writer_code.Method('behavior', behaviorMethodBody, cxx_writer.writer_code.voidType, 'pu', inline = True)
-    executePipeElements.append(behaviorMethodDecl)
+        if pipeStage == self.pipes[0]:
+            # This is the fetch pipeline stage, I have to fetch instructions
+            if self.instructionCache:
+                codeString += 'template_map< ' + str(fetchWordType) + ', Instruction * >::iterator instrCacheEnd = ' + pipeStage.name.upper() + '_PipeStage::instrCache.end();\n'
+            if self.externalClock:
+                codeString += """if(this->waitForNext){
+                    if(this->succStage != NULL){
+                        // Now I have to propagate the instruction to the next cycle if
+                        // the next stage has completed elaboration
+                        if(!this->succStage->stageReadyFlag){
+                            return;
+                        }
+                        this->succStage->setNewInstruction(this->curInstruction);
+                    }
+                    this->curInstruction = NULL;
+                    this->stageReadyFlag = true;
+                    this->waitForNext = false;
+                }
+                if(this->waitCycles > 0){
+                    this->waitCycles--;
+                    if(this->waitCycles == 0){
+                        this->waitForNext = true;
+                    }
+                    return;
+                }
+                """
+            else:
+                codeString += 'while(true){\n'
+            codeString += 'unsigned int numCycles = 0;\n'
 
-    constructorInit.append('BasePipeStage(pipeName, prevStage, succStage)')
-    executePipeDecl = cxx_writer.writer_code.ClassDeclaration('ExecutePipeStage', fetchPipeElements, [pipeType])
-    constructorBody = cxx_writer.writer_code.Code(constructorCode + 'end_module();')
-    publicExecutePipeConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, constructorInit)
-    executePipeDecl.addConstructor(publicExecutePipeConstr)
-    pipeCodeElements.append(executePipeDecl)
+            #Here is the code to deal with interrupts
+            orderedIrqList = sorted(self.irqs, lambda x,y: cmp(y.priority, x.priority))
+            for irqPort in orderedIrqList:
+                if irqPort != orderedIrqList[0]:
+                    codeString += 'else '
+                codeString += 'if('
+                if not irqPort.high:
+                    codeString += '!'
+                codeString += irqPort.name
+                if(irqPort.condition):
+                    codeString += ' && (' + irqPort.condition + ')'
+                codeString += '){\n'
+                codeString += irqPort.operation + '\n}\n'
+
+            fetchCode = str(fetchWordType) + ' bitString = this->'
+            # Now I have to check what is the fetch: if there is a TLM port or
+            # if I have to access local memory
+            if self.memory:
+                # I perform the fetch from the local memory
+                fetchCode += self.memory[0]
+            else:
+                for name, isFetch  in self.tlmPorts.items():
+                    if isFetch:
+                        fetchCode += name
+                if codeString.endswith('= '):
+                    raise Exception('No TLM port was chosen for the instruction fetch')
+            fetchCode += '.read_word('
+            if self.instructionCache and self.fastFetch:
+                fetchAddress = 'curPC'
+            else:
+                fetchAddress = 'this->' + self.fetchReg[0]
+            fetchCode += fetchAddress + ');\n'
+            if self.instructionCache and self.fastFetch:
+                codeString += str(fetchWordType) + ' curPC = this->' + self.fetchReg[0] + ';\n'
+            else:
+                codeString += fetchCode
+            if trace:
+                codeString += 'std::cerr << \"Current PC: \" << std::hex << std::showbase << '
+                if self.fastFetch and self.instructionCache:
+                    codeString += 'curPC'
+                else:
+                    codeString += fetchAddress
+                codeString += ' << std::endl;\n'
+            codeString += 'this->stageReadyFlag = false;\n'
+            if self.instructionCache:
+                codeString += 'template_map< ' + str(fetchWordType) + ', Instruction * >::iterator cachedInstr = ' + pipeStage.name.upper() + '_PipeStage::instrCache.find('
+                if self.fastFetch:
+                    codeString += 'curPC);'
+                else:
+                    codeString += 'bitString);'
+                codeString += """
+                if(cachedInstr != instrCacheEnd){
+                    this->curInstruction = cachedInstr->second;
+                    // I can call the instruction, I have found it
+                    try{
+                        #ifndef DISABLE_TOOLS
+                        if(!(this->toolManager.newIssue(""" + fetchAddress + """))){
+                        #endif
+                        numCycles = this->curInstruction->behavior_""" + pipeStage.name + """();
+                """
+                if trace:
+                    codeString += """
+                        this->curInstruction->printTrace();
+                    """
+                codeString += """
+                        #ifndef DISABLE_TOOLS
+                        }
+                        #endif
+                    }
+                    catch(flush_exception &etc){
+                """
+                if trace:
+                    codeString += """std::cerr << "Skipped Instruction" << std::endl << std::endl;
+                    """
+                codeString += """this->curInstruction = this->NOPInstrInstance;
+                        numCycles = 0;
+                    }
+                }
+                else{
+                    // The current instruction is not present in the cache:
+                    // I have to perform the normal decoding phase ...
+                """
+            if self.instructionCache and self.fastFetch:
+                codeString += fetchCode
+            codeString += """int instrId = decoder.decode(bitString);
+            this->curInstruction = """ + pipeStage.name.upper() + """_PipeStage::INSTRUCTIONS[instrId];
+            """
+            codeString += """this->curInstruction->setParams(bitString);
+                try{
+                    #ifndef DISABLE_TOOLS
+                    if(!(this->toolManager.newIssue(""" + fetchAddress + """))){
+                    #endif
+                    numCycles = this->curInstruction->behavior_""" + pipeStage.name + """();
+            """
+            if trace:
+                codeString += """
+                    this->curInstruction->printTrace();
+                """
+            codeString += """
+                    #ifndef DISABLE_TOOLS
+                    }
+                    #endif
+                }
+                catch(flush_exception &etc){
+            """
+            if trace:
+                codeString += """std::cerr << "Skipped Instruction" << std::endl << std::endl;
+                """
+            codeString += """this->curInstruction = this->NOPInstrInstance;
+                    numCycles = 0;
+                }
+                // ... and then add the instruction to the cache
+            """
+            if self.instructionCache:
+                if self.fastFetch:
+                    codeString += 'instrCache[curPC] = this->curInstruction;'
+                else:
+                    codeString += 'instrCache[bitString] = this->curInstruction;'
+                codeString += """
+                    instrCacheEnd = """ + pipeStage.name.upper() + """_PipeStage::instrCache.end();
+                    """ + pipeStage.name.upper() + """_PipeStage::INSTRUCTIONS[instrId] = this->curInstruction->replicate();
+                }
+                """
+            if self.externalClock:
+                codeString += 'this->waitCycles = numCycles;\n'
+            else:
+                codeString += """wait(numCycles*this->latency);
+                // Now I have to propagate the instruction to the next cycle if
+                // the next stage has completed elaboration
+                if(this->succStage != NULL){
+                    while(!this->succStage->stageReadyFlag){
+                        wait(this->succStage->stageReadyEv);
+                    }
+                    this->succStage->setNewInstruction(this->curInstruction);
+                    this->curInstruction = NULL;
+                }
+                this->stageReadyFlag = true;
+                this->stageReadyEv.notify();
+                """
+            if not self.externalClock:
+                codeString += '}'
+        else:
+            # This is a normal pipeline stage
+            if self.externalClock:
+                codeString += """if(this->waitForNext){
+                    if(this->succStage != NULL){
+                        // Now I have to propagate the instruction to the next cycle if
+                        // the next stage has completed elaboration
+                        if(!this->succStage->stageReadyFlag){
+                            return;
+                        }
+                        this->succStage->setNewInstruction(this->curInstruction);
+                    }
+                    this->curInstruction = NULL;
+                    this->stageReadyFlag = true;
+                    this->waitForNext = false;
+                }
+                if(this->waitCycles > 0){
+                    this->waitCycles--;
+                    if(this->waitCycles == 0){
+                        this->waitForNext = true;
+                    }
+                    return;
+                }
+                """
+            else:
+                codeString += 'while(true){\n'
+            codeString += 'unsigned int numCycles = 0;\n'
+
+            if self.externalClock:
+                codeString += 'if (this->curInstruction == NULL){\nreturn;\n}'
+            else:
+                codeString += 'while(this->curInstruction == NULL){\nwait(this->instrPresentEv);\n}\n'
+            codeString += 'this->stageReadyFlag = false;\n'
+            codeString += 'try{\nnumCycles = this->curInstruction->behavior_' + pipeStage.name + '();\n}\n'
+            codeString += """catch(flush_exception &etc){
+                this->curInstruction = this->NOPInstrInstance;
+                numCycles = 0;
+            }
+            """
+            if self.externalClock:
+                codeString += 'this->waitCycles = numCycles;\n'
+            else:
+                codeString += """wait(numCycles*this->latency);
+                // Now I have to propagate the instruction to the next cycle if
+                // the next stage has completed elaboration
+                if(this->succStage != NULL){
+                    while(!this->succStage->stageReadyFlag){
+                        wait(this->succStage->stageReadyEv);
+                    }
+                    this->succStage->setNewInstruction(this->curInstruction);
+                }
+                this->curInstruction = NULL;
+                this->stageReadyFlag = true;
+                this->stageReadyEv.notify();
+                """
+            if not self.externalClock:
+                codeString += '}'
+
+        behaviorMethodBody = cxx_writer.writer_code.Code(codeString)
+        behaviorMethodDecl = cxx_writer.writer_code.Method('behavior', behaviorMethodBody, cxx_writer.writer_code.voidType, 'pu', inline = True)
+        curPipeElements.append(behaviorMethodDecl)
+        if self.externalClock:
+            constructorCode += 'SC_METHOD(behavior);\nsensitive << this->clock.pos();\n'
+        else:
+            constructorCode += 'SC_THREAD(behavior);\n'
+        constructorCode += 'dont_initialize();\n'
+
+        if pipeStage == self.pipes[0]:
+            # I have to also instantiate the reference to the memories, in order to be able to
+            # fetch instructions
+            if self.memory:
+                # I perform the fetch from the local memory
+                memName = self.memory[0]
+                memType = cxx_writer.writer_code.Type('LocalMemory', 'memory.hpp').makeRef()
+            else:
+                for name, isFetch  in self.tlmPorts.items():
+                    if isFetch:
+                        memName = name
+                        memType = cxx_writer.writer_code.Type('TLMMemory', 'externalPorts.hpp').makeRef()
+            constructorParams = [cxx_writer.writer_code.Parameter(memName, memType)] + constructorParams
+            constructorInit.append(memName + '(' + memName + ')')
+            memRefAttr = cxx_writer.writer_code.Attribute(memName, memType, 'pri')
+            curPipeElements.append(memRefAttr)
+            # I also have to add the map containig the ISA instructions to this stage
+            IntructionType = cxx_writer.writer_code.Type('Instruction', 'instructions.hpp')
+            IntructionTypePtr = IntructionType.makePointer()
+            instructionsAttribute = cxx_writer.writer_code.Attribute('INSTRUCTIONS', IntructionTypePtr.makePointer().makeRef(), 'pri')
+            curPipeElements.append(instructionsAttribute)
+            constructorParams = [cxx_writer.writer_code.Parameter('INSTRUCTIONS', IntructionTypePtr.makePointer().makeRef())] + constructorParams
+            constructorInit.append('INSTRUCTIONS(INSTRUCTIONS)')
+            if self.instructionCache:
+                template_mapType = cxx_writer.writer_code.TemplateType('template_map', [fetchWordType, IntructionTypePtr], hash_map_include).makeRef()
+                cacheAttribute = cxx_writer.writer_code.Attribute('instrCache', template_mapType, 'pri')
+                curPipeElements.append(cacheAttribute)
+                constructorParams = [cxx_writer.writer_code.Parameter('instrCache', template_mapType)] + constructorParams
+                constructorInit.append('instrCache(instrCache)')
+
+
+        constructorInit = ['sc_module(pipeName)', 'BasePipeStage(prevStage, succStage)'] + constructorInit
+        curPipeDecl = cxx_writer.writer_code.SCModule(pipeStage.name.upper() + '_PipeStage', curPipeElements, [pipeType])
+        constructorBody = cxx_writer.writer_code.Code(constructorCode + 'end_module();')
+        publicCurPipeConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, constructorInit)
+        curPipeDecl.addConstructor(publicCurPipeConstr)
+        pipeCodeElements.append(curPipeDecl)
 
     return pipeCodeElements
 

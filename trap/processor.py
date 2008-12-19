@@ -578,9 +578,9 @@ class Processor:
         # Returns the code implementing the interrupt ports
         return procWriter.getGetIRQPorts(self)
 
-    def getGetPipelineStages(self):
+    def getGetPipelineStages(self, trace):
         # Returns the code implementing the pipeline stages
-        return procWriter.getGetPipelineStages(self)
+        return procWriter.getGetPipelineStages(self, trace)
 
     def write(self, folder = '', models = validModels, dumpDecoderName = '', trace = False):
         # Ok: this method does two things: first of all it performs all
@@ -626,7 +626,7 @@ class Processor:
             if self.abi:
                 IfClass = self.getCPPIf(model)
             if model.startswith('acc'):
-                pipeClass = self.getGetPipelineStages()
+                pipeClass = self.getGetPipelineStages(trace)
             MemClass = self.getCPPMemoryIf(model)
             ExternalIf = self.getCPPExternalPorts(model)
             IRQClasses = self.getGetIRQPorts()
@@ -656,11 +656,11 @@ class Processor:
             implFileProc.addInclude('processor.hpp')
             if model.startswith('acc'):
                 implFilePipe = cxx_writer.writer_code.FileDumper('pipeline.cpp', False)
-                headFilePie = cxx_writer.writer_code.FileDumper('pipeline.hpp', True)
+                headFilePipe = cxx_writer.writer_code.FileDumper('pipeline.hpp', True)
                 for i in pipeClass:
                     implFilePipe.addMember(i)
                     headFilePipe.addMember(i)
-                implFileProc.addInclude('pipeline.hpp')
+                implFilePipe.addInclude('pipeline.hpp')
             implFileInstr = cxx_writer.writer_code.FileDumper('instructions.cpp', False)
             headFileInstr = cxx_writer.writer_code.FileDumper('instructions.hpp', True)
             for i in ISAClasses:
@@ -712,6 +712,8 @@ class Processor:
             curFolder.addCode(implFileAlias)
             curFolder.addHeader(headFileProc)
             curFolder.addCode(implFileProc)
+            curFolder.addHeader(headFilePipe)
+            curFolder.addCode(implFilePipe)
             if self.abi:
                 curFolder.addHeader(headFileIf)
                 curFolder.addCode(implFileIf)

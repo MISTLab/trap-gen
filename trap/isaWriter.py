@@ -454,7 +454,7 @@ def getCPPClasses(self, processor, model, trace):
         instructionElements.append(behaviorDecl)
     else:
         for pipeStage in processor.pipes:
-            behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage, emptyBody, cxx_writer.writer_code.uintType, 'pu', pure = True)
+            behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage.name, emptyBody, cxx_writer.writer_code.uintType, 'pu', pure = True)
             instructionElements.append(behaviorDecl)
     replicateDecl = cxx_writer.writer_code.Method('replicate', emptyBody, instructionType.makePointer(), 'pu', pure = True, noException = True, const = True)
     instructionElements.append(replicateDecl)
@@ -637,7 +637,7 @@ def getCPPClasses(self, processor, model, trace):
             NOPInstructionElements.append(getIstructionNameDecl)
         from procWriter import baseInstrInitElement
         publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, ['Instruction(' + baseInstrInitElement + ')'])
-        NOPInstructionElements = cxx_writer.writer_code.ClassDeclaration('NOPInstructionElements', NOPInstructionElements, [instructionDecl.getType()])
+        NOPInstructionElements = cxx_writer.writer_code.ClassDeclaration('NOPInstruction', NOPInstructionElements, [instructionDecl.getType()])
         NOPInstructionElements.addConstructor(publicConstr)
         publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
         NOPInstructionElements.addDestructor(publicDestr)
