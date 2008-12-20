@@ -712,8 +712,9 @@ class Processor:
             curFolder.addCode(implFileAlias)
             curFolder.addHeader(headFileProc)
             curFolder.addCode(implFileProc)
-            curFolder.addHeader(headFilePipe)
-            curFolder.addCode(implFilePipe)
+            if model.startswith('acc'):
+                curFolder.addHeader(headFilePipe)
+                curFolder.addCode(implFilePipe)
             if self.abi:
                 curFolder.addHeader(headFileIf)
                 curFolder.addCode(implFileIf)
