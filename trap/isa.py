@@ -422,8 +422,8 @@ class Instruction:
     def __str__(self):
         return repr(self)
 
-    def getCPPClass(self, model, pipeline, trace):
-        return isaWriter.getCPPInstr(self, model, pipeline, trace)
+    def getCPPClass(self, model, pipeline, externalClock, trace):
+        return isaWriter.getCPPInstr(self, model, pipeline, externalClock, trace)
 
     def getCPPTest(self, processor, model):
         return isaWriter.getCPPInstrTest(self, processor, model)

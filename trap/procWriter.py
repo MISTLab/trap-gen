@@ -279,12 +279,37 @@ def getCPPRegisters(self, model):
     ################ Constructor: it initializes the width of the register ######################
     widthAttribute = cxx_writer.writer_code.Attribute('bitWidth', cxx_writer.writer_code.uintType, 'pri')
     registerElements.append(widthAttribute)
-    constructorBody = cxx_writer.writer_code.Code('this->bitWidth = bitWidth;\nend_module();')
+    constructorCode = 'this->bitWidth = bitWidth;\nend_module();'
+    if model.startswith('acc'):
+        constructorCode = 'this->locked = false;\n' + constructorCode
+    constructorBody = cxx_writer.writer_code.Code(constructorCode)
     constructorParams = [cxx_writer.writer_code.Parameter('name', cxx_writer.writer_code.sc_module_nameRefType.makeConst()),
                 cxx_writer.writer_code.Parameter('bitWidth', cxx_writer.writer_code.uintType)]
     publicConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['sc_module(name)'])
 
-    ################ ll ######################
+    ################ Lock and Unlock methods used for hazards detection ######################
+    if model.startswith('acc'):
+        lockedAttribute = cxx_writer.writer_code.Attribute('locked', cxx_writer.writer_code.boolType, 'pri')
+        registerElements.append(lockedAttribute)
+        lockBody = cxx_writer.writer_code.Code('this->locked = true;')
+        lockMethod = cxx_writer.writer_code.Method('lock', lockBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
+        registerElements.append(lockMethod)
+        if not self.externalClock:
+            unlockBody = cxx_writer.writer_code.Code('this->locked = false;\nthis->hazardEvent.notify();')
+        else:
+            unlockBody = cxx_writer.writer_code.Code('this->locked = false;')
+        unlockMethod = cxx_writer.writer_code.Method('unlock', unlockBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
+        registerElements.append(unlockMethod)
+        isLockedBody = cxx_writer.writer_code.Code('return this->locked;')
+        isLockedMethod = cxx_writer.writer_code.Method('isLocked', isLockedBody, cxx_writer.writer_code.boolType, 'pu', inline = True, noException = True)
+        registerElements.append(isLockedMethod)
+        if not self.externalClock:
+            waitHazardBody = cxx_writer.writer_code.Code('return wait(this->hazardEvent);')
+            waitHazardMethod = cxx_writer.writer_code.Method('isLocked', waitHazardBody, cxx_writer.writer_code.boolType, 'pu', inline = True, noException = True)
+            registerElements.append(waitHazardMethod)
+            hazardEventAttribute = cxx_writer.writer_code.Attribute('hazardEvent', cxx_writer.writer_code.sc_eventType, 'pri')
+            registerElements.append(hazardEventAttribute)
+
 
     ################ Operators working with the base class, employed when polimorphism is used ##################
     # First lets declare the class which will be used to manipulate the
@@ -381,6 +406,22 @@ def getCPPAlias(self, model):
     operatorParam = [cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.intType)]
     operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, InnerFieldType.makeRef(), 'pu', operatorParam)
     aliasElements.append(operatorDecl)
+
+    ################ Lock and Unlock methods used for hazards detection ######################
+    if model.startswith('acc'):
+        lockBody = cxx_writer.writer_code.Code('this->reg->lock();')
+        lockMethod = cxx_writer.writer_code.Method('lock', lockBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
+        aliasElements.append(lockMethod)
+        unlockBody = cxx_writer.writer_code.Code('this->reg->unlock();')
+        unlockMethod = cxx_writer.writer_code.Method('unlock', unlockBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
+        aliasElements.append(unlockMethod)
+        isLockedBody = cxx_writer.writer_code.Code('return this->reg->isLocked();')
+        isLockedMethod = cxx_writer.writer_code.Method('isLocked', isLockedBody, cxx_writer.writer_code.boolType, 'pu', inline = True, noException = True)
+        aliasElements.append(isLockedMethod)
+        if not self.externalClock:
+            waitHazardBody = cxx_writer.writer_code.Code('return this->reg->waitHazard();')
+            waitHazardMethod = cxx_writer.writer_code.Method('isLocked', waitHazardBody, cxx_writer.writer_code.boolType, 'pu', inline = True, noException = True)
+            aliasElements.append(waitHazardMethod)
 
     #################### Lets declare the normal operators (implementation of the pure operators of the base class) ###########
     for i in unaryOps:
@@ -1952,8 +1993,20 @@ def getGetPipelineStages(self, trace):
             constructorParams = [pipeNameParam, clockParam, prevStageParam, succStageParam]
         else:
             constructorParams = [pipeNameParam, latencyParam, prevStageParam, succStageParam]
-        codeString = ''
 
+        hasCheckHazard = False
+        hasWb = False
+        for pipeStage in pipeline:
+            if pipeStage.checkHazard:
+                if pipeline.index(pipeStage) + 1 < len(pipeline):
+                    if not pipeline[pipeline.index(pipeStage) + 1].wb:
+                        hasCheckHazard = True
+            if pipeStage.wb:
+                if pipeline.index(pipeStage) - 1 >= 0:
+                    if not pipeline[pipeline.index(pipeStage) - 1].checkHazard:
+                        hasWb = True
+
+        codeString = ''
         if pipeStage == self.pipes[0]:
             # This is the fetch pipeline stage, I have to fetch instructions
             if self.instructionCache:
@@ -1967,7 +2020,10 @@ def getGetPipelineStages(self, trace):
                             return;
                         }
                         this->succStage->setNewInstruction(this->curInstruction);
-                    }
+                    }"""
+                if hasWB and pipeStage.checkHazard:
+                    codeString += 'this->curInstruction->registerWb();\n'
+                codeString += """
                     this->curInstruction = NULL;
                     this->stageReadyFlag = true;
                     this->waitForNext = false;
@@ -2045,6 +2101,11 @@ def getGetPipelineStages(self, trace):
                         #ifndef DISABLE_TOOLS
                         if(!(this->toolManager.newIssue(""" + fetchAddress + """))){
                         #endif"""
+                if hasCheckHazards and pipeStage.checkHazard:
+                    if self.externalClock:
+                        codeString += 'if(!this->curInstruction->checkHazard()){\nreturn\n}\n'
+                    else:
+                        codeString += 'this->curInstruction->checkHazard();\n'
                 codeString += """
                         numCycles = this->curInstruction->behavior_""" + pipeStage.name + """();
                 """
@@ -2084,6 +2145,11 @@ def getGetPipelineStages(self, trace):
                     #ifndef DISABLE_TOOLS
                     if(!(this->toolManager.newIssue(""" + fetchAddress + """))){
                     #endif"""
+            if hasCheckHazards and pipeStage.checkHazard:
+                if self.externalClock:
+                    codeString += 'if(!this->curInstruction->checkHazard()){\nreturn\n}\n'
+                else:
+                    codeString += 'this->curInstruction->checkHazard();\n'
             codeString += """
                     numCycles = this->curInstruction->behavior_""" + pipeStage.name + """();
             """
@@ -2129,8 +2195,11 @@ def getGetPipelineStages(self, trace):
                         wait(this->succStage->stageReadyEv);
                     }
                     this->succStage->setNewInstruction(this->curInstruction);
-                    this->curInstruction = NULL;
-                }
+                }"""
+                if hasWB and pipeStage.checkHazard:
+                    codeString += 'this->curInstruction->registerWb();\n'
+                codeString += """
+                this->curInstruction = NULL;
                 this->stageReadyFlag = true;
                 this->stageReadyEv.notify();
                 """
@@ -2147,7 +2216,10 @@ def getGetPipelineStages(self, trace):
                             return;
                         }
                         this->succStage->setNewInstruction(this->curInstruction);
-                    }
+                    }"""
+                if hasWB and pipeStage.checkHazard:
+                    codeString += 'this->curInstruction->registerWb();\n'
+                codeString += """
                     this->curInstruction = NULL;
                     this->stageReadyFlag = true;
                     this->waitForNext = false;
@@ -2176,6 +2248,11 @@ def getGetPipelineStages(self, trace):
                     if(!(this->toolManager.newIssue(""" + self.fetchReg[0] + """))){
                     #endif
                 """
+            if hasCheckHazards and pipeStage.checkHazard:
+                if self.externalClock:
+                    codeString += 'if(!this->curInstruction->checkHazard()){\nreturn\n}\n'
+                else:
+                    codeString += 'this->curInstruction->checkHazard();\n'
             codeString += 'numCycles = this->curInstruction->behavior_' + pipeStage.name + '();\n'
             if pipeStage.checkTools:
                 codeString += """
@@ -2200,7 +2277,10 @@ def getGetPipelineStages(self, trace):
                         wait(this->succStage->stageReadyEv);
                     }
                     this->succStage->setNewInstruction(this->curInstruction);
-                }
+                }"""
+                if hasWB and pipeStage.checkHazard:
+                    codeString += 'this->curInstruction->registerWb();\n'
+                codeString += """
                 this->curInstruction = NULL;
                 this->stageReadyFlag = true;
                 this->stageReadyEv.notify();

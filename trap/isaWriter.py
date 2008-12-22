@@ -109,7 +109,7 @@ def getCppOpClass(self):
     opDecl.addConstructor(opConstr)
     return opDecl
 
-def getCPPInstr(self, model, pipeline, trace):
+def getCPPInstr(self, model, pipeline, externalClock, trace):
     # Returns the code implementing the current instruction: we have to provide the
     # implementation of all the abstract methods and call from the behavior method
     # all the different behaviors contained in the type hierarchy of this class
@@ -247,7 +247,40 @@ def getCPPInstr(self, model, pipeline, trace):
             behaviorBody = cxx_writer.writer_code.Code(behaviorCode)
             behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage.name, behaviorBody, cxx_writer.writer_code.uintType, 'pu')
             classElements.append(behaviorDecl)
-
+        # Now I have to add the code for checking data hazards
+        hasCheckHazard = False
+        hasWb = False
+        for pipeStage in pipeline:
+            if pipeStage.checkHazard:
+                if pipeline.index(pipeStage) + 1 < len(pipeline):
+                    if not pipeline[pipeline.index(pipeStage) + 1].wb:
+                        hasCheckHazard = True
+            if pipeStage.wb:
+                if pipeline.index(pipeStage) - 1 >= 0:
+                    if not pipeline[pipeline.index(pipeStage) - 1].checkHazard:
+                        hasWb = True
+        if hasCheckHazard:
+            checkHazardCode = ''
+            for name, correspondence in self.machineCode.bitCorrespondence.items():
+                checkHazardCode += 'if(this->' + name + '.isLocked()){\n'
+                if externalClock:
+                    checkHazardCode += 'return false;\n'
+                else:
+                    checkHazardCode += 'this->' + name + '.waitHazard()\n'
+                checkHazardCode += '}\n'
+            checkHazardBody = cxx_writer.writer_code.Code(checkHazardCode)
+            if externalClock:
+                checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', checkHazardBody, cxx_writer.writer_code.boolType, 'pu')
+            else:
+                checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', checkHazardBody, cxx_writer.writer_code.voidType, 'pu')
+            classElements.append(checkHazardDecl)
+        if hasCheckHazard:
+            wbCode = ''
+            for name, correspondence in self.machineCode.bitCorrespondence.items():
+                wbCode += 'this->' + name + '.unlock();\n'
+            wbBody = cxx_writer.writer_code.Code()
+            wbDecl = cxx_writer.writer_code.Method('registerWb', wbBody, cxx_writer.writer_code.voidType, 'pu')
+            classElements.append(wbDecl)
     replicateBody = cxx_writer.writer_code.Code('return new ' + self.name + '(' + baseInstrInitElement + ');')
     replicateDecl = cxx_writer.writer_code.Method('replicate', replicateBody, instructionType.makePointer(), 'pu', noException = True, const = True)
     classElements.append(replicateDecl)
@@ -644,7 +677,7 @@ def getCPPClasses(self, processor, model, trace):
         classes.append(NOPInstructionElements)
     # Now I go over all the other instructions and I declare them
     for instr in self.instructions.values():
-        classes.append(instr.getCPPClass(model, processor.pipes, trace))
+        classes.append(instr.getCPPClass(model, processor.pipes, processor.externalClock, trace))
     return classes
 
 def getCPPTests(self, processor, modelType):

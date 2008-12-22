@@ -450,6 +450,15 @@ class Processor:
             for stage, beh in instr.prebehaviors.items():
                 if not stage in [i.name for i in self.pipes]:
                     raise Exception('Pipeline stage ' + stage + ' declared for behavior ' + beh.name + ' in instruction ' + instrName + ' does not exist')
+        wbStage = False
+        checkHazardStage = False
+        for pipeStage in self.pipes:
+            if pipeStage.wb:
+                wbStage = True
+            if pipeStage.checkHazard:
+                checkHazardStage = True
+        if not (wbStage and checkHazardStage):
+            raise Exception('Error, both the writeback and the check hazards stages must be specified')
 
     def checkAliases(self):
         # checks that the declared aliases actually refer to
