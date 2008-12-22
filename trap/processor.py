@@ -745,6 +745,10 @@ class PipeStage:
         self.checkHazard = False
         self.name = name
         self.checkUnknown = False
+        self.checkTools = False
+
+    def setCheckTools(self):
+        self.checkTools = True
 
     def setWriteBack(self):
         self.wb = True

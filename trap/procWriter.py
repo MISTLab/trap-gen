@@ -284,6 +284,8 @@ def getCPPRegisters(self, model):
                 cxx_writer.writer_code.Parameter('bitWidth', cxx_writer.writer_code.uintType)]
     publicConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['sc_module(name)'])
 
+    ################ ll ######################
+
     ################ Operators working with the base class, employed when polimorphism is used ##################
     # First lets declare the class which will be used to manipulate the
     # bitfields
@@ -864,8 +866,9 @@ def getCPPProc(self, model, trace):
     endElabCode = cxx_writer.writer_code.Code('this->resetOp();')
     endElabMethod = cxx_writer.writer_code.Method('end_of_elaboration', endElabCode, cxx_writer.writer_code.voidType, 'pu')
     processorElements.append(endElabMethod)
-    decoderAttribute = cxx_writer.writer_code.Attribute('decoder', cxx_writer.writer_code.Type('Decoder', 'decoder.hpp'), 'pri')
-    processorElements.append(decoderAttribute)
+    if not model.startswith('acc'):
+        decoderAttribute = cxx_writer.writer_code.Attribute('decoder', cxx_writer.writer_code.Type('Decoder', 'decoder.hpp'), 'pri')
+        processorElements.append(decoderAttribute)
     interfaceAttribute = cxx_writer.writer_code.Attribute('abiIf', interfaceType.makePointer(), 'pu')
     processorElements.append(interfaceAttribute)
     toolManagerAttribute = cxx_writer.writer_code.Attribute('toolManager', ToolsManagerType, 'pu')
@@ -1081,6 +1084,10 @@ def getCPPProc(self, model, trace):
             curStageAttr = cxx_writer.writer_code.Attribute(pipeStage.name + '_stage', pipelineType, 'pu')
             processorElements.append(curStageAttr)
             curPipeInit = ['\"' + pipeStage.name + '\"']
+            if self.externalClock:
+                curPipeInit.append('clock')
+            else:
+                curPipeInit.append('latency')
             if prevStage:
                 curPipeInit.append('&' + prevStage)
             if self.pipes.index(pipeStage) + 1 < len(self.pipes):
@@ -1094,9 +1101,11 @@ def getCPPProc(self, model, trace):
                     for name, isFetch  in self.tlmPorts.items():
                         if isFetch:
                             memName = name
-                curPipeInit = ['Processor::INSTRUCTIONS', memName] + curPipeInit
+                curPipeInit = [self.fetchReg[0], 'Processor::INSTRUCTIONS', memName] + curPipeInit
                 if self.instructionCache:
                     curPipeInit = ['Processor::instrCache'] + curPipeInit
+            if pipeStage.checkTools:
+                curPipeInit = [self.fetchReg[0], 'toolManager'] + curPipeInit
             initString += ')'
             initElements.append(pipeStage.name + '_stage(' + ', '.join(curPipeInit)  + ')')
             prevStage = pipeStage.name + '_stage'
@@ -1881,15 +1890,29 @@ def getGetPipelineStages(self, trace):
     pipelineElements.append(stageAttr)
     stageAttr = cxx_writer.writer_code.Attribute('succStage', pipeType.makePointer(), 'pro')
     pipelineElements.append(stageAttr)
+
     NOPIntructionType = cxx_writer.writer_code.Type('NOPInstruction', 'instructions.hpp')
     NOPinstructionsAttribute = cxx_writer.writer_code.Attribute('NOPInstrInstance', NOPIntructionType.makePointer(), 'pu')
     pipelineElements.append(NOPinstructionsAttribute)
 
     if self.externalClock:
-        clockAttribute = cxx_writer.writer_code.Attribute('clock', cxx_writer.writer_code.TemplateType('sc_in', [cxx_writer.writer_code.boolType], 'systemc.h'), 'pu')
+        sc_inBoolType = cxx_writer.writer_code.TemplateType('sc_in', [cxx_writer.writer_code.boolType], 'systemc.h')
+        clockAttribute = cxx_writer.writer_code.Attribute('clock', sc_inBoolType.makeRef(), 'pu')
         pipelineElements.append(clockAttribute)
+        clockParam = cxx_writer.writer_code.Parameter('clock', sc_inBoolType.makeRef())
+        constructorParams.append(clockParam)
+        constructorInit.append('clock(clock)')
         waitForNextAttr = cxx_writer.writer_code.Attribute('waitForNext', cxx_writer.writer_code.boolType, 'pro')
         pipelineElements.append(waitForNextAttr)
+        totCyclesAttribute = cxx_writer.writer_code.Attribute('waitCycles', cxx_writer.writer_code.uintType, 'pro')
+        pipelineElements.append(totCyclesAttribute)
+        constructorCode += 'this->waitCycles = 0;\n'
+    else:
+        latencyAttribute = cxx_writer.writer_code.Attribute('latency', cxx_writer.writer_code.sc_timeType, 'pro')
+        pipelineElements.append(latencyAttribute)
+        latencyParam = cxx_writer.writer_code.Parameter('latency', cxx_writer.writer_code.sc_timeType.makeRef())
+        constructorParams.append(latencyParam)
+        constructorInit.append('latency(latency)')
 
     curInstrAttr = cxx_writer.writer_code.Attribute('curInstruction', IntructionType.makePointer(), 'pro')
     pipelineElements.append(curInstrAttr)
@@ -1925,7 +1948,10 @@ def getGetPipelineStages(self, trace):
         curPipeElements = []
         constructorCode = ''
         constructorInit = []
-        constructorParams = [pipeNameParam, prevStageParam, succStageParam]
+        if self.externalClock:
+            constructorParams = [pipeNameParam, clockParam, prevStageParam, succStageParam]
+        else:
+            constructorParams = [pipeNameParam, latencyParam, prevStageParam, succStageParam]
         codeString = ''
 
         if pipeStage == self.pipes[0]:
@@ -2013,19 +2039,25 @@ def getGetPipelineStages(self, trace):
                     this->curInstruction = cachedInstr->second;
                     // I can call the instruction, I have found it
                     try{
+                """
+                if pipeStage.checkTools:
+                    codeString += """
                         #ifndef DISABLE_TOOLS
                         if(!(this->toolManager.newIssue(""" + fetchAddress + """))){
-                        #endif
+                        #endif"""
+                codeString += """
                         numCycles = this->curInstruction->behavior_""" + pipeStage.name + """();
                 """
                 if trace:
                     codeString += """
                         this->curInstruction->printTrace();
                     """
-                codeString += """
+                if pipeStage.checkTools:
+                    codeString += """
                         #ifndef DISABLE_TOOLS
                         }
-                        #endif
+                        #endif"""
+                codeString += """
                     }
                     catch(flush_exception &etc){
                 """
@@ -2046,20 +2078,25 @@ def getGetPipelineStages(self, trace):
             this->curInstruction = """ + pipeStage.name.upper() + """_PipeStage::INSTRUCTIONS[instrId];
             """
             codeString += """this->curInstruction->setParams(bitString);
-                try{
+                try{"""
+            if pipeStage.checkTools:
+                codeString += """
                     #ifndef DISABLE_TOOLS
                     if(!(this->toolManager.newIssue(""" + fetchAddress + """))){
-                    #endif
+                    #endif"""
+            codeString += """
                     numCycles = this->curInstruction->behavior_""" + pipeStage.name + """();
             """
             if trace:
                 codeString += """
                     this->curInstruction->printTrace();
                 """
-            codeString += """
+            if pipeStage.checkTools:
+                codeString += """
                     #ifndef DISABLE_TOOLS
                     }
-                    #endif
+                    #endif"""
+            codeString += """
                 }
                 catch(flush_exception &etc){
             """
@@ -2132,7 +2169,21 @@ def getGetPipelineStages(self, trace):
             else:
                 codeString += 'while(this->curInstruction == NULL){\nwait(this->instrPresentEv);\n}\n'
             codeString += 'this->stageReadyFlag = false;\n'
-            codeString += 'try{\nnumCycles = this->curInstruction->behavior_' + pipeStage.name + '();\n}\n'
+            codeString += 'try{\n'
+            if pipeStage.checkTools:
+                codeString += """
+                    #ifndef DISABLE_TOOLS
+                    if(!(this->toolManager.newIssue(""" + self.fetchReg[0] + """))){
+                    #endif
+                """
+            codeString += 'numCycles = this->curInstruction->behavior_' + pipeStage.name + '();\n'
+            if pipeStage.checkTools:
+                codeString += """
+                    #ifndef DISABLE_TOOLS
+                    }
+                    #endif
+                """
+            codeString += '}\n'
             codeString += """catch(flush_exception &etc){
                 this->curInstruction = this->NOPInstrInstance;
                 numCycles = 0;
@@ -2182,6 +2233,8 @@ def getGetPipelineStages(self, trace):
             constructorInit.append(memName + '(' + memName + ')')
             memRefAttr = cxx_writer.writer_code.Attribute(memName, memType, 'pri')
             curPipeElements.append(memRefAttr)
+            decoderAttribute = cxx_writer.writer_code.Attribute('decoder', cxx_writer.writer_code.Type('Decoder', 'decoder.hpp'), 'pri')
+            curPipeElements.append(decoderAttribute)
             # I also have to add the map containig the ISA instructions to this stage
             IntructionType = cxx_writer.writer_code.Type('Instruction', 'instructions.hpp')
             IntructionTypePtr = IntructionType.makePointer()
@@ -2189,15 +2242,34 @@ def getGetPipelineStages(self, trace):
             curPipeElements.append(instructionsAttribute)
             constructorParams = [cxx_writer.writer_code.Parameter('INSTRUCTIONS', IntructionTypePtr.makePointer().makeRef())] + constructorParams
             constructorInit.append('INSTRUCTIONS(INSTRUCTIONS)')
+            fetchAttr = cxx_writer.writer_code.Attribute(self.fetchReg[0], resourceType[self.fetchReg[0]].makeRef(), 'pri')
+            constructorParams = [cxx_writer.writer_code.Parameter(self.fetchReg[0], resourceType[self.fetchReg[0]].makeRef())] + constructorParams
+            constructorInit.append(self.fetchReg[0] + '(' + self.fetchReg[0] + ')')
+            curPipeElements.append(fetchAttr)
             if self.instructionCache:
                 template_mapType = cxx_writer.writer_code.TemplateType('template_map', [fetchWordType, IntructionTypePtr], hash_map_include).makeRef()
                 cacheAttribute = cxx_writer.writer_code.Attribute('instrCache', template_mapType, 'pri')
                 curPipeElements.append(cacheAttribute)
                 constructorParams = [cxx_writer.writer_code.Parameter('instrCache', template_mapType)] + constructorParams
                 constructorInit.append('instrCache(instrCache)')
+        if pipeStage.checkTools:
+            ToolsManagerType = cxx_writer.writer_code.TemplateType('ToolsManager', [fetchWordType], 'ToolsIf.hpp')
+            toolManagerAttribute = cxx_writer.writer_code.Attribute('toolManager', ToolsManagerType.makeRef(), 'pri')
+            curPipeElements.append(toolManagerAttribute)
+            constructorParams = [cxx_writer.writer_code.Parameter('toolManager', ToolsManagerType.makeRef())] + constructorParams
+            constructorInit.append('toolManager(toolManager)')
+            fetchAttr = cxx_writer.writer_code.Attribute(self.fetchReg[0], resourceType[self.fetchReg[0]].makeRef(), 'pri')
+            constructorParams = [cxx_writer.writer_code.Parameter(self.fetchReg[0], resourceType[self.fetchReg[0]].makeRef())] + constructorParams
+            constructorInit.append(self.fetchReg[0] + '(' + self.fetchReg[0] + ')')
+            curPipeElements.append(fetchAttr)
+            instructionsAttribute = cxx_writer.writer_code.Attribute('INSTRUCTIONS', IntructionTypePtr.makePointer().makeRef(), 'pri')
+            constructorInit.append('INSTRUCTIONS(INSTRUCTIONS)')
+            curPipeElements.append(instructionsAttribute)
 
-
-        constructorInit = ['sc_module(pipeName)', 'BasePipeStage(prevStage, succStage)'] + constructorInit
+        if self.externalClock:
+            constructorInit = ['sc_module(pipeName)', 'BasePipeStage(clock, prevStage, succStage)'] + constructorInit
+        else:
+            constructorInit = ['sc_module(pipeName)', 'BasePipeStage(latency, prevStage, succStage)'] + constructorInit
         curPipeDecl = cxx_writer.writer_code.SCModule(pipeStage.name.upper() + '_PipeStage', curPipeElements, [pipeType])
         constructorBody = cxx_writer.writer_code.Code(constructorCode + 'end_module();')
         publicCurPipeConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, constructorInit)
