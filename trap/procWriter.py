@@ -1996,14 +1996,14 @@ def getGetPipelineStages(self, trace):
 
         hasCheckHazard = False
         hasWb = False
-        for pipeStage in pipeline:
+        for pipeStage in self.pipes:
             if pipeStage.checkHazard:
-                if pipeline.index(pipeStage) + 1 < len(pipeline):
-                    if not pipeline[pipeline.index(pipeStage) + 1].wb:
+                if self.pipes.index(pipeStage) + 1 < len(self.pipes):
+                    if not self.pipes[self.pipes.index(pipeStage) + 1].wb:
                         hasCheckHazard = True
             if pipeStage.wb:
-                if pipeline.index(pipeStage) - 1 >= 0:
-                    if not pipeline[pipeline.index(pipeStage) - 1].checkHazard:
+                if self.pipes.index(pipeStage) - 1 >= 0:
+                    if not self.pipes[self.pipes.index(pipeStage) - 1].checkHazard:
                         hasWb = True
 
         codeString = ''
@@ -2021,7 +2021,7 @@ def getGetPipelineStages(self, trace):
                         }
                         this->succStage->setNewInstruction(this->curInstruction);
                     }"""
-                if hasWB and pipeStage.checkHazard:
+                if hasWb and pipeStage.checkHazard:
                     codeString += 'this->curInstruction->registerWb();\n'
                 codeString += """
                     this->curInstruction = NULL;
@@ -2196,7 +2196,7 @@ def getGetPipelineStages(self, trace):
                     }
                     this->succStage->setNewInstruction(this->curInstruction);
                 }"""
-                if hasWB and pipeStage.checkHazard:
+                if hasWb and pipeStage.checkHazard:
                     codeString += 'this->curInstruction->registerWb();\n'
                 codeString += """
                 this->curInstruction = NULL;
@@ -2217,7 +2217,7 @@ def getGetPipelineStages(self, trace):
                         }
                         this->succStage->setNewInstruction(this->curInstruction);
                     }"""
-                if hasWB and pipeStage.checkHazard:
+                if hasWb and pipeStage.checkHazard:
                     codeString += 'this->curInstruction->registerWb();\n'
                 codeString += """
                     this->curInstruction = NULL;
@@ -2248,7 +2248,7 @@ def getGetPipelineStages(self, trace):
                     if(!(this->toolManager.newIssue(""" + self.fetchReg[0] + """))){
                     #endif
                 """
-            if hasCheckHazards and pipeStage.checkHazard:
+            if hasCheckHazard and pipeStage.checkHazard:
                 if self.externalClock:
                     codeString += 'if(!this->curInstruction->checkHazard()){\nreturn\n}\n'
                 else:
@@ -2278,7 +2278,7 @@ def getGetPipelineStages(self, trace):
                     }
                     this->succStage->setNewInstruction(this->curInstruction);
                 }"""
-                if hasWB and pipeStage.checkHazard:
+                if hasWb and pipeStage.checkHazard:
                     codeString += 'this->curInstruction->registerWb();\n'
                 codeString += """
                 this->curInstruction = NULL;
@@ -2297,6 +2297,8 @@ def getGetPipelineStages(self, trace):
             constructorCode += 'SC_THREAD(behavior);\n'
         constructorCode += 'dont_initialize();\n'
 
+        IntructionType = cxx_writer.writer_code.Type('Instruction', 'instructions.hpp')
+        IntructionTypePtr = IntructionType.makePointer()
         if pipeStage == self.pipes[0]:
             # I have to also instantiate the reference to the memories, in order to be able to
             # fetch instructions
@@ -2316,8 +2318,6 @@ def getGetPipelineStages(self, trace):
             decoderAttribute = cxx_writer.writer_code.Attribute('decoder', cxx_writer.writer_code.Type('Decoder', 'decoder.hpp'), 'pri')
             curPipeElements.append(decoderAttribute)
             # I also have to add the map containig the ISA instructions to this stage
-            IntructionType = cxx_writer.writer_code.Type('Instruction', 'instructions.hpp')
-            IntructionTypePtr = IntructionType.makePointer()
             instructionsAttribute = cxx_writer.writer_code.Attribute('INSTRUCTIONS', IntructionTypePtr.makePointer().makeRef(), 'pri')
             curPipeElements.append(instructionsAttribute)
             constructorParams = [cxx_writer.writer_code.Parameter('INSTRUCTIONS', IntructionTypePtr.makePointer().makeRef())] + constructorParams
