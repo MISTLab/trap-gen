@@ -618,7 +618,6 @@ class Processor:
         if dumpDecoderName:
             dec.printDecoder(dumpDecoderName)
         decClass = dec.getCPPClass(resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>'))
-        decTests = dec.getCPPTests()
         implFileDec = cxx_writer.writer_code.FileDumper('decoder.cpp', False)
         headFileDec = cxx_writer.writer_code.FileDumper('decoder.hpp', True)
         implFileDec.addMember(decClass)
@@ -640,7 +639,6 @@ class Processor:
             ExternalIf = self.getCPPExternalPorts(model)
             IRQClasses = self.getGetIRQPorts()
             ISAClasses = self.isa.getCPPClasses(self, model, trace)
-            ISATests = self.isa.getCPPTests(self, model)
             # Ok, now that we have all the classes it is time to write
             # them to file
             curFolder = cxx_writer.writer_code.Folder(os.path.join(folder, model))
@@ -701,18 +699,21 @@ class Processor:
             mainFile = cxx_writer.writer_code.FileDumper('main.cpp', False)
             mainFile.addMember(self.getMainCode(model))
 
-            testFolder = cxx_writer.writer_code.Folder('tests')
-            curFolder.addSubFolder(testFolder)
-            decTestsFile = cxx_writer.writer_code.FileDumper('decoderTests.cpp', False)
-            decTestsFile.addMember(decTests)
-            testFolder.addCode(decTestsFile)
-            ISATestsFile = cxx_writer.writer_code.FileDumper('isaTests.cpp', False)
-            ISATestsFile.addMember(ISATests)
-            testFolder.addCode(ISATestsFile)
-            mainTestFile = cxx_writer.writer_code.FileDumper('main.cpp', False)
-            mainTestFile.addMember(self.getTestMainCode())
-            testFolder.addCode(mainTestFile)
-            testFolder.addUseLib(os.path.split(curFolder.path)[-1])
+            if (not model == 'funcLT') and (not self.systemc):
+                testFolder = cxx_writer.writer_code.Folder('tests')
+                curFolder.addSubFolder(testFolder)
+                decTestsFile = cxx_writer.writer_code.FileDumper('decoderTests.cpp', False)
+                decTests = dec.getCPPTests()
+                decTestsFile.addMember(decTests)
+                testFolder.addCode(decTestsFile)
+                ISATestsFile = cxx_writer.writer_code.FileDumper('isaTests.cpp', False)
+                ISATests = self.isa.getCPPTests(self, model)
+                ISATestsFile.addMember(ISATests)
+                testFolder.addCode(ISATestsFile)
+                mainTestFile = cxx_writer.writer_code.FileDumper('main.cpp', False)
+                mainTestFile.addMember(self.getTestMainCode())
+                testFolder.addCode(mainTestFile)
+                testFolder.addUseLib(os.path.split(curFolder.path)[-1])
             curFolder.addHeader(headFileInstr)
             curFolder.addCode(implFileInstr)
             curFolder.addHeader(headFileRegs)
@@ -738,7 +739,8 @@ class Processor:
             curFolder.addCode(mainFile)
             curFolder.setMain(mainFile.name)
             curFolder.create()
-            testFolder.create(False, True)
+            if (not model == 'funcLT') and (not self.systemc):
+                testFolder.create(False, True)
             print '\t\tCreated'
         # We create and print the main folder and also add a configuration
         # part to the wscript

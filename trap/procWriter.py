@@ -304,8 +304,8 @@ def getCPPRegisters(self, model):
         isLockedMethod = cxx_writer.writer_code.Method('isLocked', isLockedBody, cxx_writer.writer_code.boolType, 'pu', inline = True, noException = True)
         registerElements.append(isLockedMethod)
         if not self.externalClock:
-            waitHazardBody = cxx_writer.writer_code.Code('return wait(this->hazardEvent);')
-            waitHazardMethod = cxx_writer.writer_code.Method('isLocked', waitHazardBody, cxx_writer.writer_code.boolType, 'pu', inline = True, noException = True)
+            waitHazardBody = cxx_writer.writer_code.Code('wait(this->hazardEvent);')
+            waitHazardMethod = cxx_writer.writer_code.Method('waitHazard', waitHazardBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
             registerElements.append(waitHazardMethod)
             hazardEventAttribute = cxx_writer.writer_code.Attribute('hazardEvent', cxx_writer.writer_code.sc_eventType, 'pri')
             registerElements.append(hazardEventAttribute)
@@ -419,8 +419,8 @@ def getCPPAlias(self, model):
         isLockedMethod = cxx_writer.writer_code.Method('isLocked', isLockedBody, cxx_writer.writer_code.boolType, 'pu', inline = True, noException = True)
         aliasElements.append(isLockedMethod)
         if not self.externalClock:
-            waitHazardBody = cxx_writer.writer_code.Code('return this->reg->waitHazard();')
-            waitHazardMethod = cxx_writer.writer_code.Method('isLocked', waitHazardBody, cxx_writer.writer_code.boolType, 'pu', inline = True, noException = True)
+            waitHazardBody = cxx_writer.writer_code.Code('this->reg->waitHazard();')
+            waitHazardMethod = cxx_writer.writer_code.Method('waitHazard', waitHazardBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
             aliasElements.append(waitHazardMethod)
 
     #################### Lets declare the normal operators (implementation of the pure operators of the base class) ###########
@@ -1131,6 +1131,8 @@ def getCPPProc(self, model, trace):
                 curPipeInit.append('latency')
             if prevStage:
                 curPipeInit.append('&' + prevStage)
+            else:
+                curPipeInit.append('NULL')
             if self.pipes.index(pipeStage) + 1 < len(self.pipes):
                 curPipeInit.append('&' + self.pipes[self.pipes.index(pipeStage) + 1].name + '_stage')
             if pipeStage == self.pipes[0]:
@@ -1188,10 +1190,9 @@ def getCPPProc(self, model, trace):
     constrCode += bodyInits
     if not model.startswith('acc'):
         if model.endswith('AT') and self.externalClock:
-            constrCode += 'SC_METHOD(mainLoop);\nsensitive << this->clock.pos();\n'
+            constrCode += 'SC_METHOD(mainLoop);\nsensitive << this->clock.pos();\ndont_initialize();\n'
         else:
             constrCode += 'SC_THREAD(mainLoop);\n'
-        constrCode += 'dont_initialize();\n'
     if not self.systemc and not model.startswith('acc'):
         constrCode += 'this->totalCycles = 0;\n'
     constrCode += 'end_module();'
@@ -1921,7 +1922,7 @@ def getGetPipelineStages(self, trace):
 
     stageReadyFlag = cxx_writer.writer_code.Attribute('stageReadyFlag', cxx_writer.writer_code.boolType, 'pu')
     pipelineElements.append(stageReadyFlag)
-    constructorCode += 'this->stageReadyFlag = false;\n'
+    constructorCode += 'this->stageReadyFlag = true;\n'
     if not self.externalClock:
         stageReadyEvent = cxx_writer.writer_code.Attribute('stageReadyEv', cxx_writer.writer_code.sc_eventType, 'pu')
         pipelineElements.append(stageReadyEvent)
@@ -1978,6 +1979,19 @@ def getGetPipelineStages(self, trace):
     pipelineDecl.addConstructor(publicPipelineConstr)
     pipeCodeElements.append(pipelineDecl)
 
+
+    hasCheckHazard = False
+    hasWb = False
+    for pipeStage in self.pipes:
+        if pipeStage.checkHazard:
+            if self.pipes.index(pipeStage) + 1 < len(self.pipes):
+                if not self.pipes[self.pipes.index(pipeStage) + 1].wb:
+                    hasCheckHazard = True
+        if pipeStage.wb:
+            if self.pipes.index(pipeStage) - 1 >= 0:
+                if not self.pipes[self.pipes.index(pipeStage) - 1].checkHazard:
+                    hasWb = True
+
     # Now I have to actually declare the different pipeline stages, all of them being equal a part from
     # the fecth stage which have to fetch instructions and check interrupts before calling
     # the appropriate behavior method
@@ -1993,18 +2007,6 @@ def getGetPipelineStages(self, trace):
             constructorParams = [pipeNameParam, clockParam, prevStageParam, succStageParam]
         else:
             constructorParams = [pipeNameParam, latencyParam, prevStageParam, succStageParam]
-
-        hasCheckHazard = False
-        hasWb = False
-        for pipeStage in self.pipes:
-            if pipeStage.checkHazard:
-                if self.pipes.index(pipeStage) + 1 < len(self.pipes):
-                    if not self.pipes[self.pipes.index(pipeStage) + 1].wb:
-                        hasCheckHazard = True
-            if pipeStage.wb:
-                if self.pipes.index(pipeStage) - 1 >= 0:
-                    if not self.pipes[self.pipes.index(pipeStage) - 1].checkHazard:
-                        hasWb = True
 
         codeString = ''
         if pipeStage == self.pipes[0]:
@@ -2101,7 +2103,7 @@ def getGetPipelineStages(self, trace):
                         #ifndef DISABLE_TOOLS
                         if(!(this->toolManager.newIssue(""" + fetchAddress + """))){
                         #endif"""
-                if hasCheckHazards and pipeStage.checkHazard:
+                if hasCheckHazard and pipeStage.checkHazard:
                     if self.externalClock:
                         codeString += 'if(!this->curInstruction->checkHazard()){\nreturn\n}\n'
                     else:
@@ -2145,7 +2147,7 @@ def getGetPipelineStages(self, trace):
                     #ifndef DISABLE_TOOLS
                     if(!(this->toolManager.newIssue(""" + fetchAddress + """))){
                     #endif"""
-            if hasCheckHazards and pipeStage.checkHazard:
+            if hasCheckHazard and pipeStage.checkHazard:
                 if self.externalClock:
                     codeString += 'if(!this->curInstruction->checkHazard()){\nreturn\n}\n'
                 else:
@@ -2292,10 +2294,9 @@ def getGetPipelineStages(self, trace):
         behaviorMethodDecl = cxx_writer.writer_code.Method('behavior', behaviorMethodBody, cxx_writer.writer_code.voidType, 'pu', inline = True)
         curPipeElements.append(behaviorMethodDecl)
         if self.externalClock:
-            constructorCode += 'SC_METHOD(behavior);\nsensitive << this->clock.pos();\n'
+            constructorCode += 'SC_METHOD(behavior);\nsensitive << this->clock.pos();\ndont_initialize();\n'
         else:
             constructorCode += 'SC_THREAD(behavior);\n'
-        constructorCode += 'dont_initialize();\n'
 
         IntructionType = cxx_writer.writer_code.Type('Instruction', 'instructions.hpp')
         IntructionTypePtr = IntructionType.makePointer()

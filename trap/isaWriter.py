@@ -197,8 +197,8 @@ def getCPPInstr(self, model, pipeline, externalClock, trace):
         # cycle accurate model, I have to separate the behavior in the different pipeline stages
         for pipeStage in pipeline:
             behaviorCode = 'this->stageCycles = 0;\n'
-            if self.prebehaviors.has_key(pipeStage):
-                for beh in self.prebehaviors[pipeStage]:
+            if self.prebehaviors.has_key(pipeStage.name):
+                for beh in self.prebehaviors[pipeStage.name]:
                     if beh.name in toInline:
                         behaviorCode += str(beh.code)
                     elif behClass.has_key(beh.name) or beh.name in baseBehaviors:
@@ -219,10 +219,10 @@ def getCPPInstr(self, model, pipeline, externalClock, trace):
                         behaviorCode += ');\n'
                     else:
                         behaviorCode += 'this->' + beh.name + '();\n'
-            if self.code.has_key(pipeStage):
-                behaviorCode += str(code[pipeStage].code)
-            if self.postbehaviors.has_key(pipeStage):
-                for beh in self.postbehaviors[pipeStage]:
+            if self.code.has_key(pipeStage.name):
+                behaviorCode += str(self.code[pipeStage.name].code)
+            if self.postbehaviors.has_key(pipeStage.name):
+                for beh in self.postbehaviors[pipeStage.name]:
                     if beh.name in toInline:
                         behaviorCode += str(beh.code)
                     elif behClass.has_key(beh.name) or beh.name in baseBehaviors:
