@@ -425,7 +425,10 @@ def getCPPAlias(self, model):
 
     #################### Lets declare the normal operators (implementation of the pure operators of the base class) ###########
     for i in unaryOps:
-        operatorBody = cxx_writer.writer_code.Code('return ' + i + '(*this->reg + this->offset);')
+        if model.startswith('acc'):
+            operatorBody = cxx_writer.writer_code.Code('return ' + i + '*this->reg;')
+        else:
+            operatorBody = cxx_writer.writer_code.Code('return ' + i + '(*this->reg + this->offset);')
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu')
         aliasElements.append(operatorDecl)
     # Now I have the three versions of the operators, depending whether they take
@@ -448,7 +451,10 @@ def getCPPAlias(self, model):
         aliasElements.append(operatorDecl)
     # Alias Register
     for i in binaryOps:
-        operatorBody = cxx_writer.writer_code.Code('return ((*this->reg + this->offset) ' + i + ' *other.reg);')
+        if model.startswith('acc'):
+            operatorBody = cxx_writer.writer_code.Code('return (*this->reg ' + i + ' *other.reg);')
+        else:
+            operatorBody = cxx_writer.writer_code.Code('return ((*this->reg + this->offset) ' + i + ' *other.reg);')
         operatorParam = cxx_writer.writer_code.Parameter('other', aliasType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True)
         aliasElements.append(operatorDecl)
@@ -464,12 +470,18 @@ def getCPPAlias(self, model):
         aliasElements.append(operatorDecl)
     # GENERIC REGISTER:
     for i in binaryOps:
-        operatorBody = cxx_writer.writer_code.Code('return ((*this->reg + this->offset) ' + i + ' other);')
+        if model.startswith('acc'):
+            operatorBody = cxx_writer.writer_code.Code('return (*this->reg ' + i + ' other);')
+        else:
+            operatorBody = cxx_writer.writer_code.Code('return ((*this->reg + this->offset) ' + i + ' other);')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True, inline = True)
         aliasElements.append(operatorDecl)
     for i in comparisonOps:
-        operatorBody = cxx_writer.writer_code.Code('return ((*this->reg + this->offset) ' + i + ' other);')
+        if model.startswith('acc'):
+            operatorBody = cxx_writer.writer_code.Code('return (*this->reg ' + i + ' other);')
+        else:
+            operatorBody = cxx_writer.writer_code.Code('return ((*this->reg + this->offset) ' + i + ' other);')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
         aliasElements.append(operatorDecl)
@@ -479,87 +491,131 @@ def getCPPAlias(self, model):
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam])
         aliasElements.append(operatorDecl)
     # Scalar value cast operator
-    operatorBody = cxx_writer.writer_code.Code('return *this->reg + this->offset;')
+    if model.startswith('acc'):
+        operatorBody = cxx_writer.writer_code.Code('return *this->reg;')
+    else:
+        operatorBody = cxx_writer.writer_code.Code('return *this->reg + this->offset;')
     operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True, noException = True, inline = True)
     aliasElements.append(operatorIntDecl)
 
     # Constructor: takes as input the initial register
     constructorBody = cxx_writer.writer_code.Code('')
-    constructorParams = [cxx_writer.writer_code.Parameter('reg', registerType.makePointer()), cxx_writer.writer_code.Parameter('offset', cxx_writer.writer_code.uintType, initValue = '0')]
-    publicMainClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['reg(reg)', 'offset(offset)', 'defaultOffset(0)'])
+    constructorParams = [cxx_writer.writer_code.Parameter('reg', registerType.makePointer())]
+    constructorInit = ['reg(reg)']
+    if not model.startswith('acc'):
+        constructorParams.append(cxx_writer.writer_code.Parameter('offset', cxx_writer.writer_code.uintType, initValue = '0'))
+        constructorInit += ['offset(offset)', 'defaultOffset(0)']
+    publicMainClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, constructorInit)
     publicMainEmptyClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu')
     # Constructor: takes as input the initial alias
     constructorBody = cxx_writer.writer_code.Code('initAlias->referredAliases.insert(this);\nthis->referringAliases.insert(initAlias);')
-    constructorParams = [cxx_writer.writer_code.Parameter('initAlias', aliasType.makePointer()), cxx_writer.writer_code.Parameter('offset', cxx_writer.writer_code.uintType, initValue = '0')]
-    publicAliasConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['reg(initAlias->reg)', 'offset(initAlias->offset + offset)', 'defaultOffset(offset)'])
+    constructorParams = [cxx_writer.writer_code.Parameter('initAlias', aliasType.makePointer())]
+    publicAliasConstrInit = ['reg(initAlias->reg)']
+    if not model.startswith('acc'):
+        constructorParams.append(cxx_writer.writer_code.Parameter('offset', cxx_writer.writer_code.uintType, initValue = '0'))
+        publicAliasConstrInit += ['offset(initAlias->offset + offset)', 'defaultOffset(offset)']
+    publicAliasConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, publicAliasConstrInit)
 
     # Stream Operators
     outStreamType = cxx_writer.writer_code.Type('std::ostream', 'ostream')
-    code = 'stream << *this->reg + this->offset;\nreturn stream;'
+    if model.startswith('acc'):
+        code = 'stream << *this->reg;\nreturn stream;'
+    else:
+        code = 'stream << *this->reg + this->offset;\nreturn stream;'
     operatorBody = cxx_writer.writer_code.Code(code)
     operatorParam = cxx_writer.writer_code.Parameter('stream', outStreamType.makeRef())
     operatorDecl = cxx_writer.writer_code.MemberOperator('<<', operatorBody, outStreamType.makeRef(), 'pu', [operatorParam], const = True)
     aliasElements.append(operatorDecl)
 
     # Update method: updates the register pointed by this alias
-    updateCode = """this->reg = newAlias.reg;
-    this->offset = newAlias.offset + newOffset;
-    this->defaultOffset = newOffset;
-    std::set<Alias *>::iterator referredIter, referredEnd;
-    for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
-        (*referredIter)->newReferredAlias(newAlias.reg, newAlias.offset + newOffset);
-    }
-    newAlias.referredAliases.insert(this);
-    std::set<Alias *>::iterator referringIter, referringEnd;
+    if model.startswith('acc'):
+        updateCode = """this->reg = newAlias.reg;
+        std::set<Alias *>::iterator referredIter, referredEnd;
+        for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
+            (*referredIter)->newReferredAlias(newAlias.reg);
+        }
+        """
+    else:
+        updateCode = """this->reg = newAlias.reg;
+        this->offset = newAlias.offset + newOffset;
+        this->defaultOffset = newOffset;
+        std::set<Alias *>::iterator referredIter, referredEnd;
+        for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
+            (*referredIter)->newReferredAlias(newAlias.reg, newAlias.offset + newOffset);
+        }
+        """
+    updateCode += """newAlias.referredAliases.insert(this);
+        std::set<Alias *>::iterator referringIter, referringEnd;
+        for(referringIter = this->referringAliases.begin(), referringEnd = this->referringAliases.end(); referringIter != referringEnd; referringIter++){
+            (*referringIter)->referredAliases.erase(this);
+        }
+        this->referringAliases.clear();
+        this->referringAliases.insert(&newAlias);
+        """
+    updateBody = cxx_writer.writer_code.Code(updateCode)
+    updateParam = [cxx_writer.writer_code.Parameter('newAlias', aliasType.makeRef())]
+    if not model.startswith('acc'):
+        updateParam.append(cxx_writer.writer_code.Parameter('newOffset', cxx_writer.writer_code.uintType, initValue = '0'))
+    updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam)
+    aliasElements.append(updateDecl)
+    if model.startswith('acc'):
+        updateCode = """this->reg = &newAlias;
+        std::set<Alias *>::iterator referredIter, referredEnd;
+        for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
+            (*referredIter)->newReferredAlias(&newAlias);
+        }
+        """
+    else:
+        updateCode = """this->reg = &newAlias;
+        this->offset = newOffset;
+        this->defaultOffset = 0;
+        std::set<Alias *>::iterator referredIter, referredEnd;
+        for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
+            (*referredIter)->newReferredAlias(&newAlias, newOffset);
+        }
+        """
+    updateCode += """std::set<Alias *>::iterator referringIter, referringEnd;
     for(referringIter = this->referringAliases.begin(), referringEnd = this->referringAliases.end(); referringIter != referringEnd; referringIter++){
         (*referringIter)->referredAliases.erase(this);
     }
     this->referringAliases.clear();
-    this->referringAliases.insert(&newAlias);
     """
     updateBody = cxx_writer.writer_code.Code(updateCode)
-    updateParam1 = cxx_writer.writer_code.Parameter('newAlias', aliasType.makeRef())
-    updateParam2 = cxx_writer.writer_code.Parameter('newOffset', cxx_writer.writer_code.uintType, initValue = '0')
-    updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', [updateParam1, updateParam2])
+    updateParam = [cxx_writer.writer_code.Parameter('newAlias', registerType.makeRef())]
+    if model.startswith('acc'):
+        updateParam.append(cxx_writer.writer_code.Parameter('newOffset', cxx_writer.writer_code.uintType, initValue = '0'))
+    updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam)
     aliasElements.append(updateDecl)
-    updateCode = """this->reg = &newAlias;
-    this->offset = newOffset;
-    this->defaultOffset = 0;
-    std::set<Alias *>::iterator referredIter, referredEnd;
-    for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
-        (*referredIter)->newReferredAlias(&newAlias, newOffset);
-    }
-    std::set<Alias *>::iterator referringIter, referringEnd;
-    for(referringIter = this->referringAliases.begin(), referringEnd = this->referringAliases.end(); referringIter != referringEnd; referringIter++){
-        (*referringIter)->referredAliases.erase(this);
-    }
-    this->referringAliases.clear();
-    """
+    if model.startswith('acc'):
+        updateCode = """this->reg = newAlias;
+        std::set<Alias *>::iterator referredIter, referredEnd;
+        for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
+            (*referredIter)->newReferredAlias(newAlias);
+        }
+        """
+    else:
+        updateCode = """this->reg = newAlias;
+        this->offset = newOffset + this->defaultOffset;
+        std::set<Alias *>::iterator referredIter, referredEnd;
+        for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
+            (*referredIter)->newReferredAlias(newAlias, newOffset);
+        }
+        """
     updateBody = cxx_writer.writer_code.Code(updateCode)
-    updateParam1 = cxx_writer.writer_code.Parameter('newAlias', registerType.makeRef())
-    updateParam2 = cxx_writer.writer_code.Parameter('newOffset', cxx_writer.writer_code.uintType, initValue = '0')
-    updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', [updateParam1, updateParam2])
-    aliasElements.append(updateDecl)
-    updateCode = """this->reg = newAlias;
-    this->offset = newOffset + this->defaultOffset;
-    std::set<Alias *>::iterator referredIter, referredEnd;
-    for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
-        (*referredIter)->newReferredAlias(newAlias, newOffset);
-    }
-    """
-    updateBody = cxx_writer.writer_code.Code(updateCode)
-    updateParam1 = cxx_writer.writer_code.Parameter('newAlias', registerType.makePointer())
-    updateParam2 = cxx_writer.writer_code.Parameter('newOffset', cxx_writer.writer_code.uintType)
-    updateDecl = cxx_writer.writer_code.Method('newReferredAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', [updateParam1, updateParam2])
+    updateParam = [cxx_writer.writer_code.Parameter('newAlias', registerType.makePointer())]
+    if not model.startswith('acc'):
+        updateParam.append(cxx_writer.writer_code.Parameter('newOffset', cxx_writer.writer_code.uintType))
+    updateDecl = cxx_writer.writer_code.Method('newReferredAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam)
     aliasElements.append(updateDecl)
 
     # Finally I declare the class and pass to it all the declared members
     regAttribute = cxx_writer.writer_code.Attribute('reg', registerType.makePointer(), 'pri')
     aliasElements.append(regAttribute)
-    offsetAttribute = cxx_writer.writer_code.Attribute('offset', cxx_writer.writer_code.uintType, 'pri')
-    aliasElements.append(offsetAttribute)
-    offsetAttribute = cxx_writer.writer_code.Attribute('defaultOffset', cxx_writer.writer_code.uintType, 'pri')
-    aliasElements.append(offsetAttribute)
+    if model.startswith('acc'):
+        offsetAttribute = cxx_writer.writer_code.Attribute('offset', cxx_writer.writer_code.uintType, 'pri')
+        aliasElements.append(offsetAttribute)
+        offsetAttribute = cxx_writer.writer_code.Attribute('defaultOffset', cxx_writer.writer_code.uintType, 'pri')
+        aliasElements.append(offsetAttribute)
     aliasesAttribute = cxx_writer.writer_code.Attribute('referredAliases', cxx_writer.writer_code.TemplateType('std::set', [aliasType.makePointer()], 'set'), 'pri')
     aliasElements.append(aliasesAttribute)
     aliasesAttribute = cxx_writer.writer_code.Attribute('referringAliases', cxx_writer.writer_code.TemplateType('std::set', [aliasType.makePointer()], 'set'), 'pri')
@@ -944,14 +1000,23 @@ def getCPPProc(self, model, trace):
         processorElements.append(attribute)
     for alias in self.aliasRegs:
         attribute = cxx_writer.writer_code.Attribute(alias.name, resourceType[alias.name], 'pu')
-        aliasInit[alias.name] = (alias.name + '(&' + alias.initAlias + ', ' + str(alias.offset) + ')')
+        aliasInitStr = alias.name + '(&' + alias.initAlias
+        if not model.startswith('acc'):
+            aliasInitStr += ', ' + str(alias.offset)
+        aliasInit[alias.name] = (aliasInitStr + ')')
         index = extractRegInterval(alias.initAlias)
         if index:
             # we are dealing with a member of a register bank
             curIndex = index[0]
-            bodyAliasInit[alias.name] = 'this->' + alias.name + '.updateAlias(this->' + alias.initAlias[:alias.initAlias.find('[')] + '[' + str(curIndex) + '], ' + str(alias.offset) + ');\n'
+            bodyAliasInit[alias.name] = 'this->' + alias.name + '.updateAlias(this->' + alias.initAlias[:alias.initAlias.find('[')] + '[' + str(curIndex) + ']'
+            if not model.startswith('acc'):
+                bodyAliasInit[alias.name] += ', ' + str(alias.offset)
+            bodyAliasInit[alias.name] += ');\n'
         else:
-            bodyAliasInit[alias.name] = 'this->' + alias.name + '.updateAlias(this->' + alias.initAlias + ', ' + str(alias.offset) + ');\n'
+            bodyAliasInit[alias.name] = 'this->' + alias.name + '.updateAlias(this->' + alias.initAlias
+            if not model.startswith('acc'):
+                bodyAliasInit[alias.name] += ', ' + str(alias.offset)
+            bodyAliasInit[alias.name] += ');\n'
         abiIfInit += 'this->' + alias.name + ', '
         processorElements.append(attribute)
     for aliasB in self.aliasRegBanks:
@@ -964,7 +1029,7 @@ def getCPPProc(self, model, trace):
             curIndex = index[0]
             for i in range(0, aliasB.numRegs):
                 bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '[' + str(i) + '].updateAlias(this->' + aliasB.initAlias[:aliasB.initAlias.find('[')] + '[' + str(curIndex) + ']'
-                if aliasB.offsets.has_key(i):
+                if aliasB.offsets.has_key(i) and not model.startswith('acc'):
                     bodyAliasInit[aliasB.name] += ', ' + str(aliasB.offsets[i])
                 bodyAliasInit[aliasB.name] += ');\n'
                 curIndex += 1
@@ -975,13 +1040,13 @@ def getCPPProc(self, model, trace):
                 if index:
                     for curRange in range(index[0], index[1] + 1):
                         bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '[' + str(curIndex) + '].updateAlias(this->' + curAlias[:curAlias.find('[')] + '[' + str(curRange) + ']'
-                        if aliasB.offsets.has_key(curIndex):
+                        if aliasB.offsets.has_key(curIndex) and not model.startswith('acc'):
                             bodyAliasInit[aliasB.name] += ', ' + str(aliasB.offsets[curIndex])
                         bodyAliasInit[aliasB.name] += ');\n'
                         curIndex += 1
                 else:
                     bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '[' + str(curIndex) + '].updateAlias(this->' + curAlias + ')'
-                    if aliasB.offsets.has_key(curIndex):
+                    if aliasB.offsets.has_key(curIndex) and not model.startswith('acc'):
                         bodyAliasInit[aliasB.name] += ', ' + str(aliasB.offsets[curIndex])
                     bodyAliasInit[aliasB.name] += ');\n'
                     curIndex += 1
@@ -1995,6 +2060,7 @@ def getGetPipelineStages(self, trace):
     # Now I have to actually declare the different pipeline stages, all of them being equal a part from
     # the fecth stage which have to fetch instructions and check interrupts before calling
     # the appropriate behavior method
+    checkHazardsMet = False
     for pipeStage in self.pipes:
         from isa import resolveBitType
         fetchWordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>')
@@ -2124,6 +2190,8 @@ def getGetPipelineStages(self, trace):
                     }
                     catch(flush_exception &etc){
                 """
+                if hasWb and checkHazardsMet:
+                    codeString += 'this->curInstruction->registerWb();\n'
                 if trace:
                     codeString += """std::cerr << "Skipped Instruction" << std::endl << std::endl;
                     """
@@ -2168,6 +2236,8 @@ def getGetPipelineStages(self, trace):
                 }
                 catch(flush_exception &etc){
             """
+            if hasWb and checkHazardsMet:
+                codeString += 'this->curInstruction->registerWb();\n'
             if trace:
                 codeString += """std::cerr << "Skipped Instruction" << std::endl << std::endl;
                 """
@@ -2263,8 +2333,10 @@ def getGetPipelineStages(self, trace):
                     #endif
                 """
             codeString += '}\n'
-            codeString += """catch(flush_exception &etc){
-                this->curInstruction = this->NOPInstrInstance;
+            codeString += 'catch(flush_exception &etc){\n'
+            if hasWb and checkHazardsMet:
+                codeString += 'this->curInstruction->registerWb();\n'
+            codeString += """this->curInstruction = this->NOPInstrInstance;
                 numCycles = 0;
             }
             """
@@ -2289,9 +2361,11 @@ def getGetPipelineStages(self, trace):
                 """
             if not self.externalClock:
                 codeString += '}'
+        if pipeStage.checkHazard:
+            checkHazardsMet = True
 
         behaviorMethodBody = cxx_writer.writer_code.Code(codeString)
-        behaviorMethodDecl = cxx_writer.writer_code.Method('behavior', behaviorMethodBody, cxx_writer.writer_code.voidType, 'pu', inline = True)
+        behaviorMethodDecl = cxx_writer.writer_code.Method('behavior', behaviorMethodBody, cxx_writer.writer_code.voidType, 'pu')
         curPipeElements.append(behaviorMethodDecl)
         if self.externalClock:
             constructorCode += 'SC_METHOD(behavior);\nsensitive << this->clock.pos();\ndont_initialize();\n'
