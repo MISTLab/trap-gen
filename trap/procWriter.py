@@ -737,27 +737,27 @@ def getCPPProc(self, model, trace):
             if codeString.endswith('= '):
                 raise Exception('No TLM port was chosen for the instruction fetch')
         fetchCode += '.read_word('
+        fetchAddress = 'this->' + self.fetchReg[0]
         if self.instructionCache and self.fastFetch:
-            fetchAddress = 'curPC'
+            pcVar = 'curPC'
         else:
-            fetchAddress = 'this->' + self.fetchReg[0]
+            pcVar = 'this->' + self.fetchReg[0]
         if model.startswith('func'):
             if self.fetchReg[1] < 0:
                 fetchAddress += str(self.fetchReg[1])
+                if not (self.instructionCache and self.fastFetch):
+                    pcVar += str(self.fetchReg[1])
             else:
                 fetchAddress += ' + ' + str(self.fetchReg[1])
-        fetchCode += fetchAddress + ');\n'
+                if not (self.instructionCache and self.fastFetch):
+                    pcVar += ' + ' + str(self.fetchReg[1])
+        fetchCode += pcVar + ');\n'
         if self.instructionCache and self.fastFetch:
-            codeString += str(fetchWordType) + ' curPC = this->' + self.fetchReg[0] + ';\n'
+            codeString += str(fetchWordType) + ' curPC = ' + fetchAddress + ';\n'
         else:
             codeString += fetchCode
         if trace:
-            codeString += 'std::cerr << \"Current PC: \" << std::hex << std::showbase << '
-            if self.fastFetch and self.instructionCache:
-                codeString += 'curPC'
-            else:
-                codeString += fetchAddress
-            codeString += ' << std::endl;\n'
+            codeString += 'std::cerr << \"Current PC: \" << std::hex << std::showbase << ' + pcVar + ' << std::endl;\n'
         if self.instructionCache:
             codeString += 'template_map< ' + str(fetchWordType) + ', Instruction * >::iterator cachedInstr = Processor::instrCache.find('
             if self.fastFetch:
@@ -769,7 +769,7 @@ def getCPPProc(self, model, trace):
                 // I can call the instruction, I have found it
                 try{
                     #ifndef DISABLE_TOOLS
-                    if(!(this->toolManager.newIssue(""" + fetchAddress + """))){
+                    if(!(this->toolManager.newIssue(""" + pcVar + """))){
                     #endif
                     numCycles = cachedInstr->second->behavior();
             """
@@ -804,7 +804,7 @@ def getCPPProc(self, model, trace):
         codeString += """instr->setParams(bitString);
             try{
                 #ifndef DISABLE_TOOLS
-                if(!(this->toolManager.newIssue(""" + fetchAddress + """))){
+                if(!(this->toolManager.newIssue(""" + pcVar + """))){
                 #endif
                 numCycles = instr->behavior();
         """
@@ -2247,7 +2247,7 @@ def getGetPipelineStages(self, trace):
             if pipeStage.checkTools:
                 codeString += """
                     #ifndef DISABLE_TOOLS
-                    if(!(this->toolManager.newIssue(""" + self.fetchReg[0] + """))){
+                    if(!(this->toolManager.newIssue(this->""" + self.fetchReg[0] + """))){
                     #endif
                 """
             if hasCheckHazard and pipeStage.checkHazard:

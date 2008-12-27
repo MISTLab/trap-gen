@@ -271,7 +271,6 @@ if(cond != 0xE){
         case 0x0:{
             // EQ
             if (CPSR[key_Z] == 0x0){
-                PC += 4;
                 flush();
             }
             break;
@@ -279,7 +278,6 @@ if(cond != 0xE){
         case 0x1:{
             // NE
             if (CPSR[key_Z] != 0x0){
-                PC += 4;
                 flush();
             }
             break;
@@ -287,7 +285,6 @@ if(cond != 0xE){
         case 0x2:{
             // CS/HS
             if (CPSR[key_C] == 0x0){
-                PC += 4;
                 flush();
             }
             break;
@@ -295,7 +292,6 @@ if(cond != 0xE){
         case 0x3:{
             // CC/LO
             if (CPSR[key_C] != 0x0){
-                PC += 4;
                 flush();
             }
             break;
@@ -303,7 +299,6 @@ if(cond != 0xE){
         case 0x4:{
             // MI
             if (CPSR[key_N] == 0x0){
-                PC += 4;
                 flush();
             }
             break;
@@ -311,7 +306,6 @@ if(cond != 0xE){
         case 0x5:{
             // PL
             if (CPSR[key_N] != 0x0){
-                PC += 4;
                 flush();
             }
             break;
@@ -319,7 +313,6 @@ if(cond != 0xE){
         case 0x6:{
             // VS
             if (CPSR[key_V] == 0x0){
-                PC += 4;
                 flush();
             }
             break;
@@ -327,7 +320,6 @@ if(cond != 0xE){
         case 0x7:{
             // VC
             if (CPSR[key_V] != 0x0){
-                PC += 4;
                 flush();
             }
             break;
@@ -335,7 +327,6 @@ if(cond != 0xE){
         case 0x8:{
             // HI
             if ((CPSR & 0x60000000) != 0x20000000){
-                PC += 4;
                 flush();
             }
             break;
@@ -343,7 +334,6 @@ if(cond != 0xE){
         case 0x9:{
             // LS
             if ((CPSR & 0x60000000) == 0x20000000){
-                PC += 4;
                 flush();
             }
             break;
@@ -351,7 +341,6 @@ if(cond != 0xE){
         case 0xA:{
             // GE
             if (CPSR[key_V] != CPSR[key_N]){
-                PC += 4;
                 flush();
             }
             break;
@@ -359,7 +348,6 @@ if(cond != 0xE){
         case 0xB:{
             // LT
             if (CPSR[key_V] == CPSR[key_N]){
-                PC += 4;
                 flush();
             }
             break;
@@ -367,7 +355,6 @@ if(cond != 0xE){
         case 0xC:{
             // GT
             if ((CPSR[key_Z] != 0x0) || (CPSR[key_V] != CPSR[key_N])){
-                PC += 4;
                 flush();
             }
             break;
@@ -375,7 +362,6 @@ if(cond != 0xE){
         case 0xD:{
             // LE
             if ((CPSR[key_Z] == 0x0) && (CPSR[key_V] == CPSR[key_N])){
-                PC += 4;
                 flush();
             }
             break;
@@ -659,10 +645,7 @@ UpdatePSRmul.addUserInstructionElement('rd')
 # In case the program counter is the updated register I have
 # to increment the latency of the operation
 opCode = cxx_writer.Code("""
-if(rd_bit != 15){
-    PC += 4;
-}
-else{
+if(rd_bit == 15){
     //In case the destination register is the program counter I have to
     //specify that I have a latency of two clock cycles
     stall(2);

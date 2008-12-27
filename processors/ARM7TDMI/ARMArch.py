@@ -96,7 +96,7 @@ processor.addRegister(mp_id)
 # to access the registers more easily. Note that, in general, it is
 # responsibility of the programmer keeping the alias updated
 regs = trap.AliasRegBank('REGS', 16, 'RB[0-15]')
-regs.setOffset(15, 8)
+regs.setOffset(15, 4)
 processor.addAliasRegBank(regs)
 FP = trap.AliasRegister('FP', 'REGS[12]')
 processor.addAliasReg(FP)
@@ -123,7 +123,7 @@ processor.addMemAlias(idMap)
 # functional model there is an offset between the PC and the actual
 # fetch address (all of this is to take into account the fact that we do
 # not have the pipeline)
-processor.setFetchRegister('PC', -8)
+processor.setFetchRegister('PC', -4)
 
 # Lets now add details about the processor interconnection (i.e. memory ports,
 # interrupt ports, pins, etc.)
@@ -185,8 +185,8 @@ abi = trap.ABI('REGS[0]', 'REGS[0-3]', 'PC', 'LR', 'SP', 'FP')
 abi.addVarRegsCorrespondence({'REGS[0-15]': (0, 15), 'CPSR': 16})
 # Same consideration as above: this offset is valid just for the functional
 # simulator
-abi.setOffset('PC', -8)
-abi.setOffset('REGS[15]', -8)
+abi.setOffset('PC', -4)
+abi.setOffset('REGS[15]', -4)
 abi.addMemory('dataMem')
 processor.setABI(abi)
 

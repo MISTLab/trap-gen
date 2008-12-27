@@ -140,113 +140,69 @@ def getCPPInstr(self, model, pipeline, externalClock, trace):
                     behVars.append(var.name)
     if not baseClasses:
         baseClasses.append(instructionType)
+
     if not model.startswith('acc'):
-        # This is not a cycle accurate processor, so pipeline is not modelled
         behaviorCode = 'this->totalInstrCycles = 0;\n'
-        for behaviors in self.prebehaviors.values():
-            for beh in behaviors:
-                if beh.name in toInline:
-                    behaviorCode += str(beh.code)
-                elif behClass.has_key(beh.name) or beh.name in baseBehaviors:
-                    behaviorCode += 'this->' + beh.name + '('
-                    for elem in beh.archElems:
-                        behaviorCode += 'this->' + elem + ', '
-                        behaviorCode += 'this->' + elem + '_bit'
-                        if beh.archVars or beh.instrvars or elem != beh.archElems[-1]:
-                            behaviorCode += ', '
-                    for elem in beh.archVars:
-                        behaviorCode += 'this->' + elem
-                        if beh.instrvars or elem != beh.archVars[-1]:
-                            behaviorCode += ', '
-                    for var in beh.instrvars:
-                        behaviorCode += 'this->' + var.name
-                        if var != beh.instrvars[-1]:
-                            behaviorCode += ', '
-                    behaviorCode += ');\n'
-                else:
-                    behaviorCode += 'this->' + beh.name + '();\n'
-        for code in self.code.values():
-            behaviorCode += str(code.code)
-        for behaviors in self.postbehaviors.values():
-            for beh in behaviors:
-                if beh.name in toInline:
-                    behaviorCode += str(beh.code)
-                elif behClass.has_key(beh.name) or beh.name in baseBehaviors:
-                    behaviorCode += 'this->' + beh.name + '('
-                    for elem in beh.archElems:
-                        behaviorCode += 'this->' + elem + ', '
-                        behaviorCode += 'this->' + elem + '_bit'
-                        if beh.archVars or beh.instrvars or elem != beh.archElems[-1]:
-                            behaviorCode += ', '
-                    for elem in beh.archVars:
-                        behaviorCode += 'this->' + elem
-                        if beh.instrvars or elem != beh.archVars[-1]:
-                            behaviorCode += ', '
-                    for var in beh.instrvars:
-                        behaviorCode += 'this->' + var.name
-                        if var != beh.instrvars[-1]:
-                            behaviorCode += ', '
-                    behaviorCode += ');\n'
-                else:
-                    behaviorCode += 'this->' + beh.name + '();\n'
-        behaviorCode += 'return this->totalInstrCycles;'
-        behaviorBody = cxx_writer.writer_code.Code(behaviorCode)
-        behaviorDecl = cxx_writer.writer_code.Method('behavior', behaviorBody, cxx_writer.writer_code.uintType, 'pu')
-        classElements.append(behaviorDecl)
-    else:
-        # cycle accurate model, I have to separate the behavior in the different pipeline stages
-        for pipeStage in pipeline:
+    for pipeStage in pipeline:
+        if model.startswith('acc'):
             behaviorCode = 'this->stageCycles = 0;\n'
-            if self.prebehaviors.has_key(pipeStage.name):
-                for beh in self.prebehaviors[pipeStage.name]:
-                    if beh.name in toInline:
-                        behaviorCode += str(beh.code)
-                    elif behClass.has_key(beh.name) or beh.name in baseBehaviors:
-                        behaviorCode += 'this->' + beh.name + '('
-                        for elem in beh.archElems:
-                            behaviorCode += 'this->' + elem + ', '
-                            behaviorCode += 'this->' + elem + '_bit'
-                            if beh.archVars or beh.instrvars or elem != beh.archElems[-1]:
-                                behaviorCode += ', '
-                        for elem in beh.archVars:
-                            behaviorCode += 'this->' + elem
-                            if beh.instrvars or elem != beh.archVars[-1]:
-                                behaviorCode += ', '
-                        for var in beh.instrvars:
-                            behaviorCode += 'this->' + var.name
-                            if var != beh.instrvars[-1]:
-                                behaviorCode += ', '
-                        behaviorCode += ');\n'
-                    else:
-                        behaviorCode += 'this->' + beh.name + '();\n'
-            if self.code.has_key(pipeStage.name):
-                behaviorCode += str(self.code[pipeStage.name].code)
-            if self.postbehaviors.has_key(pipeStage.name):
-                for beh in self.postbehaviors[pipeStage.name]:
-                    if beh.name in toInline:
-                        behaviorCode += str(beh.code)
-                    elif behClass.has_key(beh.name) or beh.name in baseBehaviors:
-                        behaviorCode += 'this->' + beh.name + '('
-                        for elem in beh.archElems:
-                            behaviorCode += 'this->' + elem + ', '
-                            behaviorCode += 'this->' + elem + '_bit'
-                            if beh.archVars or beh.instrvars or elem != beh.archElems[-1]:
-                                behaviorCode += ', '
-                        for elem in beh.archVars:
-                            behaviorCode += 'this->' + elem
-                            if beh.instrvars or elem != beh.archVars[-1]:
-                                behaviorCode += ', '
-                        for var in beh.instrvars:
-                            behaviorCode += 'this->' + var.name
-                            if var != beh.instrvars[-1]:
-                                behaviorCode += ', '
-                        behaviorCode += ');\n'
-                    else:
-                        behaviorCode += 'this->' + beh.name + '();\n'
+        if self.prebehaviors.has_key(pipeStage.name):
+            for beh in self.prebehaviors[pipeStage.name]:
+                if beh.name in toInline:
+                    behaviorCode += str(beh.code)
+                elif behClass.has_key(beh.name) or beh.name in baseBehaviors:
+                    behaviorCode += 'this->' + beh.name + '('
+                    for elem in beh.archElems:
+                        behaviorCode += 'this->' + elem + ', '
+                        behaviorCode += 'this->' + elem + '_bit'
+                        if beh.archVars or beh.instrvars or elem != beh.archElems[-1]:
+                            behaviorCode += ', '
+                    for elem in beh.archVars:
+                        behaviorCode += 'this->' + elem
+                        if beh.instrvars or elem != beh.archVars[-1]:
+                            behaviorCode += ', '
+                    for var in beh.instrvars:
+                        behaviorCode += 'this->' + var.name
+                        if var != beh.instrvars[-1]:
+                            behaviorCode += ', '
+                    behaviorCode += ');\n'
+                else:
+                    behaviorCode += 'this->' + beh.name + '();\n'
+        if self.code.has_key(pipeStage.name):
+            behaviorCode += str(self.code[pipeStage.name].code)
+        if self.postbehaviors.has_key(pipeStage.name):
+            for beh in self.postbehaviors[pipeStage.name]:
+                if beh.name in toInline:
+                    behaviorCode += str(beh.code)
+                elif behClass.has_key(beh.name) or beh.name in baseBehaviors:
+                    behaviorCode += 'this->' + beh.name + '('
+                    for elem in beh.archElems:
+                        behaviorCode += 'this->' + elem + ', '
+                        behaviorCode += 'this->' + elem + '_bit'
+                        if beh.archVars or beh.instrvars or elem != beh.archElems[-1]:
+                            behaviorCode += ', '
+                    for elem in beh.archVars:
+                        behaviorCode += 'this->' + elem
+                        if beh.instrvars or elem != beh.archVars[-1]:
+                            behaviorCode += ', '
+                    for var in beh.instrvars:
+                        behaviorCode += 'this->' + var.name
+                        if var != beh.instrvars[-1]:
+                            behaviorCode += ', '
+                    behaviorCode += ');\n'
+                else:
+                    behaviorCode += 'this->' + beh.name + '();\n'
+        if model.startswith('acc'):
             behaviorCode += 'return this->stageCycles;'
             behaviorBody = cxx_writer.writer_code.Code(behaviorCode)
             behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage.name, behaviorBody, cxx_writer.writer_code.uintType, 'pu')
             classElements.append(behaviorDecl)
+    if not model.startswith('acc'):
+        behaviorCode += 'return this->totalInstrCycles;'
+        behaviorBody = cxx_writer.writer_code.Code(behaviorCode)
+        behaviorDecl = cxx_writer.writer_code.Method('behavior', behaviorBody, cxx_writer.writer_code.uintType, 'pu')
+        classElements.append(behaviorDecl)
+    if model.startswith('acc'):
         # Now I have to add the code for checking data hazards
         hasCheckHazard = False
         hasWb = False
