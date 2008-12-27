@@ -84,6 +84,7 @@ template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryLT: publi
 
         if(adr > this->size){
             trans.set_response_status(tlm::TLM_ADDRESS_ERROR_RESPONSE);
+            std::cerr << "Error requesting address " << std::showbase << std::hex << adr << std::dec << std::endl;
             return;
         }
         if(byt != 0){

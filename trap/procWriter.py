@@ -895,14 +895,14 @@ def getCPPProc(self, model, trace):
             }
             """
         if len(self.tlmPorts) > 0 and model.endswith('LT'):
-            codeString += 'this->quantKeeper.inc(numCycles*this->latency);\nif(this->quantKeeper.need_sync()) this->quantKeeper.sync();\n'
+            codeString += 'this->quantKeeper.inc((numCycles + 1)*this->latency);\nif(this->quantKeeper.need_sync()) this->quantKeeper.sync();\n'
         elif model.startswith('acc') or self.systemc:
             if model.endswith('AT') and self.externalClock:
                 codeString += 'this->waitCycles = numCycles;\n'
             else:
-                codeString += 'wait(numCycles*this->latency);\n'
+                codeString += 'wait((numCycles + 1)*this->latency);\n'
         else:
-            codeString += 'this->totalCycles += numCycles;\n'
+            codeString += 'this->totalCycles += (numCycles + 1);\n'
         codeString += 'this->numInstructions++;\n\n'
         if not (model.endswith('AT') and self.externalClock):
             codeString += '}'
@@ -2177,10 +2177,6 @@ def getGetPipelineStages(self, trace):
                 codeString += """
                         numCycles = this->curInstruction->behavior_""" + pipeStage.name + """();
                 """
-                if trace:
-                    codeString += """
-                        this->curInstruction->printTrace();
-                    """
                 if pipeStage.checkTools:
                     codeString += """
                         #ifndef DISABLE_TOOLS
@@ -2193,7 +2189,7 @@ def getGetPipelineStages(self, trace):
                 if hasWb and checkHazardsMet:
                     codeString += 'this->curInstruction->registerWb();\n'
                 if trace:
-                    codeString += """std::cerr << "Skipped Instruction" << std::endl << std::endl;
+                    codeString += """std::cerr << "Stage: """ + pipeStage.name + """: Skipped Instruction " << this->curInstruction->getInstructionName() << std::endl << std::endl;
                     """
                 codeString += """this->curInstruction = this->NOPInstrInstance;
                         numCycles = 0;
@@ -2223,10 +2219,6 @@ def getGetPipelineStages(self, trace):
             codeString += """
                     numCycles = this->curInstruction->behavior_""" + pipeStage.name + """();
             """
-            if trace:
-                codeString += """
-                    this->curInstruction->printTrace();
-                """
             if pipeStage.checkTools:
                 codeString += """
                     #ifndef DISABLE_TOOLS
@@ -2239,7 +2231,7 @@ def getGetPipelineStages(self, trace):
             if hasWb and checkHazardsMet:
                 codeString += 'this->curInstruction->registerWb();\n'
             if trace:
-                codeString += """std::cerr << "Skipped Instruction" << std::endl << std::endl;
+                codeString += """std::cerr << "Stage """ + pipeStage.name + """: Skipped Instruction" << std::endl << std::endl;
                 """
             codeString += """this->curInstruction = this->NOPInstrInstance;
                     numCycles = 0;
@@ -2259,7 +2251,7 @@ def getGetPipelineStages(self, trace):
             if self.externalClock:
                 codeString += 'this->waitCycles = numCycles;\n'
             else:
-                codeString += """wait(numCycles*this->latency);
+                codeString += """wait((numCycles + 1)*this->latency);
                 // Now I have to propagate the instruction to the next cycle if
                 // the next stage has completed elaboration
                 if(this->succStage != NULL){
@@ -2326,6 +2318,10 @@ def getGetPipelineStages(self, trace):
                 else:
                     codeString += 'this->curInstruction->checkHazard();\n'
             codeString += 'numCycles = this->curInstruction->behavior_' + pipeStage.name + '();\n'
+            if trace and pipeStage == self.pipes[-1]:
+                codeString += """
+                    this->curInstruction->printTrace();
+                """
             if pipeStage.checkTools:
                 codeString += """
                     #ifndef DISABLE_TOOLS
@@ -2336,6 +2332,9 @@ def getGetPipelineStages(self, trace):
             codeString += 'catch(flush_exception &etc){\n'
             if hasWb and checkHazardsMet:
                 codeString += 'this->curInstruction->registerWb();\n'
+            if trace:
+                codeString += """std::cerr << "Stage """ + pipeStage.name + """: Skipped Instruction " << this->curInstruction->getInstructionName() << std::endl << std::endl;
+                """
             codeString += """this->curInstruction = this->NOPInstrInstance;
                 numCycles = 0;
             }
@@ -2343,7 +2342,7 @@ def getGetPipelineStages(self, trace):
             if self.externalClock:
                 codeString += 'this->waitCycles = numCycles;\n'
             else:
-                codeString += """wait(numCycles*this->latency);
+                codeString += """wait((numCycles + 1)*this->latency);
                 // Now I have to propagate the instruction to the next cycle if
                 // the next stage has completed elaboration
                 if(this->succStage != NULL){
@@ -2426,7 +2425,7 @@ def getGetPipelineStages(self, trace):
         else:
             constructorInit = ['sc_module(pipeName)', 'BasePipeStage(latency, prevStage, succStage)'] + constructorInit
         curPipeDecl = cxx_writer.writer_code.SCModule(pipeStage.name.upper() + '_PipeStage', curPipeElements, [pipeType])
-        constructorBody = cxx_writer.writer_code.Code(constructorCode + 'end_module();')
+        constructorBody = cxx_writer.writer_code.Code(constructorCode + 'this->curInstruction = NULL;\nend_module();')
         publicCurPipeConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, constructorInit)
         curPipeDecl.addConstructor(publicCurPipeConstr)
         pipeCodeElements.append(curPipeDecl)

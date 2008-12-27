@@ -241,8 +241,8 @@ def getCPPInstr(self, model, pipeline, externalClock, trace):
     replicateDecl = cxx_writer.writer_code.Method('replicate', replicateBody, instructionType.makePointer(), 'pu', noException = True, const = True)
     classElements.append(replicateDecl)
     if trace:
-        getIstructionNameBody = cxx_writer.writer_code.Code('return \"' + self.name + '\"\n;')
-        getIstructionNameDecl = cxx_writer.writer_code.Method('getIstructionName', getIstructionNameBody, cxx_writer.writer_code.stringType, 'pu')
+        getIstructionNameBody = cxx_writer.writer_code.Code('return \"' + self.name + '\";')
+        getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', getIstructionNameBody, cxx_writer.writer_code.stringType, 'pu')
         classElements.append(getIstructionNameDecl)
 
     # We need to create the attribute for the variables referenced by the non-constant parts of the instruction;
@@ -451,10 +451,10 @@ def getCPPClasses(self, processor, model, trace):
     setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam], pure = True, noException = True)
     instructionElements.append(setparamsDecl)
     if trace:
-        getIstructionNameDecl = cxx_writer.writer_code.Method('getIstructionName', emptyBody, cxx_writer.writer_code.stringType, 'pu', pure = True)
+        getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', emptyBody, cxx_writer.writer_code.stringType, 'pu', pure = True)
         instructionElements.append(getIstructionNameDecl)
         # I have to print the value of all the registers in the processor
-        printTraceCode = 'std::cerr << \"Instruction: \" << this->getIstructionName() << std::endl;\n'
+        printTraceCode = 'std::cerr << \"Instruction: \" << this->getInstructionName() << std::endl;\n'
         for reg in processor.regs:
             printTraceCode += 'std::cerr << \"' + reg.name + ' = \" << std::hex << std::showbase << this->' + reg.name + ' << std::endl;\n'
         for regB in processor.regBanks:
@@ -597,8 +597,8 @@ def getCPPClasses(self, processor, model, trace):
     setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam], noException = True)
     invalidInstrElements.append(setparamsDecl)
     if trace:
-        getIstructionNameBody = cxx_writer.writer_code.Code('return \"InvalidInstruction\"\n;')
-        getIstructionNameDecl = cxx_writer.writer_code.Method('getIstructionName', getIstructionNameBody, cxx_writer.writer_code.stringType, 'pu')
+        getIstructionNameBody = cxx_writer.writer_code.Code('return \"InvalidInstruction\";')
+        getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', getIstructionNameBody, cxx_writer.writer_code.stringType, 'pu')
         invalidInstrElements.append(getIstructionNameDecl)
     from procWriter import baseInstrInitElement
     publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, ['Instruction(' + baseInstrInitElement + ')'])
@@ -621,8 +621,8 @@ def getCPPClasses(self, processor, model, trace):
         setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam], noException = True)
         NOPInstructionElements.append(setparamsDecl)
         if trace:
-            getIstructionNameBody = cxx_writer.writer_code.Code('return \"InvalidInstruction\"\n;')
-            getIstructionNameDecl = cxx_writer.writer_code.Method('getIstructionName', getIstructionNameBody, cxx_writer.writer_code.stringType, 'pu')
+            getIstructionNameBody = cxx_writer.writer_code.Code('return \"NOPInstruction\";')
+            getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', getIstructionNameBody, cxx_writer.writer_code.stringType, 'pu')
             NOPInstructionElements.append(getIstructionNameDecl)
         from procWriter import baseInstrInitElement
         publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, ['Instruction(' + baseInstrInitElement + ')'])
