@@ -549,8 +549,9 @@ isa.addInstruction(ldm_Instr)
 opCode = cxx_writer.Code("""
 memLastBits = address & 0x00000003;
 // if the memory address is not word aligned I have to rotate the loaded value
-if(memLastBits == 0)
+if(memLastBits == 0){
     value = dataMem.read_word(address);
+}
 else{
     value = RotateRight(8*memLastBits, dataMem.read_word(address));
 }

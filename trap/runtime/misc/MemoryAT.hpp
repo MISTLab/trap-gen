@@ -60,7 +60,8 @@ template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryAT: publi
     tlm_utils::simple_target_socket_tagged<MemoryAT, sockSize> * socket[N_INITIATORS];
 
     MemoryAT(sc_module_name name, unsigned int size, sc_time latency = SC_ZERO_TIME) :
-                        sc_module(name), size(size), latency(latency), transId(0), m_peq(this, &MemoryAT::peq_cb){
+                                sc_module(name), size(size), latency(latency), transId(0),
+                                transactionInProgress(false), m_peq(this, &MemoryAT::peq_cb){
         for(int i = 0; i < N_INITIATORS; i++){
             this->socket[i] = new tlm_utils::simple_target_socket_tagged<MemoryAT, sockSize>(("mem_socket_" + boost::lexical_cast<std::string>(i)).c_str());
             this->socket[i]->register_nb_transport_fw(this, &MemoryAT::nb_transport_fw, i);
@@ -93,6 +94,14 @@ template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryAT: publi
             return tlm::TLM_COMPLETED;
         }
         // Now queue the transaction until the annotated time has elapsed
+        if(phase == tlm::BEGIN_REQ){
+            while(this->transactionInProgress){
+                std::cerr << "waiting for transactionInProgress" << std::endl;
+                wait(this->transactionCompleted);
+            }
+            std::cerr << "there are no transactionInProgress" << std::endl;
+            this->transactionInProgress = true;
+        }
         m_peq.notify(trans, phase, delay);
         trans.set_response_status(tlm::TLM_OK_RESPONSE);
         return tlm::TLM_ACCEPTED;
@@ -108,6 +117,9 @@ template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryAT: publi
             break;
 
             case tlm::END_RESP:
+            std::cerr << "pippo" << std::endl;
+                    this->transactionInProgress = false;
+                    this->transactionCompleted.notify();
             break;
 
             case tlm::END_REQ:
@@ -135,6 +147,7 @@ template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryAT: publi
                     // Target must honor BEGIN_RESP/END_RESP exclusion rule
                     // i.e. must not send BEGIN_RESP until receiving previous END_RESP or BEGIN_REQ
                     send_response(trans);
+                    std::cerr << "reading address in memory " << std::hex << std::showbase << adr << std::endl;
                 }
             break;
         }
@@ -164,11 +177,11 @@ template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryAT: publi
         tlm::tlm_sync_enum status;
         tlm::tlm_phase bw_phase;
 
-        response_in_progress = true;
         bw_phase = tlm::BEGIN_RESP;
         sc_time zeroDelay = SC_ZERO_TIME;
         status = (*(this->socket[transId]))->nb_transport_bw(trans, bw_phase, zeroDelay);
 
+        std::cerr << "response status " << status << std::endl;
         if (status == tlm::TLM_UPDATED){
             // The timing annotation must be honored
             m_peq.notify(trans, bw_phase, SC_ZERO_TIME);
@@ -213,7 +226,8 @@ template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryAT: publi
     unsigned int size;
     unsigned char * mem;
     int   transId;
-    bool  response_in_progress;
+    bool  transactionInProgress;
+    sc_event transactionCompleted;
     tlm_utils::peq_with_cb_and_phase<MemoryAT> m_peq;
 };
 

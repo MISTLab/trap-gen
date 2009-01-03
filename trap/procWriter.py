@@ -1993,6 +1993,10 @@ def getGetPipelineStages(self, trace):
         pipelineElements.append(stageReadyEvent)
         instrPresentEvent = cxx_writer.writer_code.Attribute('instrPresentEv', cxx_writer.writer_code.sc_eventType, 'pro')
         pipelineElements.append(instrPresentEvent)
+        instructionEndedEv = cxx_writer.writer_code.Attribute('instructionEndedEv', cxx_writer.writer_code.sc_eventType, 'pu')
+        pipelineElements.append(instructionEndedEv)
+        instructionEndedFlag = cxx_writer.writer_code.Attribute('instructionEndedFlag', cxx_writer.writer_code.boolType, 'pu')
+        pipelineElements.append(instructionEndedFlag)
     stageAttr = cxx_writer.writer_code.Attribute('prevStage', pipeType.makePointer(), 'pro')
     pipelineElements.append(stageAttr)
     stageAttr = cxx_writer.writer_code.Attribute('succStage', pipeType.makePointer(), 'pro')
@@ -2152,6 +2156,8 @@ def getGetPipelineStages(self, trace):
                     codeString += fetchAddress
                 codeString += ' << std::endl;\n'
             codeString += 'this->stageReadyFlag = false;\n'
+            if not self.externalClock:
+                codeString += 'this->instructionEndedFlag = false;\n'
             if self.instructionCache:
                 codeString += 'template_map< ' + str(fetchWordType) + ', Instruction * >::iterator cachedInstr = ' + pipeStage.name.upper() + '_PipeStage::instrCache.find('
                 if self.fastFetch:
@@ -2252,6 +2258,8 @@ def getGetPipelineStages(self, trace):
                 codeString += 'this->waitCycles = numCycles;\n'
             else:
                 codeString += """wait((numCycles + 1)*this->latency);
+                this->instructionEndedFlag = true;
+                this->instructionEndedEv.notify();
                 // Now I have to propagate the instruction to the next cycle if
                 // the next stage has completed elaboration
                 if(this->succStage != NULL){
@@ -2303,7 +2311,7 @@ def getGetPipelineStages(self, trace):
             if self.externalClock:
                 codeString += 'if (this->curInstruction == NULL){\nreturn;\n}'
             else:
-                codeString += 'while(this->curInstruction == NULL){\nwait(this->instrPresentEv);\n}\n'
+                codeString += 'while(this->curInstruction == NULL){\nwait(this->instrPresentEv);\n}\nthis->instructionEndedFlag = false;\n'
             codeString += 'this->stageReadyFlag = false;\n'
             codeString += 'try{\n'
             if pipeStage.checkTools:
@@ -2343,6 +2351,11 @@ def getGetPipelineStages(self, trace):
                 codeString += 'this->waitCycles = numCycles;\n'
             else:
                 codeString += """wait((numCycles + 1)*this->latency);
+                while(!this->prevStage->instructionEndedFlag){
+                    wait(this->prevStage->instructionEndedEv);
+                }
+                this->instructionEndedFlag = true;
+                this->instructionEndedEv.notify();
                 // Now I have to propagate the instruction to the next cycle if
                 // the next stage has completed elaboration
                 if(this->succStage != NULL){
