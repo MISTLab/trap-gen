@@ -474,6 +474,7 @@ if(s == 0){
         PC = dataMem.read_word(start_address) & 0xFFFFFFFC;
         numRegsToLoad++;
         loadLatency += 2;
+        flush();
     }
     // First of all if it is necessary I perform the writeback
     if(w != 0){
@@ -501,6 +502,7 @@ else if((reg_list & 0x00008000) != 0){
     restoreSPSR();
     numRegsToLoad++;
     loadLatency += 2;
+    flush();
 }
 else{
     //I'm dealing with user-mode registers: LDM type two
