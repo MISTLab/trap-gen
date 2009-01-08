@@ -582,7 +582,7 @@ def getCPPAlias(self, model):
     """
     updateBody = cxx_writer.writer_code.Code(updateCode)
     updateParam = [cxx_writer.writer_code.Parameter('newAlias', registerType.makeRef())]
-    if model.startswith('acc'):
+    if not model.startswith('acc'):
         updateParam.append(cxx_writer.writer_code.Parameter('newOffset', cxx_writer.writer_code.uintType, initValue = '0'))
     updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam)
     aliasElements.append(updateDecl)
@@ -611,7 +611,7 @@ def getCPPAlias(self, model):
     # Finally I declare the class and pass to it all the declared members
     regAttribute = cxx_writer.writer_code.Attribute('reg', registerType.makePointer(), 'pri')
     aliasElements.append(regAttribute)
-    if model.startswith('acc'):
+    if not model.startswith('acc'):
         offsetAttribute = cxx_writer.writer_code.Attribute('offset', cxx_writer.writer_code.uintType, 'pri')
         aliasElements.append(offsetAttribute)
         offsetAttribute = cxx_writer.writer_code.Attribute('defaultOffset', cxx_writer.writer_code.uintType, 'pri')
@@ -838,11 +838,11 @@ def getCPPProc(self, model, trace):
                     }
                     #endif
                 }
-                catch(flush_exception &etc){
+                catch(annull_exception &etc){
             """
             if trace:
                 codeString += """
-                        std::cerr << "Skipped Instruction" << std::endl << std::endl;
+                        std::cerr << "Skipped Instruction " << cachedInstr->second->getInstructionName() << std::endl << std::endl;
                 """
             codeString += """
                     numCycles = 0;
@@ -873,11 +873,11 @@ def getCPPProc(self, model, trace):
                 }
                 #endif
             }
-            catch(flush_exception &etc){
+            catch(annull_exception &etc){
         """
         if trace:
             codeString += """
-                    std::cerr << "Skipped Instruction" << std::endl << std::endl;
+                    std::cerr << "Skipped Instruction " << instr->getInstructionName() << std::endl << std::endl;
             """
         codeString += """
                 numCycles = 0;
@@ -1997,6 +1997,7 @@ def getGetPipelineStages(self, trace):
         pipelineElements.append(instructionEndedEv)
         instructionEndedFlag = cxx_writer.writer_code.Attribute('instructionEndedFlag', cxx_writer.writer_code.boolType, 'pu')
         pipelineElements.append(instructionEndedFlag)
+        constructorCode += 'this->instructionEndedFlag = true;\n'
     stageAttr = cxx_writer.writer_code.Attribute('prevStage', pipeType.makePointer(), 'pro')
     pipelineElements.append(stageAttr)
     stageAttr = cxx_writer.writer_code.Attribute('succStage', pipeType.makePointer(), 'pro')
@@ -2028,6 +2029,14 @@ def getGetPipelineStages(self, trace):
     curInstrAttr = cxx_writer.writer_code.Attribute('curInstruction', IntructionType.makePointer(), 'pro')
     pipelineElements.append(curInstrAttr)
 
+    flushCode = """this->curInstruction = this->NOPInstrInstance;
+    if(this->prevStage != NULL){
+        this->prevStage->flush();
+    }
+    """
+    flushBody = cxx_writer.writer_code.Code(flushCode)
+    flushDecl = cxx_writer.writer_code.Method('flush', flushBody, cxx_writer.writer_code.voidType, 'pu', noException = True)
+    pipelineElements.append(flushDecl)
     newInstrCode = """this->curInstruction = newInstr;
     this->instrPresentEv.notify();
     """
@@ -2190,7 +2199,7 @@ def getGetPipelineStages(self, trace):
                         #endif"""
                 codeString += """
                     }
-                    catch(flush_exception &etc){
+                    catch(annull_exception &etc){
                 """
                 if hasWb and checkHazardsMet:
                     codeString += 'this->curInstruction->registerWb();\n'
@@ -2232,12 +2241,12 @@ def getGetPipelineStages(self, trace):
                     #endif"""
             codeString += """
                 }
-                catch(flush_exception &etc){
+                catch(annull_exception &etc){
             """
             if hasWb and checkHazardsMet:
                 codeString += 'this->curInstruction->registerWb();\n'
             if trace:
-                codeString += """std::cerr << "Stage """ + pipeStage.name + """: Skipped Instruction" << std::endl << std::endl;
+                codeString += """std::cerr << "Stage """ + pipeStage.name + """: Skipped Instruction " << this->curInstruction->getInstructionName() << std::endl << std::endl;
                 """
             codeString += """this->curInstruction = this->NOPInstrInstance;
                     numCycles = 0;
@@ -2337,7 +2346,7 @@ def getGetPipelineStages(self, trace):
                     #endif
                 """
             codeString += '}\n'
-            codeString += 'catch(flush_exception &etc){\n'
+            codeString += 'catch(annull_exception &etc){\n'
             if hasWb and checkHazardsMet:
                 codeString += 'this->curInstruction->registerWb();\n'
             if trace:
@@ -2356,23 +2365,30 @@ def getGetPipelineStages(self, trace):
                 }
                 this->instructionEndedFlag = true;
                 this->instructionEndedEv.notify();
-                // Now I have to propagate the instruction to the next cycle if
-                // the next stage has completed elaboration
-                if(this->succStage != NULL){
-                    while(!this->succStage->stageReadyFlag){
-                        wait(this->succStage->stageReadyEv);
-                    }
-                    this->succStage->setNewInstruction(this->curInstruction);
-                }"""
-                if hasWb and pipeStage.checkHazard:
-                    codeString += 'this->curInstruction->registerWb();\n'
+                """
+            codeString += """if(this->curInstruction->flushPipeline){
+                //Now I have to flush the preceding pipeline stages
+                this->prevStage->flush();
+                this->curInstruction->flushPipeline = false;
+            }
+            // Now I have to propagate the instruction to the next cycle if
+            // the next stage has completed elaboration
+            if(this->succStage != NULL){
+                while(!this->succStage->stageReadyFlag){
+                    wait(this->succStage->stageReadyEv);
+                }
+                this->succStage->setNewInstruction(this->curInstruction);
+            }
+            """
+            if hasWb and pipeStage.checkHazard:
+                codeString += 'this->curInstruction->registerWb();\n'
+            codeString += 'this->curInstruction = NULL;'
+            if not self.externalClock:
                 codeString += """
-                this->curInstruction = NULL;
                 this->stageReadyFlag = true;
                 this->stageReadyEv.notify();
+                }
                 """
-            if not self.externalClock:
-                codeString += '}'
         if pipeStage.checkHazard:
             checkHazardsMet = True
 
@@ -2438,7 +2454,7 @@ def getGetPipelineStages(self, trace):
         else:
             constructorInit = ['sc_module(pipeName)', 'BasePipeStage(latency, prevStage, succStage)'] + constructorInit
         curPipeDecl = cxx_writer.writer_code.SCModule(pipeStage.name.upper() + '_PipeStage', curPipeElements, [pipeType])
-        constructorBody = cxx_writer.writer_code.Code(constructorCode + 'this->curInstruction = NULL;\nend_module();')
+        constructorBody = cxx_writer.writer_code.Code(constructorCode + 'end_module();')
         publicCurPipeConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, constructorInit)
         curPipeDecl.addConstructor(publicCurPipeConstr)
         pipeCodeElements.append(curPipeDecl)

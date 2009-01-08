@@ -246,6 +246,7 @@ if(l == 1) {
 }
 PC = PC + (SignExtend(offset, 24) << 2);
 stall(2);
+flush();
 """)
 branch_Instr = trap.Instruction('BRANCH', True, frequency = 7)
 branch_Instr.setMachineCode(branch, {}, 'TODO')
@@ -260,6 +261,7 @@ opCode = cxx_writer.Code("""
 // thumb mode
 PC = (rm & 0xFFFFFFFC);
 stall(2);
+flush();
 """)
 branch_thumb_Instr = trap.Instruction('BRANCHX', True, frequency = 3)
 branch_thumb_Instr.setMachineCode(branch_thumb, {}, 'TODO')
@@ -563,6 +565,7 @@ if(rd_bit == 15){
     //thumb mode.
     PC = value & 0xFFFFFFFC;
     stall(4);
+    flush();
 }
 else{
     rd = value;

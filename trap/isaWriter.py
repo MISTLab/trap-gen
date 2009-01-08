@@ -405,7 +405,7 @@ def getCPPInstrTest(self, processor, model):
         else:
             for pipeStage in processor.pipes:
                 code += 'toTest.behavior_' + pipeStage + '();'
-        code += '\n}\ncatch(flush_exception &etc){\n}\n\n'
+        code += '\n}\ncatch(annull_exception &etc){\n}\n\n'
         for resource, value in test[2].items():
             # I check the value of the listed resources to make sure that the
             # computation executed correctly
@@ -464,12 +464,21 @@ def getCPPClasses(self, processor, model, trace):
         printTraceDecl = cxx_writer.writer_code.Method('printTrace', printTraceBody, cxx_writer.writer_code.voidType, 'pu')
         instructionElements.append(printTraceDecl)
 
-    # Note how the flush operation also stops the execution of the current operation
-    flushCode = 'throw flush_exception();'
+    # Note how the annull operation stops the execution of the current operation
+    annullCode = 'throw annull_exception();'
+    annullBody = cxx_writer.writer_code.Code(annullCode)
+    annullBody.addInclude('customExceptions.hpp')
+    annullDecl = cxx_writer.writer_code.Method('annull', annullBody, cxx_writer.writer_code.voidType, 'pu', inline = True)
+    instructionElements.append(annullDecl)
+
+    if not model.startswith('acc'):
+        flushCode = ''
+    else:
+        flushCode = 'this->flushPipeline = true;'
     flushBody = cxx_writer.writer_code.Code(flushCode)
-    flushBody.addInclude('customExceptions.hpp')
     flushDecl = cxx_writer.writer_code.Method('flush', flushBody, cxx_writer.writer_code.voidType, 'pu', inline = True)
     instructionElements.append(flushDecl)
+
     stallParam = cxx_writer.writer_code.Parameter('numCycles', archWordType.makeRef().makeConst())
     if not model.startswith('acc'):
         stallBody = cxx_writer.writer_code.Code('this->totalInstrCycles += numCycles;')
@@ -548,8 +557,9 @@ def getCPPClasses(self, processor, model, trace):
         instructionElements.append(cxx_writer.writer_code.Attribute('totalInstrCycles', cxx_writer.writer_code.uintType, 'pro'))
         constrBody = 'this->totalInstrCycles = 0;'
     else:
+        instructionElements.append(cxx_writer.writer_code.Attribute('flushPipeline', cxx_writer.writer_code.boolType, 'pu'))
         instructionElements.append(cxx_writer.writer_code.Attribute('stageCycles', cxx_writer.writer_code.uintType, 'pro'))
-        constrBody = 'this->stageCycles = 0;'
+        constrBody = 'this->stageCycles = 0;\nthis->flushPipeline = false;'
     publicConstr = cxx_writer.writer_code.Constructor(cxx_writer.writer_code.Code(constrBody), 'pu', baseInstrConstrParams, initElements)
     instructionDecl = cxx_writer.writer_code.ClassDeclaration('Instruction', instructionElements)
     instructionDecl.addConstructor(publicConstr)
