@@ -128,7 +128,10 @@ def getCPPRegClass(self, model, regType):
 #         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
 #         registerElements.append(operatorDecl)
     for i in assignmentOps:
-        operatorBody = cxx_writer.writer_code.Code('this->value ' + i + ' other;\nreturn *this;')
+        if model.startswith('acc'):
+            operatorBody = cxx_writer.writer_code.Code('this->newValue = this->value;\nthis->newValue ' + i + ' other;\nreturn *this;')
+        else:
+            operatorBody = cxx_writer.writer_code.Code('this->value ' + i + ' other;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regType.makeRef(), 'pu', [operatorParam])
         registerElements.append(operatorDecl)
@@ -144,7 +147,10 @@ def getCPPRegClass(self, model, regType):
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
         registerElements.append(operatorDecl)
     for i in assignmentOps:
-        operatorBody = cxx_writer.writer_code.Code('this->value ' + i + ' other.value;\nreturn *this;')
+        if model.startswith('acc'):
+            operatorBody = cxx_writer.writer_code.Code('this->newValue = this->value;\nthis->newValue ' + i + ' other.value;\nreturn *this;')
+        else:
+            operatorBody = cxx_writer.writer_code.Code('this->value ' + i + ' other.value;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', regType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regType.makeRef(), 'pu', [operatorParam])
         registerElements.append(operatorDecl)
@@ -161,7 +167,10 @@ def getCPPRegClass(self, model, regType):
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
         registerElements.append(operatorDecl)
     for i in assignmentOps:
-        operatorBody = cxx_writer.writer_code.Code('this->value ' + i + ' other;\nreturn *this;')
+        if model.startswith('acc'):
+            operatorBody = cxx_writer.writer_code.Code('this->newValue = this->value;\nthis->newValue ' + i + ' other;\nreturn *this;')
+        else:
+            operatorBody = cxx_writer.writer_code.Code('this->value ' + i + ' other;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regType.makeRef(), 'pu', [operatorParam])
         registerElements.append(operatorDecl)
@@ -186,6 +195,18 @@ def getCPPRegClass(self, model, regType):
     operatorParam = cxx_writer.writer_code.Parameter('stream', outStreamType.makeRef())
     operatorDecl = cxx_writer.writer_code.MemberOperator('<<', operatorBody, outStreamType.makeRef(), 'pu', [operatorParam], const = True)
     registerElements.append(operatorDecl)
+    if model.startswith('acc'):
+        refreshBody = cxx_writer.writer_code.Code('this->value = this->newValue;')
+        refreshMethod = cxx_writer.writer_code.Method('refresh', refreshBody, cxx_writer.writer_code.voidType, 'pu', noException = True)
+        registerElements.append(refreshMethod)
+    immediateAssignBody = cxx_writer.writer_code.Code('this->value = newValue;')
+    immediateAssignParam = cxx_writer.writer_code.Parameter('newValue', regType.makeRef().makeConst())
+    immediateAssignDecl = cxx_writer.writer_code.Method('immediateAssign', immediateAssignBody, cxx_writer.writer_code.voidType, 'pu', [immediateAssignParam], noException = True)
+    registerElements.append(immediateAssignDecl)
+    immediateAssignBody = cxx_writer.writer_code.Code('this->value = newValue->value;')
+    immediateAssignParam = cxx_writer.writer_code.Parameter('newValue', registerType.makeRef().makeConst())
+    immediateAssignDecl = cxx_writer.writer_code.Method('immediateAssign', immediateAssignBody, cxx_writer.writer_code.voidType, 'pu', [immediateAssignParam], noException = True)
+    registerElements.append(immediateAssignDecl)
 
     # Attributes and inner classes declarations
     attrs = []
@@ -241,6 +262,9 @@ def getCPPRegClass(self, model, regType):
     attrs.append(fieldAttribute)
     valueAttribute = cxx_writer.writer_code.Attribute('value', regWidthType, 'pri')
     attrs.append(valueAttribute)
+    if model.startswith('acc'):
+        newValueAttribute = cxx_writer.writer_code.Attribute('newValue', regWidthType, 'pri')
+        attrs.append(newValueAttribute)
     registerElements = attrs + registerElements
 
     registerDecl = cxx_writer.writer_code.ClassDeclaration(regType.name, registerElements, [registerType])
@@ -303,13 +327,20 @@ def getCPPRegisters(self, model):
         isLockedBody = cxx_writer.writer_code.Code('return this->locked;')
         isLockedMethod = cxx_writer.writer_code.Method('isLocked', isLockedBody, cxx_writer.writer_code.boolType, 'pu', inline = True, noException = True)
         registerElements.append(isLockedMethod)
+        refreshMethod = cxx_writer.writer_code.Method('refresh', emptyBody, cxx_writer.writer_code.voidType, 'pu', pure = True, noException = True)
+        registerElements.append(refreshMethod)
         if not self.externalClock:
             waitHazardBody = cxx_writer.writer_code.Code('wait(this->hazardEvent);')
             waitHazardMethod = cxx_writer.writer_code.Method('waitHazard', waitHazardBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
             registerElements.append(waitHazardMethod)
             hazardEventAttribute = cxx_writer.writer_code.Attribute('hazardEvent', cxx_writer.writer_code.sc_eventType, 'pri')
             registerElements.append(hazardEventAttribute)
-
+    immediateAssignParam = cxx_writer.writer_code.Parameter('newValue', regMaxType.makeRef().makeConst())
+    immediateAssignDecl = cxx_writer.writer_code.Method('immediateAssign', emptyBody, cxx_writer.writer_code.voidType, 'pu', [immediateAssignParam], pure = True, noException = True)
+    registerElements.append(immediateAssignDecl)
+    immediateAssignParam = cxx_writer.writer_code.Parameter('newValue', registerType.makeRef().makeConst())
+    immediateAssignDecl = cxx_writer.writer_code.Method('immediateAssign', emptyBody, cxx_writer.writer_code.voidType, 'pu', [immediateAssignParam], pure = True, noException = True)
+    registerElements.append(immediateAssignDecl)
 
     ################ Operators working with the base class, employed when polimorphism is used ##################
     # First lets declare the class which will be used to manipulate the
@@ -418,6 +449,9 @@ def getCPPAlias(self, model):
         isLockedBody = cxx_writer.writer_code.Code('return this->reg->isLocked();')
         isLockedMethod = cxx_writer.writer_code.Method('isLocked', isLockedBody, cxx_writer.writer_code.boolType, 'pu', inline = True, noException = True)
         aliasElements.append(isLockedMethod)
+        refreshBody = cxx_writer.writer_code.Code('this->reg->refresh();')
+        refreshMethod = cxx_writer.writer_code.Method('refresh', refreshBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
+        aliasElements.append(refreshMethod)
         if not self.externalClock:
             waitHazardBody = cxx_writer.writer_code.Code('this->reg->waitHazard();')
             waitHazardMethod = cxx_writer.writer_code.Method('waitHazard', waitHazardBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
