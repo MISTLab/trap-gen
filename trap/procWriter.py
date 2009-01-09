@@ -2439,6 +2439,10 @@ def getGetPipelineStages(self, trace):
                 codeString += """
                     #ifndef DISABLE_TOOLS
                     }
+                    else{
+                        this->curInstruction = this->NOPInstrInstance;
+                        this->curInstruction->flushPipeline = true;
+                    }
                     #endif
                 """
             codeString += '}\n'
@@ -2676,6 +2680,12 @@ def getMainCode(self, model):
                 instrMemName = 'mem'
     if instrMemName == '' and self.memory:
         instrMemName = 'procInst.' + self.memory[0]
+
+    execOffset = 0
+    for pipeStage in self.pipes:
+        if pipeStage.checkTools:
+            break
+        execOffset += 1
     code += """
     //And with the loading of the executable code
     ExecLoader loader(vm["application"].as<std::string>(), false);
@@ -2689,8 +2699,12 @@ def getMainCode(self, model):
     procInst.PROGRAM_LIMIT = loader.getProgDim() + loader.getDataStart();
     procInst.PROGRAM_START = loader.getDataStart();
     //Now I initialize the tools (i.e. debugger, os emulator, ...)
-    OSEmulator< """ + str(wordType) + """ > osEmu(*(procInst.abiIf));
-    GDBStub< """ + str(wordType) + """ > gdbStub(*(procInst.abiIf));
+    """
+    if model.startswith('acc'):
+        code += 'OSEmulator< ' + str(wordType) + ', ' + str(execOffset*self.wordSize) + ' > osEmu(*(procInst.abiIf));\n'
+    else:
+        code += 'OSEmulator< ' + str(wordType) + ', 0 > osEmu(*(procInst.abiIf));\n'
+    code += """GDBStub< """ + str(wordType) + """ > gdbStub(*(procInst.abiIf));
     osEmu.initSysCalls(vm["application"].as<std::string>());
     procInst.toolManager.addTool(osEmu);
     if(vm.count("debugger") != 0){

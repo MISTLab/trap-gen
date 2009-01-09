@@ -70,7 +70,7 @@
 
 #include "syscCallB.hpp"
 
-template<class issueWidth> class OSEmulator : public ToolsIf<issueWidth>, OSEmulatorBase{
+template<class issueWidth, int stageOffset> class OSEmulator : public ToolsIf<issueWidth>, OSEmulatorBase{
   private:
     template_map<issueWidth, SyscallCB<issueWidth>* > syscCallbacks;
     ABIIf<issueWidth> &processorInstance;
@@ -256,7 +256,7 @@ template<class issueWidth> class OSEmulator : public ToolsIf<issueWidth>, OSEmul
         //I have to go over all the registered system calls and check if there is one
         //that matches the current program counter. In case I simply call the corresponding
         //callback.
-        typename template_map<issueWidth, SyscallCB<issueWidth>* >::const_iterator foundSysc = this->syscCallbacks.find(curPC);
+        typename template_map<issueWidth, SyscallCB<issueWidth>* >::const_iterator foundSysc = this->syscCallbacks.find(curPC + stageOffset);
         if(foundSysc != this->syscCallbacksEnd){
             return (*(foundSysc->second))();
         }
