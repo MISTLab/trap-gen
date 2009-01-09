@@ -56,7 +56,7 @@ else{
 }
 return shifted;
 """)
-AShiftRight_method = trap.HelperMethod('ArithmeticShiftRight', opCode)
+AShiftRight_method = trap.HelperMethod('ArithmeticShiftRight', opCode, 'execute')
 AShiftRight_method.setSignature(('BIT<32>'), [cxx_writer.Parameter('shift_amm', cxx_writer.uintType), ('toShift', 'BIT<32>')])
 AShiftRight_method.addVariable(('shifted', 'BIT<32>'))
 
@@ -65,7 +65,7 @@ if((bitSeq & (1 << (bitSeq_length - 1))) != 0)
     bitSeq |= (((unsigned int)0xFFFFFFFF) << bitSeq_length);
 return bitSeq;
 """)
-SignExtend_method = trap.HelperMethod('SignExtend', opCode)
+SignExtend_method = trap.HelperMethod('SignExtend', opCode, 'execute')
 SignExtend_method.setSignature(('BIT<32>'), [('bitSeq', 'BIT<32>'), cxx_writer.Parameter('bitSeq_length', cxx_writer.uintType)])
 
 opCode = cxx_writer.Code("""
@@ -75,7 +75,7 @@ rotated = ((toRotate >> rotate_amm) & (((unsigned int)0xFFFFFFFF) >> rotate_amm)
 toGlue <<= (32 - rotate_amm);
 return (toGlue | rotated);
 """)
-RotateRight_method = trap.HelperMethod('RotateRight', opCode)
+RotateRight_method = trap.HelperMethod('RotateRight', opCode, 'execute')
 RotateRight_method.setSignature(('BIT<32>'), [cxx_writer.Parameter('rotate_amm', cxx_writer.uintType), ('toRotate', 'BIT<32>')])
 RotateRight_method.addVariable(('rotated', 'BIT<32>'))
 RotateRight_method.addVariable(('toGlue', 'BIT<32>'))
@@ -92,7 +92,7 @@ CPSR[key_C] = (((operand1 ^ operand2 ^ ((unsigned int)(resultSign >> 1))) & 0x80
 //Update the V flag if an overflow occurred in the operation
 CPSR[key_V] = ((((unsigned int)(resultSign >> 1)) ^ ((unsigned int)resultSign)) & 0x80000000) != 0;
 """)
-UpdatePSRAdd_method = trap.HelperMethod('UpdatePSRAddInner', opCode)
+UpdatePSRAdd_method = trap.HelperMethod('UpdatePSRAddInner', opCode, 'execute')
 UpdatePSRAdd_method.setSignature(parameters = [('operand1', 'BIT<32>'), ('operand2', 'BIT<32>')])
 
 opCode = cxx_writer.Code("""
@@ -108,7 +108,7 @@ CPSR[key_C] = (((operand1 ^ operand2 ^ ((unsigned int)(resultSign >> 1))) & 0x80
 //Update the V flag if an overflow occurred in the operation
 CPSR[key_V] = ((((unsigned int)(resultSign >> 1)) ^ ((unsigned int)resultSign)) & 0x80000000) != 0;
 """)
-UpdatePSRSub_method = trap.HelperMethod('UpdatePSRSubInner', opCode)
+UpdatePSRSub_method = trap.HelperMethod('UpdatePSRSubInner', opCode, 'execute')
 UpdatePSRSub_method.setSignature(parameters = [('operand1', 'BIT<32>'), ('operand2', 'BIT<32>')])
 
 opCode = cxx_writer.Code("""
@@ -120,7 +120,7 @@ CPSR[key_Z] = (result == 0);
 CPSR[key_C] = (carry != 0);
 //No updates performed to the V flag.
 """)
-UpdatePSRBitM_method = trap.HelperMethod('UpdatePSRBitM', opCode)
+UpdatePSRBitM_method = trap.HelperMethod('UpdatePSRBitM', opCode, 'execute')
 UpdatePSRBitM_method.setSignature(parameters = [('result', 'BIT<32>'), ('carry', 'BIT<1>')])
 
 opCode = cxx_writer.Code("""
@@ -173,7 +173,7 @@ switch(shift_type){
 }
 return toShift;
 """)
-LSRegShift_method = trap.HelperMethod('LSRegShift', opCode)
+LSRegShift_method = trap.HelperMethod('LSRegShift', opCode, 'execute')
 LSRegShift_method.setSignature(('BIT<32>'), [cxx_writer.Parameter('shift_type', cxx_writer.uintType), cxx_writer.Parameter('shift_amm', cxx_writer.uintType), ('toShift', 'BIT<32>')])
 
 opCode = cxx_writer.Code("""
@@ -205,7 +205,7 @@ switch(curMode){
 }
 updateAliases(curMode, CPSR[key_mode]);
 """)
-restoreSPSR_method = trap.HelperMethod('restoreSPSR', opCode)
+restoreSPSR_method = trap.HelperMethod('restoreSPSR', opCode, 'execute')
 opCode = cxx_writer.Code("""
 switch(toMode){
     case 0x0:
@@ -257,7 +257,7 @@ if(fromMode == 0x1 && toMode != 0x1){
     REGS[12].updateAlias(RB[12]);
 }
 """)
-updateAlias_method = trap.HelperMethod('updateAliases', opCode)
+updateAlias_method = trap.HelperMethod('updateAliases', opCode, 'execute')
 updateAlias_method.setSignature(parameters = [cxx_writer.Parameter('fromMode', cxx_writer.uintType), cxx_writer.Parameter('toMode', cxx_writer.uintType)])
 
 # Behavior that checks for the condition code and consiquently flushes
@@ -795,7 +795,8 @@ LSM_reglist_Op.addUserInstructionElement('reg_list')
 opCode = cxx_writer.Code("""
 address = 0;
 //First of all I check whether this instruction uses an immediate or a register offset
-if(i == 1){ //Immediate offset
+if(i == 1){
+    //Immediate offset
     off8 = ((addr_mode0 << 4) | addr_mode1);
     if((p == 1) && (w == 0)){
         //immediate offset normal mode
@@ -828,7 +829,8 @@ if(i == 1){ //Immediate offset
         }
     }
 }
-else{ //register offset
+else{
+    //register offset
     unsigned int regVal = REGS[addr_mode1];
 
     if((p == 1) && (w == 0)){

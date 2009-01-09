@@ -49,9 +49,9 @@ class Code:
 
     def prependCode(self, code):
         if type(code) == type([]):
-            self.code += '\n'.join(code)
+            self.code = '\n'.join(code) + self.code
         else:
-            self.code += code
+            self.code = code + self.code
 
     def appendCode(self, code):
         if type(code) == type([]):

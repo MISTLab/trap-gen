@@ -422,8 +422,8 @@ class Instruction:
     def __str__(self):
         return repr(self)
 
-    def getCPPClass(self, model, pipeline, externalClock, trace):
-        return isaWriter.getCPPInstr(self, model, pipeline, externalClock, trace)
+    def getCPPClass(self, model, processor, trace):
+        return isaWriter.getCPPInstr(self, model, processor, trace)
 
     def getCPPTest(self, processor, model):
         return isaWriter.getCPPInstrTest(self, processor, model)
@@ -501,10 +501,11 @@ class HelperMethod:
     """Represents a fucntion which can be shared among the
     instructions. This function can be called from all
     the instructions and other helper operations"""
-    def __init__(self, name, code):
+    def __init__(self, name, code, stage):
         # Code must be an instance of cxx_writer.CustomCode.
         self.name = name
         self.code = code
+        self.stage = stage
         self.localvars = []
         self.parameters = []
         self.retType = cxx_writer.Type('void')
@@ -543,9 +544,9 @@ class HelperMethod:
                     raise Exception('Trying to add parameter ' + param.name + ' to operation ' + self.name + ' which already has a parameter with such a name')
             self.parameters.append(param)
 
-    def getCppMethod(self):
+    def getCppMethod(self, model, processor):
         # returns the cpp code implementing the current method
-        return isaWriter.getCppMethod(self)
+        return isaWriter.getCppMethod(self, model, processor)
 
     def __repr__(self):
         return self.name

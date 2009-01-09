@@ -242,7 +242,7 @@ isa.addInstruction(and_imm_Instr)
 # BRANCH instruction family
 opCode = cxx_writer.Code("""
 if(l == 1) {
-    LR = PC - 4;
+    LINKR = PC - 4;
 }
 PC = PC + (SignExtend(offset, 24) << 2);
 stall(2);
@@ -253,8 +253,8 @@ branch_Instr.setMachineCode(branch, {}, 'TODO')
 branch_Instr.setCode(opCode, 'execute')
 branch_Instr.addBehavior(IncrementPC, 'fetch')
 branch_Instr.addBehavior(condCheckOp, 'execute')
-branch_Instr.addTest({'cond': 0xe, 'l': 0, 'offset': 0x400}, {'PC': 0x00445560, 'LR': 8}, {'PC': 0x00446560, 'LR': 8})
-branch_Instr.addTest({'cond': 0xe, 'l': 1, 'offset': 0x400}, {'PC': 0x00445560, 'LR': 8}, {'PC': 0x00446560, 'LR': 0x0044555C})
+branch_Instr.addTest({'cond': 0xe, 'l': 0, 'offset': 0x400}, {'PC': 0x00445560, 'LINKR': 8}, {'PC': 0x00446560, 'LINKR': 8})
+branch_Instr.addTest({'cond': 0xe, 'l': 1, 'offset': 0x400}, {'PC': 0x00445560, 'LINKR': 8}, {'PC': 0x00446560, 'LINKR': 0x0044555C})
 isa.addInstruction(branch_Instr)
 opCode = cxx_writer.Code("""
 // Note how the T bit is not considered since we do not bother with

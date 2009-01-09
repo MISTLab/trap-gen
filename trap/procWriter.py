@@ -128,10 +128,7 @@ def getCPPRegClass(self, model, regType):
 #         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
 #         registerElements.append(operatorDecl)
     for i in assignmentOps:
-        if model.startswith('acc'):
-            operatorBody = cxx_writer.writer_code.Code('this->newValue = this->value;\nthis->newValue ' + i + ' other;\nreturn *this;')
-        else:
-            operatorBody = cxx_writer.writer_code.Code('this->value ' + i + ' other;\nreturn *this;')
+        operatorBody = cxx_writer.writer_code.Code('this->value ' + i + ' other;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regType.makeRef(), 'pu', [operatorParam])
         registerElements.append(operatorDecl)
@@ -147,10 +144,7 @@ def getCPPRegClass(self, model, regType):
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
         registerElements.append(operatorDecl)
     for i in assignmentOps:
-        if model.startswith('acc'):
-            operatorBody = cxx_writer.writer_code.Code('this->newValue = this->value;\nthis->newValue ' + i + ' other.value;\nreturn *this;')
-        else:
-            operatorBody = cxx_writer.writer_code.Code('this->value ' + i + ' other.value;\nreturn *this;')
+        operatorBody = cxx_writer.writer_code.Code('this->value ' + i + ' other.value;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', regType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regType.makeRef(), 'pu', [operatorParam])
         registerElements.append(operatorDecl)
@@ -167,10 +161,7 @@ def getCPPRegClass(self, model, regType):
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
         registerElements.append(operatorDecl)
     for i in assignmentOps:
-        if model.startswith('acc'):
-            operatorBody = cxx_writer.writer_code.Code('this->newValue = this->value;\nthis->newValue ' + i + ' other;\nreturn *this;')
-        else:
-            operatorBody = cxx_writer.writer_code.Code('this->value ' + i + ' other;\nreturn *this;')
+        operatorBody = cxx_writer.writer_code.Code('this->value ' + i + ' other;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regType.makeRef(), 'pu', [operatorParam])
         registerElements.append(operatorDecl)
@@ -195,23 +186,12 @@ def getCPPRegClass(self, model, regType):
     operatorParam = cxx_writer.writer_code.Parameter('stream', outStreamType.makeRef())
     operatorDecl = cxx_writer.writer_code.MemberOperator('<<', operatorBody, outStreamType.makeRef(), 'pu', [operatorParam], const = True)
     registerElements.append(operatorDecl)
-    if model.startswith('acc'):
-        refreshBody = cxx_writer.writer_code.Code('this->value = this->newValue;')
-        refreshMethod = cxx_writer.writer_code.Method('refresh', refreshBody, cxx_writer.writer_code.voidType, 'pu', noException = True)
-        registerElements.append(refreshMethod)
-    immediateAssignBody = cxx_writer.writer_code.Code('this->value = newValue;')
-    immediateAssignParam = cxx_writer.writer_code.Parameter('newValue', regType.makeRef().makeConst())
-    immediateAssignDecl = cxx_writer.writer_code.Method('immediateAssign', immediateAssignBody, cxx_writer.writer_code.voidType, 'pu', [immediateAssignParam], noException = True)
-    registerElements.append(immediateAssignDecl)
-    immediateAssignBody = cxx_writer.writer_code.Code('this->value = newValue->value;')
-    immediateAssignParam = cxx_writer.writer_code.Parameter('newValue', registerType.makeRef().makeConst())
-    immediateAssignDecl = cxx_writer.writer_code.Method('immediateAssign', immediateAssignBody, cxx_writer.writer_code.voidType, 'pu', [immediateAssignParam], noException = True)
-    registerElements.append(immediateAssignDecl)
 
     # Attributes and inner classes declarations
     attrs = []
     innerClasses = []
     for field, length in self.bitMask.items():
+        InnerFieldElems = []
         # Here I have to define the classes that represent the different fields
         negatedMask = ''
         mask = ''
@@ -231,16 +211,20 @@ def getCPPRegClass(self, model, regType):
         operatorBody = cxx_writer.writer_code.Code(operatorCode)
         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
         operatorEqualDecl = cxx_writer.writer_code.MemberOperator('=', operatorBody, cxx_writer.writer_code.Type('InnerField').makeRef(), 'pu', [operatorParam])
+        InnerFieldElems.append(operatorEqualDecl)
         operatorCode = 'return (this->value & ' + hex(int(mask, 2)) + ')'
         if length[0] > 0:
             operatorCode += ' >> ' + str(length[0])
         operatorCode += ';'
         operatorBody = cxx_writer.writer_code.Code(operatorCode)
         operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True)
+        InnerFieldElems.append(operatorIntDecl)
         fieldAttribute = cxx_writer.writer_code.Attribute('value', regMaxType.makeRef(), 'pri')
+        InnerFieldElems.append(fieldAttribute)
         constructorParams = [cxx_writer.writer_code.Parameter('value', regMaxType.makeRef())]
-        publicConstr = cxx_writer.writer_code.Constructor(cxx_writer.writer_code.Code(''), 'pu', constructorParams, ['value(value)'])
-        InnerFieldClass = cxx_writer.writer_code.ClassDeclaration('InnerField_' + field, [operatorEqualDecl, operatorIntDecl, fieldAttribute], [cxx_writer.writer_code.Type('InnerField')])
+        constructorInit = ['value(value)']
+        publicConstr = cxx_writer.writer_code.Constructor(cxx_writer.writer_code.Code(''), 'pu', constructorParams, constructorInit)
+        InnerFieldClass = cxx_writer.writer_code.ClassDeclaration('InnerField_' + field, InnerFieldElems, [cxx_writer.writer_code.Type('InnerField')])
         InnerFieldClass.addConstructor(publicConstr)
         publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
         InnerFieldClass.addDestructor(publicDestr)
@@ -262,9 +246,6 @@ def getCPPRegClass(self, model, regType):
     attrs.append(fieldAttribute)
     valueAttribute = cxx_writer.writer_code.Attribute('value', regWidthType, 'pri')
     attrs.append(valueAttribute)
-    if model.startswith('acc'):
-        newValueAttribute = cxx_writer.writer_code.Attribute('newValue', regWidthType, 'pri')
-        attrs.append(newValueAttribute)
     registerElements = attrs + registerElements
 
     registerDecl = cxx_writer.writer_code.ClassDeclaration(regType.name, registerElements, [registerType])
@@ -327,20 +308,12 @@ def getCPPRegisters(self, model):
         isLockedBody = cxx_writer.writer_code.Code('return this->locked;')
         isLockedMethod = cxx_writer.writer_code.Method('isLocked', isLockedBody, cxx_writer.writer_code.boolType, 'pu', inline = True, noException = True)
         registerElements.append(isLockedMethod)
-        refreshMethod = cxx_writer.writer_code.Method('refresh', emptyBody, cxx_writer.writer_code.voidType, 'pu', pure = True, noException = True)
-        registerElements.append(refreshMethod)
         if not self.externalClock:
             waitHazardBody = cxx_writer.writer_code.Code('wait(this->hazardEvent);')
             waitHazardMethod = cxx_writer.writer_code.Method('waitHazard', waitHazardBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
             registerElements.append(waitHazardMethod)
             hazardEventAttribute = cxx_writer.writer_code.Attribute('hazardEvent', cxx_writer.writer_code.sc_eventType, 'pri')
             registerElements.append(hazardEventAttribute)
-    immediateAssignParam = cxx_writer.writer_code.Parameter('newValue', regMaxType.makeRef().makeConst())
-    immediateAssignDecl = cxx_writer.writer_code.Method('immediateAssign', emptyBody, cxx_writer.writer_code.voidType, 'pu', [immediateAssignParam], pure = True, noException = True)
-    registerElements.append(immediateAssignDecl)
-    immediateAssignParam = cxx_writer.writer_code.Parameter('newValue', registerType.makeRef().makeConst())
-    immediateAssignDecl = cxx_writer.writer_code.Method('immediateAssign', emptyBody, cxx_writer.writer_code.voidType, 'pu', [immediateAssignParam], pure = True, noException = True)
-    registerElements.append(immediateAssignDecl)
 
     ################ Operators working with the base class, employed when polimorphism is used ##################
     # First lets declare the class which will be used to manipulate the
@@ -449,9 +422,6 @@ def getCPPAlias(self, model):
         isLockedBody = cxx_writer.writer_code.Code('return this->reg->isLocked();')
         isLockedMethod = cxx_writer.writer_code.Method('isLocked', isLockedBody, cxx_writer.writer_code.boolType, 'pu', inline = True, noException = True)
         aliasElements.append(isLockedMethod)
-        refreshBody = cxx_writer.writer_code.Code('this->reg->refresh();')
-        refreshMethod = cxx_writer.writer_code.Method('refresh', refreshBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
-        aliasElements.append(refreshMethod)
         if not self.externalClock:
             waitHazardBody = cxx_writer.writer_code.Code('this->reg->waitHazard();')
             waitHazardMethod = cxx_writer.writer_code.Method('waitHazard', waitHazardBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
@@ -953,7 +923,10 @@ def getCPPProc(self, model, trace):
         endOpMethod = cxx_writer.writer_code.Method('endOp', self.endOp, cxx_writer.writer_code.voidType, 'pri')
         processorElements.append(endOpMethod)
     if not self.resetOp:
-        self.resetOp = cxx_writer.writer_code.Code('')
+        resetOpTemp = cxx_writer.writer_code.Code('')
+    else:
+        import copy
+        resetOpTemp = copy.deepcopy(self.resetOp)
     initString = ''
     for elem in self.regBanks + self.aliasRegBanks:
         curId = 0
@@ -964,14 +937,20 @@ def getCPPProc(self, model, trace):
                         enumerate(defValue)
                         # ok, the element is iterable, so it is an initialization
                         # with a constant and an offset
-                        initString += elem.name + '[' + str(curId) + '] = ' + str(defValue[0]) + ' + ' + str(defValue[1]) + ';\n'
+                        initString += elem.name + '[' + str(curId) + ']'
+                        initString += ' = '
+                        initString += str(defValue[0]) + ' + ' + str(defValue[1])
+                        initString += ';\n'
                         continue
                 except TypeError:
                     pass
+                initString += elem.name + '[' + str(curId) + ']'
+                initString += ' = '
                 try:
-                    initString += elem.name + '[' + str(curId) + '] = ' + hex(defValue) + ';\n'
+                    initString += hex(defValue)
                 except TypeError:
-                    initString += elem.name + '[' + str(curId) + '] = ' + str(defValue) + ';\n'
+                    initString += str(defValue)
+                initString += ';\n'
             curId += 1
     for elem in self.regs + self.aliasRegs:
         if elem.defValue != None:
@@ -980,18 +959,34 @@ def getCPPProc(self, model, trace):
                     enumerate(elem.defValue)
                     # ok, the element is iterable, so it is an initialization
                     # with a constant and an offset
-                    initString += elem.name + ' = ' + str(elem.defValue[0]) + ' + ' + str(elem.defValue[1]) + ';\n'
+                    initString += elem.name
+                    initString += ' = '
+                    initString += str(elem.defValue[0]) + ' + ' + str(elem.defValue[1])
+                    initString += ';\n'
                     continue
             except TypeError:
                 pass
+            initString += elem.name
+            initString += ' = '
             try:
-                initString += elem.name + ' = ' + hex(elem.defValue) + ';\n'
+                initString += hex(elem.defValue)
             except TypeError:
-                initString += elem.name + ' = ' + str(elem.defValue) + ';\n'
-    self.resetOp.prependCode(initString)
+                initString += str(elem.defValue)
+            initString += ';\n'
+    if model.startswith('acc'):
+        for reg in self.regs:
+            for pipeStage in self.pipes:
+                initString += reg.name + '_' + pipeStage.name + ' = ' + reg.name + ';\n'
+        for regB in self.regBanks:
+            initString += 'for(int i = 0; i < ' + str(regB.numRegs) + '; i++){\n'
+            for pipeStage in self.pipes:
+                initString += regB.name + '_' + pipeStage.name + '[i] = ' + regB.name + '[i];\n'
+            initString += '}\n'
+
+    resetOpTemp.prependCode(initString)
     if self.beginOp:
-        self.resetOp.appendCode('//user-defined initialization\nthis->beginOp();\n')
-    resetOpMethod = cxx_writer.writer_code.Method('resetOp', self.resetOp, cxx_writer.writer_code.voidType, 'pu')
+        resetOpTemp.appendCode('//user-defined initialization\nthis->beginOp();\n')
+    resetOpMethod = cxx_writer.writer_code.Method('resetOp', resetOpTemp, cxx_writer.writer_code.voidType, 'pu')
     processorElements.append(resetOpMethod)
     # Now I declare the end of elaboration method, called by systemc just before starting the simulation
     endElabCode = cxx_writer.writer_code.Code('this->resetOp();')
@@ -1026,12 +1021,24 @@ def getCPPProc(self, model, trace):
         initElements.append(reg.name + '(\"' + reg.name + '\")')
         abiIfInit += 'this->' + reg.name + ', '
         processorElements.append(attribute)
+        if model.startswith('acc'):
+            for pipeStage in self.pipes:
+                attribute = cxx_writer.writer_code.Attribute(reg.name + '_' + pipeStage.name, resourceType[reg.name], 'pu')
+                processorElements.append(attribute)
     for regB in self.regBanks:
         attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name].makePointer(), 'pu')
         bodyInits += 'this->' + regB.name + ' = new ' + str(resourceType[regB.name]) + '[' + str(regB.numRegs) + '];\n'
         bodyDestructor += 'delete [] this->' + regB.name + ';\n'
+        if model.startswith('acc'):
+            for pipeStage in self.pipes:
+                bodyInits += 'this->' + regB.name + '_' + pipeStage.name + ' = new ' + str(resourceType[regB.name]) + '[' + str(regB.numRegs) + '];\n'
+                bodyDestructor += 'delete [] this->' + regB.name + '_' + pipeStage.name + ';\n'
         abiIfInit += 'this->' + regB.name + ', '
         processorElements.append(attribute)
+        if model.startswith('acc'):
+            for pipeStage in self.pipes:
+                attribute = cxx_writer.writer_code.Attribute(regB.name + '_' + pipeStage.name, resourceType[regB.name].makePointer(), 'pu')
+                processorElements.append(attribute)
     for alias in self.aliasRegs:
         attribute = cxx_writer.writer_code.Attribute(alias.name, resourceType[alias.name], 'pu')
         aliasInitStr = alias.name + '(&' + alias.initAlias
@@ -1046,17 +1053,33 @@ def getCPPProc(self, model, trace):
             if not model.startswith('acc'):
                 bodyAliasInit[alias.name] += ', ' + str(alias.offset)
             bodyAliasInit[alias.name] += ');\n'
+            if model.startswith('acc'):
+                for pipeStage in self.pipes:
+                    bodyAliasInit[alias.name] += 'this->' + alias.name + '_' + pipeStage.name + '.updateAlias(this->' + alias.initAlias[:alias.initAlias.find('[')] + '_' + pipeStage.name + '[' + str(curIndex) + ']'
+                    bodyAliasInit[alias.name] += ');\n'
         else:
             bodyAliasInit[alias.name] = 'this->' + alias.name + '.updateAlias(this->' + alias.initAlias
             if not model.startswith('acc'):
                 bodyAliasInit[alias.name] += ', ' + str(alias.offset)
             bodyAliasInit[alias.name] += ');\n'
+            if model.startswith('acc'):
+                for pipeStage in self.pipes:
+                    bodyAliasInit[alias.name] += 'this->' + alias.name + '_' + pipeStage.name + '.updateAlias(this->' + alias.initAlias + '_' + pipeStage.name
+                    bodyAliasInit[alias.name] += ');\n'
         abiIfInit += 'this->' + alias.name + ', '
         processorElements.append(attribute)
+        if model.startswith('acc'):
+            for pipeStage in self.pipes:
+                attribute = cxx_writer.writer_code.Attribute(alias.name + '_' + pipeStage.name, resourceType[alias.name], 'pu')
+                processorElements.append(attribute)
     for aliasB in self.aliasRegBanks:
         attribute = cxx_writer.writer_code.Attribute(aliasB.name, resourceType[aliasB.name].makePointer(), 'pu')
         bodyAliasInit[aliasB.name] = 'this->' + aliasB.name + ' = new ' + str(resourceType[aliasB.name]) + '[' + str(aliasB.numRegs) + '];\n'
         bodyDestructor += 'delete [] this->' + aliasB.name + ';\n'
+        if model.startswith('acc'):
+            for pipeStage in self.pipes:
+                bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '_' + pipeStage.name + ' = new ' + str(resourceType[aliasB.name]) + '[' + str(aliasB.numRegs) + '];\n'
+                bodyDestructor += 'delete [] this->' + aliasB.name + '_' + pipeStage.name + ';\n'
         # Lets now deal with the initialization of the single elements of the regBank
         if isinstance(aliasB.initAlias, type('')):
             index = extractRegInterval(aliasB.initAlias)
@@ -1067,6 +1090,13 @@ def getCPPProc(self, model, trace):
                     bodyAliasInit[aliasB.name] += ', ' + str(aliasB.offsets[i])
                 bodyAliasInit[aliasB.name] += ');\n'
                 curIndex += 1
+            if model.startswith('acc'):
+                for pipeStage in self.pipes:
+                    curIndex = index[0]
+                    for i in range(0, aliasB.numRegs):
+                        bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '_' + pipeStage.name + '[' + str(i) + '].updateAlias(this->' + aliasB.initAlias[:aliasB.initAlias.find('[')] + '_' + pipeStage.name + '[' + str(curIndex) + ']'
+                        bodyAliasInit[aliasB.name] += ');\n'
+                        curIndex += 1
         else:
             curIndex = 0
             for curAlias in aliasB.initAlias:
@@ -1084,8 +1114,27 @@ def getCPPProc(self, model, trace):
                         bodyAliasInit[aliasB.name] += ', ' + str(aliasB.offsets[curIndex])
                     bodyAliasInit[aliasB.name] += ');\n'
                     curIndex += 1
+            if model.startswith('acc'):
+                for pipeStage in self.pipes:
+                    curIndex = 0
+                    for curAlias in aliasB.initAlias:
+                        index = extractRegInterval(curAlias)
+                        if index:
+                            for curRange in range(index[0], index[1] + 1):
+                                bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '_' + pipeStage.name + '[' + str(curIndex) + '].updateAlias(this->' + curAlias[:curAlias.find('[')] + '_' + pipeStage.name + '[' + str(curRange) + ']'
+                                bodyAliasInit[aliasB.name] += ');\n'
+                                curIndex += 1
+                        else:
+                            bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '_' + pipeStage.name + '[' + str(curIndex) + '].updateAlias(this->' + curAlias + '_' + pipeStage.name + ')'
+                            bodyAliasInit[aliasB.name] += ');\n'
+                            curIndex += 1
+
         abiIfInit += 'this->' + aliasB.name + ', '
         processorElements.append(attribute)
+        if model.startswith('acc'):
+            for pipeStage in self.pipes:
+                attribute = cxx_writer.writer_code.Attribute(aliasB.name + '_' + pipeStage.name, resourceType[aliasB.name].makePointer(), 'pu')
+                processorElements.append(attribute)
     abiIfInit = abiIfInit[:-2]
     # the initialization of the aliases must be chained (we should
     # create an initialization graph since an alias might depend on another one ...)
@@ -1228,13 +1277,22 @@ def getCPPProc(self, model, trace):
                 curPipeInit.append('clock')
             else:
                 curPipeInit.append('latency')
+            for otherPipeStage in self.pipes:
+                if otherPipeStage != pipeStage:
+                    curPipeInit.append('&' + otherPipeStage.name + '_stage')
             if prevStage:
                 curPipeInit.append('&' + prevStage)
             else:
                 curPipeInit.append('NULL')
             if self.pipes.index(pipeStage) + 1 < len(self.pipes):
                 curPipeInit.append('&' + self.pipes[self.pipes.index(pipeStage) + 1].name + '_stage')
+            else:
+                curPipeInit.append('NULL')
             if pipeStage == self.pipes[0]:
+                for reg in self.regs:
+                    curPipeInit = [reg.name] + curPipeInit
+                for regB in self.regBanks:
+                    curPipeInit = [regB.name] + curPipeInit
                 # It is the first stage, I also have to allocate the memory
                 if self.memory:
                     # I perform the fetch from the local memory
@@ -1260,14 +1318,25 @@ def getCPPProc(self, model, trace):
     # the TLM ports
     global baseInstrInitElement
     baseInstrInitElement = ''
-    for reg in self.regs:
-        baseInstrInitElement += reg.name + ', '
-    for regB in self.regBanks:
-        baseInstrInitElement += regB.name + ', '
-    for alias in self.aliasRegs:
-        baseInstrInitElement += alias.name + ', '
-    for aliasB in self.aliasRegBanks:
-        baseInstrInitElement += aliasB.name + ', '
+    if model.startswith('acc'):
+        for pipeStage in self.pipes:
+            for reg in self.regs:
+                baseInstrInitElement += reg.name + '_' + pipeStage.name + ', '
+            for regB in self.regBanks:
+                baseInstrInitElement += regB.name + '_' + pipeStage.name + ', '
+            for alias in self.aliasRegs:
+                baseInstrInitElement += alias.name + '_' + pipeStage.name + ', '
+            for aliasB in self.aliasRegBanks:
+                baseInstrInitElement += aliasB.name + '_' + pipeStage.name + ', '
+    else:
+        for reg in self.regs:
+            baseInstrInitElement += reg.name + ', '
+        for regB in self.regBanks:
+            baseInstrInitElement += regB.name + ', '
+        for alias in self.aliasRegs:
+            baseInstrInitElement += alias.name + ', '
+        for aliasB in self.aliasRegBanks:
+            baseInstrInitElement += aliasB.name + ', '
     if self.memory:
         baseInstrInitElement += self.memory[0] + ', '
     for tlmPorts in self.tlmPorts.keys():
@@ -2004,38 +2073,29 @@ def getGetIRQPorts(self):
 def getGetPipelineStages(self, trace):
     # Returns the code implementing the class representing a pipeline stage
     pipeCodeElements = []
-
-    pipeNum = 0
-    defineCode = ''
-    for i in self.pipes:
-        defineCode += '#define ' + i.name.upper() + ' ' + str(pipeNum) + '\n'
-        pipeNum += 1
-    pipeCodeElements.append(cxx_writer.writer_code.Code(defineCode + '\n'))
-
     pipelineElements = []
     constructorCode = ''
-    constructorParams = []
+    constructorParamsBase = []
     constructorInit = []
+    baseConstructorInit = ''
     pipeType = cxx_writer.writer_code.Type('BasePipeStage')
     IntructionType = cxx_writer.writer_code.Type('Instruction', include = 'instructions.hpp')
 
-    stageReadyFlag = cxx_writer.writer_code.Attribute('stageReadyFlag', cxx_writer.writer_code.boolType, 'pu')
-    pipelineElements.append(stageReadyFlag)
-    constructorCode += 'this->stageReadyFlag = true;\n'
+    stageEndedFlag = cxx_writer.writer_code.Attribute('stageEnded', cxx_writer.writer_code.boolType, 'pu')
+    pipelineElements.append(stageEndedFlag)
+    constructorCode += 'this->stageEnded = false;\n'
+    stageBeginningFlag = cxx_writer.writer_code.Attribute('stageBeginning', cxx_writer.writer_code.boolType, 'pu')
+    pipelineElements.append(stageBeginningFlag)
+    constructorCode += 'this->stageBeginning = false;\n'
+    hasToFlush = cxx_writer.writer_code.Attribute('hasToFlush', cxx_writer.writer_code.boolType, 'pu')
+    pipelineElements.append(hasToFlush)
+    constructorCode += 'this->hasToFlush = false;\n'
     if not self.externalClock:
-        stageReadyEvent = cxx_writer.writer_code.Attribute('stageReadyEv', cxx_writer.writer_code.sc_eventType, 'pu')
-        pipelineElements.append(stageReadyEvent)
-        instrPresentEvent = cxx_writer.writer_code.Attribute('instrPresentEv', cxx_writer.writer_code.sc_eventType, 'pro')
-        pipelineElements.append(instrPresentEvent)
-        instructionEndedEv = cxx_writer.writer_code.Attribute('instructionEndedEv', cxx_writer.writer_code.sc_eventType, 'pu')
-        pipelineElements.append(instructionEndedEv)
-        instructionEndedFlag = cxx_writer.writer_code.Attribute('instructionEndedFlag', cxx_writer.writer_code.boolType, 'pu')
-        pipelineElements.append(instructionEndedFlag)
-        constructorCode += 'this->instructionEndedFlag = true;\n'
-    stageAttr = cxx_writer.writer_code.Attribute('prevStage', pipeType.makePointer(), 'pro')
-    pipelineElements.append(stageAttr)
-    stageAttr = cxx_writer.writer_code.Attribute('succStage', pipeType.makePointer(), 'pro')
-    pipelineElements.append(stageAttr)
+        stageEndedEvent = cxx_writer.writer_code.Attribute('stageEndedEv', cxx_writer.writer_code.sc_eventType, 'pu')
+        pipelineElements.append(stageEndedEvent)
+        stageBeginningEvent = cxx_writer.writer_code.Attribute('stageBeginningEv', cxx_writer.writer_code.sc_eventType, 'pro')
+        pipelineElements.append(stageBeginningEvent)
+
 
     NOPIntructionType = cxx_writer.writer_code.Type('NOPInstruction', 'instructions.hpp')
     NOPinstructionsAttribute = cxx_writer.writer_code.Attribute('NOPInstrInstance', NOPIntructionType.makePointer(), 'pu')
@@ -2046,8 +2106,9 @@ def getGetPipelineStages(self, trace):
         clockAttribute = cxx_writer.writer_code.Attribute('clock', sc_inBoolType.makeRef(), 'pu')
         pipelineElements.append(clockAttribute)
         clockParam = cxx_writer.writer_code.Parameter('clock', sc_inBoolType.makeRef())
-        constructorParams.append(clockParam)
+        constructorParamsBase.append(clockParam)
         constructorInit.append('clock(clock)')
+        baseConstructorInit += 'clock, '
         waitForNextAttr = cxx_writer.writer_code.Attribute('waitForNext', cxx_writer.writer_code.boolType, 'pro')
         pipelineElements.append(waitForNextAttr)
         totCyclesAttribute = cxx_writer.writer_code.Attribute('waitCycles', cxx_writer.writer_code.uintType, 'pro')
@@ -2057,13 +2118,18 @@ def getGetPipelineStages(self, trace):
         latencyAttribute = cxx_writer.writer_code.Attribute('latency', cxx_writer.writer_code.sc_timeType, 'pro')
         pipelineElements.append(latencyAttribute)
         latencyParam = cxx_writer.writer_code.Parameter('latency', cxx_writer.writer_code.sc_timeType.makeRef())
-        constructorParams.append(latencyParam)
+        constructorParamsBase.append(latencyParam)
         constructorInit.append('latency(latency)')
+        baseConstructorInit += 'latency, '
 
-    curInstrAttr = cxx_writer.writer_code.Attribute('curInstruction', IntructionType.makePointer(), 'pro')
+    curInstrAttr = cxx_writer.writer_code.Attribute('curInstruction', IntructionType.makePointer(), 'pu')
     pipelineElements.append(curInstrAttr)
+    constructorCode += 'this->curInstruction = NULL;\n'
+    nextInstrAttr = cxx_writer.writer_code.Attribute('nextInstruction', IntructionType.makePointer(), 'pu')
+    pipelineElements.append(nextInstrAttr)
+    constructorCode += 'this->nextInstruction = NULL;\n'
 
-    flushCode = """this->curInstruction = this->NOPInstrInstance;
+    flushCode = """this->hasToFlush = true;
     if(this->prevStage != NULL){
         this->prevStage->flush();
     }
@@ -2071,23 +2137,56 @@ def getGetPipelineStages(self, trace):
     flushBody = cxx_writer.writer_code.Code(flushCode)
     flushDecl = cxx_writer.writer_code.Method('flush', flushBody, cxx_writer.writer_code.voidType, 'pu', noException = True)
     pipelineElements.append(flushDecl)
-    newInstrCode = """this->curInstruction = newInstr;
-    this->instrPresentEv.notify();
+
+    waitPipeBeginCode = """this->stageBeginning = true;
+    this->stageBeginningEv.notify();
     """
-    newInstrBody = cxx_writer.writer_code.Code(newInstrCode)
-    newInstrParam = cxx_writer.writer_code.Parameter('newInstr', IntructionType.makePointer())
-    newInstrDecl = cxx_writer.writer_code.Method('setNewInstruction', newInstrBody, cxx_writer.writer_code.voidType, 'pu', [newInstrParam], noException = True)
-    pipelineElements.append(newInstrDecl)
-    constructorCode += 'this->curInstruction = NULL;\n'
+    for i in range(0, len(self.pipes) - 1):
+        waitPipeBeginCode += """if(!this->stage_""" + str(i) + """->stageBeginning){
+            wait(this->stage_""" + str(i) + """->stageBeginningEv);
+        }
+        """
+    waitPipeBeginCode += 'this->stageEnded = false;'
+    waitPipeBeginBody = cxx_writer.writer_code.Code(waitPipeBeginCode)
+    waitPipeBeginDecl = cxx_writer.writer_code.Method('waitPipeBegin', waitPipeBeginBody, cxx_writer.writer_code.voidType, 'pu', noException = True)
+    pipelineElements.append(waitPipeBeginDecl)
+
+    waitPipeEndCode = """this->stageBeginning = false;
+    this->stageEnded = true;
+    this->stageEndedEv.notify();
+    """
+    for i in range(0, len(self.pipes) - 1):
+        waitPipeEndCode += """if(!this->stage_""" + str(i) + """->stageEnded){
+            wait(this->stage_""" + str(i) + """->stageEndedEv);
+        }
+        """
+    waitPipeEndBody = cxx_writer.writer_code.Code(waitPipeEndCode)
+    waitPipeEndDecl = cxx_writer.writer_code.Method('waitPipeEnd', waitPipeEndBody, cxx_writer.writer_code.voidType, 'pu', noException = True)
+    pipelineElements.append(waitPipeEndDecl)
+
+    for i in range(0, len(self.pipes) - 1):
+        otherStageAttr = cxx_writer.writer_code.Attribute('stage_' + str(i), pipeType.makePointer(), 'pro')
+        pipelineElements.append(otherStageAttr)
+        otherStageParam = cxx_writer.writer_code.Parameter('stage_' + str(i), pipeType.makePointer())
+        constructorParamsBase.append(otherStageParam)
+        constructorInit.append('stage_' + str(i) + '(stage_' + str(i) + ')')
+        baseConstructorInit += 'stage_' + str(i) + ', '
+
+    stageAttr = cxx_writer.writer_code.Attribute('prevStage', pipeType.makePointer(), 'pro')
+    pipelineElements.append(stageAttr)
+    stageAttr = cxx_writer.writer_code.Attribute('succStage', pipeType.makePointer(), 'pro')
+    pipelineElements.append(stageAttr)
     prevStageParam = cxx_writer.writer_code.Parameter('prevStage', pipeType.makePointer(), initValue = 'NULL')
     succStageParam = cxx_writer.writer_code.Parameter('succStage', pipeType.makePointer(), initValue = 'NULL')
-    constructorParams.append(prevStageParam)
-    constructorParams.append(succStageParam)
+    constructorParamsBase.append(prevStageParam)
+    constructorParamsBase.append(succStageParam)
     constructorInit.append('prevStage(prevStage)')
     constructorInit.append('succStage(succStage)')
+    baseConstructorInit += 'prevStage, '
+    baseConstructorInit += 'succStage, '
     pipelineDecl = cxx_writer.writer_code.ClassDeclaration('BasePipeStage', pipelineElements)
     constructorBody = cxx_writer.writer_code.Code(constructorCode)
-    publicPipelineConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, constructorInit)
+    publicPipelineConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParamsBase, constructorInit)
     pipelineDecl.addConstructor(publicPipelineConstr)
     pipeCodeElements.append(pipelineDecl)
 
@@ -2108,7 +2207,10 @@ def getGetPipelineStages(self, trace):
     # the fecth stage which have to fetch instructions and check interrupts before calling
     # the appropriate behavior method
     checkHazardsMet = False
+    wbStage = self.pipes[-1]
     for pipeStage in self.pipes:
+        if pipeStage.wb:
+            wbStage = pipeStage
         from isa import resolveBitType
         fetchWordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>')
 
@@ -2116,43 +2218,29 @@ def getGetPipelineStages(self, trace):
         curPipeElements = []
         constructorCode = ''
         constructorInit = []
-        if self.externalClock:
-            constructorParams = [pipeNameParam, clockParam, prevStageParam, succStageParam]
-        else:
-            constructorParams = [pipeNameParam, latencyParam, prevStageParam, succStageParam]
+        constructorParams = [pipeNameParam] + constructorParamsBase
 
-        codeString = ''
+        codeString = """this->curInstruction = this->NOPInstrInstance;
+        this->nextInstruction = this->NOPInstrInstance;
+        """
         if pipeStage == self.pipes[0]:
+            wbStage = self.pipes[-1]
             # This is the fetch pipeline stage, I have to fetch instructions
             if self.instructionCache:
                 codeString += 'template_map< ' + str(fetchWordType) + ', Instruction * >::iterator instrCacheEnd = ' + pipeStage.name.upper() + '_PipeStage::instrCache.end();\n'
             if self.externalClock:
-                codeString += """if(this->waitForNext){
-                    if(this->succStage != NULL){
-                        // Now I have to propagate the instruction to the next cycle if
-                        // the next stage has completed elaboration
-                        if(!this->succStage->stageReadyFlag){
-                            return;
-                        }
-                        this->succStage->setNewInstruction(this->curInstruction);
-                    }"""
+                codeString += """TODO"""
                 if hasWb and pipeStage.checkHazard:
                     codeString += 'this->curInstruction->registerWb();\n'
-                codeString += """
-                    this->curInstruction = NULL;
-                    this->stageReadyFlag = true;
-                    this->waitForNext = false;
-                }
-                if(this->waitCycles > 0){
-                    this->waitCycles--;
-                    if(this->waitCycles == 0){
-                        this->waitForNext = true;
-                    }
-                    return;
-                }
+                codeString += """TODO
                 """
             else:
-                codeString += 'while(true){\n'
+                codeString += """while(true){
+                // HERE WAIT FOR BEGIN OF ALL STAGES
+                this->waitPipeBegin();
+
+                """
+
             codeString += 'unsigned int numCycles = 0;\n'
 
             #Here is the code to deal with interrupts
@@ -2198,9 +2286,6 @@ def getGetPipelineStages(self, trace):
                 else:
                     codeString += fetchAddress
                 codeString += ' << std::endl;\n'
-            codeString += 'this->stageReadyFlag = false;\n'
-            if not self.externalClock:
-                codeString += 'this->instructionEndedFlag = false;\n'
             if self.instructionCache:
                 codeString += 'template_map< ' + str(fetchWordType) + ', Instruction * >::iterator cachedInstr = ' + pipeStage.name.upper() + '_PipeStage::instrCache.find('
                 if self.fastFetch:
@@ -2301,62 +2386,39 @@ def getGetPipelineStages(self, trace):
                 codeString += 'this->waitCycles = numCycles;\n'
             else:
                 codeString += """wait((numCycles + 1)*this->latency);
-                this->instructionEndedFlag = true;
-                this->instructionEndedEv.notify();
-                // Now I have to propagate the instruction to the next cycle if
-                // the next stage has completed elaboration
-                if(this->succStage != NULL){
-                    while(!this->succStage->stageReadyFlag){
-                        wait(this->succStage->stageReadyEv);
-                    }
-                    this->succStage->setNewInstruction(this->curInstruction);
-                }"""
+                // HERE WAIT FOR END OF ALL STAGES
+                this->waitPipeEnd();
+
+                """
                 if hasWb and pipeStage.checkHazard:
                     codeString += 'this->curInstruction->registerWb();\n'
                 codeString += """
-                this->curInstruction = NULL;
-                this->stageReadyFlag = true;
-                this->stageReadyEv.notify();
+                // Now I have to propagate the instruction to the next cycle if
+                // the next stage has completed elaboration
+                if(this->hasToFlush){
+                    this->curInstruction = this->NOPInstrInstance;
+                    this->hasToFlush = false;
+                }
+                this->refreshRegisters();
+                this->succStage->nextInstruction = this->curInstruction;
                 """
             if not self.externalClock:
                 codeString += '}'
         else:
             # This is a normal pipeline stage
             if self.externalClock:
-                codeString += """if(this->waitForNext){
-                    if(this->succStage != NULL){
-                        // Now I have to propagate the instruction to the next cycle if
-                        // the next stage has completed elaboration
-                        if(!this->succStage->stageReadyFlag){
-                            return;
-                        }
-                        this->succStage->setNewInstruction(this->curInstruction);
-                    }"""
+                codeString += """TODO"""
                 if hasWb and pipeStage.checkHazard:
                     codeString += 'this->curInstruction->registerWb();\n'
-                codeString += """
-                    this->curInstruction = NULL;
-                    this->stageReadyFlag = true;
-                    this->waitForNext = false;
-                }
-                if(this->waitCycles > 0){
-                    this->waitCycles--;
-                    if(this->waitCycles == 0){
-                        this->waitForNext = true;
-                    }
-                    return;
-                }
-                """
+                codeString += """TODO"""
             else:
-                codeString += 'while(true){\n'
-            codeString += 'unsigned int numCycles = 0;\n'
+                codeString += """while(true){
+                unsigned int numCycles = 0;
+                // HERE WAIT FOR BEGIN OF ALL STAGES
+                this->waitPipeBegin();
 
-            if self.externalClock:
-                codeString += 'if (this->curInstruction == NULL){\nreturn;\n}'
-            else:
-                codeString += 'while(this->curInstruction == NULL){\nwait(this->instrPresentEv);\n}\nthis->instructionEndedFlag = false;\n'
-            codeString += 'this->stageReadyFlag = false;\n'
-            codeString += 'try{\n'
+                """
+            codeString += 'this->curInstruction = this->nextInstruction;\ntry{\n'
             if pipeStage.checkTools:
                 codeString += """
                     #ifndef DISABLE_TOOLS
@@ -2394,35 +2456,30 @@ def getGetPipelineStages(self, trace):
                 codeString += 'this->waitCycles = numCycles;\n'
             else:
                 codeString += """wait((numCycles + 1)*this->latency);
-                while(!this->prevStage->instructionEndedFlag){
-                    wait(this->prevStage->instructionEndedEv);
+                // flushing current stage
+                if(this->curInstruction->flushPipeline){
+                    this->curInstruction->flushPipeline = false;
+                    //Now I have to flush the preceding pipeline stages
+                    this->prevStage->flush();
                 }
-                this->instructionEndedFlag = true;
-                this->instructionEndedEv.notify();
                 """
-            codeString += """if(this->curInstruction->flushPipeline){
-                //Now I have to flush the preceding pipeline stages
-                this->prevStage->flush();
-                this->curInstruction->flushPipeline = false;
-            }
-            // Now I have to propagate the instruction to the next cycle if
-            // the next stage has completed elaboration
-            if(this->succStage != NULL){
-                while(!this->succStage->stageReadyFlag){
-                    wait(this->succStage->stageReadyEv);
-                }
-                this->succStage->setNewInstruction(this->curInstruction);
-            }
-            """
             if hasWb and pipeStage.checkHazard:
                 codeString += 'this->curInstruction->registerWb();\n'
-            codeString += 'this->curInstruction = NULL;'
-            if not self.externalClock:
-                codeString += """
-                this->stageReadyFlag = true;
-                this->stageReadyEv.notify();
+            codeString += """// HERE WAIT FOR END OF ALL STAGES
+            this->waitPipeEnd();
+
+            """
+            if pipeStage != self.pipes[-1]:
+                codeString += """// Now I have to propagate the instruction to the next cycle if
+                // the next stage has completed elaboration
+                if(this->hasToFlush){
+                    this->curInstruction = this->NOPInstrInstance;
+                    this->hasToFlush = false;
                 }
+                this->succStage->nextInstruction = this->curInstruction;
                 """
+            if not self.externalClock:
+                codeString += '}'
         if pipeStage.checkHazard:
             checkHazardsMet = True
 
@@ -2437,6 +2494,60 @@ def getGetPipelineStages(self, trace):
         IntructionType = cxx_writer.writer_code.Type('Instruction', 'instructions.hpp')
         IntructionTypePtr = IntructionType.makePointer()
         if pipeStage == self.pipes[0]:
+            # I create the refreshRegisters method; note that in order to update the registers
+            # I just need to access any of the instructions, for instance I use the registers
+            # if the NOP instruction. I have to see if the register values are different
+            # from the registers in the wb stage: in case they are I update them with these
+            # values, otherwise I go over the other stages and see if there is one different
+            # and I update it. For each update I also update the other pipeline regs
+            codeString = ''
+            for reg in self.regs:
+                codeString += 'if(this->' + reg.name + ' != this->NOPInstrInstance->' + reg.name + '_' + wbStage.name + '){\n'
+                codeString += 'this->' + reg.name + ' = this->NOPInstrInstance->' + reg.name + '_' + wbStage.name + ';\n'
+                for upPipe in self.pipes:
+                    if upPipe != wbStage:
+                        codeString += 'this->NOPInstrInstance->' + reg.name + '_' + upPipe.name + ' = this->' + reg.name + ';\n'
+                codeString += '}\n'
+                for checkPipe in self.pipes:
+                    if checkPipe != wbStage:
+                        codeString += 'else if(this->' + reg.name + ' != this->NOPInstrInstance->' + reg.name + '_' + checkPipe.name + '){\n'
+                        codeString += 'this->' + reg.name + ' = this->NOPInstrInstance->' + reg.name + '_' + checkPipe.name + ';\n'
+                        for upPipe in self.pipes:
+                            if upPipe != checkPipe:
+                                codeString += 'this->NOPInstrInstance->' + reg.name + '_' + upPipe.name + ' = this->' + reg.name + ';\n'
+                        codeString += '}\n'
+            for regB in self.regBanks:
+                codeString += 'for(int i = 0; i < ' + str(regB.numRegs) + '; i++){\n'
+                codeString += 'if(this->' + regB.name + '[i] != this->NOPInstrInstance->' + regB.name + '_' + wbStage.name + '[i]){\n'
+                codeString += 'this->' + regB.name + '[i] = this->NOPInstrInstance->' + regB.name + '_' + wbStage.name + '[i];\n'
+                for upPipe in self.pipes:
+                    if upPipe != wbStage:
+                        codeString += 'this->NOPInstrInstance->' + regB.name + '_' + upPipe.name + '[i] = this->' + regB.name + '[i];\n'
+                codeString += '}\n'
+                for checkPipe in self.pipes:
+                    if checkPipe != wbStage:
+                        codeString += 'else if(this->' + regB.name + '[i] != this->NOPInstrInstance->' + regB.name + '_' + checkPipe.name + '[i]){\n'
+                        codeString += 'this->' + regB.name + '[i] = this->NOPInstrInstance->' + regB.name + '_' + checkPipe.name + '[i];\n'
+                        for upPipe in self.pipes:
+                            if upPipe != checkPipe:
+                                codeString += 'this->NOPInstrInstance->' + regB.name + '_' + upPipe.name + '[i] = this->' + regB.name + '[i];\n'
+                        codeString += '}\n'
+                codeString += '}\n'
+            refreshRegistersBody = cxx_writer.writer_code.Code(codeString)
+            refreshRegistersDecl = cxx_writer.writer_code.Method('refreshRegisters', refreshRegistersBody, cxx_writer.writer_code.voidType, 'pu')
+            curPipeElements.append(refreshRegistersDecl)
+            # Here I declare the references to the real processor registers which I update at the
+            # end of each cycle
+            for reg in self.regs:
+                attribute = cxx_writer.writer_code.Attribute(reg.name, resourceType[reg.name].makeRef(), 'pu')
+                constructorParams = [cxx_writer.writer_code.Parameter(reg.name, resourceType[reg.name].makeRef())] + constructorParams
+                constructorInit.append(reg.name + '(' + reg.name + ')')
+                curPipeElements.append(attribute)
+            for regB in self.regBanks:
+                attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name].makePointer().makeRef(), 'pu')
+                constructorParams = [cxx_writer.writer_code.Parameter(regB.name, resourceType[regB.name].makePointer().makeRef())] + constructorParams
+                constructorInit.append(regB.name + '(' + regB.name + ')')
+                curPipeElements.append(attribute)
             # I have to also instantiate the reference to the memories, in order to be able to
             # fetch instructions
             if self.memory:
@@ -2469,6 +2580,7 @@ def getGetPipelineStages(self, trace):
                 curPipeElements.append(cacheAttribute)
                 constructorParams = [cxx_writer.writer_code.Parameter('instrCache', template_mapType)] + constructorParams
                 constructorInit.append('instrCache(instrCache)')
+
         if pipeStage.checkTools:
             ToolsManagerType = cxx_writer.writer_code.TemplateType('ToolsManager', [fetchWordType], 'ToolsIf.hpp')
             toolManagerAttribute = cxx_writer.writer_code.Attribute('toolManager', ToolsManagerType.makeRef(), 'pri')
@@ -2483,10 +2595,7 @@ def getGetPipelineStages(self, trace):
             constructorInit.append('INSTRUCTIONS(INSTRUCTIONS)')
             curPipeElements.append(instructionsAttribute)
 
-        if self.externalClock:
-            constructorInit = ['sc_module(pipeName)', 'BasePipeStage(clock, prevStage, succStage)'] + constructorInit
-        else:
-            constructorInit = ['sc_module(pipeName)', 'BasePipeStage(latency, prevStage, succStage)'] + constructorInit
+        constructorInit = ['sc_module(pipeName)', 'BasePipeStage(' + baseConstructorInit[:-2] + ')'] + constructorInit
         curPipeDecl = cxx_writer.writer_code.SCModule(pipeStage.name.upper() + '_PipeStage', curPipeElements, [pipeType])
         constructorBody = cxx_writer.writer_code.Code(constructorCode + 'end_module();')
         publicCurPipeConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, constructorInit)

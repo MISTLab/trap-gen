@@ -284,62 +284,62 @@ class Processor:
 
     def addRegister(self, reg):
         for i in self.regs:
-            if i.name == reg.name:
-                raise Exception('A register with name ' + reg.name + ' already exists in processor ' + self.name)
+            if i.name in reg.name or reg.name in i.name:
+                raise Exception('A register with name ' + reg.name + ' conflicts with register ' + i.name + ' in processor ' + self.name)
         for i in self.regBanks:
-            if i.name == reg.name:
-                raise Exception('A register bank with name ' + reg.name + ' already exists in processor ' + self.name)
+            if i.name in reg.name or reg.name in i.name:
+                raise Exception('A register bank with name ' + reg.name + ' conflicts with register ' + i.name + ' in processor ' + self.name)
         for i in self.aliasRegs:
-            if i.name == reg.name:
-                raise Exception('An alias with name ' + reg.name + ' already exists in processor ' + self.name)
+            if i.name in reg.name or reg.name in i.name:
+                raise Exception('An alias with name ' + reg.name + ' conflicts with register ' + i.name + ' in processor ' + self.name)
         for i in self.aliasRegBanks:
-            if i.name == reg.name:
-                raise Exception('An alias with name ' + reg.name + ' already exists in processor ' + self.name)
+            if i.name in reg.name or reg.name in i.name:
+                raise Exception('An alias with name ' + reg.name + ' conflicts with register ' + i.name + ' in processor ' + self.name)
         self.regs.append(reg)
 
     def addRegBank(self, regBank):
         for i in self.regs:
-            if i.name == regBank.name:
-                raise Exception('A register with name ' + regBank.name + ' already exists in processor ' + self.name)
+            if i.name in regBank.name or regBank.name in i.name:
+                raise Exception('A register with name ' + regBank.name + ' conflicts with register ' + i.name + ' in processor ' + self.name)
         for i in self.regBanks:
-            if i.name == regBank.name:
-                raise Exception('A register bank with name ' + regBank.name + ' already exists in processor ' + self.name)
+            if i.name in regBank.name or regBank.name in i.name:
+                raise Exception('A register bank with name ' + regBank.name + ' conflicts with register ' + i.name + ' in processor ' + self.name)
         for i in self.aliasRegs:
-            if i.name == regBank.name:
-                raise Exception('An alias with name ' + regBank.name + ' already exists in processor ' + self.name)
+            if i.name in regBank.name or regBank.name in i.name:
+                raise Exception('An alias with name ' + regBank.name + ' conflicts with register ' + i.name + ' in processor ' + self.name)
         for i in self.aliasRegBanks:
-            if i.name == regBank.name:
-                raise Exception('An alias with name ' + regBank.name + ' already exists in processor ' + self.name)
+            if i.name in regBank.name or regBank.name in i.name:
+                raise Exception('An alias with name ' + regBank.name + ' conflicts with register ' + i.name + ' in processor ' + self.name)
         self.regBanks.append(regBank)
 
     def addAliasReg(self, alias):
         for i in self.regs:
-            if i.name == alias.name:
-                raise Exception('A register with name ' + alias.name + ' already exists in processor ' + self.name)
+            if i.name in alias.name or alias.name in i.name:
+                raise Exception('A register with name ' + alias.name + ' conflicts with register ' + i.name + ' in processor ' + self.name)
         for i in self.regBanks:
-            if i.name == alias.name:
-                raise Exception('A register bank with name ' + alias.name + ' already exists in processor ' + self.name)
+            if i.name in alias.name or alias.name in i.name:
+                raise Exception('A register bank with name ' + alias.name + ' conflicts with register ' + i.name + ' in processor ' + self.name)
         for i in self.aliasRegs:
-            if i.name == alias.name:
-                raise Exception('An alias with name ' + alias.name + ' already exists in processor ' + self.name)
+            if i.name in alias.name or alias.name in i.name:
+                raise Exception('An alias with name ' + alias.name + ' conflicts with register ' + i.name + ' in processor ' + self.name)
         for i in self.aliasRegBanks:
-            if i.name == alias.name:
-                raise Exception('An alias with name ' + alias.name + ' already exists in processor ' + self.name)
+            if i.name in alias.name or alias.name in i.name:
+                raise Exception('An alias with name ' + alias.name + ' conflicts with register ' + i.name + ' in processor ' + self.name)
         self.aliasRegs.append(alias)
 
     def addAliasRegBank(self, alias):
         for i in self.regs:
-            if i.name == alias.name:
-                raise Exception('A register with name ' + alias.name + ' already exists in processor ' + self.name)
+            if i.name in alias.name or alias.name in i.name:
+                raise Exception('A register with name ' + alias.name + ' conflicts with register ' + i.name + ' in processor ' + self.name)
         for i in self.regBanks:
-            if i.name == alias.name:
-                raise Exception('A register bank with name ' + alias.name + ' already exists in processor ' + self.name)
+            if i.name in alias.name or alias.name in i.name:
+                raise Exception('A register bank with name ' + alias.name + ' conflicts with register ' + i.name + ' in processor ' + self.name)
         for i in self.aliasRegs:
-            if i.name == alias.name:
-                raise Exception('An alias with name ' + alias.name + ' already exists in processor ' + self.name)
+            if i.name in alias.name or alias.name in i.name:
+                raise Exception('An alias with name ' + alias.name + ' conflicts with register ' + i.name + ' in processor ' + self.name)
         for i in self.aliasRegBanks:
-            if i.name == alias.name:
-                raise Exception('An alias with name ' + alias.name + ' already exists in processor ' + self.name)
+            if i.name in alias.name or alias.name in i.name:
+                raise Exception('An alias with name ' + alias.name + ' conflicts with register ' + i.name + ' in processor ' + self.name)
         self.aliasRegBanks.append(alias)
 
     def setABI(self, abi):
@@ -459,6 +459,9 @@ class Processor:
                 checkHazardStage = True
         if not (wbStage and checkHazardStage):
             raise Exception('Error, both the writeback and the check hazards stages must be specified')
+        for method in self.isa.methods:
+            if not method.stage in [i.name for i in self.pipes]:
+                raise Exception('Pipeline stage ' + stage + ' declared for method ' + method.name + ' does not exist')
 
     def checkAliases(self):
         # checks that the declared aliases actually refer to

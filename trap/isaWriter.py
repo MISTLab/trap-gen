@@ -53,12 +53,50 @@ def toBinStr(intNum):
     bitStr.reverse()
     return bitStr
 
-def getCppMethod(self):
+def getCppMethod(self, model, processor):
     # Returns the code implementing a helper method
     for var in self.localvars:
         self.code.addVariable(var)
     self.code.addInclude('utils.hpp')
-    methodDecl = cxx_writer.writer_code.Method(self.name, self.code, self.retType, 'pu', self.parameters)
+    import copy
+    codeTemp = copy.deepcopy(self.code)
+
+    defineCode = ''
+    if model.startswith('acc'):
+        # now I have to take all the resources and create a define which
+        # renames such resources so that their usage can be transparent
+        # to the developer
+        for reg in processor.regs:
+            defineCode += '#define ' + reg.name + ' ' + reg.name + '_' + self.stage + '\n'
+        for regB in processor.regBanks:
+            defineCode += '#define ' + regB.name + ' ' + regB.name + '_' + self.stage + '\n'
+        for alias in processor.aliasRegs:
+            defineCode += '#define ' + alias.name + ' ' + alias.name + '_' + self.stage + '\n'
+        for aliasB in processor.aliasRegBanks:
+            defineCode += '#define ' + aliasB.name + ' ' + aliasB.name + '_' + self.stage + '\n'
+        defineCode += '\n'
+
+    codeTemp.prependCode(defineCode)
+
+    undefCode = ''
+    if model.startswith('acc'):
+        # now I have to take all the resources and create a define which
+        # renames such resources so that their usage can be transparent
+        # to the developer
+        for reg in processor.regs:
+            undefCode += '#undef ' + reg.name + '\n'
+        for regB in processor.regBanks:
+            undefCode += '#undef ' + regB.name + '\n'
+        for alias in processor.aliasRegs:
+            undefCode += '#undef ' + alias.name + '\n'
+        for aliasB in processor.aliasRegBanks:
+            undefCode += '#undef ' + aliasB.name + '\n'
+        undefCode += '\n'
+
+    codeTemp.appendCode(undefCode)
+
+    methodDecl = cxx_writer.writer_code.Method(self.name, codeTemp, self.retType, 'pu', self.parameters)
+
     return methodDecl
 
 def getCppOperation(self, parameters = False):
@@ -109,10 +147,12 @@ def getCppOpClass(self):
     opDecl.addConstructor(opConstr)
     return opDecl
 
-def getCPPInstr(self, model, pipeline, externalClock, trace):
+def getCPPInstr(self, model, processor, trace):
     # Returns the code implementing the current instruction: we have to provide the
     # implementation of all the abstract methods and call from the behavior method
     # all the different behaviors contained in the type hierarchy of this class
+    pipeline = processor.pipes
+    externalClock = processor.externalClock
     aliasType = cxx_writer.writer_code.Type('Alias', 'alias.hpp')
     instructionType = cxx_writer.writer_code.Type('Instruction', 'instructions.hpp')
     emptyBody = cxx_writer.writer_code.Code('')
@@ -130,7 +170,7 @@ def getCPPInstr(self, model, pipeline, externalClock, trace):
             if behClass.has_key(beh.name):
                 baseClasses.append(behClass[beh.name].getType())
                 constrInitList.append(beh.name + '_op(' + baseInstrInitElement + ')')
-            elif beh.inline and not beh.name in alreadyDeclared:
+            elif beh.inline and not beh.name in alreadyDeclared and not model.startswith('acc'):
                 classElements.append(beh.getCppOperation())
             elif not beh.name in alreadyDeclared:
                 toInline.append(beh.name)
@@ -146,10 +186,28 @@ def getCPPInstr(self, model, pipeline, externalClock, trace):
     for pipeStage in pipeline:
         if model.startswith('acc'):
             behaviorCode = 'this->stageCycles = 0;\n'
+            # now I have to take all the resources and create a define which
+            # renames such resources so that their usage can be transparent
+            # to the developer
+            for reg in processor.regs:
+                behaviorCode += '#define ' + reg.name + ' ' + reg.name + '_' + pipeStage.name + '\n'
+            for regB in processor.regBanks:
+                behaviorCode += '#define ' + regB.name + ' ' + regB.name + '_' + pipeStage.name + '\n'
+            for alias in processor.aliasRegs:
+                behaviorCode += '#define ' + alias.name + ' ' + alias.name + '_' + pipeStage.name + '\n'
+            for aliasB in processor.aliasRegBanks:
+                behaviorCode += '#define ' + aliasB.name + ' ' + aliasB.name + '_' + pipeStage.name + '\n'
+            for instrFieldName, correspondence in self.machineCode.bitCorrespondence.items():
+                behaviorCode += '#define ' + instrFieldName + ' ' + instrFieldName + '_' + pipeStage.name + '\n'
+            behaviorCode += '\n'
         if self.prebehaviors.has_key(pipeStage.name):
             for beh in self.prebehaviors[pipeStage.name]:
                 if beh.name in toInline:
+                    behaviorCode += '{\n'
+                    for var in beh.localvars:
+                        behaviorCode += str(var)
                     behaviorCode += str(beh.code)
+                    behaviorCode += '}\n'
                 elif behClass.has_key(beh.name) or beh.name in baseBehaviors:
                     behaviorCode += 'this->' + beh.name + '('
                     for elem in beh.archElems:
@@ -193,7 +251,17 @@ def getCPPInstr(self, model, pipeline, externalClock, trace):
                 else:
                     behaviorCode += 'this->' + beh.name + '();\n'
         if model.startswith('acc'):
-            behaviorCode += 'return this->stageCycles;'
+            behaviorCode += 'return this->stageCycles;\n\n'
+            for reg in processor.regs:
+                behaviorCode += '#undef ' + reg.name + '\n'
+            for regB in processor.regBanks:
+                behaviorCode += '#undef ' + regB.name + '\n'
+            for alias in processor.aliasRegs:
+                behaviorCode += '#undef ' + alias.name + '\n'
+            for aliasB in processor.aliasRegBanks:
+                behaviorCode += '#undef ' + aliasB.name + '\n'
+            for instrFieldName, correspondence in self.machineCode.bitCorrespondence.items():
+                behaviorCode += '#undef ' + instrFieldName + '\n'
             behaviorBody = cxx_writer.writer_code.Code(behaviorCode)
             behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage.name, behaviorBody, cxx_writer.writer_code.uintType, 'pu')
             classElements.append(behaviorDecl)
@@ -252,7 +320,11 @@ def getCPPInstr(self, model, pipeline, externalClock, trace):
     # bitCorrespondence.
     setParamsCode = ''
     for name, correspondence in self.machineCode.bitCorrespondence.items():
-        classElements.append(cxx_writer.writer_code.Attribute(name, aliasType, 'pri'))
+        if model.startswith('acc'):
+            for pipeStage in pipeline:
+                classElements.append(cxx_writer.writer_code.Attribute(name + '_' + pipeStage.name, aliasType, 'pri'))
+        else:
+            classElements.append(cxx_writer.writer_code.Attribute(name, aliasType, 'pri'))
         classElements.append(cxx_writer.writer_code.Attribute(name + '_bit', cxx_writer.writer_code.uintType, 'pri'))
         mask = ''
         for i in range(0, self.machineCode.bitPos[name]):
@@ -266,7 +338,11 @@ def getCPPInstr(self, model, pipeline, externalClock, trace):
         if shiftAmm > 0:
             setParamsCode += ' >> ' + str(shiftAmm)
         setParamsCode += ';\n'
-        setParamsCode += 'this->' + name + '.updateAlias(' + correspondence[0] + '[' + str(correspondence[1]) + ' + this->' + name + '_bit]);\n'
+        if model.startswith('acc'):
+            for pipeStage in pipeline:
+                setParamsCode += 'this->' + name + '_' + pipeStage.name + '.updateAlias(this->' + correspondence[0] + '_' + pipeStage.name + '[' + str(correspondence[1]) + ' + this->' + name + '_bit]);\n'
+        else:
+            setParamsCode += 'this->' + name + '.updateAlias(this->' + correspondence[0] + '[' + str(correspondence[1]) + ' + this->' + name + '_bit]);\n'
     # now I need to declare the fields for the variable parts of the
     # instruction
     for name, length in self.machineCode.bitFields:
@@ -454,13 +530,41 @@ def getCPPClasses(self, processor, model, trace):
         getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', emptyBody, cxx_writer.writer_code.stringType, 'pu', pure = True)
         instructionElements.append(getIstructionNameDecl)
         # I have to print the value of all the registers in the processor
-        printTraceCode = 'std::cerr << \"Instruction: \" << this->getInstructionName() << std::endl;\n'
+        printTraceCode = ''
+        if model.startswith('acc'):
+            # now I have to take all the resources and create a define which
+            # renames such resources so that their usage can be transparent
+            # to the developer
+            for reg in processor.regs:
+                printTraceCode += '#define ' + reg.name + ' ' + reg.name + '_' + processor.pipes[-1].name + '\n'
+            for regB in processor.regBanks:
+                printTraceCode += '#define ' + regB.name + ' ' + regB.name + '_' + processor.pipes[-1].name + '\n'
+            for alias in processor.aliasRegs:
+                printTraceCode += '#define ' + alias.name + ' ' + alias.name + '_' + processor.pipes[-1].name + '\n'
+            for aliasB in processor.aliasRegBanks:
+                printTraceCode += '#define ' + aliasB.name + ' ' + aliasB.name + '_' + processor.pipes[-1].name + '\n'
+            printTraceCode += '\n'
+
+        printTraceCode += 'std::cerr << \"Instruction: \" << this->getInstructionName() << std::endl;\n'
         for reg in processor.regs:
             printTraceCode += 'std::cerr << \"' + reg.name + ' = \" << std::hex << std::showbase << this->' + reg.name + ' << std::endl;\n'
         for regB in processor.regBanks:
             printTraceCode += 'for(int regNum = 0; regNum < ' + str(regB.numRegs) + '; regNum++){\n'
             printTraceCode += 'std::cerr << \"' + regB.name + '[\" << std::dec << regNum << \"] = \" << std::hex << std::showbase << this->' + regB.name + '[regNum] << std::endl;\n}\n'
-        printTraceBody = cxx_writer.writer_code.Code(printTraceCode + 'std::cerr << std::endl;\n')
+        printTraceCode += 'std::cerr << std::endl;\n'
+        if model.startswith('acc'):
+            # now I have to take all the resources and create a define which
+            # renames such resources so that their usage can be transparent
+            # to the developer
+            for reg in processor.regs:
+                printTraceCode += '#undef ' + reg.name + '\n'
+            for regB in processor.regBanks:
+                printTraceCode += '#undef ' + regB.name + '\n'
+            for alias in processor.aliasRegs:
+                printTraceCode += '#undef ' + alias.name + '\n'
+            for aliasB in processor.aliasRegBanks:
+                printTraceCode += '#undef ' + aliasB.name + '\n'
+        printTraceBody = cxx_writer.writer_code.Code(printTraceCode)
         printTraceDecl = cxx_writer.writer_code.Method('printTrace', printTraceBody, cxx_writer.writer_code.voidType, 'pu')
         instructionElements.append(printTraceDecl)
 
@@ -492,22 +596,23 @@ def getCPPClasses(self, processor, model, trace):
     alreadyDeclared = []
     global baseBehaviors
     baseBehaviors = []
-    for instr in self.instructions.values():
-        for behaviors in instr.postbehaviors.values() + instr.prebehaviors.values():
-            for beh in behaviors:
-                if beh.numUsed == len(self.instructions) and not beh.name in alreadyDeclared:
-                    # This behavior is present in all the instructions: I declare it in
-                    # the base instruction class
-                    alreadyDeclared.append(beh.name)
-                    instructionElements.append(beh.getCppOperation(True))
-                    baseBehaviors.append(beh.name)
+    if not model.startswith('acc'):
+        for instr in self.instructions.values():
+            for behaviors in instr.postbehaviors.values() + instr.prebehaviors.values():
+                for beh in behaviors:
+                    if beh.numUsed == len(self.instructions) and not beh.name in alreadyDeclared:
+                        # This behavior is present in all the instructions: I declare it in
+                        # the base instruction class
+                        alreadyDeclared.append(beh.name)
+                        instructionElements.append(beh.getCppOperation(True))
+                        baseBehaviors.append(beh.name)
     # Ok, now I add the generic helper methods and operations
     for helpOp in self.helperOps + [self.beginOp, self.endOp]:
         if helpOp and not helpOp.name in alreadyDeclared:
             instructionElements.append(helpOp.getCppOperation(True))
     for helpMeth in self.methods:
         if helpMeth:
-            instructionElements.append(helpMeth.getCppMethod())
+            instructionElements.append(helpMeth.getCppMethod(model, processor))
     # Now create references to the architectural elements contained in the processor and
     # initialize them through the constructor
     initElements = []
@@ -515,30 +620,57 @@ def getCPPClasses(self, processor, model, trace):
     baseInstrConstrParams = []
     baseInitElement = 'Instruction('
     from procWriter import resourceType
-    for reg in processor.regs:
-        attribute = cxx_writer.writer_code.Attribute(reg.name, resourceType[reg.name].makeRef(), 'pro')
-        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(reg.name, resourceType[reg.name].makeRef()))
-        initElements.append(reg.name + '(' + reg.name + ')')
-        baseInitElement += reg.name + ', '
-        instructionElements.append(attribute)
-    for regB in processor.regBanks:
-        attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name].makePointer().makeRef(), 'pro')
-        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(regB.name, resourceType[regB.name].makePointer().makeRef()))
-        initElements.append(regB.name + '(' + regB.name + ')')
-        baseInitElement += regB.name + ', '
-        instructionElements.append(attribute)
-    for alias in processor.aliasRegs:
-        attribute = cxx_writer.writer_code.Attribute(alias.name, resourceType[alias.name].makeRef(), 'pro')
-        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(alias.name, resourceType[alias.name].makeRef()))
-        initElements.append(alias.name + '(' + alias.name + ')')
-        baseInitElement += alias.name + ', '
-        instructionElements.append(attribute)
-    for aliasB in processor.aliasRegBanks:
-        attribute = cxx_writer.writer_code.Attribute(aliasB.name, resourceType[aliasB.name].makePointer().makeRef(), 'pro')
-        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(aliasB.name, resourceType[aliasB.name].makePointer().makeRef()))
-        initElements.append(aliasB.name + '(' + aliasB.name + ')')
-        baseInitElement += aliasB.name + ', '
-        instructionElements.append(attribute)
+    if not model.startswith('acc'):
+        for reg in processor.regs:
+            attribute = cxx_writer.writer_code.Attribute(reg.name, resourceType[reg.name].makeRef(), 'pro')
+            baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(reg.name, resourceType[reg.name].makeRef()))
+            initElements.append(reg.name + '(' + reg.name + ')')
+            baseInitElement += reg.name + ', '
+            instructionElements.append(attribute)
+        for regB in processor.regBanks:
+            attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name].makePointer().makeRef(), 'pro')
+            baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(regB.name, resourceType[regB.name].makePointer().makeRef()))
+            initElements.append(regB.name + '(' + regB.name + ')')
+            baseInitElement += regB.name + ', '
+            instructionElements.append(attribute)
+        for alias in processor.aliasRegs:
+            attribute = cxx_writer.writer_code.Attribute(alias.name, resourceType[alias.name].makeRef(), 'pro')
+            baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(alias.name, resourceType[alias.name].makeRef()))
+            initElements.append(alias.name + '(' + alias.name + ')')
+            baseInitElement += alias.name + ', '
+            instructionElements.append(attribute)
+        for aliasB in processor.aliasRegBanks:
+            attribute = cxx_writer.writer_code.Attribute(aliasB.name, resourceType[aliasB.name].makePointer().makeRef(), 'pro')
+            baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(aliasB.name, resourceType[aliasB.name].makePointer().makeRef()))
+            initElements.append(aliasB.name + '(' + aliasB.name + ')')
+            baseInitElement += aliasB.name + ', '
+            instructionElements.append(attribute)
+    else:
+        for pipeStage in processor.pipes:
+            for reg in processor.regs:
+                attribute = cxx_writer.writer_code.Attribute(reg.name + '_' + pipeStage.name, resourceType[reg.name].makeRef(), 'pu')
+                baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(reg.name + '_' + pipeStage.name, resourceType[reg.name].makeRef()))
+                initElements.append(reg.name + '_' + pipeStage.name + '(' + reg.name + '_' + pipeStage.name + ')')
+                baseInitElement += reg.name + '_' + pipeStage.name + ', '
+                instructionElements.append(attribute)
+            for regB in processor.regBanks:
+                attribute = cxx_writer.writer_code.Attribute(regB.name + '_' + pipeStage.name, resourceType[regB.name].makePointer().makeRef(), 'pu')
+                baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(regB.name + '_' + pipeStage.name, resourceType[regB.name].makePointer().makeRef()))
+                initElements.append(regB.name + '_' + pipeStage.name + '(' + regB.name + '_' + pipeStage.name + ')')
+                baseInitElement += regB.name + '_' + pipeStage.name + ', '
+                instructionElements.append(attribute)
+            for alias in processor.aliasRegs:
+                attribute = cxx_writer.writer_code.Attribute(alias.name + '_' + pipeStage.name, resourceType[alias.name].makeRef(), 'pu')
+                baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(alias.name + '_' + pipeStage.name, resourceType[alias.name].makeRef()))
+                initElements.append(alias.name + '_' + pipeStage.name + '(' + alias.name + '_' + pipeStage.name + ')')
+                baseInitElement += alias.name + '_' + pipeStage.name + ', '
+                instructionElements.append(attribute)
+            for aliasB in processor.aliasRegBanks:
+                attribute = cxx_writer.writer_code.Attribute(aliasB.name + '_' + pipeStage.name, resourceType[aliasB.name].makePointer().makeRef(), 'pu')
+                baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(aliasB.name + '_' + pipeStage.name, resourceType[aliasB.name].makePointer().makeRef()))
+                initElements.append(aliasB.name + '_' + pipeStage.name + '(' + aliasB.name + '_' + pipeStage.name + ')')
+                baseInitElement += aliasB.name + '_' + pipeStage.name + ', '
+                instructionElements.append(attribute)
     if processor.memory:
         attribute = cxx_writer.writer_code.Attribute(processor.memory[0], cxx_writer.writer_code.Type('LocalMemory', 'memory.hpp').makeRef(), 'pro')
         baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(processor.memory[0], cxx_writer.writer_code.Type('LocalMemory', 'memory.hpp').makeRef()))
@@ -571,12 +703,13 @@ def getCPPClasses(self, processor, model, trace):
     # the classes for each shared non-inline behavior
     global behClass
     behClass = {}
-    for instr in self.instructions.values():
-        for behaviors in instr.postbehaviors.values() + instr.prebehaviors.values():
-            for beh in behaviors:
-                if not behClass.has_key(beh.name) and beh.inline and beh.numUsed > 1 and not beh.name in alreadyDeclared:
-                    behClass[beh.name] = beh.getCppOpClass()
-                    classes.append(behClass[beh.name])
+    if not model.startswith('acc'):
+        for instr in self.instructions.values():
+            for behaviors in instr.postbehaviors.values() + instr.prebehaviors.values():
+                for beh in behaviors:
+                    if not behClass.has_key(beh.name) and beh.inline and beh.numUsed > 1 and not beh.name in alreadyDeclared:
+                        behClass[beh.name] = beh.getCppOpClass()
+                        classes.append(behClass[beh.name])
 
     # Now I print the invalid instruction
     invalidInstrElements = []
@@ -592,6 +725,8 @@ def getCPPClasses(self, processor, model, trace):
     if model.startswith('acc'):
         for pipeStage in processor.pipes:
             if pipeStage.checkUnknown:
+                behaviorBody.prependCode('#define ' + processor.fetchReg[0] + ' ' + processor.fetchReg[0] + '_' + pipeStage.name + '\n')
+                behaviorBody.appendCode('\n#undef ' + processor.fetchReg[0])
                 behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage.name, behaviorBody, cxx_writer.writer_code.uintType, 'pu')
             else:
                 behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage.name, behaviorReturnBody, cxx_writer.writer_code.uintType, 'pu')
@@ -643,7 +778,7 @@ def getCPPClasses(self, processor, model, trace):
         classes.append(NOPInstructionElements)
     # Now I go over all the other instructions and I declare them
     for instr in self.instructions.values():
-        classes.append(instr.getCPPClass(model, processor.pipes, processor.externalClock, trace))
+        classes.append(instr.getCPPClass(model, processor, trace))
     return classes
 
 def getCPPTests(self, processor, modelType):

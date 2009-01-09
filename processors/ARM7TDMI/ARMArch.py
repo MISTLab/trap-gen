@@ -100,9 +100,9 @@ regs.setOffset(15, 4)
 processor.addAliasRegBank(regs)
 FP = trap.AliasRegister('FP', 'REGS[12]')
 processor.addAliasReg(FP)
-SP = trap.AliasRegister('SP', 'REGS[13]')
+SP = trap.AliasRegister('SPTR', 'REGS[13]')
 processor.addAliasReg(SP)
-LR = trap.AliasRegister('LR', 'REGS[14]')
+LR = trap.AliasRegister('LINKR', 'REGS[14]')
 processor.addAliasReg(LR)
 SP_IRQ = trap.AliasRegister('SP_IRQ', 'RB[21]')
 processor.addAliasReg(SP_IRQ)
@@ -181,7 +181,7 @@ processor.addPipeStage(executeStage)
 
 # The ABI is necessary to emulate system calls, personalize the GDB stub and,
 # eventually, retarget GCC
-abi = trap.ABI('REGS[0]', 'REGS[0-3]', 'PC', 'LR', 'SP', 'FP')
+abi = trap.ABI('REGS[0]', 'REGS[0-3]', 'PC', 'LINKR', 'SPTR', 'FP')
 abi.addVarRegsCorrespondence({'REGS[0-15]': (0, 15), 'CPSR': 16})
 # Same consideration as above: this offset is valid just for the functional
 # simulator
