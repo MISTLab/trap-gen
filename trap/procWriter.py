@@ -1469,7 +1469,7 @@ def getCPPIf(self, model):
     readArgsBody = str(vectorType) + ' args;\n'
     for arg in self.abi.args:
         readArgsBody += 'args.push_back(this->' + arg
-        if self.abi.offset.has_key(arg):
+        if self.abi.offset.has_key(arg) and not model.startswith('acc'):
             readArgsBody += ' + ' + str(self.abi.offset[arg])
         readArgsBody += ');'
     readArgsBody += 'return args;\n'
@@ -1481,7 +1481,7 @@ def getCPPIf(self, model):
     setArgsBody += str(vectorType) + '::const_iterator argIter = args.begin();\n'
     for arg in self.abi.args:
         setArgsBody += 'this->' + arg + ' = *argIter'
-        if self.abi.offset.has_key(arg):
+        if self.abi.offset.has_key(arg) and not model.startswith('acc'):
             setArgsBody += ' - ' + str(self.abi.offset[arg])
         setArgsBody += ';\nargIter++;\n'
     setArgsCode = cxx_writer.writer_code.Code(setArgsBody)
@@ -1495,7 +1495,7 @@ def getCPPIf(self, model):
             maxGDBId = gdbId
         readGDBRegBody += 'case ' + str(gdbId) + ':{\n'
         readGDBRegBody += 'return ' + reg
-        if self.abi.offset.has_key(reg):
+        if self.abi.offset.has_key(reg) and not model.startswith('acc'):
             readGDBRegBody += ' + ' + str(self.abi.offset[reg])
         readGDBRegBody += ';\nbreak;}\n'
     readGDBRegBody += 'default:{\nTHROW_EXCEPTION(\"No register corresponding to GDB id \" << gdbId);\nreturn 0;\n}\n}\n'
