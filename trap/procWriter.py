@@ -1015,11 +1015,19 @@ def getCPPProc(self, model, trace):
 
     # Lets now add the registers, the reg banks, the aliases, etc.
     # We also need to add the memory
+    checkToolPipeStage = self.pipes[-1]
+    for pipeStage in self.pipes:
+        if pipeStage.checkTools:
+            checkToolPipeStage = pipeStage
+            break
     from processor import extractRegInterval
     for reg in self.regs:
         attribute = cxx_writer.writer_code.Attribute(reg.name, resourceType[reg.name], 'pu')
         initElements.append(reg.name + '(\"' + reg.name + '\")')
-        abiIfInit += 'this->' + reg.name + ', '
+        abiIfInit += 'this->' + reg.name
+        if model.startswith('acc'):
+            abiIfInit += '_' + checkToolPipeStage.name
+        abiIfInit += ', '
         processorElements.append(attribute)
         if model.startswith('acc'):
             for pipeStage in self.pipes:
@@ -1033,7 +1041,10 @@ def getCPPProc(self, model, trace):
             for pipeStage in self.pipes:
                 bodyInits += 'this->' + regB.name + '_' + pipeStage.name + ' = new ' + str(resourceType[regB.name]) + '[' + str(regB.numRegs) + '];\n'
                 bodyDestructor += 'delete [] this->' + regB.name + '_' + pipeStage.name + ';\n'
-        abiIfInit += 'this->' + regB.name + ', '
+        abiIfInit += 'this->' + regB.name
+        if model.startswith('acc'):
+            abiIfInit += '_' + checkToolPipeStage.name
+        abiIfInit += ', '
         processorElements.append(attribute)
         if model.startswith('acc'):
             for pipeStage in self.pipes:
@@ -1066,7 +1077,10 @@ def getCPPProc(self, model, trace):
                 for pipeStage in self.pipes:
                     bodyAliasInit[alias.name] += 'this->' + alias.name + '_' + pipeStage.name + '.updateAlias(this->' + alias.initAlias + '_' + pipeStage.name
                     bodyAliasInit[alias.name] += ');\n'
-        abiIfInit += 'this->' + alias.name + ', '
+        abiIfInit += 'this->' + alias.name
+        if model.startswith('acc'):
+            abiIfInit += '_' + checkToolPipeStage.name
+        abiIfInit += ', '
         processorElements.append(attribute)
         if model.startswith('acc'):
             for pipeStage in self.pipes:
@@ -1129,7 +1143,10 @@ def getCPPProc(self, model, trace):
                             bodyAliasInit[aliasB.name] += ');\n'
                             curIndex += 1
 
-        abiIfInit += 'this->' + aliasB.name + ', '
+        abiIfInit += 'this->' + aliasB.name
+        if model.startswith('acc'):
+            abiIfInit += '_' + checkToolPipeStage.name
+        abiIfInit += ', '
         processorElements.append(attribute)
         if model.startswith('acc'):
             for pipeStage in self.pipes:
@@ -2701,7 +2718,7 @@ def getMainCode(self, model):
     //Now I initialize the tools (i.e. debugger, os emulator, ...)
     """
     if model.startswith('acc'):
-        code += 'OSEmulator< ' + str(wordType) + ', ' + str(execOffset*self.wordSize) + ' > osEmu(*(procInst.abiIf));\n'
+        code += 'OSEmulator< ' + str(wordType) + ', -' + str(execOffset*self.wordSize) + ' > osEmu(*(procInst.abiIf));\n'
     else:
         code += 'OSEmulator< ' + str(wordType) + ', 0 > osEmu(*(procInst.abiIf));\n'
     code += """GDBStub< """ + str(wordType) + """ > gdbStub(*(procInst.abiIf));
