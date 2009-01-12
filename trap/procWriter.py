@@ -1319,6 +1319,7 @@ def getCPPProc(self, model, trace):
                         if isFetch:
                             memName = name
                 curPipeInit = [self.fetchReg[0], 'Processor::INSTRUCTIONS', memName] + curPipeInit
+                curPipeInit = ['numInstructions'] + curPipeInit
                 if self.instructionCache:
                     curPipeInit = ['Processor::instrCache'] + curPipeInit
             if pipeStage.checkTools:
@@ -2418,6 +2419,7 @@ def getGetPipelineStages(self, trace):
                 }
                 this->refreshRegisters();
                 this->succStage->nextInstruction = this->curInstruction;
+                this->numInstructions++;
                 """
             if not self.externalClock:
                 codeString += '}'
@@ -2595,6 +2597,10 @@ def getGetPipelineStages(self, trace):
             constructorParams = [cxx_writer.writer_code.Parameter(self.fetchReg[0], resourceType[self.fetchReg[0]].makeRef())] + constructorParams
             constructorInit.append(self.fetchReg[0] + '(' + self.fetchReg[0] + ')')
             curPipeElements.append(fetchAttr)
+            numInstructions = cxx_writer.writer_code.Attribute('numInstructions', cxx_writer.writer_code.uintType.makeRef(), 'pri')
+            constructorParams = [cxx_writer.writer_code.Parameter('numInstructions', cxx_writer.writer_code.uintType.makeRef())] + constructorParams
+            constructorInit.append('numInstructions(numInstructions)')
+            curPipeElements.append(numInstructions)
             if self.instructionCache:
                 template_mapType = cxx_writer.writer_code.TemplateType('template_map', [fetchWordType, IntructionTypePtr], hash_map_include).makeRef()
                 cacheAttribute = cxx_writer.writer_code.Attribute('instrCache', template_mapType, 'pri')
