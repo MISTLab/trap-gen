@@ -829,7 +829,7 @@ def getCPPProc(self, model, trace):
                 // I can call the instruction, I have found it
                 try{
                     #ifndef DISABLE_TOOLS
-                    if(!(this->toolManager.newIssue(""" + pcVar + """))){
+                    if(!(this->toolManager.newIssue(""" + pcVar + """, cachedInstr->second))){
                     #endif
                     numCycles = cachedInstr->second->behavior();
             """
@@ -864,7 +864,7 @@ def getCPPProc(self, model, trace):
         codeString += """instr->setParams(bitString);
             try{
                 #ifndef DISABLE_TOOLS
-                if(!(this->toolManager.newIssue(""" + pcVar + """))){
+                if(!(this->toolManager.newIssue(""" + pcVar + """, instr))){
                 #endif
                 numCycles = instr->behavior();
         """
@@ -1327,7 +1327,7 @@ def getCPPProc(self, model, trace):
             initElements.append(pipeStage.name + '_stage(' + ', '.join(curPipeInit)  + ')')
             prevStage = pipeStage.name + '_stage'
         NOPIntructionType = cxx_writer.writer_code.Type('NOPInstruction', 'instructions.hpp')
-        NOPinstructionsAttribute = cxx_writer.writer_code.Attribute('NOPInstrInstance', NOPIntructionType.makePointer(), 'pri', True)
+        NOPinstructionsAttribute = cxx_writer.writer_code.Attribute('NOPInstrInstance', NOPIntructionType.makePointer(), 'pu', True)
         processorElements.append(NOPinstructionsAttribute)
 
     # Ok, here I have to create the code for the constructor: I have to
@@ -2318,7 +2318,7 @@ def getGetPipelineStages(self, trace):
                 if pipeStage.checkTools:
                     codeString += """
                         #ifndef DISABLE_TOOLS
-                        if(!(this->toolManager.newIssue(""" + fetchAddress + """))){
+                        if(!(this->toolManager.newIssue(""" + fetchAddress + """, this->curInstruction))){
                         #endif"""
                 if hasCheckHazard and pipeStage.checkHazard:
                     if self.externalClock:
@@ -2360,7 +2360,7 @@ def getGetPipelineStages(self, trace):
             if pipeStage.checkTools:
                 codeString += """
                     #ifndef DISABLE_TOOLS
-                    if(!(this->toolManager.newIssue(""" + fetchAddress + """))){
+                    if(!(this->toolManager.newIssue(""" + fetchAddress + """, this->curInstruction))){
                     #endif"""
             if hasCheckHazard and pipeStage.checkHazard:
                 if self.externalClock:
@@ -2439,7 +2439,7 @@ def getGetPipelineStages(self, trace):
             if pipeStage.checkTools:
                 codeString += """
                     #ifndef DISABLE_TOOLS
-                    if(!(this->toolManager.newIssue(this->""" + self.fetchReg[0] + """))){
+                    if(!(this->toolManager.newIssue(this->""" + self.fetchReg[0] + """, this->curInstruction))){
                     #endif
                 """
             if hasCheckHazard and pipeStage.checkHazard:
@@ -2718,7 +2718,7 @@ def getMainCode(self, model):
     //Now I initialize the tools (i.e. debugger, os emulator, ...)
     """
     if model.startswith('acc'):
-        code += 'OSEmulator< ' + str(wordType) + ', -' + str(execOffset*self.wordSize) + ' > osEmu(*(procInst.abiIf));\n'
+        code += 'OSEmulatorCA< ' + str(wordType) + ', -' + str(execOffset*self.wordSize) + ' > osEmu(*(procInst.abiIf), Processor::NOPInstrInstance);\n'
     else:
         code += 'OSEmulator< ' + str(wordType) + ', 0 > osEmu(*(procInst.abiIf));\n'
     code += """GDBStub< """ + str(wordType) + """ > gdbStub(*(procInst.abiIf));
@@ -2755,7 +2755,10 @@ def getMainCode(self, model):
     mainCode.addInclude('systemc.h')
     mainCode.addInclude('execLoader.hpp')
     mainCode.addInclude('GDBStub.hpp')
-    mainCode.addInclude('osEmulator.hpp')
+    if model.startswith('acc'):
+        mainCode.addInclude('osEmulatorCA.hpp')
+    else:
+        mainCode.addInclude('osEmulator.hpp')
     mainCode.addInclude('boost/program_options.hpp')
     mainCode.addInclude('boost/timer.hpp')
     parameters = [cxx_writer.writer_code.Parameter('argc', cxx_writer.writer_code.intType), cxx_writer.writer_code.Parameter('argv', cxx_writer.writer_code.charPtrType.makePointer())]

@@ -833,7 +833,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
         this->startThread();
     }
     ///Method called at every cycle from the processor's main loop
-    bool newIssue(const issueWidth &curPC) throw(){
+    bool newIssue(const issueWidth &curPC, const void *curInstr) throw(){
         if(this->firstRun){
             this->firstRun = false;
             this->breakEnabled = false;

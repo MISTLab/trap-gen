@@ -53,7 +53,7 @@ template<class issueWidth> class ToolsIf{
     ///the tool can then take the appropriate actions.
     ///the return value specifies whether the processor should skip
     ///the issue of the current instruction
-    virtual bool newIssue(const issueWidth &curPC) throw() = 0;
+    virtual bool newIssue(const issueWidth &curPC, const void *curInstr) throw() = 0;
     virtual ~ToolsIf(){}
 };
 
@@ -80,11 +80,11 @@ template<class issueWidth> class ToolsManager{
     ///the tool can then take the appropriate actions.
     ///the return value specifies whether the processor should skip
     ///the issue of the current instruction
-    inline bool newIssue(const issueWidth &curPC) const throw(){
+    inline bool newIssue(const issueWidth &curPC, const void *curInstr) const throw(){
         bool skipInstruction = false;
         typename std::vector<ToolsIf<issueWidth> *>::const_iterator toolsIter = this->toolsStart;
         for(; toolsIter != this->toolsEnd; toolsIter++){
-            skipInstruction |= (*toolsIter)->newIssue(curPC);
+            skipInstruction |= (*toolsIter)->newIssue(curPC, curInstr);
         }
         return skipInstruction;
     }
