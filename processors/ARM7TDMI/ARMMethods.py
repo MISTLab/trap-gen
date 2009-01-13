@@ -160,7 +160,7 @@ switch(shift_type){
         break;}
     case 3:{
         if(shift_amm == 0){
-            return (((unsigned int)toShift) >> 1) | ((CPSR["C"]) << 31);
+            return (((unsigned int)toShift) >> 1) | ((CPSR[key_C]) << 31);
         }
         else{
             // rotate right
@@ -428,7 +428,7 @@ else{
             // Rotate right
             if (shift_amm == 0){
                 //Rotate rigth with extend
-                operand = (rm >> 1) | ((CPSR["C"]) << 31);
+                operand = (rm >> 1) | ((CPSR[key_C]) << 31);
                 carry = ((rm & 0x00000001) != 0);
             }
             else {
