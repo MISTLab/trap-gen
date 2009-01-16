@@ -72,8 +72,8 @@ template<class regWidth> class ABIIf{
     virtual void setGDBReg( const regWidth & newValue, const unsigned int & gdbId ) throw() = 0;
     virtual regWidth readMem( const regWidth & address, int length = sizeof(regWidth) ) = 0;
     virtual unsigned char readCharMem( const regWidth & address) = 0;
-    virtual void writeMem( const regWidth & address, const regWidth & datum, int length = sizeof(regWidth) ) = 0;
-    virtual void writeCharMem( const regWidth & address, const unsigned char & datum ) = 0;
+    virtual void writeMem( const regWidth & address, regWidth datum, int length = sizeof(regWidth) ) = 0;
+    virtual void writeCharMem( const regWidth & address, unsigned char datum ) = 0;
     virtual regWidth getCodeLimit() = 0;
     virtual ~ABIIf(){}
 };

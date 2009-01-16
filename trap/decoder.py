@@ -342,7 +342,7 @@ class decoderCreator:
                 #code += '\n' + str(edge[1].patterns) + '\n'
                 code += self.createTableDecoder(edge[1])
             code += 'break;}\n'
-        code += 'default:{\nTHROW_EXCEPTION(\"Fatal Error, pattern \" << std::hex << std::showbase << instrCode << std::dec << \" not recognized by the decoder\");}\n'
+        code += 'default:{\n// Non-valid pattern\nreturn ' + str(self.instrNum) + ';\n}\n'
         code += '}\n'
         return code
 

@@ -628,6 +628,9 @@ class Processor:
         implFileDec.addInclude('decoder.hpp')
         mainFolder = cxx_writer.writer_code.Folder(os.path.join(folder))
         for model in models:
+            if model.endswith('AT') and self.externalClock:
+                print 'ERROR: creating models with and external clock and the Approximate-Timed interface is not yet supported'
+                continue
             print '\t\tCreating the implementation for model ' + model
             if not model in validModels:
                 raise Exception(model + ' is not a valid model type')
