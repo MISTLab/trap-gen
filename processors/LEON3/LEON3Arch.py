@@ -54,44 +54,60 @@ import LEON3Isa
 
 # Lets now start building the processor
 processor = trap.Processor('LEON3', systemc = False, instructionCache = True, fastFetch = True)
-processor.setBigEndian() #big endian
-processor.setWordsize(4, 8) #4 bytes per word, 8 bits per byte
-processor.setISA(LEON3Isa.isa) #lets set the instruction set
+processor.setBigEndian() # big endian
+processor.setWordsize(4, 8) # 4 bytes per word, 8 bits per byte
+processor.setISA(LEON3Isa.isa) # lets set the instruction set
 
 # Ok, now we move to the description of more complicated processor
 # resources
+# Number of register windows, between 2 and 32, default is 8 for LEON3
+numRegWindows = 8
 
-## A registry bank of 22 registers each one 32 bits wide:
-## they are the normal registers and the banked one. In particular:
-## RB[0-7]: registers shared among all the modes
-## RB[8-12]: registers shared among all modes but FIQ
-## RB[13-14]: sp_user, lr_user
-## RB[15-16]: sp_svc, lr_svc
-## RB[17-18]: sp_abt, lr_abt
-## RB[19-20]: sp_und, lr_und
-## RB[21-22]: sp_irq, lr_irq
-## RB[23-29]: r8_fiq, r14_fiq
-#regBank = trap.RegisterBank('RB', 30, 32)
-#processor.addRegBank(regBank)
-## A registry bank of 5 registers each one 32 bits wide
-## they are the saved processor status registers for the different
-## execution modes; note that a bit mask for easily accessing
-## the different fields is provided
-## SPSR[0] = spsr_fiq, SPSR[1] = spsr_irq, SPSR[2] = spsr_svc,
-## SPSR[3] = spsr_abt, SPSR[4] = spsr_und
-#spsrBitMask = {'N': (31, 31), 'Z': (30, 30), 'C': (29, 29), 'V': (28, 28), 'I': (7, 7), 'F': (6, 6), 'mode': (0, 3)}
-#spsrBank = trap.RegisterBank('SPSR', 5, 32, spsrBitMask)
-#processor.addRegBank(spsrBank)
-## Current processor status register
-#cpsrBitMask = {'N': (31, 31), 'Z': (30, 30), 'C': (29, 29), 'V': (28, 28), 'I': (7, 7), 'F': (6, 6), 'mode': (0, 3)}
-#cpsr = trap.Register('CPSR', 32, cpsrBitMask)
-#cpsr.setDefaultValue(0x000000D3)
-#processor.addRegister(cpsr)
-## Fake register (not presented in the architecture) indicating
-## the processor ID: it is necessary in a multi-processor
-## system
-#mp_id = trap.Register('MP_ID', 32)
-#processor.addRegister(mp_id)
+# There are 8 global register, and a variable number of
+# of 16-registers set; this number depends on the number of
+# register windows
+# global registers
+globalRegs = trap.RegisterBank('GLOBAL', 8, 32)
+processor.addRegBank(globalRegs)
+windowRegs = trap.RegisterBank('WINREGS', 16*numRegWindows, 32)
+processor.addRegBank(windowRegs)
+# Program status register
+psrBitMask = {'IMPL': (31, 28), 'VER': (27, 24), 'ICC': (23, 20), 'EC': (13, 13), 'EF': (12, 12), 'PIL': (11, 8), 'S': (7, 7), 'PS': (6, 6), 'ET': (5, 5), 'CWP': (4, 0)}
+psrReg = trap.Register('PSR', 32, psrBitMask)
+# Check: should the CWP be the last (i.e. numRegWindows - 1) or fist (i.e. 0)
+# register window????
+psrReg.setDefaultValue(0xF3000080 + numRegWindows - 1)
+processor.addRegister(psrReg)
+# Window Invalid Mask Register
+wimBitMask = {}
+for i in range(0, 32):
+    wimBitMask['WIM_' + str(i)] = (i, i)
+wimReg = trap.Register('WIM', 32, wimBitMask)
+# CHECK: should this be init to 0 or not?????
+wimReg.setDefaultValue(pow(2, numRegWindows - 1))
+processor.addRegister(wimReg)
+# Trap Base Register
+tbrBitMask = {'TBA' : (31, 12), 'TT' : (11, 4)}
+tbrReg = trap.Register('TBR', 32, tbrBitMask)
+processor.addRegister(tbrReg)
+# Multiply / Divide Register
+yReg = trap.Register('Y', 32)
+processor.addRegister(yReg)
+# Program Counter, TODO: how do we offset a register? in functional we should offset the PC
+pcReg = trap.Register('PC', 32)
+pcReg.setDefaultValue('ENTRY_POINT')
+processor.addRegister(pcReg)
+# Program Counter, TODO: how do we offset a register? in functional we should offset the NPC
+npcReg = trap.Register('NPC', 32)
+npcReg.setDefaultValue(('ENTRY_POINT', 4))
+processor.addRegister(npcReg)
+# Ancillary State Registers
+# in the LEON3 processor some of them have a special meaning:
+# 24-31 are used for hardware breakpoints
+# 17 is the processor configuration register
+asrRegs = trap.RegisterBank('ASR', 32, 32)
+processor.addRegBank(asrRegs)
+
 ## Now I set the alias: they can (and will) be used by the instructions
 ## to access the registers more easily. Note that, in general, it is
 ## responsibility of the programmer keeping the alias updated
@@ -167,17 +183,25 @@ processor.setISA(LEON3Isa.isa) #lets set the instruction set
 #PC = 0x1C;""")
 ##processor.addIrq(fiq)
 
-## Now it is time to add the pipeline stages
-#fetchStage = trap.PipeStage('fetch')
-#processor.addPipeStage(fetchStage)
-#decodeStage = trap.PipeStage('decode')
-#decodeStage.setHazard()
-#processor.addPipeStage(decodeStage)
-#executeStage = trap.PipeStage('execute')
-#executeStage.setWriteBack()
-#executeStage.setCheckUnknownInstr()
-#executeStage.setCheckTools()
-#processor.addPipeStage(executeStage)
+# Now it is time to add the pipeline stages
+fetchStage = trap.PipeStage('fetch')
+processor.addPipeStage(fetchStage)
+decodeStage = trap.PipeStage('decode')
+processor.addPipeStage(decodeStage)
+regsStage = trap.PipeStage('regs')
+regsStage.setHazard()
+executeStage.setCheckUnknownInstr()
+processor.addPipeStage(regsStage)
+executeStage = trap.PipeStage('execute')
+executeStage.setCheckTools()
+processor.addPipeStage(executeStage)
+memoryStage = trap.PipeStage('memory')
+processor.addPipeStage(memoryStage)
+exceptionStage = trap.PipeStage('exception')
+processor.addPipeStage(exceptionStage)
+wbStage = trap.PipeStage('wb')
+wbStage.setWriteBack()
+processor.addPipeStage(wbStage)
 
 ## The ABI is necessary to emulate system calls, personalize the GDB stub and,
 ## eventually, retarget GCC

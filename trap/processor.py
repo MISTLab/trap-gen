@@ -979,3 +979,4 @@ class ABI:
                 if (savedAddr[0] <= addr[0] and savedAddr[1] >= addr[0]) or (savedAddr[0] <= addr[1] and savedAddr[1] >= addr[1]):
                     raise Exception('Clash between address ranges of memory ' + name + ' and ' + memory)
         self.memories[memory] = addr
+
