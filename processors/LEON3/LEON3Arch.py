@@ -84,7 +84,7 @@ for i in range(0, 32):
     wimBitMask['WIM_' + str(i)] = (i, i)
 wimReg = trap.Register('WIM', 32, wimBitMask)
 # CHECK: should this be init to 0 or not?????
-wimReg.setDefaultValue(pow(2, numRegWindows - 1))
+wimReg.setDefaultValue(0xFFFFFFFF ^ (pow(2, numRegWindows) - 1))
 processor.addRegister(wimReg)
 # Trap Base Register
 tbrBitMask = {'TBA' : (31, 12), 'TT' : (11, 4)}
@@ -108,44 +108,33 @@ processor.addRegister(npcReg)
 asrRegs = trap.RegisterBank('ASR', 32, 32)
 processor.addRegBank(asrRegs)
 
-## Now I set the alias: they can (and will) be used by the instructions
-## to access the registers more easily. Note that, in general, it is
-## responsibility of the programmer keeping the alias updated
-#regs = trap.AliasRegBank('REGS', 16, 'RB[0-15]')
-#regs.setOffset(15, 4)
-#processor.addAliasRegBank(regs)
-#FP = trap.AliasRegister('FP', 'REGS[12]')
-#processor.addAliasReg(FP)
-#SP = trap.AliasRegister('SPTR', 'REGS[13]')
-#processor.addAliasReg(SP)
-#LR = trap.AliasRegister('LINKR', 'REGS[14]')
-#processor.addAliasReg(LR)
-#SP_IRQ = trap.AliasRegister('SP_IRQ', 'RB[21]')
-#processor.addAliasReg(SP_IRQ)
-#LR_IRQ = trap.AliasRegister('LR_IRQ', 'RB[22]')
-#processor.addAliasReg(LR_IRQ)
-#SP_FIQ = trap.AliasRegister('SP_FIQ', 'RB[28]')
-#processor.addAliasReg(SP_FIQ)
-#LR_FIQ = trap.AliasRegister('LR_FIQ', 'RB[29]')
-#processor.addAliasReg(LR_FIQ)
-#PC = trap.AliasRegister('PC', 'REGS[15]')
-## Special default value, others are PROGRAM_LIMIT ...
-#PC.setDefaultValue('ENTRY_POINT')
-#processor.addAliasReg(PC)
-## Memory alias: registers which are memory mapped:
-#idMap = trap.MemoryAlias(0xFFFFFFF0, 'MP_ID')
-#processor.addMemAlias(idMap)
-## register from which the instructions are fetched; note that in the
-## functional model there is an offset between the PC and the actual
-## fetch address (all of this is to take into account the fact that we do
-## not have the pipeline)
-#processor.setFetchRegister('PC', -4)
+# Now I set the alias: they can (and will) be used by the instructions
+# to access the registers more easily. Note that, in general, it is
+# responsibility of the programmer keeping the alias updated
+regs = trap.AliasRegBank('REGS', 32, ('GLOBAL[0-7]', 'WINREGS[0-23]'))
+processor.addAliasRegBank(regs)
+FP = trap.AliasRegister('FP', 'REGS[30]')
+processor.addAliasReg(FP)
+LR = trap.AliasRegister('LR', 'REGS[31]')
+processor.addAliasReg(LR)
+SP = trap.AliasRegister('SP', 'REGS[14]')
+processor.addAliasReg(SP)
+PCR = trap.AliasRegister('PCR', 'ASR[17]')
+PCR.setDefaultValue(0x00000300 + numRegWindows - 1)
+processor.addAliasReg(PCR)
 
-## Lets now add details about the processor interconnection (i.e. memory ports,
-## interrupt ports, pins, etc.)
-#processor.addTLMPort('instrMem', True)
-#processor.addTLMPort('dataMem')
-##processor.setMemory('dataMem', 10*1024*1024)
+# Register from which the instructions are fetched; note that in the
+# functional model there is an offset between the PC and the actual
+# fetch address (all of this is to take into account the fact that we do
+# not have the pipeline)
+processor.setFetchRegister('PC', 12)
+
+# Lets now add details about the processor interconnection (i.e. memory ports,
+# interrupt ports, pins, etc.)
+processor.addTLMPort('instrMem', True)
+processor.addTLMPort('dataMem')
+#processor.setMemory('dataMem', 10*1024*1024)
+
 ## Now lets add the interrupt ports
 #irq = trap.Interrupt('IRQ', priority = 0)
 #irq.setOperation('CPSR[key_I] == 0', """
@@ -203,22 +192,18 @@ wbStage = trap.PipeStage('wb')
 wbStage.setWriteBack()
 processor.addPipeStage(wbStage)
 
-## The ABI is necessary to emulate system calls, personalize the GDB stub and,
-## eventually, retarget GCC
-#abi = trap.ABI('REGS[0]', 'REGS[0-3]', 'PC', 'LINKR', 'SPTR', 'FP')
-#abi.addVarRegsCorrespondence({'REGS[0-15]': (0, 15), 'CPSR': 16})
-## Same consideration as above: this offset is valid just for the functional
-## simulator
-#abi.setOffset('PC', -4)
-#abi.setOffset('REGS[15]', -4)
-#abi.addMemory('dataMem')
-#processor.setABI(abi)
+# The ABI is necessary to emulate system calls, personalize the GDB stub and,
+# eventually, retarget GCC
+abi = trap.ABI('REGS[24]', 'REGS[24-29]', 'PC', 'LR', 'SP', 'FP')
+abi.addVarRegsCorrespondence({'REGS[0-31]': (0, 31), 'Y': 64, 'PSR': 65, 'WIM': 66, 'TBR': 67, 'PC': 68, 'NPC': 69})
+abi.addMemory('dataMem')
+processor.setABI(abi)
 
-## Finally we can dump the processor on file
-##processor.write(folder = 'processor', models = ['funcLT'], dumpDecoderName = 'decoder.dot')
-##processor.write(folder = 'processor', models = ['funcLT'], trace = True)
-##processor.write(folder = 'processor', models = ['funcLT'])
-##processor.write(folder = 'processor', models = ['funcAT'], trace = True)
-##processor.write(folder = 'processor', models = ['funcAT', 'funcLT'])
-##processor.write(folder = 'processor', models = ['accAT'])
+# Finally we can dump the processor on file
+#processor.write(folder = 'processor', models = ['funcLT'], dumpDecoderName = 'decoder.dot')
+processor.write(folder = 'processor', models = ['funcLT'], trace = True)
+#processor.write(folder = 'processor', models = ['funcLT'])
+#processor.write(folder = 'processor', models = ['funcAT'], trace = True)
+#processor.write(folder = 'processor', models = ['funcAT', 'funcLT'])
+#processor.write(folder = 'processor', models = ['accAT'])
 #processor.write(folder = 'processor', models = ['accAT','funcLT'], trace = True)
