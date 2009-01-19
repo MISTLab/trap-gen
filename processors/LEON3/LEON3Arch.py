@@ -74,7 +74,7 @@ processor.addRegBank(windowRegs)
 # Program status register
 psrBitMask = {'IMPL': (31, 28), 'VER': (27, 24), 'ICC': (23, 20), 'EC': (13, 13), 'EF': (12, 12), 'PIL': (11, 8), 'S': (7, 7), 'PS': (6, 6), 'ET': (5, 5), 'CWP': (4, 0)}
 psrReg = trap.Register('PSR', 32, psrBitMask)
-# Check: should the CWP be the last (i.e. numRegWindows - 1) or fist (i.e. 0)
+# TODO: Check: should the CWP be the last (i.e. numRegWindows - 1) or fist (i.e. 0)
 # register window????
 psrReg.setDefaultValue(0xF3000080 + numRegWindows - 1)
 processor.addRegister(psrReg)
@@ -83,7 +83,7 @@ wimBitMask = {}
 for i in range(0, 32):
     wimBitMask['WIM_' + str(i)] = (i, i)
 wimReg = trap.Register('WIM', 32, wimBitMask)
-# CHECK: should this be init to 0 or not?????
+# TODO: CHECK: should this be init to 0 or not?????
 wimReg.setDefaultValue(0xFFFFFFFF ^ (pow(2, numRegWindows) - 1))
 processor.addRegister(wimReg)
 # Trap Base Register
@@ -93,13 +93,15 @@ processor.addRegister(tbrReg)
 # Multiply / Divide Register
 yReg = trap.Register('Y', 32)
 processor.addRegister(yReg)
-# Program Counter, TODO: how do we offset a register? in functional we should offset the PC
+# Program Counter
 pcReg = trap.Register('PC', 32)
 pcReg.setDefaultValue('ENTRY_POINT')
+pcReg.setOffset(4)
 processor.addRegister(pcReg)
-# Program Counter, TODO: how do we offset a register? in functional we should offset the NPC
+# Program Counter
 npcReg = trap.Register('NPC', 32)
 npcReg.setDefaultValue(('ENTRY_POINT', 4))
+pcReg.setOffset(4)
 processor.addRegister(npcReg)
 # Ancillary State Registers
 # in the LEON3 processor some of them have a special meaning:
@@ -110,7 +112,7 @@ processor.addRegBank(asrRegs)
 
 # Now I set the alias: they can (and will) be used by the instructions
 # to access the registers more easily. Note that, in general, it is
-# responsibility of the programmer keeping the alias updated
+# responsibility of the programmer keeping the aliases updated
 regs = trap.AliasRegBank('REGS', 32, ('GLOBAL[0-7]', 'WINREGS[0-23]'))
 processor.addAliasRegBank(regs)
 FP = trap.AliasRegister('FP', 'REGS[30]')
@@ -123,11 +125,34 @@ PCR = trap.AliasRegister('PCR', 'ASR[17]')
 PCR.setDefaultValue(0x00000300 + numRegWindows - 1)
 processor.addAliasReg(PCR)
 
+# Memory alias: registers which are memory mapped; we
+# loose a lot of performance, should we really use them??
+#for j in range(0, 8):
+#    regMap = trap.MemoryAlias(0x300000 + j, 'GLOBAL[' + str(j) + ']')
+#    processor.addMemAlias(regMap)
+#for i in range(0, numRegWindows):
+#    for j in range(0, 16):
+#        regMap = trap.MemoryAlias(0x300008 + i*16 + j, 'WINREGS[' + str(i*16 + j) + ']')
+#        processor.addMemAlias(regMap)
+#regMap = trap.MemoryAlias(0x400000, 'Y')
+#processor.addMemAlias(regMap)
+#regMap = trap.MemoryAlias(0x400004, 'PSR')
+#processor.addMemAlias(regMap)
+#regMap = trap.MemoryAlias(0x40000C, 'WIM')
+#processor.addMemAlias(regMap)
+#regMap = trap.MemoryAlias(0x400010, 'PC')
+#processor.addMemAlias(regMap)
+#regMap = trap.MemoryAlias(0x400014, 'NPC')
+#processor.addMemAlias(regMap)
+#for j in range(16, 32):
+#    regMap = trap.MemoryAlias(0x400040 + j, 'ASR[' + str(j) + ']')
+#    processor.addMemAlias(regMap)
+
 # Register from which the instructions are fetched; note that in the
 # functional model there is an offset between the PC and the actual
 # fetch address (all of this is to take into account the fact that we do
 # not have the pipeline)
-processor.setFetchRegister('PC', 12)
+processor.setFetchRegister('PC', -4)
 
 # Lets now add details about the processor interconnection (i.e. memory ports,
 # interrupt ports, pins, etc.)
@@ -135,42 +160,11 @@ processor.addTLMPort('instrMem', True)
 processor.addTLMPort('dataMem')
 #processor.setMemory('dataMem', 10*1024*1024)
 
-## Now lets add the interrupt ports
-#irq = trap.Interrupt('IRQ', priority = 0)
-#irq.setOperation('CPSR[key_I] == 0', """
-#//Save LR_irq
-#LR_IRQ = PC;
-#//Save the current PSR
-#SPSR[1] = CPSR;
-#//I switch the register bank (i.e. I update the
-#//alias)
-#REGS[13].updateAlias(RB[21]);
-#REGS[14].updateAlias(RB[22]);
-#//Create the new PSR
-#CPSR = (CPSR & 0xFFFFFFD0) | 0x00000092;
-#//Finally I update the PC
-#PC = 0x18;""")
-##processor.addIrq(irq)
-#fiq = trap.Interrupt('FIQ', priority = 1)
-#fiq.setOperation('CPSR[key_F] == 0', """
-#//Save LR_irq
-#LR_FIQ = PC;
-#//Save the current PSR
-#SPSR[0] = CPSR;
-#//I switch the register bank (i.e. I update the
-#//alias)
-#REGS[8].updateAlias(RB[23]);
-#REGS[9].updateAlias(RB[24]);
-#REGS[10].updateAlias(RB[25]);
-#REGS[11].updateAlias(RB[26]);
-#REGS[12].updateAlias(RB[27]);
-#REGS[13].updateAlias(RB[28]);
-#REGS[14].updateAlias(RB[29]);
-#//Create the new PSR
-#CPSR = (CPSR & 0xFFFFFFD0) | 0x000000D1;
-#//Finally I update the PC
-#PC = 0x1C;""")
-##processor.addIrq(fiq)
+# Now lets add the interrupt ports: TODO
+irq = trap.Interrupt('IRQ', priority = 0)
+irq.setOperation('/*TODO*/', """
+//TODO""")
+#processor.addIrq(irq)
 
 # Now it is time to add the pipeline stages
 fetchStage = trap.PipeStage('fetch')
@@ -196,6 +190,8 @@ processor.addPipeStage(wbStage)
 # eventually, retarget GCC
 abi = trap.ABI('REGS[24]', 'REGS[24-29]', 'PC', 'LR', 'SP', 'FP')
 abi.addVarRegsCorrespondence({'REGS[0-31]': (0, 31), 'Y': 64, 'PSR': 65, 'WIM': 66, 'TBR': 67, 'PC': 68, 'NPC': 69})
+abi.setOffset('PC', -4)
+abi.setOffset('NPC', -4)
 abi.addMemory('dataMem')
 processor.setABI(abi)
 
