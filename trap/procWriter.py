@@ -252,7 +252,7 @@ def getCPPRegClass(self, model, regType):
     operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
     operatorEqualDecl = cxx_writer.writer_code.MemberOperator('=', operatorBody, cxx_writer.writer_code.Type('InnerField').makeRef(), 'pu', [operatorParam])
     operatorBody = cxx_writer.writer_code.Code('return 0;')
-    operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_if self.offset:code.Type(''), 'pu', const = True)
+    operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True)
     publicConstr = cxx_writer.writer_code.Constructor(cxx_writer.writer_code.Code(''), 'pu')
     InnerFieldClass = cxx_writer.writer_code.ClassDeclaration('InnerField_Empty', [operatorEqualDecl, operatorIntDecl], [cxx_writer.writer_code.Type('InnerField')])
     InnerFieldClass.addConstructor(publicConstr)
@@ -378,35 +378,35 @@ def getCPPRegisters(self, model):
     ################ Here ##################
     global resourceType
     regTypes = []
-    #regTypesCount = {}
+    regTypesCount = {}
     regTypesBW = {}
     regTypesOff = {}
-    #regTypeSubName = {}
+    regTypeSubName = {}
     for reg in self.regs + self.regBanks:
         bitFieldSig = ''
         for maskName, maskPos in reg.bitMask.items():
             bitFieldSig += maskName + str(maskPos[0]) + str(maskPos[1])
-        if not reg.bitWidth in [i.bitWidth for i in regTypes]:resourceType
+        if not reg.bitWidth in [i.bitWidth for i in regTypes]:
             regTypes.append(reg)
             regTypesBW[reg.bitWidth] = [bitFieldSig]
             regTypesOff[str(reg.bitWidth) + bitFieldSig] = [reg.offset != 0]
-            #regTypesCount[reg.bitWidth] = 1
-            #regTypeSubName[reg.bitWidth] = {bitFieldSig: 1}
+            regTypesCount[reg.bitWidth] = 1
+            regTypeSubName[reg.bitWidth] = {bitFieldSig: 1}
         else:
             # There is already a register with this bitwidth
             # I add this one only if it has a different bitMask
             if not bitFieldSig in regTypesBW[reg.bitWidth]:
                 regTypes.append(reg)
-                #regTypesCount[reg.bitWidth] = regTypesCount[reg.bitWidth] + 1
-                #regTypeSubName[reg.bitWidth][bitFieldSig] = regTypesCount[reg.bitWidth]
+                regTypesCount[reg.bitWidth] = regTypesCount[reg.bitWidth] + 1
+                regTypeSubName[reg.bitWidth][bitFieldSig] = regTypesCount[reg.bitWidth]
                 regTypesBW[reg.bitWidth].append(bitFieldSig)
-                regTypesOff[str(reg.bitWidth) + bitFieldSig] = [reg.offset != 0[
+                regTypesOff[str(reg.bitWidth) + bitFieldSig] = [reg.offset != 0]
             elif not ((reg.offset != 0) in regTypesOff[str(reg.bitWidth) + bitFieldSig]):
                 # I check the offset and add the register only if it has
                 # an offset
                 regTypes.append(reg)
-                #regTypesCount[reg.bitWidth] = regTypesCount[reg.bitWidth] + 1
-                #regTypeSubName[reg.bitWidth][bitFieldSig] = regTypesCount[reg.bitWidth]
+                regTypesCount[reg.bitWidth] = regTypesCount[reg.bitWidth] + 1
+                regTypeSubName[reg.bitWidth][bitFieldSig] = regTypesCount[reg.bitWidth]
                 regTypesBW[reg.bitWidth].append(bitFieldSig)
                 regTypesOff[str(reg.bitWidth) + bitFieldSig].append((reg.offset != 0))
         regTypeName = 'Reg' + str(reg.bitWidth) + '_' + str(regTypeSubName[reg.bitWidth][bitFieldSig])
@@ -1289,7 +1289,8 @@ def getCPPProc(self, model, trace):
     if self.systemc or model.startswith('acc'):
         if self.externalClock:
             totCyclesAttribute = cxx_writer.writer_code.Attribute('waitCycles', cxx_writer.writer_code.uintType, 'pu')
-            processorElements.append(totCyclesAttribute)            if hasCheckHazard and pipeStage.checkHazard:
+            processorElements.append(totCyclesAttribute)
+            if hasCheckHazard and pipeStage.checkHazard:
                 if self.externalClock:
                     codeString += 'if(!this->curInstruction->checkHazard()){\nreturn\n}\n'
                 else:

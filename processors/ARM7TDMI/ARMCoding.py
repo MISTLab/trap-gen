@@ -61,7 +61,7 @@ dataProc_imm.setBitfield('id', [0, 0, 1])
 
 move_imm2psr = trap.MachineCode([('cond', 4), ('opcode0', 5), ('r', 1), ('opcode1', 2), ('mask', 4), ('rd', 4), ('rotate', 4), ('immediate', 8)])
 move_imm2psr_reg = trap.MachineCode([('cond', 4), ('opcode0', 5), ('r', 1), ('opcode1', 2), ('mask', 4), ('one', 4), ('zero', 8), ('rm', 4)])
-ls_immOff.setVarField('rm', ('REGS', 0), 'in')
+move_imm2psr_reg.setVarField('rm', ('REGS', 0), 'in')
 
 ls_immOff = trap.MachineCode([('cond', 4), ('opcode', 3), ('p', 1), ('u', 1), ('b', 1), ('w', 1), ('l', 1), ('rn', 4), ('rd', 4), ('immediate', 12)])
 ls_immOff.setBitfield('opcode', [0, 1, 0])

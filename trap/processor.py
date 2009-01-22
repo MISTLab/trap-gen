@@ -32,7 +32,6 @@
 #   (c) Luca Fossati, fossati@elet.polimi.it
 #
 ####################################################################################
-setWBOrder
 
 import procWriter
 

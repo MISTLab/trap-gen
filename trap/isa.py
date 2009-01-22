@@ -380,6 +380,9 @@ class Instruction:
                     raise Exception('Trying to add variable ' + variable.name + ' of type ' + variable.type.name + ' to instruction ' + self.name + ' which already has a variable with such a name of type ' + instrVar.type.name)
         self.variables.append(variable)
 
+    def setVarField(self, name, correspondence, bitDir = 'inout'):
+        raise Exception('Method setVarField not yet implemented')
+
     def addDocString(self, docString):
         self.docString += docString + '\n'
 
@@ -574,6 +577,7 @@ class MachineCode:
         self.bitValue = {}
         self.bitPos = {}
         self.bitLen = {}
+        self.bitDirection = {}
         self.instrLen = 0
         curPosition = 0
         for key, fieldLen in bitFields:
