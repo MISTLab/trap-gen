@@ -301,6 +301,8 @@ def getCPPInstr(self, model, processor, trace):
         if hasCheckHazard:
             wbCode = ''
             for name, correspondence in self.machineCode.bitCorrespondence.items():
+                if not 'in' in self.machineCode.bitDirection[name]:
+                    continue
                 wbCode += 'this->' + name + '.unlock();\n'
             wbBody = cxx_writer.writer_code.Code()
             wbDecl = cxx_writer.writer_code.Method('registerWb', wbBody, cxx_writer.writer_code.voidType, 'pu')
@@ -509,6 +511,10 @@ def getCPPClasses(self, processor, model, trace):
     archWordType = resolveBitType('BIT<' + str(processor.wordSize*processor.byteSize) + '>')
     memoryType = cxx_writer.writer_code.Type('MemoryInterface', 'memory.hpp')
     classes = []
+    # Here I add the define code, definig the type of the current model
+    defString = '#define ' + model[:-2].upper() + '_MODEL\n'
+    defString = '#define ' + model[-2:].upper() + '_IF\n'
+    defCode = cxx_writer.writer_code.Define(defString)
     # First of all I create the base instruction type: note that it contains references
     # to the architectural elements
     instructionType = cxx_writer.writer_code.Type('Instruction')

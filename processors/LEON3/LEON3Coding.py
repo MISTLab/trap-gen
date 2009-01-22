@@ -46,6 +46,6 @@ import trap
 #dataProc_imm_shift = trap.MachineCode([('cond', 4), ('zero', 3), ('opcode', 4), ('s', 1), ('rn', 4), ('rd', 4), ('shift_amm', 5), ('shift_op', 2), ('zero', 1), ('rm', 4)])
 ## All of the register specifiers are indexes in the registry bank REGS,
 ## with no offset (so we access them directly, REGS[rn])
-#dataProc_imm_shift.setVarField('rn', ('REGS', 0))
-#dataProc_imm_shift.setVarField('rd', ('REGS', 0))
-#dataProc_imm_shift.setVarField('rm', ('REGS', 0))
+#dataProc_imm_shift.setVarField('rn', ('REGS', 0), 'out')
+#dataProc_imm_shift.setVarField('rd', ('REGS', 0), 'in')
+#dataProc_imm_shift.setVarField('rm', ('REGS', 0), 'in') ## TODO TODO TODO: set how to specify input and output registers

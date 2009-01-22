@@ -92,7 +92,6 @@ def getRegistersBitfields(self):
 def getCPPRegClass(self, model, regType):
     # returns the class implementing the current register; I have to
     # define all the operators;
-    # TODO: think about the clocked registers
     emptyBody = cxx_writer.writer_code.Code('')
     regWidthType = regMaxType
     registerType = cxx_writer.writer_code.Type('Register')
@@ -111,7 +110,10 @@ def getCPPRegClass(self, model, regType):
 
     #################### Lets declare the normal operators (implementation of the pure operators of the base class) ###########
     for i in unaryOps:
-        operatorBody = cxx_writer.writer_code.Code('return ' + i + '(this->value);')
+        if self.offset:
+            operatorBody = cxx_writer.writer_code.Code('return ' + i + '(this->value + ' + str(self.offset) + ');')
+        else:
+            operatorBody = cxx_writer.writer_code.Code('return ' + i + '(this->value);')
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu')
         registerElements.append(operatorDecl)
     # Now I have the three versions of the operators, depending whether they take
@@ -134,12 +136,18 @@ def getCPPRegClass(self, model, regType):
         registerElements.append(operatorDecl)
     # SPECIFIC REGISTER
     for i in binaryOps:
-        operatorBody = cxx_writer.writer_code.Code('return (this->value ' + i + ' other.value);')
+        if self.offset and not model.startswith('acc'):
+            operatorBody = cxx_writer.writer_code.Code('return ((this->value  + ' + str(self.offset) + ') ' + i + ' (other.value + ' + str(self.offset) + '));')
+        else:
+            operatorBody = cxx_writer.writer_code.Code('return (this->value ' + i + ' other.value);')
         operatorParam = cxx_writer.writer_code.Parameter('other', regType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True)
         registerElements.append(operatorDecl)
     for i in comparisonOps:
-        operatorBody = cxx_writer.writer_code.Code('return (this->value ' + i + ' other.value);')
+        if self.offset and not model.startswith('acc'):
+            operatorBody = cxx_writer.writer_code.Code('return ((this->value + ' + str(self.offset) + ') ' + i + ' (other.value + ' + str(self.offset) + '));')
+        else:
+            operatorBody = cxx_writer.writer_code.Code('return (this->value ' + i + ' other.value);')
         operatorParam = cxx_writer.writer_code.Parameter('other', regType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
         registerElements.append(operatorDecl)
@@ -151,12 +159,18 @@ def getCPPRegClass(self, model, regType):
     # GENERIC REGISTER: this case is look more complicated; actually I simply used the
     # operators of parameter other
     for i in binaryOps:
-        operatorBody = cxx_writer.writer_code.Code('return (this->value ' + i + ' other);')
+        if self.offset and not model.startswith('acc'):
+            operatorBody = cxx_writer.writer_code.Code('return (this->value  + ' + str(self.offset) + ' ' + i + ' other);')
+        else:
+            operatorBody = cxx_writer.writer_code.Code('return (this->value ' + i + ' other);')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True)
         registerElements.append(operatorDecl)
     for i in comparisonOps:
-        operatorBody = cxx_writer.writer_code.Code('return (this->value ' + i + ' other);')
+        if self.offset and not model.startswith('acc'):
+            operatorBody = cxx_writer.writer_code.Code('return (this->value  + ' + str(self.offset) + ' ' + i + ' other);')
+        else:
+            operatorBody = cxx_writer.writer_code.Code('return (this->value ' + i + ' other);')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
         registerElements.append(operatorDecl)
@@ -166,7 +180,10 @@ def getCPPRegClass(self, model, regType):
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regType.makeRef(), 'pu', [operatorParam])
         registerElements.append(operatorDecl)
     # Scalar value cast operator
-    operatorBody = cxx_writer.writer_code.Code('return this->value;')
+    if self.offset and not model.startswith('acc'):
+        operatorBody = cxx_writer.writer_code.Code('return (this->value  + ' + str(self.offset) + ');')
+    else:
+        operatorBody = cxx_writer.writer_code.Code('return this->value;')
     operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True, noException = True)
     registerElements.append(operatorIntDecl)
 
@@ -235,7 +252,7 @@ def getCPPRegClass(self, model, regType):
     operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
     operatorEqualDecl = cxx_writer.writer_code.MemberOperator('=', operatorBody, cxx_writer.writer_code.Type('InnerField').makeRef(), 'pu', [operatorParam])
     operatorBody = cxx_writer.writer_code.Code('return 0;')
-    operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True)
+    operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_if self.offset:code.Type(''), 'pu', const = True)
     publicConstr = cxx_writer.writer_code.Constructor(cxx_writer.writer_code.Code(''), 'pu')
     InnerFieldClass = cxx_writer.writer_code.ClassDeclaration('InnerField_Empty', [operatorEqualDecl, operatorIntDecl], [cxx_writer.writer_code.Type('InnerField')])
     InnerFieldClass.addConstructor(publicConstr)
@@ -246,6 +263,9 @@ def getCPPRegClass(self, model, regType):
     attrs.append(fieldAttribute)
     valueAttribute = cxx_writer.writer_code.Attribute('value', regWidthType, 'pri')
     attrs.append(valueAttribute)
+    if self.offset and not model.startswith('acc'):
+        offsetAttribute = cxx_writer.writer_code.Attribute('offset', cxx_writer.writer_code.intType, 'pri')
+        attrs.append(valueAttribute)
     registerElements = attrs + registerElements
 
     registerDecl = cxx_writer.writer_code.ClassDeclaration(regType.name, registerElements, [registerType])
@@ -358,27 +378,41 @@ def getCPPRegisters(self, model):
     ################ Here ##################
     global resourceType
     regTypes = []
-    regTypesCount = {}
+    #regTypesCount = {}
     regTypesBW = {}
-    regTypeSubName = {}
+    regTypesOff = {}
+    #regTypeSubName = {}
     for reg in self.regs + self.regBanks:
         bitFieldSig = ''
         for maskName, maskPos in reg.bitMask.items():
             bitFieldSig += maskName + str(maskPos[0]) + str(maskPos[1])
-        if not reg.bitWidth in [i.bitWidth for i in regTypes]:
+        if not reg.bitWidth in [i.bitWidth for i in regTypes]:resourceType
             regTypes.append(reg)
             regTypesBW[reg.bitWidth] = [bitFieldSig]
-            regTypesCount[reg.bitWidth] = 1
-            regTypeSubName[reg.bitWidth] = {bitFieldSig: 1}
+            regTypesOff[str(reg.bitWidth) + bitFieldSig] = [reg.offset != 0]
+            #regTypesCount[reg.bitWidth] = 1
+            #regTypeSubName[reg.bitWidth] = {bitFieldSig: 1}
         else:
             # There is already a register with this bitwidth
             # I add this one only if it has a different bitMask
             if not bitFieldSig in regTypesBW[reg.bitWidth]:
                 regTypes.append(reg)
-                regTypesCount[reg.bitWidth] = regTypesCount[reg.bitWidth] + 1
-                regTypeSubName[reg.bitWidth][bitFieldSig] = regTypesCount[reg.bitWidth]
+                #regTypesCount[reg.bitWidth] = regTypesCount[reg.bitWidth] + 1
+                #regTypeSubName[reg.bitWidth][bitFieldSig] = regTypesCount[reg.bitWidth]
                 regTypesBW[reg.bitWidth].append(bitFieldSig)
-        resourceType[reg.name] = cxx_writer.writer_code.Type('Reg' + str(reg.bitWidth) + '_' + str(regTypeSubName[reg.bitWidth][bitFieldSig]), 'registers.hpp')
+                regTypesOff[str(reg.bitWidth) + bitFieldSig] = [reg.offset != 0[
+            elif not ((reg.offset != 0) in regTypesOff[str(reg.bitWidth) + bitFieldSig]):
+                # I check the offset and add the register only if it has
+                # an offset
+                regTypes.append(reg)
+                #regTypesCount[reg.bitWidth] = regTypesCount[reg.bitWidth] + 1
+                #regTypeSubName[reg.bitWidth][bitFieldSig] = regTypesCount[reg.bitWidth]
+                regTypesBW[reg.bitWidth].append(bitFieldSig)
+                regTypesOff[str(reg.bitWidth) + bitFieldSig].append((reg.offset != 0))
+        regTypeName = 'Reg' + str(reg.bitWidth) + '_' + str(regTypeSubName[reg.bitWidth][bitFieldSig])
+        if reg.offset:
+            regTypeName += '_off'
+        resourceType[reg.name] = cxx_writer.writer_code.Type(regTypeName, 'registers.hpp')
     realRegClasses = []
     for regType in regTypes:
         realRegClasses.append(regType.getCPPClass(model, resourceType[regType.name]))
@@ -1255,7 +1289,12 @@ def getCPPProc(self, model, trace):
     if self.systemc or model.startswith('acc'):
         if self.externalClock:
             totCyclesAttribute = cxx_writer.writer_code.Attribute('waitCycles', cxx_writer.writer_code.uintType, 'pu')
-            processorElements.append(totCyclesAttribute)
+            processorElements.append(totCyclesAttribute)            if hasCheckHazard and pipeStage.checkHazard:
+                if self.externalClock:
+                    codeString += 'if(!this->curInstruction->checkHazard()){\nreturn\n}\n'
+                else:
+                    codeString += 'this->curInstruction->checkHazard();\n'
+
             bodyInits += 'this->waitCycles = 0;\n'
             clockAttribute = cxx_writer.writer_code.Attribute('clock', cxx_writer.writer_code.TemplateType('sc_in', [cxx_writer.writer_code.boolType], 'systemc.h'), 'pu')
             processorElements.append(clockAttribute)
@@ -2268,9 +2307,9 @@ def getGetPipelineStages(self, trace):
     for pipeStage in self.pipes:
         if pipeStage.checkHazard:
             if self.pipes.index(pipeStage) + 1 < len(self.pipes):
-                if not self.pipes[self.pipes.index(pipeStage) + 1].wb:
+                if not self.pipes[self.pipes.index(pipeStage) + 1].endHazard:
                     hasCheckHazard = True
-        if pipeStage.wb:
+        if pipeStage.endHazard:
             if self.pipes.index(pipeStage) - 1 >= 0:
                 if not self.pipes[self.pipes.index(pipeStage) - 1].checkHazard:
                     hasWb = True
@@ -2296,14 +2335,11 @@ def getGetPipelineStages(self, trace):
         this->nextInstruction = this->NOPInstrInstance;
         """
         if pipeStage == self.pipes[0]:
-            wbStage = self.pipes[-1]
             # This is the fetch pipeline stage, I have to fetch instructions
             if self.instructionCache:
                 codeString += 'template_map< ' + str(fetchWordType) + ', Instruction * >::iterator instrCacheEnd = ' + pipeStage.name.upper() + '_PipeStage::instrCache.end();\n'
             if self.externalClock:
                 codeString += 'if(this->waitCycles > 0){\nthis->waitCycles--;\nreturn;\n}\n\n'
-                if hasWb and pipeStage.checkHazard:
-                    codeString += 'this->curInstruction->registerWb();\n'
                 codeString += """if(!this->waitingForEnd){
                 // HERE WAIT FOR BEGIN OF ALL STAGES
                 if(!this->waitPipeBegin()){
@@ -2316,10 +2352,9 @@ def getGetPipelineStages(self, trace):
                 this->waitPipeBegin();
 
                 """
-
             codeString += 'unsigned int numCycles = 0;\n'
 
-            #Here is the code to deal with interrupts
+            # Here is the code to deal with interrupts
             orderedIrqList = sorted(self.irqs, lambda x,y: cmp(y.priority, x.priority))
             for irqPort in orderedIrqList:
                 if irqPort != orderedIrqList[0]:
@@ -2372,18 +2407,18 @@ def getGetPipelineStages(self, trace):
                 if(cachedInstr != instrCacheEnd){
                     this->curInstruction = cachedInstr->second;
                     // I can call the instruction, I have found it
-                    try{
                 """
+                if hasCheckHazard and pipeStage.checkHazard:
+                    if self.externalClock:
+                        codeString += '//*****TODO***** Complete check\nif(!this->curInstruction->checkHazard()){\nreturn\n}\n'
+                    else:
+                        codeString += 'this->curInstruction->checkHazard();\n'
+                codeString += 'try{\n'
                 if pipeStage.checkTools:
                     codeString += """
                         #ifndef DISABLE_TOOLS
                         if(!(this->toolManager.newIssue(""" + fetchAddress + """, this->curInstruction))){
                         #endif"""
-                if hasCheckHazard and pipeStage.checkHazard:
-                    if self.externalClock:
-                        codeString += 'if(!this->curInstruction->checkHazard()){\nreturn\n}\n'
-                    else:
-                        codeString += 'this->curInstruction->checkHazard();\n'
                 codeString += """
                         numCycles = this->curInstruction->behavior_""" + pipeStage.name + """();
                 """
@@ -2396,8 +2431,6 @@ def getGetPipelineStages(self, trace):
                     }
                     catch(annull_exception &etc){
                 """
-                if hasWb and checkHazardsMet:
-                    codeString += 'this->curInstruction->registerWb();\n'
                 if trace:
                     codeString += """std::cerr << "Stage: """ + pipeStage.name + """: Skipped Instruction " << this->curInstruction->getInstructionName() << std::endl << std::endl;
                     """
@@ -2414,18 +2447,19 @@ def getGetPipelineStages(self, trace):
             codeString += """int instrId = decoder.decode(bitString);
             this->curInstruction = """ + pipeStage.name.upper() + """_PipeStage::INSTRUCTIONS[instrId];
             """
-            codeString += """this->curInstruction->setParams(bitString);
-                try{"""
+            codeString += 'this->curInstruction->setParams(bitString);\n'
+            if hasCheckHazard and pipeStage.checkHazard:
+                if self.externalClock:
+                    codeString += '//*****TODO****** complete this code\nif(!this->curInstruction->checkHazard()){\nreturn\n}\n'
+                else:
+                    codeString += 'this->curInstruction->checkHazard();\n'
+
+            codeString += 'try{\n'
             if pipeStage.checkTools:
                 codeString += """
                     #ifndef DISABLE_TOOLS
                     if(!(this->toolManager.newIssue(""" + fetchAddress + """, this->curInstruction))){
                     #endif"""
-            if hasCheckHazard and pipeStage.checkHazard:
-                if self.externalClock:
-                    codeString += 'if(!this->curInstruction->checkHazard()){\nreturn\n}\n'
-                else:
-                    codeString += 'this->curInstruction->checkHazard();\n'
             codeString += """
                     numCycles = this->curInstruction->behavior_""" + pipeStage.name + """();
             """
@@ -2438,8 +2472,6 @@ def getGetPipelineStages(self, trace):
                 }
                 catch(annull_exception &etc){
             """
-            if hasWb and checkHazardsMet:
-                codeString += 'this->curInstruction->registerWb();\n'
             if trace:
                 codeString += """std::cerr << "Stage """ + pipeStage.name + """: Skipped Instruction " << this->curInstruction->getInstructionName() << std::endl << std::endl;
                 """
@@ -2475,8 +2507,6 @@ def getGetPipelineStages(self, trace):
                 this->waitPipeEnd();
 
                 """
-            if hasWb and pipeStage.checkHazard:
-                codeString += 'this->curInstruction->registerWb();\n'
             codeString += """
             // Now I have to propagate the instruction to the next cycle if
             // the next stage has completed elaboration
@@ -2494,8 +2524,6 @@ def getGetPipelineStages(self, trace):
             # This is a normal pipeline stage
             if self.externalClock:
                 codeString += 'if(this->waitCycles > 0){\nthis->waitCycles--;\nreturn;\n}\n\n'
-                if hasWb and pipeStage.checkHazard:
-                    codeString += 'this->curInstruction->registerWb();\n'
                 codeString += """if(!this->waitingForEnd){
                 // HERE WAIT FOR BEGIN OF ALL STAGES
                 if(!this->waitPipeBegin()){
@@ -2509,18 +2537,19 @@ def getGetPipelineStages(self, trace):
                 this->waitPipeBegin();
 
                 """
-            codeString += 'this->curInstruction = this->nextInstruction;\ntry{\n'
+            codeString += 'this->curInstruction = this->nextInstruction;\n'
+            if hasCheckHazard and pipeStage.checkHazard:
+                if self.externalClock:
+                    codeString += '//*****TODO*******\nif(!this->curInstruction->checkHazard()){\nreturn\n}\n'
+                else:
+                    codeString += 'this->curInstruction->checkHazard();\n'
+            codeString += 'try{\n'
             if pipeStage.checkTools:
                 codeString += """
                     #ifndef DISABLE_TOOLS
                     if(!(this->toolManager.newIssue(this->""" + self.fetchReg[0] + """, this->curInstruction))){
                     #endif
                 """
-            if hasCheckHazard and pipeStage.checkHazard:
-                if self.externalClock:
-                    codeString += 'if(!this->curInstruction->checkHazard()){\nreturn\n}\n'
-                else:
-                    codeString += 'this->curInstruction->checkHazard();\n'
             codeString += 'numCycles = this->curInstruction->behavior_' + pipeStage.name + '();\n'
             if trace and pipeStage == self.pipes[-1]:
                 codeString += """
@@ -2538,7 +2567,7 @@ def getGetPipelineStages(self, trace):
                 """
             codeString += '}\n'
             codeString += 'catch(annull_exception &etc){\n'
-            if hasWb and checkHazardsMet:
+            if hasWb and checkHazardsMet and pipeStage.endHazard:
                 codeString += 'this->curInstruction->registerWb();\n'
             if trace:
                 codeString += """std::cerr << "Stage """ + pipeStage.name + """: Skipped Instruction " << this->curInstruction->getInstructionName() << std::endl << std::endl;
@@ -2558,7 +2587,7 @@ def getGetPipelineStages(self, trace):
                 this->prevStage->flush();
             }
             """
-            if hasWb and pipeStage.checkHazard:
+            if hasWb and checkHazardsMet and pipeStage.endHazard:
                 codeString += 'this->curInstruction->registerWb();\n'
             if self.externalClock:
                 codeString += """}
@@ -2577,7 +2606,7 @@ def getGetPipelineStages(self, trace):
                 codeString += """// Now I have to propagate the instruction to the next cycle if
                 // the next stage has completed elaboration
                 if(this->hasToFlush){
-                    this->curInstruction = this->NOPInstrInstance;
+                    this->curInstrucheckHazardsMetction = this->NOPInstrInstance;
                     this->hasToFlush = false;
                 }
                 this->succStage->nextInstruction = this->curInstruction;
@@ -2606,36 +2635,60 @@ def getGetPipelineStages(self, trace):
             # and I update it. For each update I also update the other pipeline regs
             codeString = ''
             for reg in self.regs:
-                codeString += 'if(this->' + reg.name + ' != this->NOPInstrInstance->' + reg.name + '_' + wbStage.name + '){\n'
-                codeString += 'this->' + reg.name + ' = this->NOPInstrInstance->' + reg.name + '_' + wbStage.name + ';\n'
-                for upPipe in self.pipes:
-                    if upPipe != wbStage:
-                        codeString += 'this->NOPInstrInstance->' + reg.name + '_' + upPipe.name + ' = this->' + reg.name + ';\n'
-                codeString += '}\n'
-                for checkPipe in self.pipes:
-                    if checkPipe != wbStage:
-                        codeString += 'else if(this->' + reg.name + ' != this->NOPInstrInstance->' + reg.name + '_' + checkPipe.name + '){\n'
-                        codeString += 'this->' + reg.name + ' = this->NOPInstrInstance->' + reg.name + '_' + checkPipe.name + ';\n'
+                if not reg.name in self.regOrder.keys():
+                    codeString += 'if(this->' + reg.name + ' != this->NOPInstrInstance->' + reg.name + '_' + wbStage.name + '){\n'
+                    codeString += 'this->' + reg.name + ' = this->NOPInstrInstance->' + reg.name + '_' + wbStage.name + ';\n'
+                    for upPipe in self.pipes:
+                        if upPipe != wbStage:
+                            codeString += 'this->NOPInstrInstance->' + reg.name + '_' + upPipe.name + ' = this->' + reg.name + ';\n'
+                    codeString += '}\n'
+                    for checkPipe in self.pipes:
+                        if checkPipe != wbStage:
+                            codeString += 'else if(this->' + reg.name + ' != this->NOPInstrInstance->' + reg.name + '_' + checkPipe.name + '){\n'
+                            codeString += 'this->' + reg.name + ' = this->NOPInstrInstance->' + reg.name + '_' + checkPipe.name + ';\n'
+                            for upPipe in self.pipes:
+                                if upPipe != checkPipe:
+                                    codeString += 'this->NOPInstrInstance->' + reg.name + '_' + upPipe.name + ' = this->' + reg.name + ';\n'
+                            codeString += '}\n'
+                else:
+                    for customWBStage in self.regOrder[reg.name]:
+                        if customWBStage != self.regOrder[reg.name][0]:
+                            codeString += 'else '
+                        codeString += 'if(this->' + reg.name + ' != this->NOPInstrInstance->' + reg.name + '_' + customWBStage + '){\n'
+                        codeString += 'this->' + reg.name + ' = this->NOPInstrInstance->' + reg.name + '_' + customWBStage + ';\n'
                         for upPipe in self.pipes:
-                            if upPipe != checkPipe:
+                            if upPipe != wbStage:
                                 codeString += 'this->NOPInstrInstance->' + reg.name + '_' + upPipe.name + ' = this->' + reg.name + ';\n'
                         codeString += '}\n'
+
             for regB in self.regBanks:
                 codeString += 'for(int i = 0; i < ' + str(regB.numRegs) + '; i++){\n'
-                codeString += 'if(this->' + regB.name + '[i] != this->NOPInstrInstance->' + regB.name + '_' + wbStage.name + '[i]){\n'
-                codeString += 'this->' + regB.name + '[i] = this->NOPInstrInstance->' + regB.name + '_' + wbStage.name + '[i];\n'
-                for upPipe in self.pipes:
-                    if upPipe != wbStage:
-                        codeString += 'this->NOPInstrInstance->' + regB.name + '_' + upPipe.name + '[i] = this->' + regB.name + '[i];\n'
-                codeString += '}\n'
-                for checkPipe in self.pipes:
-                    if checkPipe != wbStage:
-                        codeString += 'else if(this->' + regB.name + '[i] != this->NOPInstrInstance->' + regB.name + '_' + checkPipe.name + '[i]){\n'
-                        codeString += 'this->' + regB.name + '[i] = this->NOPInstrInstance->' + regB.name + '_' + checkPipe.name + '[i];\n'
+                if not regB.name in self.regOrder.keys():
+                    codeString += 'if(this->' + regB.name + '[i] != this->NOPInstrInstance->' + regB.name + '_' + wbStage.name + '[i]){\n'
+                    codeString += 'this->' + regB.name + '[i] = this->NOPInstrInstance->' + regB.name + '_' + wbStage.name + '[i];\n'
+                    for upPipe in self.pipes:
+                        if upPipe != wbStage:
+                            codeString += 'this->NOPInstrInstance->' + regB.name + '_' + upPipe.name + '[i] = this->' + regB.name + '[i];\n'
+                    codeString += '}\n'
+                    for checkPipe in self.pipes:
+                        if checkPipe != wbStage:
+                            codeString += 'else if(this->' + regB.name + '[i] != this->NOPInstrInstance->' + regB.name + '_' + checkPipe.name + '[i]){\n'
+                            codeString += 'this->' + regB.name + '[i] = this->NOPInstrInstance->' + regB.name + '_' + checkPipe.name + '[i];\n'
+                            for upPipe in self.pipes:
+                                if upPipe != checkPipe:
+                                    codeString += 'this->NOPInstrInstance->' + regB.name + '_' + upPipe.name + '[i] = this->' + regB.name + '[i];\n'
+                            codeString += '}\n'
+                else:
+                    for customWBStage in self.regOrder[regB.name]:
+                        if customWBStage != self.regOrder[regB.name][0]:
+                            codeString += 'else '
+                        codeString += 'if(this->' + regB.name + '[i] != this->NOPInstrInstance->' + regB.name + '_' + customWBStage + '){\n'
+                        codeString += 'this->' + regB.name + '[i] = this->NOPInstrInstance->' + regB.name + '_' + customWBStage + ';\n'
                         for upPipe in self.pipes:
-                            if upPipe != checkPipe:
+                            if upPipe != wbStage:
                                 codeString += 'this->NOPInstrInstance->' + regB.name + '_' + upPipe.name + '[i] = this->' + regB.name + '[i];\n'
                         codeString += '}\n'
+
                 codeString += '}\n'
             refreshRegistersBody = cxx_writer.writer_code.Code(codeString)
             refreshRegistersDecl = cxx_writer.writer_code.Method('refreshRegisters', refreshRegistersBody, cxx_writer.writer_code.voidType, 'pu')

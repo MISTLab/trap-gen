@@ -126,7 +126,7 @@ PCR.setDefaultValue(0x00000300 + numRegWindows - 1)
 processor.addAliasReg(PCR)
 
 # Memory alias: registers which are memory mapped; we
-# loose a lot of performance, should we really use them??
+# loose a lot of performance, should we really use them?? CHECK
 #for j in range(0, 8):
 #    regMap = trap.MemoryAlias(0x300000 + j, 'GLOBAL[' + str(j) + ']')
 #    processor.addMemAlias(regMap)
@@ -161,6 +161,16 @@ processor.addTLMPort('dataMem')
 #processor.setMemory('dataMem', 10*1024*1024)
 
 # Now lets add the interrupt ports: TODO
+# It PSR[ET] == 0 I do not do anything; else
+# I check the interrupt level, if == 15 or > PSR[PIL] I service the interrupt,
+# otherwise I put it in a queue. The interrupt level depends on the interrupt line
+# (actually I can have an external interrupt controller and a complex input line
+# or a simple interrupt controller and just an input signal)
+# Otherwise it is treated like a normal exception, to I jump to the 
+# TBR: we can use a routine for this ...
+# TODO: do we check for exceptions in the fetch or exception stage???
+# TODO: SVT (Single vector trapping) must be configurable in the ASR[17]
+# and we also have to behave accordingly when interrupts are found
 irq = trap.Interrupt('IRQ', priority = 0)
 irq.setOperation('/*TODO*/', """
 //TODO""")
@@ -184,7 +194,9 @@ exceptionStage = trap.PipeStage('exception')
 processor.addPipeStage(exceptionStage)
 wbStage = trap.PipeStage('wb')
 wbStage.setWriteBack()
+wbStage.setEndHazard()
 processor.addPipeStage(wbStage)
+processor.setWBOrder('NPC', ('decode', 'execute'))
 
 # The ABI is necessary to emulate system calls, personalize the GDB stub and,
 # eventually, retarget GCC

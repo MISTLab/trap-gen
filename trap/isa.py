@@ -619,7 +619,7 @@ class MachineCode:
                 raise Exception('Value ' + str(value) + ' for bitfield ' + name + ' in machine code is invalid: only binary values (0 or 1) are allowed')
         self.bitValue[name] = value
 
-    def setVarField(self, name, correspondence):
+    def setVarField(self, name, correspondence, bitDir = 'inout'):
         # Set the correspondence between the variable parts of this
         # instruction and the architectural components (registers, reg_banks)
         # part of the instruction for which do not identify the
@@ -638,12 +638,13 @@ class MachineCode:
                 found = True
                 break
         if not found:
-            raise Exception('Machine code does not have bitfield ' + name)
+            raise Exception('Machine code does not have field ' + name + '; error in trying to set the correspondencce with ' + str(correspondence))
         if self.bitCorrespondence.has_key(name):
             raise Exception('Correspondence for field ' + name + ' already set in machine code')
         if self.bitValue.has_key(name):
             raise Exception('Value for bitfield ' + name + ' already set in machine code, unable to set correspondence')
         self.bitCorrespondence[name] = correspondence
+        self.bitDirection[name] = bitDir.lower()
 
 class VLIW:
     """There can be two types of VLIW architectures: the one which

@@ -57,6 +57,22 @@ class DumpElement:
         except:
             return self.name
 
+class Define:
+    def __init__(self, defineStr):
+        self.defineStr = defineStr
+
+    def writeImplementation(self, writer):
+        pass
+
+    def writeDeclaration(self, writer):
+        writer.write(self.defineStr)
+
+    def getIncludes(self):
+        return []
+
+    def __str__(self):
+        return self.defineStr
+
 class Type(DumpElement):
     """Represents a type; this is use for variable declaration, function parameter declaration ..."""
 

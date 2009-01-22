@@ -518,9 +518,19 @@ else{
 }
 stall(loadLatency);
 """)
+opCodeDec = cxx_writer.Code("""
+#ifdef ACC_MODEL
+for(int i = 0; i < 16; i++){
+    if((reg_list & (0x00000001 << i)) != 0){
+        RB[i].lock();
+    }
+}
+#endif ACC_MODEL
+""")
 ldm_Instr = trap.Instruction('LDM', True, frequency = 8)
 ldm_Instr.setMachineCode(ls_multiple, {'l' : [1]}, 'TODO')
 ldm_Instr.setCode(opCode, 'execute')
+ldm_Instr.setCode(opCodeDec, 'decode')
 ldm_Instr.addBehavior(IncrementPC, 'fetch')
 ldm_Instr.addBehavior(condCheckOp, 'execute')
 ldm_Instr.addBehavior(LSM_reglist_Op, 'execute')
@@ -921,6 +931,7 @@ mrs_Instr.setMachineCode(move_imm2psr, {'opcode0': [0, 0, 0, 1, 0], 'opcode1': [
 mrs_Instr.setCode(opCode, 'execute')
 mrs_Instr.addBehavior(IncrementPC, 'fetch')
 mrs_Instr.addBehavior(condCheckOp, 'execute')
+mrs_Instr.setVarField('rd', ('REGS', 0), 'out')
 isa.addInstruction(mrs_Instr)
 
 # MSR instruction family
@@ -1522,9 +1533,19 @@ else{
 }
 stall(numRegsToStore);
 """)
+opCodeDec = cxx_writer.Code("""
+#ifdef ACC_MODEL
+for(int i = 0; i < 16; i++){
+    if((reg_list & (0x00000001 << i)) != 0){
+        RB[i].isLocked();
+    }
+}
+#endif ACC_MODEL
+""")
 stm_Instr = trap.Instruction('STM', True, frequency = 8)
 stm_Instr.setMachineCode(ls_multiple, {'l' : [0]}, 'TODO')
 stm_Instr.setCode(opCode, 'execute')
+stm_Instr.setCode(opCodeDec, 'decode')
 stm_Instr.addBehavior(IncrementPC, 'fetch')
 stm_Instr.addBehavior(condCheckOp, 'execute')
 stm_Instr.addBehavior(LSM_reglist_Op, 'execute')
