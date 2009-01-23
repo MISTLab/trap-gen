@@ -237,7 +237,7 @@ class Folder:
                 if tests:
                     print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM BOOST_THREAD SYSTEMC TLM TRAP\''
                 else:
-                    print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM BOOST_THREAD SYSTEMC TLM TRAP\''
+                    print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_FILESYSTEM BOOST_THREAD SYSTEMC TLM TRAP\''
                 print >> wscriptFile, '    obj.includes = \'.\''
                 if self.uselib_local:
                     print >> wscriptFile, '    obj.uselib_local = \'' + ' '.join(self.uselib_local) + '\''
@@ -249,9 +249,9 @@ class Folder:
                 print >> wscriptFile, '    obj = bld.new_task_gen(\'cxx\', \'program\')'
                 print >> wscriptFile, '    obj.source=\'' + self.mainFile + '\''
                 if tests:
-                    print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_THREAD SYSTEMC TLM BFD TRAP\''
+                    print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_THREAD BOOST_SYSTEM SYSTEMC TLM TRAP BFD LIBERTY\''
                 else:
-                    print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_THREAD SYSTEMC TLM BFD TRAP\''
+                    print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_PROGRAM_OPTIONS BOOST_THREAD BOOST_SYSTEM SYSTEMC TLM TRAP BFD LIBERTY\''
                 print >> wscriptFile, '    obj.uselib_local = \'' + ' '.join(self.uselib_local + [os.path.split(self.path)[-1]]) + '\''
                 print >> wscriptFile, '    obj.name = \'' + os.path.split(self.path)[-1] + '_main\''
                 print >> wscriptFile, '    obj.target = \'' + os.path.split(self.path)[-1] + '\'\n'
@@ -288,14 +288,22 @@ class Folder:
         conf.check_message_custom('endianness', '', 'big')
 
     ########################################
+    # Pasring command options
+    ########################################
+    if not Options.options.enable_tools:
+        conf.env.append_unique('CPPFLAGS','-DDISABLE_TOOLS')
+    if Options.options.static_build:
+        conf.env['FULLSTATIC'] = True
+
+    ########################################
     # Check for boost libraries
     ########################################
     conf.check_tool('boost')
     conf.check_boost(lib='thread regex date_time program_options filesystem unit_test_framework', kind='STATIC_NOSTATIC', min_version='1.35.0')
 
-    ##################################################
-    # Check for BFD library and header
-    ##################################################
+    ###########################################################
+    # Check for BFD library and header and for LIBERTY library
+    ###########################################################
     result = os.popen(conf.env['CXX'] + ' -print-search-dirs')
     curLine = result.readline()
     while curLine.find('libraries: =') == -1:
@@ -337,8 +345,12 @@ class Folder:
         else:
             bfd_lib_name = foundStatic[0]
 
-    conf.check_cc(lib=bfd_lib_name, uselib_store='BFD', mandatory=1, libpath=searchDirs)
-    conf.check_cc(header_name='bfd.h', uselib_store='BFD', mandatory=1)
+    if Options.options.static_build:
+        conf.check_cc(lib='iberty', uselib_store='LIBERTY', mandatory=1, libpath=searchDirs)
+    else:
+        conf.env[LIB_LIBERTY] = ''
+    conf.check_cc(lib=bfd_lib_name, uselib='LIBERTY', uselib_store='BFD', mandatory=1, libpath=searchDirs)
+    conf.check_cc(header_name='bfd.h', uselib='LIBERTY', uselib_store='BFD', mandatory=1)
 
     ##################################################
     # Check for pthread library/flag
@@ -469,14 +481,9 @@ class Folder:
     opt.add_option('--with-systemc', type='string', help='SystemC installation directory', dest='systemcdir' )
     opt.add_option('--with-tlm', type='string', help='TLM installation directory', dest='tlmdir')
     opt.add_option('--with-trap', type='string', help='TRAP libraries and headers installation directory', dest='trapdir')
+    opt.add_option('--static', default=False, action="store_true", help='Triggers a static build, with no dependences from any dynamic library', dest='static_build')
     # Specify the options for the processor creation
-    # Specify if GDB integration should be compiled inside processor models
-    opt.add_option('-D', '--enable-debug', default=False, action="store_true", help='Enables the debugging functionalities inside the processor (switch)', dest='enable_debug')
-    # Specify if profiling support should be compiled inside processor models
-    opt.add_option('-P', '--enable-profiler', default=False, action="store_true", help='Enables the profiling functionalities inside the processor (switch)', dest='enable_profile')
-    # Specify if tracing capabilities should be compiled inside the processor models
-    opt.add_option('-T', '--enable-tracing', default=False, action="store_true", help='Enable tracing capabilites inside the ArchC processors (switch)', dest='enable_tracing')
     # Specify if OS emulation support should be compiled inside processor models
-    opt.add_option('-S', '--disable-os-emu', default=True, action="store_false", help='Disable OS emulation features inside the ArchC processors (switch)', dest='enable_os_emu')
+    opt.add_option('-T', '--disable-tools', default=True, action="store_false", help='Disables support for support tools (debuger, os-emulator, etc.) (switch)', dest='enable_tools')
 """
         wscriptFile.close()
