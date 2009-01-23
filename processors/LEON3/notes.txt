@@ -1,0 +1,23 @@
+-- Branch: I have to check that instructions already issued to not modify the psr.icc otherwise the branch cannot
+be resolved in the decode stage, but I have to wait for one or two pipeline cycles.
+ES:
+If there are two instructions:
+A
+branch
+Instruction A will change the psr.icc, so is it right that one
+pipeline hold should be at decode stage so that branch instruction
+can get the the newest icc until A passes execute stage?
+So I have to stall the pipeline for two cycles in this case, until I pass
+the execute stage. Does this mean that PSR is written in the execute stage and not
+in the WB one?
+
+-- Branch instruction directly modifies not only NPC but also the program counter directly,
+so there is no need for bubbles in the pipeline. Actually all instructions do so, they do not
+really use the NPC register (but for easyness I can use it an simply behave differently
+in the cycle accurate, where I modify both, and in the functional, where I simply modify
+NPC)
+
+-- The check for the condition code (if any) to see if an instruction should be
+annulled is done in the decode stage (??is this really true?? so not just branch but
+all instructions with condition code are delayed if a preceding instruction is not
+in fetch yet?)
