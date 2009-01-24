@@ -347,8 +347,6 @@ class Folder:
 
     if Options.options.static_build:
         conf.check_cc(lib='iberty', uselib_store='LIBERTY', mandatory=1, libpath=searchDirs)
-    else:
-        conf.env[LIB_LIBERTY] = ''
     conf.check_cc(lib=bfd_lib_name, uselib='LIBERTY', uselib_store='BFD', mandatory=1, libpath=searchDirs)
     conf.check_cc(header_name='bfd.h', uselib='LIBERTY', uselib_store='BFD', mandatory=1)
 

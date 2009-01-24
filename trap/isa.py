@@ -275,6 +275,9 @@ class Instruction:
         # templateString reflects in the assembly of the target
         # architecture. This information should be automatically derived
         # from the machineCode
+        # Parts of the machine code which are valid only for this instrucion
+        self.bitCorrespondence = {}
+        self.bitDirection = {}
 
     def setMachineCode(self, machineCode, machineBits = {}, mnemonic = ''):
         # Sets the machine code for this instruction. Note that a machine
@@ -381,7 +384,24 @@ class Instruction:
         self.variables.append(variable)
 
     def setVarField(self, name, correspondence, bitDir = 'inout'):
-        raise Exception('Method setVarField not yet implemented')
+        if not self.machineCode:
+            raise Exception('The machine code for instruction ' + self.name + ' must be set before calling method ' + setVarField)
+        found = False
+        for i in self.machineCode.bitFields:
+            if name == i[0]:
+                found = True
+                break
+        if not found:
+            raise Exception('Machine code for instruction ' + self.name + ' does not have field ' + name + '; error in trying to set the correspondencce with ' + str(correspondence))
+        if self.machineCode.bitCorrespondence.has_key(name):
+            raise Exception('Correspondence for field ' + name + ' already set in machine code, unable to set correspondence for instruction ' + self.name)
+        if self.bitCorrespondence.has_key(name):
+            raise Exception('Correspondence for field ' + name + ' already set in instruction ' + self.name)
+        if self.machineCode.bitValue.has_key(name):
+            raise Exception('Value for bitfield ' + name + ' already set in machine code, unable to set correspondence for instruction ' + self.name)
+        self.bitCorrespondence[name] = correspondence
+        self.bitDirection[name] = bitDir.lower()
+
 
     def addDocString(self, docString):
         self.docString += docString + '\n'

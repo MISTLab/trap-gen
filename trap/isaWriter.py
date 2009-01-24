@@ -199,6 +199,8 @@ def getCPPInstr(self, model, processor, trace):
                 behaviorCode += '#define ' + aliasB.name + ' ' + aliasB.name + '_' + pipeStage.name + '\n'
             for instrFieldName, correspondence in self.machineCode.bitCorrespondence.items():
                 behaviorCode += '#define ' + instrFieldName + ' ' + instrFieldName + '_' + pipeStage.name + '\n'
+            for instrFieldName, correspondence in self.bitCorrespondence.items():
+                behaviorCode += '#define ' + instrFieldName + ' ' + instrFieldName + '_' + pipeStage.name + '\n'
             behaviorCode += '\n'
         if self.prebehaviors.has_key(pipeStage.name):
             for beh in self.prebehaviors[pipeStage.name]:
@@ -262,6 +264,8 @@ def getCPPInstr(self, model, processor, trace):
                 behaviorCode += '#undef ' + aliasB.name + '\n'
             for instrFieldName, correspondence in self.machineCode.bitCorrespondence.items():
                 behaviorCode += '#undef ' + instrFieldName + '\n'
+            for instrFieldName, correspondence in self.bitCorrespondence.items():
+                behaviorCode += '#undef ' + instrFieldName + '\n'
             behaviorBody = cxx_writer.writer_code.Code(behaviorCode)
             behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage.name, behaviorBody, cxx_writer.writer_code.uintType, 'pu')
             classElements.append(behaviorDecl)
@@ -292,21 +296,44 @@ def getCPPInstr(self, model, processor, trace):
                 else:
                     checkHazardCode += 'this->' + name + '.waitHazard()\n'
                 checkHazardCode += '}\n'
+            for name, correspondence in self.bitCorrespondence.items():
+                checkHazardCode += 'if(this->' + name + '.isLocked()){\n'
+                if externalClock:
+                    checkHazardCode += 'return false;\n'
+                else:
+                    checkHazardCode += 'this->' + name + '.waitHazard()\n'
+                checkHazardCode += '}\n'
             checkHazardBody = cxx_writer.writer_code.Code(checkHazardCode)
             if externalClock:
                 checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', checkHazardBody, cxx_writer.writer_code.boolType, 'pu')
             else:
                 checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', checkHazardBody, cxx_writer.writer_code.voidType, 'pu')
             classElements.append(checkHazardDecl)
-        if hasCheckHazard:
             wbCode = ''
             for name, correspondence in self.machineCode.bitCorrespondence.items():
                 if not 'in' in self.machineCode.bitDirection[name]:
                     continue
                 wbCode += 'this->' + name + '.unlock();\n'
-            wbBody = cxx_writer.writer_code.Code()
+            for name, correspondence in self.bitCorrespondence.items():
+                if not 'in' in self.bitDirection[name]:
+                    continue
+                wbCode += 'this->' + name + '.unlock();\n'
+            wbBody = cxx_writer.writer_code.Code(wbCode)
             wbDecl = cxx_writer.writer_code.Method('registerWb', wbBody, cxx_writer.writer_code.voidType, 'pu')
             classElements.append(wbDecl)
+            lockCode = ''
+            for name, correspondence in self.machineCode.bitCorrespondence.items():
+                if not 'in' in self.machineCode.bitDirection[name]:
+                    continue
+                lockCode += 'this->' + name + '.lock();\n'
+            for name, correspondence in self.bitCorrespondence.items():
+                if not 'in' in self.bitDirection[name]:
+                    continue
+                lockCode += 'this->' + name + '.lock();\n'
+            lockBody = cxx_writer.writer_code.Code(lockCode)
+            lockDecl = cxx_writer.writer_code.Method('lockRegs', lockBody, cxx_writer.writer_code.voidType, 'pu')
+            classElements.append(lockDecl)
+
     replicateBody = cxx_writer.writer_code.Code('return new ' + self.name + '(' + baseInstrInitElement + ');')
     replicateDecl = cxx_writer.writer_code.Method('replicate', replicateBody, instructionType.makePointer(), 'pu', noException = True, const = True)
     classElements.append(replicateDecl)
@@ -321,7 +348,7 @@ def getCPPInstr(self, model, processor, trace):
     # Note, anyway, that I add the integer variable also for the parts of the instructions specified in
     # bitCorrespondence.
     setParamsCode = ''
-    for name, correspondence in self.machineCode.bitCorrespondence.items():
+    for name, correspondence in self.machineCode.bitCorrespondence.items() + self.bitCorrespondence.items():
         if model.startswith('acc'):
             for pipeStage in pipeline:
                 classElements.append(cxx_writer.writer_code.Attribute(name + '_' + pipeStage.name, aliasType, 'pri'))
@@ -348,7 +375,7 @@ def getCPPInstr(self, model, processor, trace):
     # now I need to declare the fields for the variable parts of the
     # instruction
     for name, length in self.machineCode.bitFields:
-        if name in self.machineBits.keys() + self.machineCode.bitValue.keys() + self.machineCode.bitCorrespondence.keys():
+        if name in self.machineBits.keys() + self.machineCode.bitValue.keys() + self.machineCode.bitCorrespondence.keys() + self.bitCorrespondence.keys():
             continue
         classElements.append(cxx_writer.writer_code.Attribute(name, cxx_writer.writer_code.uintType, 'pri'))
         mask = ''

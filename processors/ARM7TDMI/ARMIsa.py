@@ -525,7 +525,7 @@ for(int i = 0; i < 16; i++){
         RB[i].lock();
     }
 }
-#endif ACC_MODEL
+#endif
 """)
 ldm_Instr = trap.Instruction('LDM', True, frequency = 8)
 ldm_Instr.setMachineCode(ls_multiple, {'l' : [1]}, 'TODO')

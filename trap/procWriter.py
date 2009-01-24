@@ -2414,6 +2414,7 @@ def getGetPipelineStages(self, trace):
                         codeString += '//*****TODO***** Complete check\nif(!this->curInstruction->checkHazard()){\nreturn\n}\n'
                     else:
                         codeString += 'this->curInstruction->checkHazard();\n'
+                    codeString += 'this->curInstruction->lockRegs();\n'
                 codeString += 'try{\n'
                 if pipeStage.checkTools:
                     codeString += """
@@ -2454,7 +2455,7 @@ def getGetPipelineStages(self, trace):
                     codeString += '//*****TODO****** complete this code\nif(!this->curInstruction->checkHazard()){\nreturn\n}\n'
                 else:
                     codeString += 'this->curInstruction->checkHazard();\n'
-
+                codeString += 'this->curInstruction->lockRegs();\n'
             codeString += 'try{\n'
             if pipeStage.checkTools:
                 codeString += """
@@ -2544,6 +2545,7 @@ def getGetPipelineStages(self, trace):
                     codeString += '//*****TODO*******\nif(!this->curInstruction->checkHazard()){\nreturn\n}\n'
                 else:
                     codeString += 'this->curInstruction->checkHazard();\n'
+                codeString += 'this->curInstruction->lockRegs();\n'
             codeString += 'try{\n'
             if pipeStage.checkTools:
                 codeString += """
@@ -2607,7 +2609,7 @@ def getGetPipelineStages(self, trace):
                 codeString += """// Now I have to propagate the instruction to the next cycle if
                 // the next stage has completed elaboration
                 if(this->hasToFlush){
-                    this->curInstrucheckHazardsMetction = this->NOPInstrInstance;
+                    this->curInstruction = this->NOPInstrInstance;
                     this->hasToFlush = false;
                 }
                 this->succStage->nextInstruction = this->curInstruction;
