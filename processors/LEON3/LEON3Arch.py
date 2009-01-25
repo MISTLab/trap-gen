@@ -173,6 +173,12 @@ processor.addTLMPort('dataMem')
 # and we also have to behave accordingly when interrupts are found
 irq = trap.Interrupt('IRQ', priority = 0)
 irq.setOperation('/*TODO*/', """
+Using the current interrupt request level (IRL) we
+jump to the TBR (using also the request level to
+complete the TBR address)
+it pst[et] == 0 we ignore the request
+We postpone the interrupt for later processing
+in case the IRL > psr[pil] or IRL == 15
 //TODO""")
 #processor.addIrq(irq)
 

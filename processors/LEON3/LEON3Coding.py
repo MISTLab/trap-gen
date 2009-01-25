@@ -39,13 +39,40 @@ import trap
 #---------------------------------------------------------
 # Instruction Encoding
 #---------------------------------------------------------
-## Lets now start with defining the instructions, i.e. their bitstring and
-## mnemonic and their behavior (look at page 68 of the ARM Architecture
-## Reference Manual). Note the zero* field: it is a special identifier and it
-## means that all those bits have value 0; the same applies for one*
-#dataProc_imm_shift = trap.MachineCode([('cond', 4), ('zero', 3), ('opcode', 4), ('s', 1), ('rn', 4), ('rd', 4), ('shift_amm', 5), ('shift_op', 2), ('zero', 1), ('rm', 4)])
-## All of the register specifiers are indexes in the registry bank REGS,
-## with no offset (so we access them directly, REGS[rn])
-#dataProc_imm_shift.setVarField('rn', ('REGS', 0), 'out')
-#dataProc_imm_shift.setVarField('rd', ('REGS', 0), 'in')
-#dataProc_imm_shift.setVarField('rm', ('REGS', 0), 'in') ## TODO TODO TODO: set how to specify input and output registers
+# Lets now start with defining the instructions, i.e. their bitstring and
+# mnemonic and their behavior. Note the zero* field: it is a special identifier and it
+# means that all those bits have value 0; the same applies for one*
+# As stated in page 44 of "The SPARC Architecture Manual V8" there are
+# mainly 6 different format types
+
+# Call instruction format
+call_format = trap.MachineCode([('op', 2), ('disp30', 30)])
+call_format.setBitfield('op', [0, 1])
+
+# Branch and sethi instructions format
+b_sethi_format1 = trap.MachineCode([('op', 2), ('rd', 5), ('op2', 3), ('imm22', 22)])
+b_sethi_format1.setBitfield('op', [0, 0])
+b_sethi_format1.setVarField('rd', ('REGS', 0), 'out')
+b_sethi_format2 = trap.MachineCode([('op', 2), ('a', 1), ('cond', 4), ('op2', 3), ('disp22', 22)])
+b_sethi_format2.setBitfield('op', [0, 0])
+
+# Memory instruction format
+memory_format = trap.MachineCode([('op', 2), ('rd', 5), ('op3', 6), ('rs1', 5), ('zero', 1), ('asi', 8), ('rs2', 5)])
+memory_format.setBitfield('op', [1, 1])
+# memory_format.setVarField('rd', ('REGS', 0), 'out') # for load is destination for write is source register, set in the instruction
+memory_format.setVarField('rs1', ('REGS', 0), 'in')
+memory_format.setVarField('rs2', ('REGS', 0), 'in')
+
+# Remaining (logical and other) instruction formats
+dpi_format1 = trap.MachineCode([('op', 2), ('rd', 5), ('op3', 6), ('rs1', 5), ('one', 1), ('simm13', 13)])
+dpi_format1.setBitfield('op', [1, 0])
+dpi_format1.setVarField('rd', ('REGS', 0), 'out')
+dpi_format1.setVarField('rs1', ('REGS', 0), 'in')
+
+# Coprocessor of fpu instruction format
+coprocessor_format = trap.MachineCode([('op', 2), ('rd', 5), ('op3', 6), ('rs1', 5), ('opf', 9), ('rs2', 5)])
+coprocessor_format.setBitfield('op', [1, 0])
+coprocessor_format.setVarField('rd', ('REGS', 0), 'out')
+coprocessor_format.setVarField('rs1', ('REGS', 0), 'in')
+coprocessor_format.setVarField('rs2', ('REGS', 0), 'in')
+
