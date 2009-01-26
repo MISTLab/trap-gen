@@ -299,7 +299,7 @@ class Folder:
     # Check for boost libraries
     ########################################
     conf.check_tool('boost')
-    conf.check_boost(lib='thread regex date_time program_options filesystem unit_test_framework', kind='STATIC_NOSTATIC', min_version='1.35.0')
+    conf.check_boost(lib='thread regex date_time program_options filesystem unit_test_framework system', kind='STATIC_NOSTATIC', min_version='1.35.0')
 
     ###########################################################
     # Check for BFD library and header and for LIBERTY library

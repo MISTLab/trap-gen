@@ -1540,7 +1540,7 @@ for(int i = 0; i < 16; i++){
         RB[i].isLocked();
     }
 }
-#endif ACC_MODEL
+#endif
 """)
 stm_Instr = trap.Instruction('STM', True, frequency = 8)
 stm_Instr.setMachineCode(ls_multiple, {'l' : [0]}, 'TODO')
