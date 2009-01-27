@@ -249,8 +249,6 @@ class Instruction:
         # stages at which I check for hazards
         self.hazardStage = ''
         self.wbStage = ''
-        # Registers which are written by the current instruction
-        self.writeRegs = []
         # The bits of the machine code of the instruction; the elements of
         # this list can be 0, 1 or None (don't care)
         self.bitstring = []
@@ -318,13 +316,6 @@ class Instruction:
                 elif not procElem in behavior.archVars:
                     behavior.archVars.append(procElem)
             behavior.archElems = newProcElem
-
-        if self.writeRegs:
-            # I check that the registers that I set for writing are actually part of
-            # the machine code for this instruction
-            for reg in self.writeRegs:
-                if not reg in [i[0] for i in self.machineCode.bitFields]:
-                    raise Exception('Register ' + reg + ' specified among the written registers of instruction ' + self.name + ' is not present in the associated machine code')
 
     def addBehavior(self, behavior, stage, pre = True):
         # adds a behavior (an instance of the class
@@ -415,20 +406,6 @@ class Instruction:
         # This information is used for gcc retargeting.
         raise Exception('GCC Retargeting not yet supported')
         self.templateString = templateString
-
-    def setWriteRegs(self, writeRegs):
-        # Specifies which registers are written
-        # by the instruction
-        try:
-            self.writeRegs = list(writeRegs)
-        except:
-            self.writeRegs = [writeRegs]
-        if self.machineCode:
-            # I check that the registers that I set for writing are actually part of
-            # the machine code for this instruction
-            for reg in self.writeRegs:
-                if not reg in [i[0] for i in self.machineCode.bitFields]:
-                    raise Exception('Register ' + reg + ' specified among the written registers of instruction ' + self.name + ' is not present in the associated machine code')
 
     def addTest(self, variables, input, expOut):
         # input and expected output are two maps, each one containing the

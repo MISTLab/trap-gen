@@ -91,7 +91,6 @@ if (CPSR[key_C]){
 adc_shift_imm_Instr = trap.Instruction('ADC_si', True, frequency = 5)
 adc_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [0, 1, 0, 1]}, 'TODO')
 adc_shift_imm_Instr.setCode(opCode, 'execute')
-adc_shift_imm_Instr.setWriteRegs([])
 adc_shift_imm_Instr.addBehavior(IncrementPC, 'fetch')
 adc_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
 adc_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
