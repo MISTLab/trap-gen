@@ -56,16 +56,24 @@ b_sethi_format1.setVarField('rd', ('REGS', 0), 'out')
 b_sethi_format2 = trap.MachineCode([('op', 2), ('a', 1), ('cond', 4), ('op2', 3), ('disp22', 22)])
 b_sethi_format2.setBitfield('op', [0, 0])
 
-# Memory, logical and remainig instructions format
+# Memory instruction format
+mem_format1 = trap.MachineCode([('op', 2), ('rd', 5), ('op3', 6), ('rs1', 5), ('zero', 1), ('asi', 8), ('rs2', 5)])
+mem_format1.setBitfield('op', [1, 1])
+mem_format1.setVarField('rs1', ('REGS', 0), 'in')
+mem_format1.setVarField('rs2', ('REGS', 0), 'in')
+
+mem_format2 = trap.MachineCode([('op', 2), ('rd', 5), ('op3', 6), ('rs1', 5), ('one', 1), ('simm13', 13)])
+mem_format2.setBitfield('op', [1, 1])
+mem_format2.setVarField('rs1', ('REGS', 0), 'in')
+
+# logical and remainig instructions format
 dpi_format1 = trap.MachineCode([('op', 2), ('rd', 5), ('op3', 6), ('rs1', 5), ('zero', 1), ('asi', 8), ('rs2', 5)])
-dpi_format1.setBitfield('op', [1, 1])
-# dpi_format1.setVarField('rd', ('REGS', 0), 'out') # for load is destination for write is source register, set in the instruction
+dpi_format1.setBitfield('op', [1, 0])
 dpi_format1.setVarField('rs1', ('REGS', 0), 'in')
 dpi_format1.setVarField('rs2', ('REGS', 0), 'in')
 
 dpi_format2 = trap.MachineCode([('op', 2), ('rd', 5), ('op3', 6), ('rs1', 5), ('one', 1), ('simm13', 13)])
 dpi_format2.setBitfield('op', [1, 0])
-dpi_format2.setVarField('rd', ('REGS', 0), 'out')
 dpi_format2.setVarField('rs1', ('REGS', 0), 'in')
 
 # Coprocessor of fpu instruction format

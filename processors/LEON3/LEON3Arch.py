@@ -156,9 +156,9 @@ processor.setFetchRegister('PC', -4)
 
 # Lets now add details about the processor interconnection (i.e. memory ports,
 # interrupt ports, pins, etc.)
-processor.addTLMPort('instrMem', True)
-processor.addTLMPort('dataMem')
-#processor.setMemory('dataMem', 10*1024*1024)
+#processor.addTLMPort('instrMem', True)
+#processor.addTLMPort('dataMem')
+processor.setMemory('dataMem', 10*1024*1024)
 
 # Now lets add the interrupt ports: TODO
 # It PSR[ET] == 0 I do not do anything; else
@@ -189,7 +189,7 @@ decodeStage = trap.PipeStage('decode')
 processor.addPipeStage(decodeStage)
 regsStage = trap.PipeStage('regs')
 regsStage.setHazard()
-executeStage.setCheckUnknownInstr()
+regsStage.setCheckUnknownInstr()
 processor.addPipeStage(regsStage)
 executeStage = trap.PipeStage('execute')
 executeStage.setCheckTools()
