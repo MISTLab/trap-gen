@@ -66,14 +66,22 @@ mem_format2 = trap.MachineCode([('op', 2), ('rd', 5), ('op3', 6), ('rs1', 5), ('
 mem_format2.setBitfield('op', [1, 1])
 mem_format2.setVarField('rs1', ('REGS', 0), 'in')
 
+# Store Barrier format
+stbar_format = trap.MachineCode([('op', 2), ('zero', 5), ('op3', 6), ('rs1', 5), ('zero', 14)])
+stbar_format.setBitfield('op', [1, 0])
+stbar_format.setBitfield('op3', [1, 0, 1, 0, 0, 0])
+stbar_format.setBitfield('rs1', [0, 1, 1, 1, 1])
+
 # logical and remainig instructions format
 dpi_format1 = trap.MachineCode([('op', 2), ('rd', 5), ('op3', 6), ('rs1', 5), ('zero', 1), ('asi', 8), ('rs2', 5)])
 dpi_format1.setBitfield('op', [1, 0])
+dpi_format1.setVarField('rd', ('REGS', 0), 'out')
 dpi_format1.setVarField('rs1', ('REGS', 0), 'in')
 dpi_format1.setVarField('rs2', ('REGS', 0), 'in')
 
 dpi_format2 = trap.MachineCode([('op', 2), ('rd', 5), ('op3', 6), ('rs1', 5), ('one', 1), ('simm13', 13)])
 dpi_format2.setBitfield('op', [1, 0])
+dpi_format2.setVarField('rd', ('REGS', 0), 'out')
 dpi_format2.setVarField('rs1', ('REGS', 0), 'in')
 
 # Coprocessor of fpu instruction format
