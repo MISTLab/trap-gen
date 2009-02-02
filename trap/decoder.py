@@ -222,13 +222,14 @@ class decoderCreator:
     Automated Synthesis of Efficient Binary Decodes for Retargetable Software Toolkits
     """
 
-    def __init__(self, instructions, memPenaltyFactor = 2):
+    def __init__(self, instructions, subInstructions, memPenaltyFactor = 2):
         # memPenaltyFactor represent how much the heuristic has to take
         # into account memory consumption: the lower the more memory is
         # consumed by the created decoder.
         self.memPenaltyFactor = memPenaltyFactor
         self.instrId = {}
         self.instrName = {}
+        self.instrSub = {}
         self.instrPattern = []
         # Now, given the frequencies, I compute the probabilities
         # for each instruction
@@ -251,19 +252,39 @@ class decoderCreator:
         # the decoder into C++ code, I reverse again the patterns so
         # that the decoder is correctly printed
         for name, instr in instructions.items():
-            revBitstring = list(instr.bitstring)
-            revBitstring.reverse()
-            self.instrName[instr.id] = name
-            self.instrId[instr.id] = (revBitstring, float(instr.frequency)/float(self.totalCount))
-            self.instrPattern.append((revBitstring, float(instr.frequency)/float(self.totalCount)))
+            if not name in subInstructions.keys():
+                revBitstring = list(instr.bitstring)
+                revBitstring.reverse()
+                self.instrName[instr.id] = name
+                self.instrSub[instr.id] = instr.subInstructions
+                self.instrId[instr.id] = (revBitstring, float(instr.frequency)/float(self.totalCount))
+                self.instrPattern.append((revBitstring, float(instr.frequency)/float(self.totalCount)))
         self.decodingTree = NX.XDiGraph()
         self.computeIllegalBistreams()
         self.computeDecoder()
 
+    def getSubInstrCode(self, subInstructions):
+        code = ''
+        for instr in subInstructions:
+            revBitstring = list(instr.bitstring)
+            mask = ''
+            value = ''
+            for i in revBitstring:
+                if i == None:
+                    mask += '0'
+                else:
+                    mask += '1'
+                if i == 1:
+                    value += '1'
+                else:
+                    value += '0'
+            code += 'if((instrCode & ' + hex(int(mask, 2)) + ') == ' + hex(int(value, 2)) + ' ){\n// Instruction ' + instr.name + '\nreturn ' + str(instr.id) + ';\n}\n'
+        return code
+
     def createPatternDecoder(self, subtree):
         if subtree.instrId:
             if subtree.instrId != -1:
-                return '// Instruction ' + self.instrName[subtree.instrId] + '\nreturn ' + str(subtree.instrId) + ';\n'
+                return self.getSubInstrCode(self.instrSub[instrId]) + '// Instruction ' + self.instrName[subtree.instrId] + '\nreturn ' + str(subtree.instrId) + ';\n'
             else:
                 return '// Non-valid pattern\nreturn ' + str(self.instrNum) + ';\n'
         if self.decodingTree.out_degree(subtree) != 2:
@@ -288,7 +309,7 @@ class decoderCreator:
         if nodeIf.instrId != None:
             if nodeIf.instrId != -1:
                 #code += '\n' + str(nodeIf.patterns) + '\n'
-                code += '// Instruction ' + self.instrName[nodeIf.instrId] + '\nreturn ' + str(nodeIf.instrId) + ';\n'
+                code += self.getSubInstrCode(self.instrSub[nodeIf.instrId]) + '// Instruction ' + self.instrName[nodeIf.instrId] + '\nreturn ' + str(nodeIf.instrId) + ';\n'
             else:
                 code += '// Non-valid pattern\nreturn ' + str(self.instrNum) + ';\n'
         elif nodeIf.splitFunction.pattern:
@@ -302,7 +323,7 @@ class decoderCreator:
         if nodeElse.instrId != None:
             if nodeElse.instrId != -1:
                 #code += '\n' + str(nodeElse.patterns) + '\n'
-                code += '// Instruction ' + self.instrName[nodeElse.instrId] + '\nreturn ' + str(nodeElse.instrId) + ';\n'
+                code += self.getSubInstrCode(self.instrSub[nodeElse.instrId]) + '// Instruction ' + self.instrName[nodeElse.instrId] + '\nreturn ' + str(nodeElse.instrId) + ';\n'
             else:
                 code += '// Non-valid pattern\nreturn ' + str(self.instrNum) + ';\n'
         elif nodeElse.splitFunction.pattern:
@@ -317,7 +338,7 @@ class decoderCreator:
     def createTableDecoder(self, subtree):
         if subtree.instrId:
             if subtree.instrId != -1:
-                return '// Instruction ' + self.instrName[subtree.instrId] + '\nreturn ' + str(subtree.instrId) + ';\n'
+                return self.getSubInstrCode(self.instrSub[instrId]) + '// Instruction ' + self.instrName[subtree.instrId] + '\nreturn ' + str(subtree.instrId) + ';\n'
             else:
                 return '// Non-valid pattern\nreturn ' + str(self.instrNum) + ';\n'
         outEdges = self.decodingTree.out_edges(subtree)
@@ -332,7 +353,7 @@ class decoderCreator:
             if edge[1].instrId != None:
                 if edge[1].instrId != -1:
                     #code += '\n' + str(edge[1].patterns) + '\n'
-                    code += '// Instruction ' + self.instrName[edge[1].instrId] + '\nreturn ' + str(edge[1].instrId) + ';\n'
+                    code += self.getSubInstrCode(self.instrSub[edge[1].instrId]) + '// Instruction ' + self.instrName[edge[1].instrId] + '\nreturn ' + str(edge[1].instrId) + ';\n'
                 else:
                     code += '// Non-valid pattern\nreturn ' + str(self.instrNum) + ';\n'
             elif edge[1].splitFunction.pattern:
@@ -389,15 +410,27 @@ class decoderCreator:
             for i in range(0, len(pattern)):
                 if pattern[i] == None:
                     if ranGen.random() > 0.5:
-                        pattern[i] = str(1)
+                        pattern[i] = '1'
                     else:
-                        pattern[i] = str(0)
+                        pattern[i] = '0'
                 else:
                     pattern[i] = str(pattern[i])
             if instrId == -1:
                 expectedId = self.instrNum
             else:
-                expectedId = instrId
+                # Now I have to check for the presence of a sub-instruction and, in case,
+                # correct the target of the test
+                expectedId = None
+                for instr in self.instrSub[instrId]:
+                    found = True
+                    for i in range(0, len(pattern)):
+                        if instr.bistring[i] != None and pattern[i] != instr.bistring[i]:
+                            found = False
+                    if found:
+                        expectedId = instr.id
+                        break
+                if expectedId == None:
+                    expectedId = instrId
             pattern.reverse()
             if instrId != -1:
                 code += '// Checking Instruction ' + self.instrName[instrId] + '\n'

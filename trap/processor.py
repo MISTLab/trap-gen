@@ -635,7 +635,7 @@ class Processor:
         from isa import resolveBitType
         import decoder, os
         import cxx_writer
-        dec = decoder.decoderCreator(self.isa.instructions)
+        dec = decoder.decoderCreator(self.isa.instructions, self.isa.subInstructions)
         if dumpDecoderName:
             dec.printDecoder(dumpDecoderName)
         decClass = dec.getCPPClass(resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>'))

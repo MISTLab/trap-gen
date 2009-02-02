@@ -882,13 +882,11 @@ writeTbr_imm_Instr.addTest({}, {}, {})
 isa.addInstruction(writeTbr_imm_Instr)
 
 ## Store Barrier
-#stbar_Instr = trap.Instruction('STBAR', True, frequency = 5)
-#stbar_Instr.setMachineCode(stbar_format, {}, 'TODO')
-#stbar_Instr.setCode(opCode, 'execute')
-#stbar_Instr.addTest({}, {}, {})
-#isa.addInstruction(stbar_Instr)
-# For this instruction we have to set the fact that some combinations
-# of the rd and the rs1 in the RDASR instructions are not valid
+stbar_Instr = trap.Instruction('STBAR', True, frequency = 5)
+stbar_Instr.setMachineCode(stbar_format, {}, 'TODO', subInstr = True)
+stbar_Instr.setCode(opCode, 'execute')
+stbar_Instr.addTest({}, {}, {})
+isa.addInstruction(stbar_Instr)
 
 # Unimplemented Instruction
 unimpl_Instr = trap.Instruction('UNIMP', True, frequency = 5)
