@@ -48,7 +48,7 @@ def configure(conf):
     ##################################################
     # Check for BFD library and header
     ##################################################
-    result = os.popen(conf.env['CXX'] + ' -print-search-dirs')
+    result = os.popen(conf.env['CXX'][0] + ' -print-search-dirs')
     curLine = result.readline()
     while curLine.find('libraries: =') == -1:
         curLine = result.readline()

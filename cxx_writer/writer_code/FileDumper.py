@@ -304,7 +304,7 @@ class Folder:
     ###########################################################
     # Check for BFD library and header and for LIBERTY library
     ###########################################################
-    result = os.popen(conf.env['CXX'] + ' -print-search-dirs')
+    result = os.popen(conf.env['CXX'][0] + ' -print-search-dirs')
     curLine = result.readline()
     while curLine.find('libraries: =') == -1:
         curLine = result.readline()
