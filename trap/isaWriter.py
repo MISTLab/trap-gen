@@ -1,3 +1,4 @@
+# -*- coding: iso-8859-1 -*-
 ####################################################################################
 #         ___        ___           ___           ___
 #        /  /\      /  /\         /  /\         /  /\
@@ -725,6 +726,11 @@ def getCPPClasses(self, processor, model, trace):
         instructionElements.append(cxx_writer.writer_code.Attribute('flushPipeline', cxx_writer.writer_code.boolType, 'pu'))
         instructionElements.append(cxx_writer.writer_code.Attribute('stageCycles', cxx_writer.writer_code.uintType, 'pro'))
         constrBody = 'this->stageCycles = 0;\nthis->flushPipeline = false;'
+
+    for constant in self.constants:
+        instructionElements.append(cxx_writer.writer_code.Attribute(constant[1], constant[0], 'pro'))
+        initElements.append(constant[1] + '(' + str(constant[2]) + ')')
+
     publicConstr = cxx_writer.writer_code.Constructor(cxx_writer.writer_code.Code(constrBody), 'pu', baseInstrConstrParams, initElements)
     instructionDecl = cxx_writer.writer_code.ClassDeclaration('Instruction', instructionElements)
     instructionDecl.addConstructor(publicConstr)

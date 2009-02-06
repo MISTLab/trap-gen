@@ -1,3 +1,4 @@
+# -*- coding: iso-8859-1 -*-
 ####################################################################################
 #         ___        ___           ___           ___
 #        /  /\      /  /\         /  /\         /  /\
@@ -49,13 +50,18 @@ import cxx_writer
 # Method used to move to the next register window; this simply consists in
 # the check that there is an empty valid window and in the update of
 # the window aliases
-IncrementRegWindow_code = ''
+IncrementRegWindow_code = """
+newCwp = (PSR[key_CWP] + 1) % NUM_REG_WIN;
+if(((0x01 << (newCwp)) & WIM) != 0){
+    // There is a window overflow exception
+}
+PSR[key_CWP] = newCwp;
+"""
 for i in range(8, 32):
-    IncrementRegWindow_code += 'REGS[13].updateAlias(RB[13]);'
+    #IncrementRegWindow_code += 'REGS[' + str(i) + '].updateAlias(WINREGS[(PSR[key_CWP]*16 + ' + str(i) + ') % (16*NUM_REG_WIN)]);\n'
 opCode = cxx_writer.Code(IncrementRegWindow_code)
 IncrementRegWindow_method = trap.HelperMethod('IncrementRegWindow', opCode, 'execute')
-IncrementRegWindow_method.setSignature(('BIT<32>'), [cxx_writer.Parameter('shift_amm', cxx_writer.uintType), ('toShift', 'BIT<32>')])
-IncrementRegWindow_method.addVariable(('shifted', 'BIT<32>'))
+IncrementRegWindow_method.addVariable(('newCwp', 'BIT<32>'))
 
 # Normal PC increment, used when not in a branch instruction; in a branch instruction
 # I will directly modify both PC and nPC in case we are in a the cycle accurate model,

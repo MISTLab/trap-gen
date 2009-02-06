@@ -1,3 +1,4 @@
+# -*- coding: iso-8859-1 -*-
 ####################################################################################
 #         ___        ___           ___           ___
 #        /  /\      /  /\         /  /\         /  /\
@@ -88,6 +89,10 @@ class ISA:
         self.beginOp = None
         self.endOp = None
         self.subInstructions = {}
+        self.constants = []
+
+    def addConstant(self, varType, name, value):
+        self.constants.append((varType, name, value))
 
     def addInstruction(self, instruction):
         if self.instructions.has_key(instruction.name):

@@ -1,3 +1,4 @@
+# -*- coding: iso-8859-1 -*-
 ####################################################################################
 #         ___        ___           ___           ___
 #        /  /\      /  /\         /  /\         /  /\
@@ -48,6 +49,8 @@ except ImportError:
     except ImportError:
         print 'Please specify in file LEON3Arch.py the path where the core TRAP files are located'
 
+import cxx_writer
+
 # It is nice to keep the ISA and the architecture separated
 # so we use the import trick
 import LEON3Isa
@@ -63,6 +66,8 @@ processor.setISA(LEON3Isa.isa) # lets set the instruction set
 # Number of register windows, between 2 and 32, default is 8 for LEON3
 numRegWindows = 8
 
+LEON3Isa.isa.addConstant(cxx_writer.writer_code.uintType, 'NUM_REG_WIN', numRegWindows)
+
 # There are 8 global register, and a variable number of
 # of 16-registers set; this number depends on the number of
 # register windows
@@ -75,7 +80,7 @@ processor.addRegBank(windowRegs)
 psrBitMask = {'IMPL': (31, 28), 'VER': (27, 24), 'ICC': (23, 20), 'EC': (13, 13), 'EF': (12, 12), 'PIL': (11, 8), 'S': (7, 7), 'PS': (6, 6), 'ET': (5, 5), 'CWP': (4, 0)}
 psrReg = trap.Register('PSR', 32, psrBitMask)
 # TODO: Check: should the CWP be the last (i.e. numRegWindows - 1) or fist (i.e. 0)
-# register window????
+# register window????In case change also the initialization of the alias register windows
 psrReg.setDefaultValue(0xF3000080 + numRegWindows - 1)
 processor.addRegister(psrReg)
 # Window Invalid Mask Register
@@ -113,7 +118,7 @@ processor.addRegBank(asrRegs)
 # Now I set the alias: they can (and will) be used by the instructions
 # to access the registers more easily. Note that, in general, it is
 # responsibility of the programmer keeping the aliases updated
-regs = trap.AliasRegBank('REGS', 32, ('GLOBAL[0-7]', 'WINREGS[0-23]'))
+regs = trap.AliasRegBank('REGS', 32, ('GLOBAL[0-7]', 'WINREGS['  + str(16*(numRegWindows - 2) - 1) + '-' + str(16*numRegWindows - 1) + ']'))
 processor.addAliasRegBank(regs)
 FP = trap.AliasRegister('FP', 'REGS[30]')
 processor.addAliasReg(FP)
