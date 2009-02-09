@@ -266,7 +266,7 @@ def getCPPRegClass(self, model, regType):
     attrs.append(valueAttribute)
     if self.offset and not model.startswith('acc'):
         offsetAttribute = cxx_writer.writer_code.Attribute('offset', cxx_writer.writer_code.intType, 'pri')
-        attrs.append(valueAttribute)
+        attrs.append(offsetAttribute)
     registerElements = attrs + registerElements
 
     registerDecl = cxx_writer.writer_code.ClassDeclaration(regType.name, registerElements, [registerType])
@@ -401,15 +401,13 @@ def getCPPRegisters(self, model):
                 regTypesCount[reg.bitWidth] = regTypesCount[reg.bitWidth] + 1
                 regTypeSubName[reg.bitWidth][bitFieldSig] = regTypesCount[reg.bitWidth]
                 regTypesBW[reg.bitWidth].append(bitFieldSig)
-                regTypesOff[str(reg.bitWidth) + bitFieldSig] = [reg.offset != 0]
-            elif not ((reg.offset != 0) in regTypesOff[str(reg.bitWidth) + bitFieldSig]):
+                regTypesOff[str(reg.bitWidth) + bitFieldSig] = [reg.offset]
+            elif not (reg.offset in regTypesOff[str(reg.bitWidth) + bitFieldSig]):
                 # I check the offset and add the register only if it has
                 # an offset
                 regTypes.append(reg)
-                regTypesCount[reg.bitWidth] = regTypesCount[reg.bitWidth] + 1
                 regTypeSubName[reg.bitWidth][bitFieldSig] = regTypesCount[reg.bitWidth]
-                regTypesBW[reg.bitWidth].append(bitFieldSig)
-                regTypesOff[str(reg.bitWidth) + bitFieldSig].append((reg.offset != 0))
+                regTypesOff[str(reg.bitWidth) + bitFieldSig].append(reg.offset)
         regTypeName = 'Reg' + str(reg.bitWidth) + '_' + str(regTypeSubName[reg.bitWidth][bitFieldSig])
         if reg.offset:
             regTypeName += '_off'
@@ -2788,9 +2786,11 @@ def getMainCode(self, model):
     boost::program_options::options_description desc("Processor simulator for """ + self.name + """");
     desc.add_options()
         ("help,h", "produces the help message")
-        ("debugger,d", "activates the use of the software debugger")"""
+        ("debugger,d", "activates the use of the software debugger")
+    """
     if self.systemc or model.startswith('acc'):
-        code += """("frequency,f", boost::program_options::value<double>(), "processor clock frequency specified in MHz [Default 1MHz]")"""
+        code += """("frequency,f", boost::program_options::value<double>(), "processor clock frequency specified in MHz [Default 1MHz]")
+        """
     code += """("application,a", boost::program_options::value<std::string>(), "application to be executed on the simulator")
     ;
 

@@ -53,23 +53,46 @@ import cxx_writer
 IncrementRegWindow_code = """
 newCwp = (PSR[key_CWP] + 1) % NUM_REG_WIN;
 if(((0x01 << (newCwp)) & WIM) != 0){
-    // There is a window overflow exception
+    // There is a window underflow exception: TODO
 }
 PSR[key_CWP] = newCwp;
 """
 for i in range(8, 32):
-    #IncrementRegWindow_code += 'REGS[' + str(i) + '].updateAlias(WINREGS[(PSR[key_CWP]*16 + ' + str(i) + ') % (16*NUM_REG_WIN)]);\n'
+    IncrementRegWindow_code += 'REGS[' + str(i) + '].updateAlias(WINREGS[(PSR[key_CWP]*16 + ' + str(i) + ') % (16*NUM_REG_WIN)]);\n'
 opCode = cxx_writer.Code(IncrementRegWindow_code)
 IncrementRegWindow_method = trap.HelperMethod('IncrementRegWindow', opCode, 'execute')
 IncrementRegWindow_method.addVariable(('newCwp', 'BIT<32>'))
+# Method used to move to the previous register window; this simply consists in
+# the check that there is an empty valid window and in the update of
+# the window aliases
+DecrementRegWindow_code = """
+newCwp = (PSR[key_CWP] - 1) % NUM_REG_WIN;
+if(((0x01 << (newCwp)) & WIM) != 0){
+    // There is a window overflow exception: TODO
+}
+PSR[key_CWP] = newCwp;
+"""
+for i in range(8, 32):
+    DecrementRegWindow_code += 'REGS[' + str(i) + '].updateAlias(WINREGS[(PSR[key_CWP]*16 + ' + str(i) + ') % (16*NUM_REG_WIN)]);\n'
+opCode = cxx_writer.Code(DecrementRegWindow_code)
+DecrementRegWindow_method = trap.HelperMethod('DecrementRegWindow', opCode, 'execute')
+DecrementRegWindow_method.addVariable(('newCwp', 'BIT<32>'))
+
+# Sign extends the input bitstring
+opCode = cxx_writer.Code("""
+if((bitSeq & (1 << (bitSeq_length - 1))) != 0)
+    bitSeq |= (((unsigned int)0xFFFFFFFF) << bitSeq_length);
+return bitSeq;
+""")
+SignExtend_method = trap.HelperMethod('SignExtend', opCode, 'execute')
+SignExtend_method.setSignature(('BIT<32>'), [('bitSeq', 'BIT<32>'), cxx_writer.Parameter('bitSeq_length', cxx_writer.uintType)])
 
 # Normal PC increment, used when not in a branch instruction; in a branch instruction
 # I will directly modify both PC and nPC in case we are in a the cycle accurate model,
 # while just nPC in case we are in the functional one; if the branch has the annulling bit
 # set, then also in the functional model both the PC and nPC will be modified
-opCode = cxx_writer.Code("""
-PC = nPC;
-nPC += 4;
+opCode = cxx_writer.Code("""PC = NPC;
+NPC += 4;
 """)
 IncrementPC = trap.HelperOperation('IncrementPC', opCode, inline = False)
 

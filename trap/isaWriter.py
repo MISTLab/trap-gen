@@ -728,7 +728,7 @@ def getCPPClasses(self, processor, model, trace):
         constrBody = 'this->stageCycles = 0;\nthis->flushPipeline = false;'
 
     for constant in self.constants:
-        instructionElements.append(cxx_writer.writer_code.Attribute(constant[1], constant[0], 'pro'))
+        instructionElements.append(cxx_writer.writer_code.Attribute(constant[1], constant[0].makeConst(), 'pro'))
         initElements.append(constant[1] + '(' + str(constant[2]) + ')')
 
     publicConstr = cxx_writer.writer_code.Constructor(cxx_writer.writer_code.Code(constrBody), 'pu', baseInstrConstrParams, initElements)

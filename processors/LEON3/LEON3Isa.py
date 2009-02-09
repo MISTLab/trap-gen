@@ -41,13 +41,16 @@
 import trap
 import cxx_writer
 from LEON3Coding import *
+from LEON3Methods import *
 
 # ISA declaration: it is the container for all the single instructions
 isa = trap.ISA()
 
 # Now I add to the ISA all the helper methods and operations which will be
 # called from the instructions
-#isa.addMethod(restoreSPSR_method)
+isa.addMethod(IncrementRegWindow_method)
+isa.addMethod(DecrementRegWindow_method)
+isa.addMethod(SignExtend_method)
 
 #-------------------------------------------------------------------------------------
 # Let's now procede to set the behavior of the instructions
@@ -775,14 +778,102 @@ restore_reg_Instr.addTest({}, {}, {})
 isa.addInstruction(restore_reg_Instr)
 
 # Branch on Integer Condition Codes
+opCode = cxx_writer.Code("""
+switch(cond){
+    case 0b1000:{
+        // Branch Always
+        unsigned int targetPc = PC + 4*(SignExtend(disp22, 22));
+        #ifdef ACC_MODEL
+        PC = targetPc;
+        NPC = targetPc + 4;
+        if(a == 1){
+            flush();
+        }
+        #else
+        if(a == 1){
+            PC = targetPc - 8;
+            NPC = targetPc - 4;
+        }
+        else{
+            NPC = targetPc - 8;
+        }
+        #endif
+    break;}
+    case 0b0000:{
+        // Branch Never
+        #ifdef ACC_MODEL
+        if(a == 1){
+            flush();
+        }
+        #else
+        if(a == 1){
+            PC = NPC;
+            NPC = NPC + 4;
+        }
+        #endif
+    break;}
+    default:{
+        // All the other non-special situations
+        bool exec = ((cond == 0b1001) && PSR[key_ICC_z] == 0) ||
+                    ((cond == 0b0001) && PSR[key_ICC_z] != 0) ||
+                    ((cond == 0b1010) && (PSR[key_ICC_z] == 0) && (PSR[key_ICC_n] == PSR[key_ICC_v])) ||
+                    ((cond == 0b0010) && (PSR[key_ICC_z] != 0) || (PSR[key_ICC_n] != PSR[key_ICC_v])) ||
+                    ((cond == 0b1011) && PSR[key_ICC_n] == PSR[key_ICC_v]) ||
+                    ((cond == 0b0011) && PSR[key_ICC_n] != PSR[key_ICC_v]) ||
+                    ((cond == 0b1100) && (PSR[key_ICC_c] + PSR[key_ICC_z]) == 0) ||
+                    ((cond == 0b0100) && (PSR[key_ICC_c] + PSR[key_ICC_z]) > 0) ||
+                    ((cond == 0b1101) && PSR[key_ICC_c] == 0) ||
+                    ((cond == 0b0101) && PSR[key_ICC_c] != 0) ||
+                    ((cond == 0b1110) && PSR[key_ICC_n] == 0) ||
+                    ((cond == 0b0110) && PSR[key_ICC_n] != 0) ||
+                    ((cond == 0b1111) && PSR[key_ICC_v] == 0) ||
+                    ((cond == 0b0111) && PSR[key_ICC_v] != 0);
+        if(exec){
+            unsigned int targetPc = PC + 4*(SignExtend(disp22, 22));
+            #ifdef ACC_MODEL
+            PC = targetPc;
+            NPC = targetPc + 4;
+            #else
+            NPC = targetPc - 8;
+            #endif
+        }
+        else if(a == 1){
+            #ifdef ACC_MODEL
+            flush();
+            #else
+            PC = NPC;
+            NPC = NPC + 4;
+            #endif
+        }
+    break;}
+}
+""")
 branch_Instr = trap.Instruction('BRANCH', True, frequency = 5)
 branch_Instr.setMachineCode(b_sethi_format2, {'op2' : [0, 1, 0]}, 'TODO')
+branch_Instr.setCode(opCode, 'decode')
+branch_Instr.addBehavior(IncrementPC, 'fetch')
+branch_Instr.addTest({'cond': int('1000', 2), 'a': 0, 'disp22': 0x200}, {'PC' : 0x0, 'NPC' : 0x4, 'PSR': 0x0}, {'PC' : 0x8, 'NPC' : 0x800})
+branch_Instr.addTest({'cond': int('1000', 2), 'a': 1, 'disp22': 0x200}, {'PC' : 0x0, 'NPC' : 0x4, 'PSR': 0x0}, {'PC' : 0x804, 'NPC' : 0x804})
+branch_Instr.addTest({'cond': int('0000', 2), 'a': 0, 'disp22': 0x200}, {'PC' : 0x0, 'NPC' : 0x4, 'PSR': 0x0}, {'PC' : 0x8, 'NPC' : 0x8})
+branch_Instr.addTest({'cond': int('0000', 2), 'a': 1, 'disp22': 0x200}, {'PC' : 0x0, 'NPC' : 0x4, 'PSR': 0x0}, {'PC' : 0xc, 'NPC' : 0xc})
+branch_Instr.addTest({'cond': int('1001', 2), 'a': 0, 'disp22': 0x200}, {'PC' : 0x0, 'NPC' : 0x4, 'PSR': 0x00000000}, {'PC' : 0x8, 'NPC' : 0x800})
+branch_Instr.addTest({'cond': int('1001', 2), 'a': 1, 'disp22': 0x200}, {'PC' : 0x0, 'NPC' : 0x4, 'PSR': 0x00000000}, {'PC' : 0x8, 'NPC' : 0x800})
+branch_Instr.addTest({'cond': int('1001', 2), 'a': 1, 'disp22': 0x200}, {'PC' : 0x0, 'NPC' : 0x4, 'PSR': 0x00400000}, {'PC' : 0xc, 'NPC' : 0xc})
+branch_Instr.addTest({'cond': int('1001', 2), 'a': 0, 'disp22': 0x200}, {'PC' : 0x0, 'NPC' : 0x4, 'PSR': 0x00400000}, {'PC' : 0x8, 'NPC' : 0x8})
+isa.addInstruction(branch_Instr)
 
 # Call and Link
+opCode = cxx_writer.Code("""
+""")
 call_Instr = trap.Instruction('CALL', True, frequency = 5)
 call_Instr.setMachineCode(call_format, {}, 'TODO')
+call_Instr.setCode(opCode, 'execute')
+call_Instr.addTest({}, {}, {})
+isa.addInstruction(call_Instr)
 
 # Jump and Link
+opCode = cxx_writer.Code("""
+""")
 jump_imm_Instr = trap.Instruction('JUMP_imm', True, frequency = 5)
 jump_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 0, 0, 0]}, 'TODO')
 jump_imm_Instr.setCode(opCode, 'execute')
@@ -795,6 +886,8 @@ jump_reg_Instr.addTest({}, {}, {})
 isa.addInstruction(jump_reg_Instr)
 
 # Return from Trap
+opCode = cxx_writer.Code("""
+""")
 rett_imm_Instr = trap.Instruction('RETT_imm', True, frequency = 5)
 rett_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 0, 0, 1]}, 'TODO')
 rett_imm_Instr.setCode(opCode, 'execute')
@@ -807,6 +900,8 @@ rett_reg_Instr.addTest({}, {}, {})
 isa.addInstruction(rett_reg_Instr)
 
 # Trap on Integer Condition Code
+opCode = cxx_writer.Code("""
+""")
 trap_imm_Instr = trap.Instruction('TRAP_imm', True, frequency = 5)
 trap_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 0, 1, 0]}, 'TODO')
 trap_imm_Instr.setCode(opCode, 'execute')
@@ -819,6 +914,8 @@ trap_reg_Instr.addTest({}, {}, {})
 isa.addInstruction(trap_reg_Instr)
 
 # Read State Register
+opCode = cxx_writer.Code("""
+""")
 readReg_Instr = trap.Instruction('READreg', True, frequency = 5)
 readReg_Instr.setMachineCode(dpi_format1, {'op3': [1, 0, 1, 0, 0, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, 'TODO')
 readReg_Instr.setCode(opCode, 'execute')

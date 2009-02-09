@@ -77,7 +77,7 @@ processor.addRegBank(globalRegs)
 windowRegs = trap.RegisterBank('WINREGS', 16*numRegWindows, 32)
 processor.addRegBank(windowRegs)
 # Program status register
-psrBitMask = {'IMPL': (31, 28), 'VER': (27, 24), 'ICC': (23, 20), 'EC': (13, 13), 'EF': (12, 12), 'PIL': (11, 8), 'S': (7, 7), 'PS': (6, 6), 'ET': (5, 5), 'CWP': (4, 0)}
+psrBitMask = {'IMPL': (31, 28), 'VER': (27, 24), 'ICC_n': (23, 23), 'ICC_z': (22, 22), 'ICC_v': (21, 21), 'ICC_c': (20, 20), 'EC': (13, 13), 'EF': (12, 12), 'PIL': (11, 8), 'S': (7, 7), 'PS': (6, 6), 'ET': (5, 5), 'CWP': (4, 0)}
 psrReg = trap.Register('PSR', 32, psrBitMask)
 # TODO: Check: should the CWP be the last (i.e. numRegWindows - 1) or fist (i.e. 0)
 # register window????In case change also the initialization of the alias register windows
@@ -88,7 +88,8 @@ wimBitMask = {}
 for i in range(0, 32):
     wimBitMask['WIM_' + str(i)] = (i, i)
 wimReg = trap.Register('WIM', 32, wimBitMask)
-# TODO: CHECK: should this be init to 0 or not?????
+# TODO: CHECK: should this be init to 0 or not?????is is set by
+# hardware or software?
 wimReg.setDefaultValue(0xFFFFFFFF ^ (pow(2, numRegWindows) - 1))
 processor.addRegister(wimReg)
 # Trap Base Register
@@ -106,7 +107,7 @@ processor.addRegister(pcReg)
 # Program Counter
 npcReg = trap.Register('NPC', 32)
 npcReg.setDefaultValue(('ENTRY_POINT', 4))
-pcReg.setOffset(4)
+#npcReg.setOffset(4)
 processor.addRegister(npcReg)
 # Ancillary State Registers
 # in the LEON3 processor some of them have a special meaning:
@@ -118,7 +119,7 @@ processor.addRegBank(asrRegs)
 # Now I set the alias: they can (and will) be used by the instructions
 # to access the registers more easily. Note that, in general, it is
 # responsibility of the programmer keeping the aliases updated
-regs = trap.AliasRegBank('REGS', 32, ('GLOBAL[0-7]', 'WINREGS['  + str(16*(numRegWindows - 2) - 1) + '-' + str(16*numRegWindows - 1) + ']'))
+regs = trap.AliasRegBank('REGS', 32, ('GLOBAL[0-7]', 'WINREGS['  + str(16*(numRegWindows - 1) - 8) + '-' + str(16*numRegWindows - 1) + ']'))
 processor.addAliasRegBank(regs)
 FP = trap.AliasRegister('FP', 'REGS[30]')
 processor.addAliasReg(FP)
@@ -171,7 +172,7 @@ processor.setMemory('dataMem', 10*1024*1024)
 # otherwise I put it in a queue. The interrupt level depends on the interrupt line
 # (actually I can have an external interrupt controller and a complex input line
 # or a simple interrupt controller and just an input signal)
-# Otherwise it is treated like a normal exception, to I jump to the 
+# Otherwise it is treated like a normal exception, to I jump to the
 # TBR: we can use a routine for this ...
 # TODO: do we check for exceptions in the fetch or exception stage???
 # TODO: SVT (Single vector trapping) must be configurable in the ASR[17]

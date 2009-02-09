@@ -425,7 +425,7 @@ class decoderCreator:
                 for instr in self.instrSub[instrId]:
                     found = True
                     for i in range(0, len(pattern)):
-                        if instr.bistring[i] != None and pattern[i] != instr.bistring[i]:
+                        if instr.bitstring[i] != None and pattern[i] != instr.bitstring[i]:
                             found = False
                     if found:
                         expectedId = instr.id

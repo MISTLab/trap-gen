@@ -23,18 +23,20 @@ nPC += 4
 -- The check for the condition code (if any) to see if an instruction should be
 annulled is done in the decode stage (??is this really true?? so not just branch but
 all instructions with condition code are delayed if a preceding instruction is not
-in fetch yet?)
+in fetch yet?) - actually the only instructions with condition code are the branches
 
 -- Interrupts: the processor has in input one line of 4 bits encoding the interrupt
 request level of the corresponding interrupt; the queue of interrupts is dealt with by
 the interrupt controller, so I should not bother with it. Processor should be able to
 acknowledge the interrupt (how?? is there a separate line?) CHECK in the VHDL code.
 
--- Exception stage: do we check for interrupts here? or in fetch? CHECK in the VHDL code
+-- Exception stage: do we check for interrupts here? or in fetch? CHECK in the VHDL code?
+from the processor manual (page 159) it seems that the check is performed in the fetch stage
 
--- The 8 bit ASI is appended to the 32 bits when memory is accessed (do we need to 
+-- The 8 bit ASI is appended to the 32 bits when memory is accessed (do we need to
 send them on the output TLM port? and what if internal memory is used?)I think
-they are dealt with inside the processor itself and never sent out...CHECK on VHDL model
+they are dealt with inside the processor itself and never sent out...CHECK on VHDL model...
+otherwise, if they are sent out, we need to accordingly modify the bus
 
 -- Branch instruction, depending on the a bit may annull the successive instruction; in the
 pipeline this just means a flush (which is the stage where the annull is done?? CHECK on

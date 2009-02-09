@@ -724,7 +724,7 @@ class Processor:
             mainFile = cxx_writer.writer_code.FileDumper('main.cpp', False)
             mainFile.addMember(self.getMainCode(model))
 
-            if (not model == 'funcLT') and (not self.systemc):
+            if (model == 'funcLT') and (not self.systemc):
                 testFolder = cxx_writer.writer_code.Folder('tests')
                 curFolder.addSubFolder(testFolder)
                 decTestsFile = cxx_writer.writer_code.FileDumper('decoderTests.cpp', False)
@@ -764,7 +764,7 @@ class Processor:
             curFolder.addCode(mainFile)
             curFolder.setMain(mainFile.name)
             curFolder.create()
-            if (not model == 'funcLT') and (not self.systemc):
+            if (model == 'funcLT') and (not self.systemc):
                 testFolder.create(False, True)
             print '\t\tCreated'
         # We create and print the main folder and also add a configuration
