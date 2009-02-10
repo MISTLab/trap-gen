@@ -58,9 +58,11 @@ isa.addMethod(SignExtend_method)
 #
 # Note the special operations:
 #
-# -- flush(): flushes the current instruction out of the pipeline; if we are
+# -- annull(): transforms the current instruction in a NOP; if we are
 # in the middle of the execution of some code, it also terminates the
 # execution of that part of code (it is like an exception)
+# -- flush(): flushes the pipeline stages preceding the one in which
+# the flush method has been called
 # -- stall(n): stalls the current stage and the preceding ones for n clock
 # cycles. If we issue this operation in the middle of the execution of an
 # instruction, anyway the execution of that code finished before the stall

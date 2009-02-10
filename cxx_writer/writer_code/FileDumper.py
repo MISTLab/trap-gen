@@ -369,8 +369,8 @@ class Folder:
     trapDirLib = ''
     trapDirInc = ''
     if Options.options.trapdir:
-        trapDirLib = os.path.expandvars(os.path.expanduser(os.path.join(Options.options.trapdir, 'lib')))
-        trapDirInc = os.path.expandvars(os.path.expanduser(os.path.join(Options.options.trapdir, 'include')))
+        trapDirLib = os.path.abspath(os.path.expandvars(os.path.expanduser(os.path.join(Options.options.trapdir, 'lib'))))
+        trapDirInc = os.path.abspath(os.path.expandvars(os.path.expanduser(os.path.join(Options.options.trapdir, 'include'))))
     conf.check_cxx(lib='trap', uselib_store='TRAP', mandatory=1, libpath=trapDirLib)
     conf.check_cxx(header_name='trap.hpp', uselib='TRAP', uselib_store='TRAP', mandatory=1, includes=trapDirInc)
     conf.check_cxx(fragment='''
