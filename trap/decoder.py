@@ -260,7 +260,10 @@ class decoderCreator:
                 self.instrSub[instr.id] = instr.subInstructions
                 self.instrId[instr.id] = (revBitstring, float(instr.frequency)/float(self.totalCount))
                 self.instrPattern.append((revBitstring, float(instr.frequency)/float(self.totalCount)))
-        self.decodingTree = NX.XDiGraph()
+        if float(NX.__version__) < 0.99:
+            self.decodingTree = NX.XDiGraph()
+        else:
+            self.decodingTree = NX.DiGraph()
         self.computeIllegalBistreams()
         self.computeDecoder()
 
@@ -290,7 +293,10 @@ class decoderCreator:
                 return '// Non-valid pattern\nreturn ' + str(self.instrNum) + ';\n'
         if self.decodingTree.out_degree(subtree) != 2:
             raise Exception('subtree ' + str(subtree) + ' should have two out edges, while it has ' + str(self.decodingTree.out_degree(subtree)))
-        outEdges = self.decodingTree.out_edges(subtree)
+        if float(NX.__version__) < 0.99:
+            outEdges = self.decodingTree.edges(subtree)
+        else:
+            outEdges = self.decodingTree.edges(subtree, data = True)
         (mask, value) = subtree.splitFunction.toCode()
         if outEdges[0][-1][-1] > outEdges[1][-1][-1]:
             nodeIf = outEdges[0][1]
@@ -342,7 +348,10 @@ class decoderCreator:
                 return self.getSubInstrCode(self.instrSub[instrId]) + '// Instruction ' + self.instrName[subtree.instrId] + '\nreturn ' + str(subtree.instrId) + ';\n'
             else:
                 return '// Non-valid pattern\nreturn ' + str(self.instrNum) + ';\n'
-        outEdges = self.decodingTree.out_edges(subtree)
+        if float(NX.__version__) < 0.99:
+            outEdges = self.decodingTree.edges(subtree)
+        else:
+            outEdges = self.decodingTree.edges(subtree, data = True)
         mask = subtree.splitFunction.toCode()
         outEdges = sorted(outEdges, lambda x, y: cmp(y[-1][-1], x[-1][-1]))
         if '0' in  mask[2:]:

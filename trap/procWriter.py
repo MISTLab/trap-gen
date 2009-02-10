@@ -1211,7 +1211,10 @@ def getCPPProc(self, model, trace):
     # the initialization of the aliases must be chained (we should
     # create an initialization graph since an alias might depend on another one ...)
     global aliasGraph
-    aliasGraph = NX.XDiGraph()
+    if float(NX.__version__) < 0.99:
+        aliasGraph = NX.XDiGraph()
+    else:
+        aliasGraph = NX.DiGraph()
     for alias in self.aliasRegs + self.aliasRegBanks:
         aliasGraph.add_node(alias)
     for alias in self.aliasRegs + self.aliasRegBanks:
@@ -1248,7 +1251,12 @@ def getCPPProc(self, model, trace):
             continue
         if self.isBank(alias.name):
             break
-        if aliasGraph.in_edges(alias)[0][0] == 'stop':
+        aliasGraphRev = aliasGraph.reverse()
+        if float(NX.__version__) < 0.99:
+            edgeType = aliasGraphRev.edges(alias)[0][0]
+        else:
+            edgeType = aliasGraphRev.edges(alias, data = True)[0][0]
+        if edgeType == 'stop':
             break
         initElements.append(aliasInit[alias.name])
         orderedNodesTemp.append(alias)
