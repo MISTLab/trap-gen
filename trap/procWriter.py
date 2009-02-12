@@ -468,13 +468,13 @@ def getCPPRegisters(self, model):
                 delete [] this->registers;
             }
             this->size = size;
-            this->registers = new """ + str(registerType.makeRef) + """[this->size];
+            this->registers = new """ + str(registerType.makePointer()) + """[this->size];
             for(int i = 0; i < this->size; i++){
                 this->registers[i] = NULL;
             }
         """)
         setSizeParams = [cxx_writer.writer_code.Parameter('size', cxx_writer.writer_code.uintType)]
-        setSizeMethod = cxx_writer.writer_code.Method('setSize', setNewRegisterBody, cxx_writer.writer_code.voidType, 'pu', setSizeParams, inline = True, noException = True)
+        setSizeMethod = cxx_writer.writer_code.Method('setSize', setSizeBody, cxx_writer.writer_code.voidType, 'pu', setSizeParams, inline = True, noException = True)
         regBankElements.append(setSizeMethod)
         operatorBody = cxx_writer.writer_code.Code('return *(this->registers[numReg]);')
         operatorParam = [cxx_writer.writer_code.Parameter('numReg', cxx_writer.writer_code.uintType)]
@@ -482,7 +482,7 @@ def getCPPRegisters(self, model):
         regBankElements.append(operatorDecl)
         regBankClass = cxx_writer.writer_code.ClassDeclaration('RegisterBankClass', regBankElements)
         constructorBody = cxx_writer.writer_code.Code("""this->size = size;
-            this->registers = new """ + str(registerType.makeRef) + """[this->size];
+            this->registers = new """ + str(registerType.makePointer()) + """[this->size];
             for(int i = 0; i < this->size; i++){
                 this->registers[i] = NULL;
             }
@@ -1208,11 +1208,11 @@ def getCPPProc(self, model, trace):
                         else:
                             bodyInits += 'this->' + regB.name + '_' + pipeStage.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '_baseType']) + '());'
         else:
-            bodyInits += 'this->' + regB.name + ' = new ' + str(resourceType[regB.name]) + '[' + str(regB.numRegs) + '];\n'
+            bodyInits += 'this->' + regB.name + ' = new ' + str(resourceType[regB.name].makeNormal()) + '[' + str(regB.numRegs) + '];\n'
             bodyDestructor += 'delete [] this->' + regB.name + ';\n'
             if model.startswith('acc'):
                 for pipeStage in self.pipes:
-                    bodyInits += 'this->' + regB.name + '_' + pipeStage.name + ' = new ' + str(resourceType[regB.name]) + '[' + str(regB.numRegs) + '];\n'
+                    bodyInits += 'this->' + regB.name + '_' + pipeStage.name + ' = new ' + str(resourceType[regB.name].makeNormal()) + '[' + str(regB.numRegs) + '];\n'
                     bodyDestructor += 'delete [] this->' + regB.name + '_' + pipeStage.name + ';\n'
         abiIfInit += 'this->' + regB.name
         if model.startswith('acc'):

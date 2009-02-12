@@ -419,9 +419,12 @@ def getCPPInstrTest(self, processor, model):
         archElemsDeclStr += str(resourceType[reg.name]) + ' ' + reg.name + ';\n'
         baseInitElement += reg.name + ', '
     for regB in processor.regBanks:
-        archElemsDeclStr += str(resourceType[regB.name]) + ' ' + regB.name + ' = new ' + str(resourceType[regB.name]) + '[' + str(regB.numRegs) + '];\n'
+        if regB.constValue:
+            archElemsDeclStr += str(resourceType[regB.name]) + ' ' + regB.name + '(' + str(regB.numRegs) + ');\n'
+        else:
+            archElemsDeclStr += str(resourceType[regB.name]) + ' ' + regB.name + ' = new ' + str(resourceType[regB.name].makeNormal()) + '[' + str(regB.numRegs) + '];\n'
+            destrDecls += 'delete [] ' + regB.name + ';\n'
         baseInitElement += regB.name + ', '
-        destrDecls += 'delete [] ' + regB.name + ';\n'
     for alias in processor.aliasRegs:
         archElemsDeclStr += str(resourceType[alias.name]) + ' ' + alias.name + ';\n'
         baseInitElement += alias.name + ', '
