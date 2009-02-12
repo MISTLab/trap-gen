@@ -419,7 +419,7 @@ def getCPPInstrTest(self, processor, model):
         archElemsDeclStr += str(resourceType[reg.name]) + ' ' + reg.name + ';\n'
         baseInitElement += reg.name + ', '
     for regB in processor.regBanks:
-        archElemsDeclStr += str(resourceType[regB.name].makePointer()) + ' ' + regB.name + ' = new ' + str(resourceType[regB.name]) + '[' + str(regB.numRegs) + '];\n'
+        archElemsDeclStr += str(resourceType[regB.name]) + ' ' + regB.name + ' = new ' + str(resourceType[regB.name]) + '[' + str(regB.numRegs) + '];\n'
         baseInitElement += regB.name + ', '
         destrDecls += 'delete [] ' + regB.name + ';\n'
     for alias in processor.aliasRegs:
@@ -662,8 +662,8 @@ def getCPPClasses(self, processor, model, trace):
             baseInitElement += reg.name + ', '
             instructionElements.append(attribute)
         for regB in processor.regBanks:
-            attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name].makePointer().makeRef(), 'pro')
-            baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(regB.name, resourceType[regB.name].makePointer().makeRef()))
+            attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name].makeRef(), 'pro')
+            baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(regB.name, resourceType[regB.name].makeRef()))
             initElements.append(regB.name + '(' + regB.name + ')')
             baseInitElement += regB.name + ', '
             instructionElements.append(attribute)
@@ -688,8 +688,8 @@ def getCPPClasses(self, processor, model, trace):
                 baseInitElement += reg.name + '_' + pipeStage.name + ', '
                 instructionElements.append(attribute)
             for regB in processor.regBanks:
-                attribute = cxx_writer.writer_code.Attribute(regB.name + '_' + pipeStage.name, resourceType[regB.name].makePointer().makeRef(), 'pu')
-                baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(regB.name + '_' + pipeStage.name, resourceType[regB.name].makePointer().makeRef()))
+                attribute = cxx_writer.writer_code.Attribute(regB.name + '_' + pipeStage.name, resourceType[regB.name].makeRef(), 'pu')
+                baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(regB.name + '_' + pipeStage.name, resourceType[regB.name].makeRef()))
                 initElements.append(regB.name + '_' + pipeStage.name + '(' + regB.name + '_' + pipeStage.name + ')')
                 baseInitElement += regB.name + '_' + pipeStage.name + ', '
                 instructionElements.append(attribute)

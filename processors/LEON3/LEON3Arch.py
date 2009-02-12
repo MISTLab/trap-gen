@@ -73,6 +73,7 @@ LEON3Isa.isa.addConstant(cxx_writer.writer_code.uintType, 'NUM_REG_WIN', numRegW
 # register windows
 # global registers
 globalRegs = trap.RegisterBank('GLOBAL', 8, 32)
+globalRegs.setConst(0, 0)
 processor.addRegBank(globalRegs)
 windowRegs = trap.RegisterBank('WINREGS', 16*numRegWindows, 32)
 processor.addRegBank(windowRegs)

@@ -78,9 +78,13 @@ class Register:
         self.bitMask = bitMask
         self.defValue = 0
         self.offset = 0
+        self.constValue = None
 
     def setDefaultValue(self, value):
         self.defValue = value
+
+    def setConst(self, value):
+        self.constValue = value
 
     def setOffset(self, value):
         # TODO: eliminate this restriction
@@ -112,6 +116,19 @@ class RegisterBank:
         self.numRegs = numRegs
         self.defValues = [0 for i in range(0, numRegs)]
         self.offset = 0
+        self.constValue = {}
+
+    def setConst(self, numReg, value):
+        self.constValue[numReg] = value
+
+    def getConstRegs(self):
+        constRegs = []
+        for key, constVal in self.constValue.items():
+            fakeReg = Register(self.name + '[' + str(key) + ']', self.bitWidth, self.bitMask)
+            fakeReg.setOffset(self.offset)
+            fakeReg.setConst(constVal)
+            constRegs.append(fakeReg)
+        return constRegs
 
     def setDefaultValues(self, values):
         if len(values) != self.numRegs:

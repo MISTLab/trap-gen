@@ -99,6 +99,13 @@ def getCPPRegClass(self, model, regType):
     InnerFieldType = cxx_writer.writer_code.Type('InnerField')
     registerElements = []
 
+    # First of all I determine if there is the need to create a const element
+    if self.constValue != None and type(self.constValue) != type({}):
+        curValueItem = str(self.constValue)
+    else:
+        curValueItem = 'this->value'
+
+
     ####################### Lets declare the operators used to access the register fields ##############
     codeOperatorBody = 'switch(bitField){\n'
     for key in self.bitMask.keys():
@@ -111,10 +118,10 @@ def getCPPRegClass(self, model, regType):
 
     #################### Lets declare the normal operators (implementation of the pure operators of the base class) ###########
     for i in unaryOps:
-        if self.offset:
-            operatorBody = cxx_writer.writer_code.Code('return ' + i + '(this->value + ' + str(self.offset) + ');')
+        if self.offset and not model.startswith('acc'):
+            operatorBody = cxx_writer.writer_code.Code('return ' + i + '(' + curValueItem + ' + ' + str(self.offset) + ');')
         else:
-            operatorBody = cxx_writer.writer_code.Code('return ' + i + '(this->value);')
+            operatorBody = cxx_writer.writer_code.Code('return ' + i + '(' + curValueItem + ');')
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu')
         registerElements.append(operatorDecl)
     # Now I have the three versions of the operators, depending whether they take
@@ -131,29 +138,35 @@ def getCPPRegClass(self, model, regType):
 #         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
 #         registerElements.append(operatorDecl)
     for i in assignmentOps:
-        operatorBody = cxx_writer.writer_code.Code('this->value ' + i + ' other;\nreturn *this;')
+        if type(curValueItem) == type(0):
+            operatorBody = cxx_writer.writer_code.Code('return *this;')
+        else:
+            operatorBody = cxx_writer.writer_code.Code('this->value ' + i + ' other;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regType.makeRef(), 'pu', [operatorParam])
         registerElements.append(operatorDecl)
     # SPECIFIC REGISTER
     for i in binaryOps:
         if self.offset and not model.startswith('acc'):
-            operatorBody = cxx_writer.writer_code.Code('return ((this->value  + ' + str(self.offset) + ') ' + i + ' (other.value + ' + str(self.offset) + '));')
+            operatorBody = cxx_writer.writer_code.Code('return ((' + curValueItem + '  + ' + str(self.offset) + ') ' + i + ' (other.value + ' + str(self.offset) + '));')
         else:
-            operatorBody = cxx_writer.writer_code.Code('return (this->value ' + i + ' other.value);')
+            operatorBody = cxx_writer.writer_code.Code('return (' + curValueItem + ' ' + i + ' other.value);')
         operatorParam = cxx_writer.writer_code.Parameter('other', regType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True)
         registerElements.append(operatorDecl)
     for i in comparisonOps:
         if self.offset and not model.startswith('acc'):
-            operatorBody = cxx_writer.writer_code.Code('return ((this->value + ' + str(self.offset) + ') ' + i + ' (other.value + ' + str(self.offset) + '));')
+            operatorBody = cxx_writer.writer_code.Code('return ((' + curValueItem + ' + ' + str(self.offset) + ') ' + i + ' (other.value + ' + str(self.offset) + '));')
         else:
-            operatorBody = cxx_writer.writer_code.Code('return (this->value ' + i + ' other.value);')
+            operatorBody = cxx_writer.writer_code.Code('return (' + curValueItem + ' ' + i + ' other.value);')
         operatorParam = cxx_writer.writer_code.Parameter('other', regType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
         registerElements.append(operatorDecl)
     for i in assignmentOps:
-        operatorBody = cxx_writer.writer_code.Code('this->value ' + i + ' other.value;\nreturn *this;')
+        if type(curValueItem) == type(0):
+            operatorBody = cxx_writer.writer_code.Code('return *this;')
+        else:
+            operatorBody = cxx_writer.writer_code.Code('this->value ' + i + ' other.value;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', regType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regType.makeRef(), 'pu', [operatorParam])
         registerElements.append(operatorDecl)
@@ -161,30 +174,33 @@ def getCPPRegClass(self, model, regType):
     # operators of parameter other
     for i in binaryOps:
         if self.offset and not model.startswith('acc'):
-            operatorBody = cxx_writer.writer_code.Code('return (this->value  + ' + str(self.offset) + ' ' + i + ' other);')
+            operatorBody = cxx_writer.writer_code.Code('return (' + curValueItem + '  + ' + str(self.offset) + ' ' + i + ' other);')
         else:
-            operatorBody = cxx_writer.writer_code.Code('return (this->value ' + i + ' other);')
+            operatorBody = cxx_writer.writer_code.Code('return (' + curValueItem + ' ' + i + ' other);')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True)
         registerElements.append(operatorDecl)
     for i in comparisonOps:
         if self.offset and not model.startswith('acc'):
-            operatorBody = cxx_writer.writer_code.Code('return (this->value  + ' + str(self.offset) + ' ' + i + ' other);')
+            operatorBody = cxx_writer.writer_code.Code('return (' + curValueItem + '  + ' + str(self.offset) + ' ' + i + ' other);')
         else:
-            operatorBody = cxx_writer.writer_code.Code('return (this->value ' + i + ' other);')
+            operatorBody = cxx_writer.writer_code.Code('return (' + curValueItem + ' ' + i + ' other);')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
         registerElements.append(operatorDecl)
     for i in assignmentOps:
-        operatorBody = cxx_writer.writer_code.Code('this->value ' + i + ' other;\nreturn *this;')
+        if type(curValueItem) == type(0):
+            operatorBody = cxx_writer.writer_code.Code('return *this;')
+        else:
+            operatorBody = cxx_writer.writer_code.Code('this->value ' + i + ' other;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regType.makeRef(), 'pu', [operatorParam])
         registerElements.append(operatorDecl)
     # Scalar value cast operator
     if self.offset and not model.startswith('acc'):
-        operatorBody = cxx_writer.writer_code.Code('return (this->value  + ' + str(self.offset) + ');')
+        operatorBody = cxx_writer.writer_code.Code('return (' + curValueItem + '  + ' + str(self.offset) + ');')
     else:
-        operatorBody = cxx_writer.writer_code.Code('return this->value;')
+        operatorBody = cxx_writer.writer_code.Code('return ' + curValueItem + ';')
     operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True, noException = True)
     registerElements.append(operatorIntDecl)
 
@@ -192,7 +208,10 @@ def getCPPRegClass(self, model, regType):
     fieldInit = []
     for field in self.bitMask.keys():
         fieldInit.append('field_' + field + '(value)')
-    constructorBody = cxx_writer.writer_code.Code('this->value = 0;')
+    if type(curValueItem) == type(0):
+        constructorBody = cxx_writer.writer_code.Code('this->value = ' + str(curValueItem) + ';')
+    else:
+        constructorBody = cxx_writer.writer_code.Code('this->value = 0;')
     constructorParams = [cxx_writer.writer_code.Parameter('name', cxx_writer.writer_code.sc_module_nameType)]
     publicMainClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['Register(name, ' + str(self.bitWidth) + ')'] + fieldInit)
     publicMainClassEmptyConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', initList = ['Register(sc_gen_unique_name(\"' + regType.name + '\"), ' + str(self.bitWidth) + ')'] + fieldInit)
@@ -220,11 +239,14 @@ def getCPPRegClass(self, model, regType):
             else:
                 negatedMask = '1' + negatedMask
                 mask = '0' + mask
-        operatorCode = 'this->value &= ' + hex(int(negatedMask, 2)) + ';\nthis->value |= '
-        if length[0] > 0:
-            operatorCode += '(other << ' + str(length[0]) + ');\n'
+        if type(curValueItem) == type(0):
+            operatorCode = ''
         else:
-            operatorCode += 'other;\n'
+            operatorCode = 'this->value &= ' + hex(int(negatedMask, 2)) + ';\nthis->value |= '
+            if length[0] > 0:
+                operatorCode += '(other << ' + str(length[0]) + ');\n'
+            else:
+                operatorCode += 'other;\n'
         operatorCode += 'return *this;'
         operatorBody = cxx_writer.writer_code.Code(operatorCode)
         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
@@ -376,49 +398,116 @@ def getCPPRegisters(self, model):
     operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), emptyBody, cxx_writer.writer_code.Type(''), 'pu', const = True, pure = True, noException = True)
     registerElements.append(operatorIntDecl)
 
-    ################ Here ##################
+    ################ Here we determine the different register types which have to be declared ##################
+    constRegBanksElemens = []
+    for i in self.regBanks:
+        constRegBanksElemens += i.getConstRegs()
+
     global resourceType
     regTypes = []
-    regTypesCount = {}
-    regTypesBW = {}
-    regTypesOff = {}
-    regTypeSubName = {}
-    for reg in self.regs + self.regBanks:
+    regTypeNames = []
+    for reg in self.regs + self.regBanks + constRegBanksElemens:
         bitFieldSig = ''
         for maskName, maskPos in reg.bitMask.items():
             bitFieldSig += maskName + str(maskPos[0]) + str(maskPos[1])
-        if not reg.bitWidth in [i.bitWidth for i in regTypes]:
+        curName = str(reg.bitWidth) + '_' + bitFieldSig + '_' + str(reg.offset)
+        if type(reg.constValue) == type(0):
+            curName += '_' + str(reg.constValue)
+        if not curName in regTypeNames:
             regTypes.append(reg)
-            regTypesBW[reg.bitWidth] = [bitFieldSig]
-            regTypesOff[str(reg.bitWidth) + bitFieldSig] = [reg.offset != 0]
-            regTypesCount[reg.bitWidth] = 1
-            regTypeSubName[reg.bitWidth] = {bitFieldSig: 1}
-        else:
-            # There is already a register with this bitwidth
-            # I add this one only if it has a different bitMask
-            if not bitFieldSig in regTypesBW[reg.bitWidth]:
-                regTypes.append(reg)
-                regTypesCount[reg.bitWidth] = regTypesCount[reg.bitWidth] + 1
-                regTypeSubName[reg.bitWidth][bitFieldSig] = regTypesCount[reg.bitWidth]
-                regTypesBW[reg.bitWidth].append(bitFieldSig)
-                regTypesOff[str(reg.bitWidth) + bitFieldSig] = [reg.offset]
-            elif not (reg.offset in regTypesOff[str(reg.bitWidth) + bitFieldSig]):
-                # I check the offset and add the register only if it has
-                # an offset
-                regTypes.append(reg)
-                regTypeSubName[reg.bitWidth][bitFieldSig] = regTypesCount[reg.bitWidth]
-                regTypesOff[str(reg.bitWidth) + bitFieldSig].append(reg.offset)
-        regTypeName = 'Reg' + str(reg.bitWidth) + '_' + str(regTypeSubName[reg.bitWidth][bitFieldSig])
+            regTypeNames.append(curName)
+        regTypeName = 'Reg' + str(reg.bitWidth) + '_' + bitFieldSig
         if reg.offset:
-            regTypeName += '_off'
+            regTypeName += '_off' + str(reg.offset)
+        if type(reg.constValue) == type(0):
+            regTypeName += '_const_' + str(reg.constValue)
         resourceType[reg.name] = cxx_writer.writer_code.Type(regTypeName, 'registers.hpp')
+        if reg in self.regBanks:
+            if reg.constValue:
+                resourceType[reg.name + '_baseType'] = resourceType[reg.name]
+                resourceType[reg.name] = cxx_writer.writer_code.Type('RegisterBankClass', 'registers.hpp')
+            else:
+                resourceType[reg.name] = resourceType[reg.name].makePointer()
     realRegClasses = []
     for regType in regTypes:
         realRegClasses.append(regType.getCPPClass(model, resourceType[regType.name]))
     registerDecl = cxx_writer.writer_code.SCModule('Register', registerElements)
     registerDecl.addConstructor(publicConstr)
+
     ################ Finally I put everything together##################
     classes = [InnerFieldClass, registerDecl] + realRegClasses
+
+    # I also need to declare a global RegisterBank Class in case there are register banks
+    # with constant registers
+    hasRegBankClass = False
+    for reg in self.regBanks:
+        if reg.constValue:
+            hasRegBankClass = True
+            break
+    if hasRegBankClass:
+        registerType = cxx_writer.writer_code.Type('Register', 'registers.hpp')
+        regBankElements = []
+        regBankElements.append(cxx_writer.writer_code.Attribute('registers', registerType.makePointer().makePointer(), 'pri'))
+        regBankElements.append(cxx_writer.writer_code.Attribute('size', cxx_writer.writer_code.uintType, 'pri'))
+        setNewRegisterBody = cxx_writer.writer_code.Code("""if(numReg > this->size - 1){
+            THROW_EXCEPTION("Register number " << numReg << " is out of register bank boundaries");
+        }
+        else{
+            this->registers[numReg] = newReg;
+        }""")
+        setNewRegisterParams = [cxx_writer.writer_code.Parameter('newReg', registerType.makePointer()), cxx_writer.writer_code.Parameter('numReg', cxx_writer.writer_code.uintType)]
+        setNewRegisterMethod = cxx_writer.writer_code.Method('setNewRegister', setNewRegisterBody, cxx_writer.writer_code.voidType, 'pu', setNewRegisterParams, inline = True)
+        regBankElements.append(setNewRegisterMethod)
+        setSizeBody = cxx_writer.writer_code.Code("""
+            for(int i = 0; i < this->size; i++){
+                if(this->registers[i] != NULL){
+                    delete this->registers[i];
+                }
+            }
+            if(this->registers != NULL){
+                delete [] this->registers;
+            }
+            this->size = size;
+            this->registers = new """ + str(registerType.makeRef) + """[this->size];
+            for(int i = 0; i < this->size; i++){
+                this->registers[i] = NULL;
+            }
+        """)
+        setSizeParams = [cxx_writer.writer_code.Parameter('size', cxx_writer.writer_code.uintType)]
+        setSizeMethod = cxx_writer.writer_code.Method('setSize', setNewRegisterBody, cxx_writer.writer_code.voidType, 'pu', setSizeParams, inline = True, noException = True)
+        regBankElements.append(setSizeMethod)
+        operatorBody = cxx_writer.writer_code.Code('return *(this->registers[numReg]);')
+        operatorParam = [cxx_writer.writer_code.Parameter('numReg', cxx_writer.writer_code.uintType)]
+        operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, registerType.makeRef(), 'pu', operatorParam)
+        regBankElements.append(operatorDecl)
+        regBankClass = cxx_writer.writer_code.ClassDeclaration('RegisterBankClass', regBankElements)
+        constructorBody = cxx_writer.writer_code.Code("""this->size = size;
+            this->registers = new """ + str(registerType.makeRef) + """[this->size];
+            for(int i = 0; i < this->size; i++){
+                this->registers[i] = NULL;
+            }
+        """)
+        constructorParams = [cxx_writer.writer_code.Parameter('size', cxx_writer.writer_code.uintType)]
+        publicRegBankConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams)
+        regBankClass.addConstructor(publicRegBankConstr)
+        constructorBody = cxx_writer.writer_code.Code("""this->size = 0;
+            this->registers = NULL;
+        """)
+        publicRegBankConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu')
+        regBankClass.addConstructor(publicRegBankConstr)
+        destructorBody = cxx_writer.writer_code.Code("""
+            for(int i = 0; i < this->size; i++){
+                if(this->registers[i] != NULL){
+                    delete this->registers[i];
+                }
+            }
+            if(this->registers != NULL){
+                delete [] this->registers;
+            }
+        """)
+        publicRegBankDestr = cxx_writer.writer_code.Destructor(destructorBody, 'pu', True)
+        regBankClass.addDestructor(publicRegBankDestr)
+        classes.append(regBankClass)
 
     return classes
 
@@ -986,6 +1075,12 @@ def getCPPProc(self, model, trace):
     for elem in self.regBanks + self.aliasRegBanks:
         curId = 0
         for defValue in elem.defValues:
+            try:
+                if curId in elem.constValue.keys():
+                    curId += 1
+                    continue
+            except AttributeError:
+                pass
             if defValue != None:
                 try:
                     if not type(defValue) == type(''):
@@ -1008,6 +1103,11 @@ def getCPPProc(self, model, trace):
                 initString += ';\n'
             curId += 1
     for elem in self.regs + self.aliasRegs:
+        try:
+            if elem.constValue != None:
+                continue
+        except AttributeError:
+            pass
         if elem.defValue != None:
             try:
                 if not type(elem.defValue) == type(''):
@@ -1089,13 +1189,31 @@ def getCPPProc(self, model, trace):
                 attribute = cxx_writer.writer_code.Attribute(reg.name + '_' + pipeStage.name, resourceType[reg.name], 'pu')
                 processorElements.append(attribute)
     for regB in self.regBanks:
-        attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name].makePointer(), 'pu')
-        bodyInits += 'this->' + regB.name + ' = new ' + str(resourceType[regB.name]) + '[' + str(regB.numRegs) + '];\n'
-        bodyDestructor += 'delete [] this->' + regB.name + ';\n'
-        if model.startswith('acc'):
-            for pipeStage in self.pipes:
-                bodyInits += 'this->' + regB.name + '_' + pipeStage.name + ' = new ' + str(resourceType[regB.name]) + '[' + str(regB.numRegs) + '];\n'
-                bodyDestructor += 'delete [] this->' + regB.name + '_' + pipeStage.name + ';\n'
+        attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name], 'pu')
+        if regB.constValue:
+            # There are constant registers, so I have to declare the special register bank
+            bodyInits += 'this->' + regB.name + '.setSize(' + str(regB.numRegs) + ');\n'
+            for i in range(0, regB.numRegs):
+                if regB.constValue.has_key(i):
+                    bodyInits += 'this->' + regB.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '[' + str(i) + ']']) + '());'
+                else:
+                    bodyInits += 'this->' + regB.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '_baseType']) + '());'
+            bodyDestructor += 'delete this->' + regB.name + ';\n'
+            if model.startswith('acc'):
+                for pipeStage in self.pipes:
+                    bodyInits += 'this->' + regB.name + '_' + pipeStage.name + '.setSize(' + str(regB.numRegs) + ');\n'
+                    for i in range(0, regB.numRegs):
+                        if regB.constValue.has_key(i):
+                            bodyInits += 'this->' + regB.name + '_' + pipeStage.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '[' + str(i) + ']']) + '());'
+                        else:
+                            bodyInits += 'this->' + regB.name + '_' + pipeStage.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '_baseType']) + '());'
+        else:
+            bodyInits += 'this->' + regB.name + ' = new ' + str(resourceType[regB.name]) + '[' + str(regB.numRegs) + '];\n'
+            bodyDestructor += 'delete [] this->' + regB.name + ';\n'
+            if model.startswith('acc'):
+                for pipeStage in self.pipes:
+                    bodyInits += 'this->' + regB.name + '_' + pipeStage.name + ' = new ' + str(resourceType[regB.name]) + '[' + str(regB.numRegs) + '];\n'
+                    bodyDestructor += 'delete [] this->' + regB.name + '_' + pipeStage.name + ';\n'
         abiIfInit += 'this->' + regB.name
         if model.startswith('acc'):
             abiIfInit += '_' + checkToolPipeStage.name
@@ -1103,7 +1221,7 @@ def getCPPProc(self, model, trace):
         processorElements.append(attribute)
         if model.startswith('acc'):
             for pipeStage in self.pipes:
-                attribute = cxx_writer.writer_code.Attribute(regB.name + '_' + pipeStage.name, resourceType[regB.name].makePointer(), 'pu')
+                attribute = cxx_writer.writer_code.Attribute(regB.name + '_' + pipeStage.name, resourceType[regB.name], 'pu')
                 processorElements.append(attribute)
     for alias in self.aliasRegs:
         attribute = cxx_writer.writer_code.Attribute(alias.name, resourceType[alias.name], 'pu')
@@ -1513,8 +1631,8 @@ def getCPPIf(self, model):
         initElements.append(reg.name + '(' + reg.name + ')')
         ifClassElements.append(attribute)
     for regB in self.regBanks:
-        attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name].makePointer().makeRef(), 'pri')
-        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(regB.name, resourceType[regB.name].makePointer().makeRef()))
+        attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name].makeRef(), 'pri')
+        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(regB.name, resourceType[regB.name].makeRef()))
         initElements.append(regB.name + '(' + regB.name + ')')
         ifClassElements.append(attribute)
     for alias in self.aliasRegs:
@@ -2711,8 +2829,8 @@ def getGetPipelineStages(self, trace):
                 constructorInit.append(reg.name + '(' + reg.name + ')')
                 curPipeElements.append(attribute)
             for regB in self.regBanks:
-                attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name].makePointer().makeRef(), 'pu')
-                constructorParams = [cxx_writer.writer_code.Parameter(regB.name, resourceType[regB.name].makePointer().makeRef())] + constructorParams
+                attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name].makeRef(), 'pu')
+                constructorParams = [cxx_writer.writer_code.Parameter(regB.name, resourceType[regB.name].makeRef())] + constructorParams
                 constructorInit.append(regB.name + '(' + regB.name + ')')
                 curPipeElements.append(attribute)
             # I have to also instantiate the reference to the memories, in order to be able to

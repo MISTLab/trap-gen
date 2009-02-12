@@ -46,3 +46,5 @@ nPC, so the next instruction is not even fetched
 -- For efficiency, shall we use constant registers, whose value is set at processor startup
 and cannot be modified (e.g. r0 of the sparc processor)
 
+-- Check when the ICC fields of the PSR are written: in the writeBack stage as normal registers or
+in the execution stage?

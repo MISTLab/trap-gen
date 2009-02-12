@@ -94,5 +94,15 @@ SignExtend_method.setSignature(('BIT<32>'), [('bitSeq', 'BIT<32>'), cxx_writer.P
 opCode = cxx_writer.Code("""PC = NPC;
 NPC += 4;
 """)
-IncrementPC = trap.HelperOperation('IncrementPC', opCode, inline = False)
+IncrementPC = trap.HelperOperation('IncrementPC', opCode)
 
+# Modification of the Integer Condition Codes of the Processor Status Register
+# after an logical operation
+opCode = cxx_writer.Code("""
+PSR[key_ICC_n] = ((result & 0x80000000) >> 31);
+PSR[key_ICC_z] = (result == 0);
+PSR[key_ICC_v] = 0;
+PSR[key_ICC_c] = 0;
+""")
+ICC_writeLogic = trap.HelperOperation('ICC_writeLogic', opCode)
+ICC_writeLogic.addInstuctionVar(('result', 'BIT<32>'))
