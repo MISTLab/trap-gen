@@ -406,17 +406,20 @@ def getCPPRegisters(self, model):
     global resourceType
     regTypes = []
     regTypeNames = []
+    bitFieldHash = {}
     for reg in self.regs + self.regBanks + constRegBanksElemens:
         bitFieldSig = ''
         for maskName, maskPos in reg.bitMask.items():
             bitFieldSig += maskName + str(maskPos[0]) + str(maskPos[1])
-        curName = str(reg.bitWidth) + '_' + bitFieldSig + '_' + str(reg.offset)
+        if not bitFieldSig in bitFieldHash:
+            bitFieldHash[bitFieldSig] = len(bitFieldHash)
+        curName = str(reg.bitWidth) + '_' + str(bitFieldHash[bitFieldSig]) + '_' + str(reg.offset)
         if type(reg.constValue) == type(0):
             curName += '_' + str(reg.constValue)
         if not curName in regTypeNames:
             regTypes.append(reg)
             regTypeNames.append(curName)
-        regTypeName = 'Reg' + str(reg.bitWidth) + '_' + bitFieldSig
+        regTypeName = 'Reg' + str(reg.bitWidth) + '_' + str(bitFieldHash[bitFieldSig])
         if reg.offset:
             regTypeName += '_off' + str(reg.offset)
         if type(reg.constValue) == type(0):
@@ -455,7 +458,8 @@ def getCPPRegisters(self, model):
         else{
             this->registers[numReg] = newReg;
         }""")
-        setNewRegisterParams = [cxx_writer.writer_code.Parameter('newReg', registerType.makePointer()), cxx_writer.writer_code.Parameter('numReg', cxx_writer.writer_code.uintType)]
+        setNewRegisterBody.addInclude('utils.hpp')
+        setNewRegisterParams = [cxx_writer.writer_code.Parameter('numReg', cxx_writer.writer_code.uintType), cxx_writer.writer_code.Parameter('newReg', registerType.makePointer())]
         setNewRegisterMethod = cxx_writer.writer_code.Method('setNewRegister', setNewRegisterBody, cxx_writer.writer_code.voidType, 'pu', setNewRegisterParams, inline = True)
         regBankElements.append(setNewRegisterMethod)
         setSizeBody = cxx_writer.writer_code.Code("""
@@ -1195,18 +1199,17 @@ def getCPPProc(self, model, trace):
             bodyInits += 'this->' + regB.name + '.setSize(' + str(regB.numRegs) + ');\n'
             for i in range(0, regB.numRegs):
                 if regB.constValue.has_key(i):
-                    bodyInits += 'this->' + regB.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '[' + str(i) + ']']) + '());'
+                    bodyInits += 'this->' + regB.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '[' + str(i) + ']']) + '());\n'
                 else:
-                    bodyInits += 'this->' + regB.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '_baseType']) + '());'
-            bodyDestructor += 'delete this->' + regB.name + ';\n'
+                    bodyInits += 'this->' + regB.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '_baseType']) + '());\n'
             if model.startswith('acc'):
                 for pipeStage in self.pipes:
                     bodyInits += 'this->' + regB.name + '_' + pipeStage.name + '.setSize(' + str(regB.numRegs) + ');\n'
                     for i in range(0, regB.numRegs):
                         if regB.constValue.has_key(i):
-                            bodyInits += 'this->' + regB.name + '_' + pipeStage.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '[' + str(i) + ']']) + '());'
+                            bodyInits += 'this->' + regB.name + '_' + pipeStage.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '[' + str(i) + ']']) + '());\n'
                         else:
-                            bodyInits += 'this->' + regB.name + '_' + pipeStage.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '_baseType']) + '());'
+                            bodyInits += 'this->' + regB.name + '_' + pipeStage.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '_baseType']) + '());\n'
         else:
             bodyInits += 'this->' + regB.name + ' = new ' + str(resourceType[regB.name].makeNormal()) + '[' + str(regB.numRegs) + '];\n'
             bodyDestructor += 'delete [] this->' + regB.name + ';\n'
