@@ -395,6 +395,38 @@ def getCPPInstr(self, model, processor, trace):
     setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
     setparamsDecl = cxx_writer.writer_code.Method('setParams', setParamsBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam], noException = True)
     classElements.append(setparamsDecl)
+
+    # Here I declare the methods necessary to create the current instruction mnemonic given the current value of
+    # the variable parts of the instruction
+    getMnemonicCode = 'std::ostringstream oss (ostringstream::out);\n'
+    for i in self.mnemonic:
+        if type(i) == type(''):
+            if i.startswith('%'):
+                getMnemonicCode += 'oss << this->' + i[1:]
+                if i[1:] in self.machineCode.bitCorrespondence.keys() + self.bitCorrespondence.keys():
+                    getMnemonicCode += '_bit'
+                getMnemonicCode += ';\n'
+            else:
+                getMnemonicCode += 'oss << "' + i[1:] + '";\n'
+        else:
+            # I have a switch
+            getMnemonicCode += 'switch(this->' + i[0][1:]
+            if i[0][1:] in self.machineCode.bitCorrespondence.keys() + self.bitCorrespondence.keys():
+                getMnemonicCode += '_bit'
+            getMnemonicCode += '){\n'
+            for code, mnemValue in i[1].items():
+                getMnemonicCode += 'case ' + str(code) + ':{\n'
+                getMnemonicCode += 'oss << "' + mnemValue + '";\n'
+                getMnemonicCode += 'break;}\n'
+            getMnemonicCode += 'default:\nbreak;\n'
+            getMnemonicCode += '}\n'
+    getMnemonicCode += 'return oss.str();'
+    getMnemonicBody = cxx_writer.writer_code.Code(getMnemonicCode)
+    getMnemonicBody.addInclude('sstream')
+    getMnemonicDecl = cxx_writer.writer_code.Method('getMnemonic', getMnemonicBody, cxx_writer.writer_code.stringType, 'pu')
+    classElements.append(getMnemonicDecl)
+
+    # Now I declare the instruction variables
     for var in self.variables:
         if not var.name in behVars:
             classElements.append(cxx_writer.writer_code.Attribute(var.name, var.type, 'pro',  var.static))

@@ -97,7 +97,7 @@ NPC += 4;
 IncrementPC = trap.HelperOperation('IncrementPC', opCode)
 
 # Modification of the Integer Condition Codes of the Processor Status Register
-# after an logical operation
+# after an logical operation or after the multiply operation
 opCode = cxx_writer.Code("""
 PSR[key_ICC_n] = ((result & 0x80000000) >> 31);
 PSR[key_ICC_z] = (result == 0);
@@ -106,3 +106,36 @@ PSR[key_ICC_c] = 0;
 """)
 ICC_writeLogic = trap.HelperOperation('ICC_writeLogic', opCode)
 ICC_writeLogic.addInstuctionVar(('result', 'BIT<32>'))
+
+# Modification of the Integer Condition Codes of the Processor Status Register
+# after an addition operation
+opCode = cxx_writer.Code("""
+PSR[key_ICC_n] = ((result & 0x80000000) >> 31);
+PSR[key_ICC_z] = (result == 0);
+PSR[key_ICC_v] = 0;
+PSR[key_ICC_c] = 0;
+""")
+ICC_writeAdd = trap.HelperOperation('ICC_writeAdd', opCode)
+ICC_writeAdd.addInstuctionVar(('result', 'BIT<32>'))
+
+# Modification of the Integer Condition Codes of the Processor Status Register
+# after an subtraction operation
+opCode = cxx_writer.Code("""
+PSR[key_ICC_n] = ((result & 0x80000000) >> 31);
+PSR[key_ICC_z] = (result == 0);
+PSR[key_ICC_v] = 0;
+PSR[key_ICC_c] = 0;
+""")
+ICC_writeSub = trap.HelperOperation('ICC_writeSub', opCode)
+ICC_writeSub.addInstuctionVar(('result', 'BIT<32>'))
+
+# Modification of the Integer Condition Codes of the Processor Status Register
+# after a multiply step operation
+opCode = cxx_writer.Code("""
+PSR[key_ICC_n] = ((result & 0x80000000) >> 31);
+PSR[key_ICC_z] = (result == 0);
+PSR[key_ICC_v] = 0;
+PSR[key_ICC_c] = 0;
+""")
+ICC_writeMulS = trap.HelperOperation('ICC_writeMulS', opCode)
+ICC_writeMulS.addInstuctionVar(('result', 'BIT<32>'))

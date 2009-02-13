@@ -1140,7 +1140,7 @@ switch(cond){
 }
 """)
 branch_Instr = trap.Instruction('BRANCH', True, frequency = 5)
-branch_Instr.setMachineCode(b_sethi_format2, {'op2' : [0, 1, 0]}, 'TODO')
+branch_Instr.setMachineCode(b_sethi_format2, {'op2' : [0, 1, 0]}, ('b', ('%cond', {}), ('%a', {1: ',a'}), ' ', '%disp22'))
 branch_Instr.setCode(opCode, 'decode')
 branch_Instr.addBehavior(IncrementPC, 'fetch')
 branch_Instr.addTest({'cond': int('1000', 2), 'a': 0, 'disp22': 0x200}, {'PC' : 0x0, 'NPC' : 0x4, 'PSR': 0x0}, {'PC' : 0x8, 'NPC' : 0x800})

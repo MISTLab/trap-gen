@@ -306,14 +306,27 @@ class Instruction:
         # List of instruction which are subInstructions of the current one
         self.subInstructions = []
 
-    def setMachineCode(self, machineCode, machineBits = {}, mnemonic = '', subInstr = False):
+    def setMachineCode(self, machineCode, machineBits = {}, mnemonic = [], subInstr = False):
         # Sets the machine code for this instruction. Note that a machine
         # code may be generic for groups of instructions: the
         # machine bits are a specialization of it. machineBits
         # is a map: name of the field and bit string which
         # sets the value of that field
-        # TODO: think about how to do the mnemonic
         self.subInstr = subInstr
+        # Now I check that the mnemonic is valid all the parts starting with % must be existing in the current
+        # machine code
+        bitFieldNames = []
+        for i in machineCode.bitFields:
+            bitFieldNames.append(i[0])
+        for i in mnemonic:
+            if type(i) == type(''):
+                if i.startswith('%'):
+                    if not i[1:] in bitFieldNames:
+                        raise Exception('The machine code for instruction ' + self.name + ' does not contain field ' + i[1:] + ' specified in the mnemonic')
+            else:
+                if i[0].startswith('%'):
+                    if not i[0][1:] in bitFieldNames:
+                        raise Exception('The machine code for instruction ' + self.name + ' does not contain field ' + i[0][1:] + ' specified in the mnemonic')
         self.mnemonic = mnemonic
         if self.machineCode or self.machineBits:
             raise Exception('The machine code for instruction ' + self.name + ' has already been added')
