@@ -338,10 +338,9 @@ def getCPPInstr(self, model, processor, trace):
     replicateBody = cxx_writer.writer_code.Code('return new ' + self.name + '(' + baseInstrInitElement + ');')
     replicateDecl = cxx_writer.writer_code.Method('replicate', replicateBody, instructionType.makePointer(), 'pu', noException = True, const = True)
     classElements.append(replicateDecl)
-    if trace:
-        getIstructionNameBody = cxx_writer.writer_code.Code('return \"' + self.name + '\";')
-        getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', getIstructionNameBody, cxx_writer.writer_code.stringType, 'pu')
-        classElements.append(getIstructionNameDecl)
+    getIstructionNameBody = cxx_writer.writer_code.Code('return \"' + self.name + '\";')
+    getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', getIstructionNameBody, cxx_writer.writer_code.stringType, 'pu')
+    classElements.append(getIstructionNameDecl)
 
     # We need to create the attribute for the variables referenced by the non-constant parts of the instruction;
     # they are the bitCorrespondence variable of the machine code (they establish the correspondence with either registers
@@ -600,9 +599,12 @@ def getCPPClasses(self, processor, model, trace):
     setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
     setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam], pure = True, noException = True)
     instructionElements.append(setparamsDecl)
+    getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', emptyBody, cxx_writer.writer_code.stringType, 'pu', pure = True)
+    instructionElements.append(getIstructionNameDecl)
+    getMnemonicDecl = cxx_writer.writer_code.Method('getMnemonic', emptyBody, cxx_writer.writer_code.stringType, 'pu', pure = True)
+    instructionElements.append(getMnemonicDecl)
+
     if trace:
-        getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', emptyBody, cxx_writer.writer_code.stringType, 'pu', pure = True)
-        instructionElements.append(getIstructionNameDecl)
         # I have to print the value of all the registers in the processor
         printTraceCode = ''
         if model.startswith('acc'):

@@ -793,37 +793,96 @@ xnorcc_reg_Instr.addTest({'rd': 10, 'rs1': 10, 'rs2': 2}, {'REGS[2]' : 0xf0f, 'R
 isa.addInstruction(xnorcc_reg_Instr)
 
 # Shift
-opCode = cxx_writer.Code("""
+opCodeRegsImm = cxx_writer.Code("""
+rs1_op = rs1;
+""")
+opCodeRegsRegs = cxx_writer.Code("""
+rs1_op = rs1;
+rs2_op = rs2;
+""")
+opCodeWb = cxx_writer.Code("""
+rd = result;
+""")
+opCodeExec = cxx_writer.Code("""
+result = rs1_op << simm13;
 """)
 sll_imm_Instr = trap.Instruction('SLL_imm', True, frequency = 5)
-sll_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 0, 0, 1, 0, 1]}, 'TODO')
-sll_imm_Instr.setCode(opCode, 'execute')
-sll_imm_Instr.addTest({}, {}, {})
+sll_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 0, 0, 1, 0, 1]}, ('sll r', '%rs1', ' ', '%simm13', ' r', '%rd'))
+sll_imm_Instr.setCode(opCodeExec, 'execute')
+sll_imm_Instr.setCode(opCodeRegsImm, 'regs')
+sll_imm_Instr.setCode(opCodeWb, 'wb')
+sll_imm_Instr.addVariable(('result', 'BIT<32>'))
+sll_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
+sll_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13':4}, {'REGS[10]' : 0x00001234}, {'REGS[1]' : 0x00012340})
+sll_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13':4}, {'REGS[10]' : 0xffffffff}, {'REGS[1]' : 0xfffffff0})
 isa.addInstruction(sll_imm_Instr)
+opCodeExec = cxx_writer.Code("""
+result = rs1_op << (rs2_op & 0x0000001f);
+""")
 sll_reg_Instr = trap.Instruction('SLL_reg', True, frequency = 5)
-sll_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 0, 0, 1, 0, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, 'TODO')
-sll_reg_Instr.setCode(opCode, 'execute')
-sll_reg_Instr.addTest({}, {}, {})
+sll_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 0, 0, 1, 0, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('sll r', '%rs1', ' r', '%rs2', ' r', '%rd'))
+sll_reg_Instr.setCode(opCodeExec, 'execute')
+sll_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+sll_reg_Instr.setCode(opCodeWb, 'wb')
+sll_reg_Instr.addVariable(('result', 'BIT<32>'))
+sll_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
+sll_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
+sll_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2':2}, {'REGS[2]' : 4, 'REGS[10]' : 0x00001234}, {'REGS[1]' : 0x00012340})
+sll_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2':2}, {'REGS[2]' : 4, 'REGS[10]' : 0xffffffff}, {'REGS[1]' : 0xfffffff0})
 isa.addInstruction(sll_reg_Instr)
+opCodeExec = cxx_writer.Code("""
+result = ((unsigned int)rs1_op) >> simm13;
+""")
 srl_imm_Instr = trap.Instruction('SRL_imm', True, frequency = 5)
-srl_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 0, 0, 1, 1, 0]}, 'TODO')
-srl_imm_Instr.setCode(opCode, 'execute')
-srl_imm_Instr.addTest({}, {}, {})
+srl_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 0, 0, 1, 1, 0]}, ('srl r', '%rs1', ' ', '%simm13', ' r', '%rd'))
+srl_imm_Instr.setCode(opCodeExec, 'execute')
+srl_imm_Instr.setCode(opCodeRegsImm, 'regs')
+srl_imm_Instr.setCode(opCodeWb, 'wb')
+srl_imm_Instr.addVariable(('result', 'BIT<32>'))
+srl_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
+srl_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13':4}, {'REGS[10]' : 0x00001234}, {'REGS[1]' : 0x00000123})
+srl_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13':4}, {'REGS[10]' : 0xffffffff}, {'REGS[1]' : 0x0fffffff})
 isa.addInstruction(srl_imm_Instr)
+opCodeExec = cxx_writer.Code("""
+result = ((unsigned int)rs1_op) >> (rs2_op & 0x0000001f);
+""")
 srl_reg_Instr = trap.Instruction('SRL_reg', True, frequency = 5)
-srl_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 0, 0, 1, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, 'TODO')
-srl_reg_Instr.setCode(opCode, 'execute')
-srl_reg_Instr.addTest({}, {}, {})
+srl_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 0, 0, 1, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('srl r', '%rs1', ' r', '%rs2', ' r', '%rd'))
+srl_reg_Instr.setCode(opCodeExec, 'execute')
+srl_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+srl_reg_Instr.setCode(opCodeWb, 'wb')
+srl_reg_Instr.addVariable(('result', 'BIT<32>'))
+srl_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
+srl_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
+srl_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2':2}, {'REGS[2]' : 4, 'REGS[10]' : 0x00001234}, {'REGS[1]' : 0x00000123})
+srl_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2':2}, {'REGS[2]' : 4, 'REGS[10]' : 0xffffffff}, {'REGS[1]' : 0x0fffffff})
 isa.addInstruction(srl_reg_Instr)
+opCodeExec = cxx_writer.Code("""
+result = ((int)rs1_op) >> simm13;
+""")
 sra_imm_Instr = trap.Instruction('SRA_imm', True, frequency = 5)
-sra_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 0, 0, 1, 1, 1]}, 'TODO')
-sra_imm_Instr.setCode(opCode, 'execute')
-sra_imm_Instr.addTest({}, {}, {})
+sra_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 0, 0, 1, 1, 1]}, ('sra r', '%rs1', ' ', '%simm13', ' r', '%rd'))
+sra_imm_Instr.setCode(opCodeExec, 'execute')
+sra_imm_Instr.setCode(opCodeRegsImm, 'regs')
+sra_imm_Instr.setCode(opCodeWb, 'wb')
+sra_imm_Instr.addVariable(('result', 'BIT<32>'))
+sra_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
+sra_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13':4}, {'REGS[10]' : 0x00001234}, {'REGS[1]' : 0x00000123})
+sra_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13':4}, {'REGS[10]' : 0xffffff11}, {'REGS[1]' : 0xfffffff1})
 isa.addInstruction(sra_imm_Instr)
-sra_reg_Instr = trap.Instruction('SAR_reg', True, frequency = 5)
-sra_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 0, 0, 1, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, 'TODO')
-sra_reg_Instr.setCode(opCode, 'execute')
-sra_reg_Instr.addTest({}, {}, {})
+opCodeExec = cxx_writer.Code("""
+result = ((int)rs1_op) >> (rs2_op & 0x0000001f);
+""")
+sra_reg_Instr = trap.Instruction('SRA_reg', True, frequency = 5)
+sra_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 0, 0, 1, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('sra r', '%rs1', ' r', '%rs2', ' r', '%rd'))
+sra_reg_Instr.setCode(opCodeExec, 'execute')
+sra_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+sra_reg_Instr.setCode(opCodeWb, 'wb')
+sra_reg_Instr.addVariable(('result', 'BIT<32>'))
+sra_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
+sra_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
+sra_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2':2}, {'REGS[2]' : 4, 'REGS[10]' : 0x00001234}, {'REGS[1]' : 0x00000123})
+sra_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2':2}, {'REGS[2]' : 4, 'REGS[10]' : 0xffffff11}, {'REGS[1]' : 0xfffffff1})
 isa.addInstruction(sra_reg_Instr)
 
 # Add instruction
@@ -1140,7 +1199,12 @@ switch(cond){
 }
 """)
 branch_Instr = trap.Instruction('BRANCH', True, frequency = 5)
-branch_Instr.setMachineCode(b_sethi_format2, {'op2' : [0, 1, 0]}, ('b', ('%cond', {}), ('%a', {1: ',a'}), ' ', '%disp22'))
+branch_Instr.setMachineCode(b_sethi_format2, {'op2' : [0, 1, 0]},
+('b', ('%cond', {int('1000', 2) : 'a', 
+int('0000', 2) : 'n', int('1001', 2) : 'ne', int('0001', 2) : 'e', int('1010', 2) : 'g', int('0010', 2) : 'le',
+int('1011', 2) : 'ge', int('0011', 2) : 'l', int('1100', 2) : 'gu', int('0100', 2) : 'leu', int('1101', 2) : 'cc',
+int('01010', 2) : 'cs', int('1110', 2) : 'pos', int('0110', 2) : 'neg', int('1111', 2) : 'vc', int('0111', 2) : 'vs',}),
+('%a', {1: ',a'}), ' ', '%disp22'))
 branch_Instr.setCode(opCode, 'decode')
 branch_Instr.addBehavior(IncrementPC, 'fetch')
 branch_Instr.addTest({'cond': int('1000', 2), 'a': 0, 'disp22': 0x200}, {'PC' : 0x0, 'NPC' : 0x4, 'PSR': 0x0}, {'PC' : 0x8, 'NPC' : 0x800})
