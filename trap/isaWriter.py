@@ -45,12 +45,29 @@ archWordType = None
 alreadyDeclared = []
 baseInstrConstrParams = []
 
-def toBinStr(intNum):
-    # Given an integer number it converts it to a bitstring
+def toBinStr(intNum, maxLen = -1):
+    # Given an integer number it converts it to a bitstring; maxLen is used only
+    # in case a negative number have to be converted
     bitStr = []
+    negative = (intNum < 0)
+    intNum = abs(intNum)
+    if negative:
+        intNum = intNum - 1
     while intNum > 0:
         bitStr.append(str(intNum % 2))
         intNum = intNum / 2
+    if negative:
+        if maxLen < 0:
+            raise Exception('We are converting number ' + str(intNum) + ' which is a negative number: the maximum number of bits should be specified')
+        if len(bitStr) >= maxLen:
+            raise Exception('Not enough bits specified to convert negative number ' + str(intNum))
+        for i in range(len(bitStr), maxLen):
+            bitStr.append(0)
+        for i in range(0, len(bitStr)):
+            if bitStr[i] == '1':
+                bitStr[i] = '0'
+            else:
+                bitStr[i] = '1'
     bitStr.reverse()
     return bitStr
 
@@ -406,9 +423,11 @@ def getCPPInstr(self, model, processor, trace):
                     getMnemonicCode += '_bit'
                 getMnemonicCode += ';\n'
             else:
-                getMnemonicCode += 'oss << "' + i[1:] + '";\n'
+                getMnemonicCode += 'oss << "' + i + '";\n'
         else:
             # I have a switch
+            if not i[0].startswith('%'):
+                raise Exception('The first element of a multi-word mnemonic must start with %; error in instruction ' + self.name)
             getMnemonicCode += 'switch(this->' + i[0][1:]
             if i[0][1:] in self.machineCode.bitCorrespondence.keys() + self.bitCorrespondence.keys():
                 getMnemonicCode += '_bit'
@@ -523,9 +542,9 @@ def getCPPInstrTest(self, processor, model):
         instrCode = ['0' for i in range(0, self.machineCode.instrLen)]
         for name, elemValue in test[0].items():
             if self.machineCode.bitLen.has_key(name):
-                curBitCode = toBinStr(elemValue)
+                curBitCode = toBinStr(elemValue, self.machineCode.bitLen[name])
                 curBitCode.reverse()
-                #print 'element ' + name + ' int value ' + str(elemValue) + ' bits ' + str(curBitCode)
+                # print 'element ' + name + ' int value ' + str(elemValue) + ' bits ' + str(curBitCode)
                 if len(curBitCode) > self.machineCode.bitLen[name]:
                     raise Exception('Value ' + hex(elemValue) + ' set for field ' + name + ' in test of instruction ' + self.name + ' cannot be represented in ' + str(self.machineCode.bitLen[name]) + ' bits')
                 for i in range(0, len(curBitCode)):

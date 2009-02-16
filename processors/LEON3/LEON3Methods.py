@@ -112,11 +112,13 @@ ICC_writeLogic.addInstuctionVar(('result', 'BIT<32>'))
 opCode = cxx_writer.Code("""
 PSR[key_ICC_n] = ((result & 0x80000000) >> 31);
 PSR[key_ICC_z] = (result == 0);
-PSR[key_ICC_v] = 0;
-PSR[key_ICC_c] = 0;
+PSR[key_ICC_v] = ((unsigned int)((rs1_op & rs2_op & (~result)) | ((~rs1_op) & (~rs2_op) & result))) >> 31;
+PSR[key_ICC_c] = ((unsigned int)((rs1_op & rs2_op) | ((rs1_op | rs2_op) & (~result)))) >> 31;
 """)
 ICC_writeAdd = trap.HelperOperation('ICC_writeAdd', opCode)
 ICC_writeAdd.addInstuctionVar(('result', 'BIT<32>'))
+ICC_writeAdd.addInstuctionVar(('rs1_op', 'BIT<32>'))
+ICC_writeAdd.addInstuctionVar(('rs2_op', 'BIT<32>'))
 
 # Modification of the Integer Condition Codes of the Processor Status Register
 # after an subtraction operation
