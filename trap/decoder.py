@@ -39,7 +39,7 @@ try:
 except:
     import traceback
     traceback.print_exc()
-    raise Exception('Error occurred during the import of module networkx, required for the creation of the decoder. Please correctly install the module')
+    raise Exception('Error occurred during the import of module networkx, required for the creation of the decoder. Please correctly install the module, at least version 0.36 required')
 
 def expandPatterns(curPattern, genericPattern, tablePattern):
     # taken in input the current pattern and the generic one,

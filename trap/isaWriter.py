@@ -397,7 +397,7 @@ def getCPPInstr(self, model, processor, trace):
 
     # Here I declare the methods necessary to create the current instruction mnemonic given the current value of
     # the variable parts of the instruction
-    getMnemonicCode = 'std::ostringstream oss (ostringstream::out);\n'
+    getMnemonicCode = 'std::ostringstream oss (std::ostringstream::out);\n'
     for i in self.mnemonic:
         if type(i) == type(''):
             if i.startswith('%'):
@@ -538,11 +538,11 @@ def getCPPInstrTest(self, processor, model):
                 memories.append(processor.memory[0])
             if brackIndex > 0 and resource[:brackIndex] in memories:
                 try:
-                    code += resource[:brackIndex] + '.write_word(' + hex(int(resource[brackIndex + 1:-1])) + ', ' + str(value) + ');\n'
+                    code += resource[:brackIndex] + '.write_word(' + hex(int(resource[brackIndex + 1:-1])) + ', ' + hex(value) + ');\n'
                 except ValueError:
-                    code += resource[:brackIndex] + '.write_word(' + hex(int(resource[brackIndex + 1:-1], 16)) + ', ' + str(value) + ');\n'
+                    code += resource[:brackIndex] + '.write_word(' + hex(int(resource[brackIndex + 1:-1], 16)) + ', ' + hex(value) + ');\n'
             else:
-                code += resource + ' = ' + str(value) + ';\n'
+                code += resource + ' = ' + hex(value) + ';\n'
         code += 'toTest.setParams(' + hex(int(''.join(instrCode), 2)) + ');\n'
         code += 'try{\n'
         if not model.startswith('acc'):
@@ -822,10 +822,13 @@ def getCPPClasses(self, processor, model, trace):
     setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
     setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam], noException = True)
     invalidInstrElements.append(setparamsDecl)
-    if trace:
-        getIstructionNameBody = cxx_writer.writer_code.Code('return \"InvalidInstruction\";')
-        getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', getIstructionNameBody, cxx_writer.writer_code.stringType, 'pu')
-        invalidInstrElements.append(getIstructionNameDecl)
+    getIstructionNameBody = cxx_writer.writer_code.Code('return \"InvalidInstruction\";')
+    getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', getIstructionNameBody, cxx_writer.writer_code.stringType, 'pu')
+    invalidInstrElements.append(getIstructionNameDecl)
+    getMnemonicBody = cxx_writer.writer_code.Code('return \"invalid\";')
+    getMnemonicDecl = cxx_writer.writer_code.Method('getMnemonic', getMnemonicBody, cxx_writer.writer_code.stringType, 'pu')
+    invalidInstrElements.append(getMnemonicDecl)
+
     from procWriter import baseInstrInitElement
     publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, ['Instruction(' + baseInstrInitElement + ')'])
     invalidInstrDecl = cxx_writer.writer_code.ClassDeclaration('InvalidInstr', invalidInstrElements, [instructionDecl.getType()])
@@ -846,10 +849,12 @@ def getCPPClasses(self, processor, model, trace):
         setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
         setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam], noException = True)
         NOPInstructionElements.append(setparamsDecl)
-        if trace:
-            getIstructionNameBody = cxx_writer.writer_code.Code('return \"NOPInstruction\";')
-            getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', getIstructionNameBody, cxx_writer.writer_code.stringType, 'pu')
-            NOPInstructionElements.append(getIstructionNameDecl)
+        getIstructionNameBody = cxx_writer.writer_code.Code('return \"NOPInstruction\";')
+        getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', getIstructionNameBody, cxx_writer.writer_code.stringType, 'pu')
+        NOPInstructionElements.append(getIstructionNameDecl)
+        getMnemonicBody = cxx_writer.writer_code.Code('return \"nop\";')
+        getMnemonicDecl = cxx_writer.writer_code.Method('getMnemonic', getMnemonicBody, cxx_writer.writer_code.stringType, 'pu')
+        NOPInstructionElements.append(getMnemonicDecl)
         from procWriter import baseInstrInitElement
         publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, ['Instruction(' + baseInstrInitElement + ')'])
         NOPInstructionElements = cxx_writer.writer_code.ClassDeclaration('NOPInstruction', NOPInstructionElements, [instructionDecl.getType()])
