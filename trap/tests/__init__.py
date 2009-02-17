@@ -36,6 +36,13 @@
 
 __all__ = ['decoder', 'coding', 'regs']
 
-from decoder import *
-from coding import *
-from regs import *
+try:
+    from decoder import *
+    from coding import *
+    from regs import *
+except ImportError:
+    import sys
+    sys.path.append(__path__[0])
+    from decoder import *
+    from coding import *
+    from regs import *

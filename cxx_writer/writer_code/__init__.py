@@ -36,9 +36,17 @@
 
 __all__ = ['Writer', 'CustomCode', 'SimpleDecls', 'ClassDecls', 'FileDumper']
 
-from Writer import *
-from CustomCode import *
-from SimpleDecls import *
-from ClassDecls import *
-from FileDumper import *
-
+try:
+    from Writer import *
+    from CustomCode import *
+    from SimpleDecls import *
+    from ClassDecls import *
+    from FileDumper import *
+except ImportError:
+    import sys
+    sys.path.append(__path__[0])
+    from Writer import *
+    from CustomCode import *
+    from SimpleDecls import *
+    from ClassDecls import *
+    from FileDumper import *

@@ -36,4 +36,11 @@
 
 __all__ = ['writer_code']
 
-from writer_code import *
+try:
+    import writer_code
+    from writer_code import *
+except ImportError:
+    import sys
+    sys.path.append(__path__[0])
+    import writer_code
+    from writer_code import *

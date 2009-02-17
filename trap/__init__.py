@@ -36,6 +36,13 @@
 
 __all__ = ['isa', 'processor', 'decoder']
 
-from isa import *
-from processor import *
-from decoder import *
+try:
+    from isa import *
+    from processor import *
+    from decoder import *
+except ImportError:
+    import sys
+    sys.path.append(__path__[0])
+    from isa import *
+    from processor import *
+    from decoder import *
