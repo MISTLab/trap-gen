@@ -34,6 +34,7 @@
 #
 ####################################################################################
 
+__all__ = ['isa', 'processor', 'decoder']
 
 from isa import *
 from processor import *

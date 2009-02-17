@@ -85,7 +85,7 @@ isa.addMethod(UpdatePSRSub_method)
 #____________________________________________________________________________________________________
 
 # ADC instruction family
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 rd = (int)rn + (int)operand;
 if (CPSR[key_C]){
     rd += 1;
@@ -150,7 +150,7 @@ adc_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rotate': 0xe, 'i
 isa.addInstruction(adc_imm_Instr)
 
 # ADD instruction family
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 rd = (int)rn + (int)operand;
 """)
 add_shift_imm_Instr = trap.Instruction('ADD_si', True, frequency = 6)
@@ -194,7 +194,7 @@ add_imm_Instr.addBehavior(UpdatePC, 'execute', False)
 isa.addInstruction(add_imm_Instr)
 
 # AND instruction family
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 result = rn & operand;
 rd = result;
 """)
@@ -242,7 +242,7 @@ and_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(and_imm_Instr)
 
 # BRANCH instruction family
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 if(l == 1) {
     LINKR = PC - 4;
 }
@@ -258,7 +258,7 @@ branch_Instr.addBehavior(condCheckOp, 'execute')
 branch_Instr.addTest({'cond': 0xe, 'l': 0, 'offset': 0x400}, {'PC': 0x00445560, 'LINKR': 8}, {'PC': 0x00446560, 'LINKR': 8})
 branch_Instr.addTest({'cond': 0xe, 'l': 1, 'offset': 0x400}, {'PC': 0x00445560, 'LINKR': 8}, {'PC': 0x00446560, 'LINKR': 0x0044555C})
 isa.addInstruction(branch_Instr)
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 // Note how the T bit is not considered since we do not bother with
 // thumb mode
 PC = (rm & 0xFFFFFFFC);
@@ -275,7 +275,7 @@ branch_thumb_Instr.addTest({'cond': 0xe, 'rm': 0}, {'REGS[0]': 0x00445563}, {'PC
 isa.addInstruction(branch_thumb_Instr)
 
 # BIC instruction family
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 result = rn & ~operand;
 rd = result;
 """)
@@ -323,7 +323,7 @@ bic_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(bic_imm_Instr)
 
 # CMN instruction family
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 UpdatePSRAddInner(rn, operand);
 """)
 cmn_shift_imm_Instr = trap.Instruction('CMN_si', True, frequency = 4)
@@ -365,7 +365,7 @@ cmn_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
 isa.addInstruction(cmn_imm_Instr)
 
 # CMP instruction family
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 UpdatePSRSubInner(rn, operand);
 """)
 cmp_shift_imm_Instr = trap.Instruction('CMP_si', True, frequency = 7)
@@ -405,7 +405,7 @@ cmp_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
 isa.addInstruction(cmp_imm_Instr)
 
 # EOR instruction family
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 result = rn ^ operand;
 rd = result;
 """)
@@ -453,7 +453,7 @@ eor_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(eor_imm_Instr)
 
 # LDM instruction family
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 unsigned int numRegsToLoad = 0;
 unsigned int loadLatency = 0;
 if(s == 0){
@@ -520,7 +520,7 @@ else{
 }
 stall(loadLatency);
 """)
-opCodeDec = cxx_writer.Code("""
+opCodeDec = cxx_writer.writer_code.Code("""
 #ifdef ACC_MODEL
 for(int i = 0; i < 16; i++){
     if((reg_list & (0x00000001 << i)) != 0){
@@ -562,7 +562,7 @@ isa.addInstruction(ldm_Instr)
 
 # LDR instruction family
 # Normal load instruction
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 memLastBits = address & 0x00000003;
 // if the memory address is not word aligned I have to rotate the loaded value
 if(memLastBits == 0){
@@ -644,7 +644,7 @@ isa.addInstruction(ldr_off_Instr)
 
 # LDRB instruction family
 # Normal load instruction
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 rd = dataMem.read_byte(address);
 stall(2);
 """)
@@ -663,7 +663,7 @@ ldrb_off_Instr.addBehavior(condCheckOp, 'execute')
 ldrb_off_Instr.addBehavior(ls_reg_Op, 'execute')
 isa.addInstruction(ldrb_off_Instr)
 # LDRH instruction family
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 rd = dataMem.read_half(address);
 stall(2);
 """)
@@ -675,7 +675,7 @@ ldrh_off_Instr.addBehavior(condCheckOp, 'execute')
 ldrh_off_Instr.addBehavior(ls_sh_Op, 'execute')
 isa.addInstruction(ldrh_off_Instr)
 # LDRS H/B instruction family
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 rd = dataMem.read_half(address);
 stall(2);
 """)
@@ -686,7 +686,7 @@ ldrsh_off_Instr.addBehavior(IncrementPC, 'fetch')
 ldrsh_off_Instr.addBehavior(condCheckOp, 'execute')
 ldrsh_off_Instr.addBehavior(ls_sh_Op, 'execute')
 isa.addInstruction(ldrsh_off_Instr)
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 rd = dataMem.read_byte(address);
 stall(2);
 """)
@@ -699,7 +699,7 @@ ldrsb_off_Instr.addBehavior(ls_sh_Op, 'execute')
 isa.addInstruction(ldrsb_off_Instr)
 
 # Mutiply instruction family
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 rd = (int)((rm * rs) + REGS[rn]);
 
 if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
@@ -723,7 +723,7 @@ mla_Instr.addBehavior(condCheckOp, 'execute')
 mla_Instr.addBehavior(UpdatePSRmul, 'execute', False)
 isa.addInstruction(mla_Instr)
 
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 rd = (int)(rm * rs);
 
 if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
@@ -747,7 +747,7 @@ mul_Instr.addBehavior(condCheckOp, 'execute')
 mul_Instr.addBehavior(UpdatePSRmul, 'execute', False)
 isa.addInstruction(mul_Instr)
 
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 //Perform the operation
 long long result = (long long)(((long long)rm * (long long)rs) + (((long long)rd) << 32) + (long long)REGS[rn]);
 //Check if I have to update the processor flags
@@ -775,7 +775,7 @@ smlal_Instr.addBehavior(condCheckOp, 'execute')
 smlal_Instr.addBehavior(UpdatePSRmul, 'execute', False)
 isa.addInstruction(smlal_Instr)
 
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 //Perform the operation
 long long result = (long long)((long long)rm * (long long)rs);
 //Check if I have to update the processor flags
@@ -803,7 +803,7 @@ smull_Instr.addBehavior(condCheckOp, 'execute')
 smull_Instr.addBehavior(UpdatePSRmul, 'execute', False)
 isa.addInstruction(smull_Instr)
 
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 //Perform the operation
 unsigned long long result = (unsigned long long)(((unsigned long long)rm * (unsigned long long)rs) + (((unsigned long long)rd) << 32) + (unsigned long long)REGS[rn]);
 //Check if I have to update the processor flags
@@ -831,7 +831,7 @@ umlal_Instr.addBehavior(condCheckOp, 'execute')
 umlal_Instr.addBehavior(UpdatePSRmul, 'execute', False)
 isa.addInstruction(umlal_Instr)
 
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 //Perform the operation
 unsigned long long result = (unsigned long long)((unsigned long long)rm * (unsigned long long)rs);
 //Check if I have to update the processor flags
@@ -860,7 +860,7 @@ umull_Instr.addBehavior(UpdatePSRmul, 'execute', False)
 isa.addInstruction(umull_Instr)
 
 # MOV instruction family
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 rd = operand;
 result = operand;
 """)
@@ -896,7 +896,7 @@ mov_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(mov_imm_Instr)
 
 # MRS instruction
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 if(r == 1){ // I have to save the SPSR
     switch(CPSR[key_mode]){
         case 0x1:{
@@ -937,7 +937,7 @@ mrs_Instr.setVarField('rd', ('REGS', 0), 'out')
 isa.addInstruction(mrs_Instr)
 
 # MSR instruction family
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 value = RotateRight(rotate*2, immediate);
 //Checking for unvalid bits
 if((value & 0x00000010) == 0){
@@ -1080,7 +1080,7 @@ msr_imm_Instr.addBehavior(condCheckOp, 'execute')
 msr_imm_Instr.addVariable(('value', 'BIT<32>'))
 isa.addInstruction(msr_imm_Instr)
 
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 //Checking for unvalid bits
 if((rm & 0x00000010) == 0){
     THROW_EXCEPTION("MSR called with unvalid mode " << std::hex << std::showbase << rm << ": we are trying to switch to 26 bit PC");
@@ -1222,7 +1222,7 @@ msr_reg_Instr.addBehavior(condCheckOp, 'execute')
 isa.addInstruction(msr_reg_Instr)
 
 # MVN instruction family
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 result = ~operand;
 rd = result;
 """)
@@ -1258,7 +1258,7 @@ mvn_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(mvn_imm_Instr)
 
 # ORR instruction family
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 result = rn | operand;
 rd = result;
 """)
@@ -1294,7 +1294,7 @@ orr_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(orr_imm_Instr)
 
 # RSB instruction family
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 rd = (int)operand - (int)rn;
 """)
 rsb_shift_imm_Instr = trap.Instruction('RSB_si', True, frequency = 4)
@@ -1326,7 +1326,7 @@ rsb_imm_Instr.addBehavior(UpdatePC, 'execute', False)
 isa.addInstruction(rsb_imm_Instr)
 
 # RSC instruction family
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 rd = (int)operand - (int)rn;
 if (CPSR[key_C]){
     rd -= 1;
@@ -1361,7 +1361,7 @@ rsc_imm_Instr.addBehavior(UpdatePC, 'execute', False)
 isa.addInstruction(rsc_imm_Instr)
 
 # SBC instruction family
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 rd = (int)rn - (int)operand;
 if (CPSR[key_C]){
     rd -= 1;
@@ -1396,7 +1396,7 @@ sbc_imm_Instr.addBehavior(UpdatePC, 'execute', False)
 isa.addInstruction(sbc_imm_Instr)
 
 # SUB instruction family
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 rd = (int)rn - (int)operand;
 """)
 sub_shift_imm_Instr = trap.Instruction('SUB_si', True, frequency = 5)
@@ -1428,7 +1428,7 @@ sub_imm_Instr.addBehavior(UpdatePC, 'execute', False)
 isa.addInstruction(sub_imm_Instr)
 
 # TEQ instruction family
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 result = rn ^ operand;
 UpdatePSRBitM(result, carry);
 """)
@@ -1458,7 +1458,7 @@ teq_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(teq_imm_Instr)
 
 # TST instruction family
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 result = rn & operand;
 UpdatePSRBitM(result, carry);
 """)
@@ -1488,7 +1488,7 @@ tst_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(tst_imm_Instr)
 
 # STM instruction family
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 int numRegsToStore = 0;
 //I use word aligned addresses
 start_address &= 0xFFFFFFFC;
@@ -1535,7 +1535,7 @@ else{
 }
 stall(numRegsToStore);
 """)
-opCodeDec = cxx_writer.Code("""
+opCodeDec = cxx_writer.writer_code.Code("""
 #ifdef ACC_MODEL
 for(int i = 0; i < 16; i++){
     if((reg_list & (0x00000001 << i)) != 0){
@@ -1555,7 +1555,7 @@ isa.addInstruction(stm_Instr)
 
 # STR instruction family
 # Normal load instruction
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 dataMem.write_word(address, rd);
 stall(1);
 """)
@@ -1579,7 +1579,7 @@ str_off_Instr.addVariable(('value', 'BIT<32>'))
 isa.addInstruction(str_off_Instr)
 # STRB instruction family
 # Normal load instruction
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 dataMem.write_byte(address, (unsigned char)(rd & 0x000000FF));
 stall(1);
 """)
@@ -1598,7 +1598,7 @@ strb_off_Instr.addBehavior(condCheckOp, 'execute')
 strb_off_Instr.addBehavior(ls_reg_Op, 'execute')
 isa.addInstruction(strb_off_Instr)
 # STRH instruction family
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 dataMem.write_half(address, (unsigned short)(rd & 0x0000FFFF));
 stall(1);
 """)
@@ -1611,7 +1611,7 @@ strh_off_Instr.addBehavior(ls_sh_Op, 'execute')
 isa.addInstruction(strh_off_Instr)
 
 # SWP instruction family
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 memLastBits = rn & 0x00000003;
 //Depending whether the address is word aligned or not I have to rotate the
 //read word.
@@ -1631,7 +1631,7 @@ swap_Instr.addBehavior(condCheckOp, 'execute')
 swap_Instr.addVariable(('temp', 'BIT<32>'))
 swap_Instr.addVariable(('memLastBits', 'BIT<32>'))
 isa.addInstruction(swap_Instr)
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 temp = dataMem.read_byte(rn);
 dataMem.write_byte(rn, (unsigned char)(rm & 0x000000FF));
 rd = temp;

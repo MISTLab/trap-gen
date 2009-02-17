@@ -59,7 +59,7 @@ PSR[key_CWP] = newCwp;
 """
 for i in range(8, 32):
     IncrementRegWindow_code += 'REGS[' + str(i) + '].updateAlias(WINREGS[(PSR[key_CWP]*16 + ' + str(i) + ') % (16*NUM_REG_WIN)]);\n'
-opCode = cxx_writer.Code(IncrementRegWindow_code)
+opCode = cxx_writer.writer_code.Code(IncrementRegWindow_code)
 IncrementRegWindow_method = trap.HelperMethod('IncrementRegWindow', opCode, 'execute')
 IncrementRegWindow_method.addVariable(('newCwp', 'BIT<32>'))
 # Method used to move to the previous register window; this simply consists in
@@ -74,31 +74,31 @@ PSR[key_CWP] = newCwp;
 """
 for i in range(8, 32):
     DecrementRegWindow_code += 'REGS[' + str(i) + '].updateAlias(WINREGS[(PSR[key_CWP]*16 + ' + str(i) + ') % (16*NUM_REG_WIN)]);\n'
-opCode = cxx_writer.Code(DecrementRegWindow_code)
+opCode = cxx_writer.writer_code.Code(DecrementRegWindow_code)
 DecrementRegWindow_method = trap.HelperMethod('DecrementRegWindow', opCode, 'execute')
 DecrementRegWindow_method.addVariable(('newCwp', 'BIT<32>'))
 
 # Sign extends the input bitstring
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 if((bitSeq & (1 << (bitSeq_length - 1))) != 0)
     bitSeq |= (((unsigned int)0xFFFFFFFF) << bitSeq_length);
 return bitSeq;
 """)
 SignExtend_method = trap.HelperMethod('SignExtend', opCode, 'execute')
-SignExtend_method.setSignature(('BIT<32>'), [('bitSeq', 'BIT<32>'), cxx_writer.Parameter('bitSeq_length', cxx_writer.uintType)])
+SignExtend_method.setSignature(('BIT<32>'), [('bitSeq', 'BIT<32>'), cxx_writer.writer_code.Parameter('bitSeq_length', cxx_writer.writer_code.uintType)])
 
 # Normal PC increment, used when not in a branch instruction; in a branch instruction
 # I will directly modify both PC and nPC in case we are in a the cycle accurate model,
 # while just nPC in case we are in the functional one; if the branch has the annulling bit
 # set, then also in the functional model both the PC and nPC will be modified
-opCode = cxx_writer.Code("""PC = NPC;
+opCode = cxx_writer.writer_code.Code("""PC = NPC;
 NPC += 4;
 """)
 IncrementPC = trap.HelperOperation('IncrementPC', opCode)
 
 # Modification of the Integer Condition Codes of the Processor Status Register
 # after an logical operation or after the multiply operation
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 PSR[key_ICC_n] = ((result & 0x80000000) >> 31);
 PSR[key_ICC_z] = (result == 0);
 PSR[key_ICC_v] = 0;
@@ -109,7 +109,7 @@ ICC_writeLogic.addInstuctionVar(('result', 'BIT<32>'))
 
 # Modification of the Integer Condition Codes of the Processor Status Register
 # after an addition operation
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 PSR[key_ICC_n] = ((result & 0x80000000) >> 31);
 PSR[key_ICC_z] = (result == 0);
 PSR[key_ICC_v] = ((unsigned int)((rs1_op & rs2_op & (~result)) | ((~rs1_op) & (~rs2_op) & result))) >> 31;
@@ -122,7 +122,7 @@ ICC_writeAdd.addInstuctionVar(('rs2_op', 'BIT<32>'))
 
 # Modification of the Integer Condition Codes of the Processor Status Register
 # after an subtraction operation
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 PSR[key_ICC_n] = ((result & 0x80000000) >> 31);
 PSR[key_ICC_z] = (result == 0);
 PSR[key_ICC_v] = 0;
@@ -133,7 +133,7 @@ ICC_writeSub.addInstuctionVar(('result', 'BIT<32>'))
 
 # Modification of the Integer Condition Codes of the Processor Status Register
 # after a multiply step operation
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 PSR[key_ICC_n] = ((result & 0x80000000) >> 31);
 PSR[key_ICC_z] = (result == 0);
 PSR[key_ICC_v] = 0;

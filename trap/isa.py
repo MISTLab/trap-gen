@@ -61,20 +61,20 @@ def resolveBitType(typeString):
     # the other bit-width are described using SystemC types; also in case the host machine
     # does not respect the cited convention I use SystemC types also for the basic bit width.
     if bitWidth == 32:
-        return cxx_writer.uintType
+        return cxx_writer.writer_code.uintType
     elif bitWidth == 64:
-        return cxx_writer.sc_uint64Type
+        return cxx_writer.writer_code.sc_uint64Type
     elif bitWidth == 8:
-        return cxx_writer.ucharType
+        return cxx_writer.writer_code.ucharType
     elif bitWidth == 1:
-        return cxx_writer.boolType
+        return cxx_writer.writer_code.boolType
     elif bitWidth == 16:
-        return cxx_writer.ushortType
+        return cxx_writer.writer_code.ushortType
     else:
         if bitWidth/8 <= tuple.__itemsize__:
-            return cxx_writer.TemplateType('sc_dt::sc_uint', str(bitWidth), 'systemc.h')
+            return cxx_writer.writer_code.TemplateType('sc_dt::sc_uint', str(bitWidth), 'systemc.h')
         else:
-            return cxx_writer.TemplateType('sc_dt::sc_biguint', str(bitWidth), 'systemc.h')
+            return cxx_writer.writer_code.TemplateType('sc_dt::sc_biguint', str(bitWidth), 'systemc.h')
 
 class ISA:
     """This class represents the instruction set of a processor;
@@ -411,7 +411,7 @@ class Instruction:
         # adds a variable global to the instruction; note that
         # variable has to be an instance of cxx_writer.Variable
         if isinstance(variable, type(())):
-            variable = cxx_writer.Variable(variable[0], resolveBitType(variable[1]))
+            variable = cxx_writer.writer_code.Variable(variable[0], resolveBitType(variable[1]))
         for instrVar in self.variables:
             if variable.name == instrVar.name:
                 if variable.type.name != instrVar.type.name:
@@ -502,7 +502,7 @@ class HelperOperation:
         # adds a variable global to the operation; note that
         # variable has to be an instance of cxx_writer.Variable
         if isinstance(variable, type(())):
-            variable = cxx_writer.Variable(variable[0], resolveBitType(variable[1]))
+            variable = cxx_writer.writer_code.Variable(variable[0], resolveBitType(variable[1]))
         for instrVar in self.localvars + self.instrvars:
             if variable.name == instrVar.name:
                 if variable.type.name != instrVar.type.name:
@@ -513,7 +513,7 @@ class HelperOperation:
         # adds a variable global to the all instructions containig this operation;
         # note that variable has to be an instance of cxx_writer.Variable
         if isinstance(variable, type(())):
-            variable = cxx_writer.Variable(variable[0], resolveBitType(variable[1]))
+            variable = cxx_writer.writer_code.Variable(variable[0], resolveBitType(variable[1]))
         for instrVar in self.instrvars + self.localvars:
             if variable.name == instrVar.name:
                 if variable.type.name != instrVar.type.name:
@@ -552,13 +552,13 @@ class HelperMethod:
         self.stage = stage
         self.localvars = []
         self.parameters = []
-        self.retType = cxx_writer.Type('void')
+        self.retType = cxx_writer.writer_code.Type('void')
 
     def addVariable(self, variable):
         # adds a variable global to the operation; note that
         # variable has to be an instance of cxx_writer.Variable
         if isinstance(variable, type(())):
-            variable = cxx_writer.Variable(variable[0], resolveBitType(variable[1]))
+            variable = cxx_writer.writer_code.Variable(variable[0], resolveBitType(variable[1]))
         for instrVar in self.localvars:
             if variable.name == instrVar.name:
                 if variable.type.name != instrVar.type.name:
@@ -568,7 +568,7 @@ class HelperMethod:
                 raise Exception('Trying to add parameter ' + param.name + ' to operation ' + self.name + ' which already has a variable with such a name')
         self.localvars.append(variable)
 
-    def setSignature(self, retType = cxx_writer.Type('void'), parameters = []):
+    def setSignature(self, retType = cxx_writer.writer_code.Type('void'), parameters = []):
         # sets the signature for the method; the return type has to be an instance of
         # cxx_writer.Type or a string representing a bit type, while the parameters
         #  can either be cxx_writer.Parameter or a string representing a bit type
@@ -578,7 +578,7 @@ class HelperMethod:
             self.retType = retType
         for param in parameters:
             if isinstance(param, type(())):
-                param = cxx_writer.Parameter(param[0], resolveBitType(param[1]))
+                param = cxx_writer.writer_code.Parameter(param[0], resolveBitType(param[1]))
 
             for instrVar in self.localvars:
                 if param.name == instrVar.name:

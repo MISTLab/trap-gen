@@ -370,7 +370,7 @@ class Processor:
 
     def setABI(self, abi):
         if self.coprocessor:
-            print 'WARNING: processor ' + self.name + ' is a coprocessor, so there is not need to set the ABI'
+            print ('WARNING: processor ' + self.name + ' is a coprocessor, so there is not need to set the ABI')
         self.abi = abi
 
     def addPipeStage(self, pipe):
@@ -636,8 +636,8 @@ class Processor:
         # coherent. Second it actually calls the write method of the
         # processor components (registers, instructions, etc.) to create
         # the code of the simulator
-        print '\tCREATING IMPLEMENTATION FOR PROCESSOR MODEL --> ' + self.name
-        print '\t\tChecking the consistency of the specification'
+        print ('\tCREATING IMPLEMENTATION FOR PROCESSOR MODEL --> ' + self.name)
+        print ('\t\tChecking the consistency of the specification')
         self.isa.computeCoding()
         self.isa.checkCoding()
         self.checkAliases()
@@ -649,7 +649,7 @@ class Processor:
         # OK, checks done. Now I can start calling the write methods to
         # actually create the ISS code
         # First of all we have to create the decoder
-        print '\t\tCreating the decoder'
+        print ('\t\tCreating the decoder')
         from isa import resolveBitType
         import decoder, os
         import cxx_writer
@@ -665,9 +665,9 @@ class Processor:
         mainFolder = cxx_writer.writer_code.Folder(os.path.join(folder))
         for model in models:
             if model.endswith('AT') and self.externalClock:
-                print 'ERROR: creating models with and external clock and the Approximate-Timed interface is not yet supported'
+                print ('ERROR: creating models with and external clock and the Approximate-Timed interface is not yet supported')
                 continue
-            print '\t\tCreating the implementation for model ' + model
+            print ('\t\tCreating the implementation for model ' + model)
             if not model in validModels:
                 raise Exception(model + ' is not a valid model type')
             RegClasses = self.getCPPRegisters(model)
@@ -783,7 +783,7 @@ class Processor:
             curFolder.create()
             if (model == 'funcLT') and (not self.systemc):
                 testFolder.create(False, True)
-            print '\t\tCreated'
+            print ('\t\tCreated')
         # We create and print the main folder and also add a configuration
         # part to the wscript
         mainFolder.create(True)

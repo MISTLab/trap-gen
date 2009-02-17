@@ -34,6 +34,7 @@
 #
 ####################################################################################
 
+__all__ = ['decoder', 'coding', 'regs']
 
 from decoder import *
 from coding import *

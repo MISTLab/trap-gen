@@ -544,7 +544,6 @@ def getCPPInstrTest(self, processor, model):
             if self.machineCode.bitLen.has_key(name):
                 curBitCode = toBinStr(elemValue, self.machineCode.bitLen[name])
                 curBitCode.reverse()
-                # print 'element ' + name + ' int value ' + str(elemValue) + ' bits ' + str(curBitCode)
                 if len(curBitCode) > self.machineCode.bitLen[name]:
                     raise Exception('Value ' + hex(elemValue) + ' set for field ' + name + ' in test of instruction ' + self.name + ' cannot be represented in ' + str(self.machineCode.bitLen[name]) + ' bits')
                 for i in range(0, len(curBitCode)):

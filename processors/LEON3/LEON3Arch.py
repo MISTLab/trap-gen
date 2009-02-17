@@ -47,7 +47,7 @@ except ImportError:
     try:
         import trap
     except ImportError:
-        print 'Please specify in file LEON3Arch.py the path where the core TRAP files are located'
+        print ('Please specify in file LEON3Arch.py the path where the core TRAP files are located')
 
 import cxx_writer
 

@@ -46,7 +46,7 @@ import cxx_writer
 # Here we define some helper methods, which are not directly part of the
 # instructions, but which can be called by the instruction body
 # *******
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 shifted = toShift >> shift_amm;
 //Controlling the sign extensions
 if((toShift & 0x80000000) != 0){
@@ -58,18 +58,18 @@ else{
 return shifted;
 """)
 AShiftRight_method = trap.HelperMethod('ArithmeticShiftRight', opCode, 'execute')
-AShiftRight_method.setSignature(('BIT<32>'), [cxx_writer.Parameter('shift_amm', cxx_writer.uintType), ('toShift', 'BIT<32>')])
+AShiftRight_method.setSignature(('BIT<32>'), [cxx_writer.writer_code.Parameter('shift_amm', cxx_writer.writer_code.uintType), ('toShift', 'BIT<32>')])
 AShiftRight_method.addVariable(('shifted', 'BIT<32>'))
 
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 if((bitSeq & (1 << (bitSeq_length - 1))) != 0)
     bitSeq |= (((unsigned int)0xFFFFFFFF) << bitSeq_length);
 return bitSeq;
 """)
 SignExtend_method = trap.HelperMethod('SignExtend', opCode, 'execute')
-SignExtend_method.setSignature(('BIT<32>'), [('bitSeq', 'BIT<32>'), cxx_writer.Parameter('bitSeq_length', cxx_writer.uintType)])
+SignExtend_method.setSignature(('BIT<32>'), [('bitSeq', 'BIT<32>'), cxx_writer.writer_code.Parameter('bitSeq_length', cxx_writer.writer_code.uintType)])
 
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 //value which must be glued to the left of the shifted quantity
 toGlue = toRotate & (((unsigned int)0xFFFFFFFF) >> (32 - rotate_amm));
 rotated = ((toRotate >> rotate_amm) & (((unsigned int)0xFFFFFFFF) >> rotate_amm));
@@ -77,11 +77,11 @@ toGlue <<= (32 - rotate_amm);
 return (toGlue | rotated);
 """)
 RotateRight_method = trap.HelperMethod('RotateRight', opCode, 'execute')
-RotateRight_method.setSignature(('BIT<32>'), [cxx_writer.Parameter('rotate_amm', cxx_writer.uintType), ('toRotate', 'BIT<32>')])
+RotateRight_method.setSignature(('BIT<32>'), [cxx_writer.writer_code.Parameter('rotate_amm', cxx_writer.writer_code.uintType), ('toRotate', 'BIT<32>')])
 RotateRight_method.addVariable(('rotated', 'BIT<32>'))
 RotateRight_method.addVariable(('toGlue', 'BIT<32>'))
 
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 long long resultSign = (long long)((long long)(int)operand1 + (long long)(int)operand2);
 //unsigned long long resultUnSign = (unsigned long long)((unsigned long long)operand1 + (unsigned long long)operand2);
 // N flag if the results is negative
@@ -96,7 +96,7 @@ CPSR[key_V] = ((((unsigned int)(resultSign >> 1)) ^ ((unsigned int)resultSign)) 
 UpdatePSRAdd_method = trap.HelperMethod('UpdatePSRAddInner', opCode, 'execute')
 UpdatePSRAdd_method.setSignature(parameters = [('operand1', 'BIT<32>'), ('operand2', 'BIT<32>')])
 
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 long long resultSign = (long long)((long long)(int)operand1 - (long long)(int)operand2);
 //unsigned long long resultUnSign = (unsigned long long)((unsigned long long)operand1 - (unsigned long long)operand2);
 // N flag if the results is negative
@@ -112,7 +112,7 @@ CPSR[key_V] = ((((unsigned int)(resultSign >> 1)) ^ ((unsigned int)resultSign)) 
 UpdatePSRSub_method = trap.HelperMethod('UpdatePSRSubInner', opCode, 'execute')
 UpdatePSRSub_method.setSignature(parameters = [('operand1', 'BIT<32>'), ('operand2', 'BIT<32>')])
 
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 // N flag if the results is negative
 CPSR[key_N] = ((result & 0x80000000) != 0);
 //Update flag Z if the result is 0
@@ -124,7 +124,7 @@ CPSR[key_C] = (carry != 0);
 UpdatePSRBitM_method = trap.HelperMethod('UpdatePSRBitM', opCode, 'execute')
 UpdatePSRBitM_method.setSignature(parameters = [('result', 'BIT<32>'), ('carry', 'BIT<1>')])
 
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 //Case on the type of shift
 switch(shift_type){
     case 0:{
@@ -175,9 +175,9 @@ switch(shift_type){
 return toShift;
 """)
 LSRegShift_method = trap.HelperMethod('LSRegShift', opCode, 'execute')
-LSRegShift_method.setSignature(('BIT<32>'), [cxx_writer.Parameter('shift_type', cxx_writer.uintType), cxx_writer.Parameter('shift_amm', cxx_writer.uintType), ('toShift', 'BIT<32>')])
+LSRegShift_method.setSignature(('BIT<32>'), [cxx_writer.writer_code.Parameter('shift_type', cxx_writer.writer_code.uintType), cxx_writer.writer_code.Parameter('shift_amm', cxx_writer.writer_code.uintType), ('toShift', 'BIT<32>')])
 
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 unsigned int curMode = CPSR[key_mode];
 switch(curMode){
     case 0x1:{
@@ -207,7 +207,7 @@ switch(curMode){
 updateAliases(curMode, CPSR[key_mode]);
 """)
 restoreSPSR_method = trap.HelperMethod('restoreSPSR', opCode, 'execute')
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 switch(toMode){
     case 0x0:
     case 0xF:{
@@ -259,11 +259,11 @@ if(fromMode == 0x1 && toMode != 0x1){
 }
 """)
 updateAlias_method = trap.HelperMethod('updateAliases', opCode, 'execute')
-updateAlias_method.setSignature(parameters = [cxx_writer.Parameter('fromMode', cxx_writer.uintType), cxx_writer.Parameter('toMode', cxx_writer.uintType)])
+updateAlias_method.setSignature(parameters = [cxx_writer.writer_code.Parameter('fromMode', cxx_writer.writer_code.uintType), cxx_writer.writer_code.Parameter('toMode', cxx_writer.writer_code.uintType)])
 
 # Behavior that checks for the condition code and consiquently flushes
 # the current instruction or procedes with its execution
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 if(cond != 0xE){
     // Of course the previous if is redundand, the case would be enough, but
     // since cond == 0xE is the most common situation, treating it in a particular way
@@ -383,7 +383,7 @@ condCheckOp = trap.HelperOperation('condition_check', opCode)
 condCheckOp.addUserInstructionElement('cond')
 # Now I define the behavior for the shift immediate operation: all data processing instructions with
 # an immediate value and a shift use it
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 if(shift_op == 0 && shift_amm == 0){
     operand = rm;
     carry = (CPSR[key_C] != 0);
@@ -451,7 +451,7 @@ DPI_shift_imm_Op.addUserInstructionElement('rm')
 DPI_shift_imm_Op.addUserInstructionElement('shift_op')
 # Now I define the behavior for the shift register operation: all data processing instructions with
 # an register value and a shift use it
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 unsigned int shift_amm = rs & 0x000000FF;
 switch(shift_op) {
     case 0x0:{
@@ -545,7 +545,7 @@ DPI_reg_shift_Op.addUserInstructionElement('shift_op')
 DPI_reg_shift_Op.addUserInstructionElement('rs')
 # Now I define the behavior for the rotate immediate operation: all data processing instructions with
 # an immediate value and a rotation use it
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 if (rotate == 0){
     operand = immediate;
     carry = (CPSR[key_C] != 0);
@@ -562,7 +562,7 @@ DPI_imm_Op.addUserInstructionElement('rotate')
 DPI_imm_Op.addUserInstructionElement('immediate')
 # Now I define the behavior used by most of the data processing operations
 # for the update of the program status register
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 if (s == 0x1){
     if(rd_bit == 15){
         // In case the destination register is the program counter,
@@ -582,7 +582,7 @@ UpdatePSRSum.addUserInstructionElement('rn')
 UpdatePSRSum.addUserInstructionElement('rd')
 # Now I define the behavior used by most of the data processing operations
 # for the update of the program status register
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 if (s == 0x1){
     if(rd_bit == 15){
         // In case the destination register is the program counter,
@@ -602,7 +602,7 @@ UpdatePSRSub.addUserInstructionElement('rd')
 UpdatePSRSub.addInstuctionVar(('operand', 'BIT<32>'))
 # Now I define the behavior used by most of the data processing operations
 # for the update of the program status register
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 if (s == 0x1){
     if(rd_bit == 15){
         // In case the destination register is the program counter,
@@ -622,7 +622,7 @@ UpdatePSRBit.addUserInstructionElement('rd')
 UpdatePSRBit.addInstuctionVar(('carry', 'BIT<1>'))
 UpdatePSRBit.addInstuctionVar(('result', 'BIT<32>'))
 
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 if (s == 0x1){
     if(rd_bit == 15){
         // In case the destination register is the program counter,
@@ -645,7 +645,7 @@ UpdatePSRmul.addUserInstructionElement('s')
 UpdatePSRmul.addUserInstructionElement('rd')
 # In case the program counter is the updated register I have
 # to increment the latency of the operation
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 if(rd_bit == 15){
     //In case the destination register is the program counter I have to
     //specify that I have a latency of two clock cycles
@@ -656,12 +656,12 @@ if(rd_bit == 15){
 UpdatePC = trap.HelperOperation('UpdatePC', opCode, inline = False)
 UpdatePC.addUserInstructionElement('rd')
 # Normal PC increment
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 PC += 4;
 """)
 IncrementPC = trap.HelperOperation('IncrementPC', opCode, inline = False)
 # Now I define the behavior for the Load/Store with immediate offset/index
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 address = 0;
 if((p == 1) && (w == 0)) {
     // immediate offset
@@ -707,7 +707,7 @@ ls_imm_Op.addUserInstructionElement('u')
 ls_imm_Op.addUserInstructionElement('rn')
 ls_imm_Op.addUserInstructionElement('immediate')
 # Now I define the behavior for the Load/Store with register offset/index
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 if ((p == 1) && (w == 0)) {
     // offset
     if(u == 1){
@@ -751,7 +751,7 @@ ls_reg_Op.addUserInstructionElement('rm')
 ls_reg_Op.addUserInstructionElement('shift_amm')
 ls_reg_Op.addUserInstructionElement('shift_op')
 # Now I define the behavior for the Load/Store of multiple registers
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 //Now I calculate the start and end addresses of the
 //mem area where I will save the registers.
 unsigned int setbits = 0;
@@ -793,7 +793,7 @@ LSM_reglist_Op.addUserInstructionElement('u')
 LSM_reglist_Op.addUserInstructionElement('rn')
 LSM_reglist_Op.addUserInstructionElement('reg_list')
 # Now I define the behavior for the Load/Store half word
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 address = 0;
 //First of all I check whether this instruction uses an immediate or a register offset
 if(i == 1){

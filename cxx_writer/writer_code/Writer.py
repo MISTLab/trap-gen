@@ -34,6 +34,12 @@
 #
 ####################################################################################
 
+def printOnFile(line, destFile):
+    # Function for printing on file; printing on file has been enclosed
+    # in this function so that this is the only function that needs to be
+    # replaced for the transition of python 3.0
+    print >> destFile, line
+
 class StringWriter:
     def __init__(self):
         self.code = ''
@@ -85,9 +91,9 @@ class CodeWriter:
             if line:
                 for i in range(0, self.curIndent):
                     self.file.write(' ')
-                print >> self.file, self.go_new_line(line)
+                printOnFile(self.go_new_line(line), self.file)
             else:
-                print >> self.file, ''
+                printOnFile('', self.file)
             # Finally I compute the nesting level for the next lines
             if line.endswith('{'):
                 self.curIndent += self.indentSize

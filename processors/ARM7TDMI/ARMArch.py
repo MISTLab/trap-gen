@@ -47,7 +47,7 @@ except ImportError:
     try:
         import trap
     except ImportError:
-        print 'Please specify in file ARMArch.py the path where the core TRAP files are located'
+        print ('Please specify in file ARMArch.py the path where the core TRAP files are located')
 
 # It is nice to keep the ISA and the architecture separated
 # so we use the import trick

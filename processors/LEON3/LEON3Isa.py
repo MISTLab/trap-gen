@@ -77,7 +77,7 @@ isa.addMethod(SignExtend_method)
 # I can actually declare the processor instructions
 #----------------------------------------------------------------------------------------------------
 #____________________________________________________________________________________________________
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 """)
 # Load Integer Instruction Family
 ldsb_imm_Instr = trap.Instruction('LDSB_imm', True, frequency = 5)
@@ -376,10 +376,10 @@ swapa_reg_Instr.addTest({}, {}, {})
 isa.addInstruction(swapa_reg_Instr)
 
 # sethi
-opCodeWb = cxx_writer.Code("""
+opCodeWb = cxx_writer.writer_code.Code("""
 rd = result;
 """)
-opCodeExec = cxx_writer.Code("""
+opCodeExec = cxx_writer.writer_code.Code("""
 result = 0xfffffc00 & (imm22 << 10);
 """)
 sethi_Instr = trap.Instruction('SETHI', True, frequency = 5)
@@ -394,14 +394,14 @@ sethi_Instr.addTest({'rd': 20, 'imm22': 0x3fffff}, {'REGS[20]' : 0xaaaaaaaa, 'PC
 isa.addInstruction(sethi_Instr)
 
 # Logical Instructions
-opCodeReadRegs1 = cxx_writer.Code("""
+opCodeReadRegs1 = cxx_writer.writer_code.Code("""
 rs1_op = rs1;
 """)
-opCodeReadRegs2 = cxx_writer.Code("""
+opCodeReadRegs2 = cxx_writer.writer_code.Code("""
 rs1_op = rs1;
 rs2_op = rs2;
 """)
-opCodeExecImm = cxx_writer.Code("""
+opCodeExecImm = cxx_writer.writer_code.Code("""
 result = rs1_op & SignExtend(simm13, 13);
 """)
 and_imm_Instr = trap.Instruction('AND_imm', True, frequency = 5)
@@ -417,7 +417,7 @@ and_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0xfff}, {'REGS[10]' : 0xfff
 and_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'REGS[10]' : 0xffffffff, 'REGS[1]' : 0x0, 'PC' : 0x0, 'NPC' : 0x4}, {'REGS[1]' : 0xffffffff, 'PC' : 0x8, 'NPC' : 0x8})
 and_imm_Instr.addTest({'rd': 10, 'rs1': 10, 'simm13': 0xfff}, {'REGS[10]' : 0x88888888, 'PC' : 0x0, 'NPC' : 0x4}, {'REGS[10]' : 0x0888, 'PC' : 0x8, 'NPC' : 0x8})
 isa.addInstruction(and_imm_Instr)
-opCodeExecReg = cxx_writer.Code("""
+opCodeExecReg = cxx_writer.writer_code.Code("""
 result = rs1_op & rs2_op;
 """)
 and_reg_Instr = trap.Instruction('AND_reg', True, frequency = 5)
@@ -465,7 +465,7 @@ andcc_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]' : 0xffffffff,
 andcc_reg_Instr.addTest({'rd': 10, 'rs1': 10, 'rs2': 2}, {'REGS[2]' : 0xfff, 'REGS[10]' : 0x88888888, 'PC' : 0x0, 'NPC' : 0x4, 'PSR' : 0x0}, {'REGS[10]' : 0x0888, 'PC' : 0x8, 'NPC' : 0x8, 'PSR' : 0x00000000})
 andcc_reg_Instr.addTest({'rd': 10, 'rs1': 10, 'rs2': 2}, {'REGS[2]' : 0x0, 'REGS[10]' : 0x88888888, 'PC' : 0x0, 'NPC' : 0x4, 'PSR' : 0x0}, {'REGS[10]' : 0x0, 'PC' : 0x8, 'NPC' : 0x8, 'PSR' : 0x00400000})
 isa.addInstruction(andcc_reg_Instr)
-opCodeExecImm = cxx_writer.Code("""
+opCodeExecImm = cxx_writer.writer_code.Code("""
 result = rs1_op & ~(SignExtend(simm13, 13));
 """)
 andn_imm_Instr = trap.Instruction('ANDN_imm', True, frequency = 5)
@@ -481,7 +481,7 @@ andn_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0xfff}, {'REGS[10]' : 0xff
 andn_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'REGS[10]' : 0xffffffff, 'REGS[1]' : 0x0, 'PC' : 0x0, 'NPC' : 0x4}, {'REGS[1]' : 0x0, 'PC' : 0x8, 'NPC' : 0x8})
 andn_imm_Instr.addTest({'rd': 10, 'rs1': 10, 'simm13': 0xfff}, {'REGS[10]' : 0x88888888, 'PC' : 0x0, 'NPC' : 0x4}, {'REGS[10]' : 0x88888000, 'PC' : 0x8, 'NPC' : 0x8})
 isa.addInstruction(andn_imm_Instr)
-opCodeExecReg = cxx_writer.Code("""
+opCodeExecReg = cxx_writer.writer_code.Code("""
 result = rs1_op & ~rs2_op;
 """)
 andn_reg_Instr = trap.Instruction('ANDN_reg', True, frequency = 5)
@@ -527,7 +527,7 @@ andncc_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]' : 0xfff, 'RE
 andncc_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]' : 0xffffffff, 'REGS[10]' : 0xffffffff, 'REGS[1]' : 0x0, 'PC' : 0x0, 'NPC' : 0x4}, {'REGS[1]' : 0x0, 'PC' : 0x8, 'NPC' : 0x8, 'PSR' : 0x00400000})
 andncc_reg_Instr.addTest({'rd': 10, 'rs1': 10, 'rs2': 2}, {'REGS[2]' : 0xfff, 'REGS[10]' : 0x88888888, 'PC' : 0x0, 'NPC' : 0x4}, {'REGS[10]' : 0x88888000, 'PC' : 0x8, 'NPC' : 0x8, 'PSR' : 0x00800000})
 isa.addInstruction(andncc_reg_Instr)
-opCodeExecImm = cxx_writer.Code("""
+opCodeExecImm = cxx_writer.writer_code.Code("""
 result = rs1_op | SignExtend(simm13, 13);
 """)
 or_imm_Instr = trap.Instruction('OR_imm', True, frequency = 5)
@@ -544,7 +544,7 @@ or_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0xfff}, {'REGS[10]' : 0xffff
 or_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'REGS[10]' : 0x0, 'REGS[1]' : 0x0, 'PC' : 0x0, 'NPC' : 0x4, 'PSR' : 0x0}, {'REGS[1]' : 0xffffffff, 'PC' : 0x8, 'NPC' : 0x8, 'PSR' : 0x0})
 or_imm_Instr.addTest({'rd': 10, 'rs1': 10, 'simm13': 0xf0f}, {'REGS[10]' : 0x88888888, 'PC' : 0x0, 'NPC' : 0x4, 'PSR' : 0x0}, {'REGS[10]' : 0x88888f8f, 'PC' : 0x8, 'NPC' : 0x8, 'PSR' : 0x0})
 isa.addInstruction(or_imm_Instr)
-opCodeExecReg = cxx_writer.Code("""
+opCodeExecReg = cxx_writer.writer_code.Code("""
 result = rs1_op | rs2_op;
 """)
 or_reg_Instr = trap.Instruction('OR_reg', True, frequency = 5)
@@ -593,7 +593,7 @@ orcc_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]' : 0xfff, 'REGS
 orcc_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]' : 0xffffffff, 'REGS[10]' : 0x0, 'REGS[1]' : 0x0, 'PC' : 0x0, 'NPC' : 0x4, 'PSR' : 0x0}, {'REGS[1]' : 0xffffffff, 'PC' : 0x8, 'NPC' : 0x8, 'PSR' : 0x00800000})
 orcc_reg_Instr.addTest({'rd': 10, 'rs1': 10, 'rs2': 2}, {'REGS[2]' : 0xf0f, 'REGS[10]' : 0x88888888, 'PC' : 0x0, 'NPC' : 0x4, 'PSR' : 0x0}, {'REGS[10]' : 0x88888f8f, 'PC' : 0x8, 'NPC' : 0x8, 'PSR' : 0x00800000})
 isa.addInstruction(orcc_reg_Instr)
-opCodeExecImm = cxx_writer.Code("""
+opCodeExecImm = cxx_writer.writer_code.Code("""
 result = rs1_op | ~(SignExtend(simm13, 13));
 """)
 orn_imm_Instr = trap.Instruction('ORN_imm', True, frequency = 5)
@@ -610,7 +610,7 @@ orn_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0xfff}, {'REGS[10]' : 0xfff
 orn_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'REGS[10]' : 0x0, 'REGS[1]' : 0x0, 'PC' : 0x0, 'NPC' : 0x4, 'PSR' : 0x0}, {'REGS[1]' : 0x0, 'PC' : 0x8, 'NPC' : 0x8, 'PSR' : 0x0})
 orn_imm_Instr.addTest({'rd': 10, 'rs1': 10, 'simm13': 0xf0f}, {'REGS[10]' : 0x88888888, 'PC' : 0x0, 'NPC' : 0x4, 'PSR' : 0x0}, {'REGS[10]' : 0xfffff8f8, 'PC' : 0x8, 'NPC' : 0x8, 'PSR' : 0x0})
 isa.addInstruction(orn_imm_Instr)
-opCodeExecReg = cxx_writer.Code("""
+opCodeExecReg = cxx_writer.writer_code.Code("""
 result = rs1_op | ~rs2_op;
 """)
 orn_reg_Instr = trap.Instruction('ORN_reg', True, frequency = 5)
@@ -659,7 +659,7 @@ orncc_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]' : 0xfff, 'REG
 orncc_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]' : 0xffffffff, 'REGS[10]' : 0x0, 'REGS[1]' : 0x0, 'PC' : 0x0, 'NPC' : 0x4, 'PSR' : 0x0}, {'REGS[1]' : 0x0, 'PC' : 0x8, 'NPC' : 0x8, 'PSR' : 0x00400000})
 orncc_reg_Instr.addTest({'rd': 10, 'rs1': 10, 'rs2': 2}, {'REGS[2]' : 0xf0f, 'REGS[10]' : 0x88888888, 'PC' : 0x0, 'NPC' : 0x4, 'PSR' : 0x0}, {'REGS[10]' : 0xfffff8f8, 'PC' : 0x8, 'NPC' : 0x8, 'PSR' : 0x00800000})
 isa.addInstruction(orncc_reg_Instr)
-opCodeExecImm = cxx_writer.Code("""
+opCodeExecImm = cxx_writer.writer_code.Code("""
 result = rs1_op ^ SignExtend(simm13, 13);
 """)
 xor_imm_Instr = trap.Instruction('XOR_imm', True, frequency = 5)
@@ -676,7 +676,7 @@ xor_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0xfff}, {'REGS[10]' : 0xfff
 xor_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'REGS[10]' : 0x0, 'REGS[1]' : 0x0, 'PC' : 0x0, 'NPC' : 0x4, 'PSR' : 0x0}, {'REGS[1]' : 0xffffffff, 'PC' : 0x8, 'NPC' : 0x8, 'PSR' : 0x0})
 xor_imm_Instr.addTest({'rd': 10, 'rs1': 10, 'simm13': 0xf0f}, {'REGS[10]' : 0x88888888, 'PC' : 0x0, 'NPC' : 0x4, 'PSR' : 0x0}, {'REGS[10]' : 0x88888787, 'PC' : 0x8, 'NPC' : 0x8, 'PSR' : 0x0})
 isa.addInstruction(xor_imm_Instr)
-opCodeExecReg = cxx_writer.Code("""
+opCodeExecReg = cxx_writer.writer_code.Code("""
 result = rs1_op ^ rs2_op;
 """)
 xor_reg_Instr = trap.Instruction('XOR_reg', True, frequency = 5)
@@ -725,7 +725,7 @@ xorcc_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]' : 0xfff, 'REG
 xorcc_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]' : 0xffffffff, 'REGS[10]' : 0x0, 'REGS[1]' : 0x0, 'PC' : 0x0, 'NPC' : 0x4, 'PSR' : 0x0}, {'REGS[1]' : 0xffffffff, 'PC' : 0x8, 'NPC' : 0x8, 'PSR' : 0x00800000})
 xorcc_reg_Instr.addTest({'rd': 10, 'rs1': 10, 'rs2': 2}, {'REGS[2]' : 0xf0f, 'REGS[10]' : 0x88888888, 'PC' : 0x0, 'NPC' : 0x4, 'PSR' : 0x0}, {'REGS[10]' : 0x88888787, 'PC' : 0x8, 'NPC' : 0x8, 'PSR' : 0x00800000})
 isa.addInstruction(xorcc_reg_Instr)
-opCodeExecImm = cxx_writer.Code("""
+opCodeExecImm = cxx_writer.writer_code.Code("""
 result = rs1_op ^ ~(SignExtend(simm13, 13));
 """)
 xnor_imm_Instr = trap.Instruction('XNOR_imm', True, frequency = 5)
@@ -742,7 +742,7 @@ xnor_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0xfff}, {'REGS[10]' : 0xff
 xnor_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'REGS[10]' : 0x0, 'REGS[1]' : 0x0, 'PC' : 0x0, 'NPC' : 0x4, 'PSR' : 0x0}, {'REGS[1]' : 0x0, 'PC' : 0x8, 'NPC' : 0x8, 'PSR' : 0x0})
 xnor_imm_Instr.addTest({'rd': 10, 'rs1': 10, 'simm13': 0xf0f}, {'REGS[10]' : 0x88888888, 'PC' : 0x0, 'NPC' : 0x4, 'PSR' : 0x0}, {'REGS[10]' : 0x77777878, 'PC' : 0x8, 'NPC' : 0x8, 'PSR' : 0x0})
 isa.addInstruction(xnor_imm_Instr)
-opCodeExecReg = cxx_writer.Code("""
+opCodeExecReg = cxx_writer.writer_code.Code("""
 result = rs1_op ^ ~rs2_op;
 """)
 xnor_reg_Instr = trap.Instruction('XNOR_reg', True, frequency = 5)
@@ -793,17 +793,17 @@ xnorcc_reg_Instr.addTest({'rd': 10, 'rs1': 10, 'rs2': 2}, {'REGS[2]' : 0xf0f, 'R
 isa.addInstruction(xnorcc_reg_Instr)
 
 # Shift
-opCodeRegsImm = cxx_writer.Code("""
+opCodeRegsImm = cxx_writer.writer_code.Code("""
 rs1_op = rs1;
 """)
-opCodeRegsRegs = cxx_writer.Code("""
+opCodeRegsRegs = cxx_writer.writer_code.Code("""
 rs1_op = rs1;
 rs2_op = rs2;
 """)
-opCodeWb = cxx_writer.Code("""
+opCodeWb = cxx_writer.writer_code.Code("""
 rd = result;
 """)
-opCodeExec = cxx_writer.Code("""
+opCodeExec = cxx_writer.writer_code.Code("""
 result = rs1_op << simm13;
 """)
 sll_imm_Instr = trap.Instruction('SLL_imm', True, frequency = 5)
@@ -816,7 +816,7 @@ sll_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 sll_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13':4}, {'REGS[10]' : 0x00001234}, {'REGS[1]' : 0x00012340})
 sll_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13':4}, {'REGS[10]' : 0xffffffff}, {'REGS[1]' : 0xfffffff0})
 isa.addInstruction(sll_imm_Instr)
-opCodeExec = cxx_writer.Code("""
+opCodeExec = cxx_writer.writer_code.Code("""
 result = rs1_op << (rs2_op & 0x0000001f);
 """)
 sll_reg_Instr = trap.Instruction('SLL_reg', True, frequency = 5)
@@ -830,7 +830,7 @@ sll_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
 sll_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2':2}, {'REGS[2]' : 4, 'REGS[10]' : 0x00001234}, {'REGS[1]' : 0x00012340})
 sll_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2':2}, {'REGS[2]' : 4, 'REGS[10]' : 0xffffffff}, {'REGS[1]' : 0xfffffff0})
 isa.addInstruction(sll_reg_Instr)
-opCodeExec = cxx_writer.Code("""
+opCodeExec = cxx_writer.writer_code.Code("""
 result = ((unsigned int)rs1_op) >> simm13;
 """)
 srl_imm_Instr = trap.Instruction('SRL_imm', True, frequency = 5)
@@ -843,7 +843,7 @@ srl_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 srl_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13':4}, {'REGS[10]' : 0x00001234}, {'REGS[1]' : 0x00000123})
 srl_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13':4}, {'REGS[10]' : 0xffffffff}, {'REGS[1]' : 0x0fffffff})
 isa.addInstruction(srl_imm_Instr)
-opCodeExec = cxx_writer.Code("""
+opCodeExec = cxx_writer.writer_code.Code("""
 result = ((unsigned int)rs1_op) >> (rs2_op & 0x0000001f);
 """)
 srl_reg_Instr = trap.Instruction('SRL_reg', True, frequency = 5)
@@ -857,7 +857,7 @@ srl_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
 srl_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2':2}, {'REGS[2]' : 4, 'REGS[10]' : 0x00001234}, {'REGS[1]' : 0x00000123})
 srl_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2':2}, {'REGS[2]' : 4, 'REGS[10]' : 0xffffffff}, {'REGS[1]' : 0x0fffffff})
 isa.addInstruction(srl_reg_Instr)
-opCodeExec = cxx_writer.Code("""
+opCodeExec = cxx_writer.writer_code.Code("""
 result = ((int)rs1_op) >> simm13;
 """)
 sra_imm_Instr = trap.Instruction('SRA_imm', True, frequency = 5)
@@ -870,7 +870,7 @@ sra_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 sra_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13':4}, {'REGS[10]' : 0x00001234}, {'REGS[1]' : 0x00000123})
 sra_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13':4}, {'REGS[10]' : 0xffffff11}, {'REGS[1]' : 0xfffffff1})
 isa.addInstruction(sra_imm_Instr)
-opCodeExec = cxx_writer.Code("""
+opCodeExec = cxx_writer.writer_code.Code("""
 result = ((int)rs1_op) >> (rs2_op & 0x0000001f);
 """)
 sra_reg_Instr = trap.Instruction('SRA_reg', True, frequency = 5)
@@ -886,18 +886,18 @@ sra_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2':2}, {'REGS[2]' : 4, 'REGS[10]' 
 isa.addInstruction(sra_reg_Instr)
 
 # Add instruction
-opCodeRegsImm = cxx_writer.Code("""
+opCodeRegsImm = cxx_writer.writer_code.Code("""
 rs1_op = rs1;
 rs2_op = SignExtend(simm13, 13);
 """)
-opCodeRegsRegs = cxx_writer.Code("""
+opCodeRegsRegs = cxx_writer.writer_code.Code("""
 rs1_op = rs1;
 rs2_op = rs2;
 """)
-opCodeWb = cxx_writer.Code("""
+opCodeWb = cxx_writer.writer_code.Code("""
 rd = result;
 """)
-opCodeExec = cxx_writer.Code("""
+opCodeExec = cxx_writer.writer_code.Code("""
 result = rs1_op + rs2_op;
 """)
 add_imm_Instr = trap.Instruction('ADD_imm', True, frequency = 5)
@@ -971,7 +971,7 @@ addcc_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 11}, {'REGS[11]' : 0x7ffffff
 addcc_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 11}, {'REGS[11]' : 0x80000000, 'REGS[10]' : 0x80000000, 'PSR': 0x0}, {'REGS[1]' : 0x0, 'PSR': 0x00700000})
 addcc_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 11}, {'REGS[11]' : 0x80000001, 'REGS[10]' : 0x80000000, 'PSR': 0x0}, {'REGS[1]' : 0x01, 'PSR': 0x00300000})
 isa.addInstruction(addcc_reg_Instr)
-opCodeExec = cxx_writer.Code("""
+opCodeExec = cxx_writer.writer_code.Code("""
 result = rs1_op + rs2_op + PSR[key_ICC_c];
 """)
 addx_imm_Instr = trap.Instruction('ADDX_imm', True, frequency = 5)
@@ -1276,7 +1276,7 @@ restore_reg_Instr.addTest({}, {}, {})
 isa.addInstruction(restore_reg_Instr)
 
 # Branch on Integer Condition Codes
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 switch(cond){
     case 0b1000:{
         // Branch Always
@@ -1451,7 +1451,7 @@ branch_Instr.addTest({'cond': int('0111', 2), 'a': 0, 'disp22': 0x200}, {'PC' : 
 isa.addInstruction(branch_Instr)
 
 # Call and Link
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 """)
 call_Instr = trap.Instruction('CALL', True, frequency = 5)
 call_Instr.setMachineCode(call_format, {}, 'TODO')
@@ -1460,7 +1460,7 @@ call_Instr.addTest({}, {}, {})
 isa.addInstruction(call_Instr)
 
 # Jump and Link
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 """)
 jump_imm_Instr = trap.Instruction('JUMP_imm', True, frequency = 5)
 jump_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 0, 0, 0]}, 'TODO')
@@ -1474,7 +1474,7 @@ jump_reg_Instr.addTest({}, {}, {})
 isa.addInstruction(jump_reg_Instr)
 
 # Return from Trap
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 """)
 rett_imm_Instr = trap.Instruction('RETT_imm', True, frequency = 5)
 rett_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 0, 0, 1]}, 'TODO')
@@ -1488,7 +1488,7 @@ rett_reg_Instr.addTest({}, {}, {})
 isa.addInstruction(rett_reg_Instr)
 
 # Trap on Integer Condition Code
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 """)
 trap_imm_Instr = trap.Instruction('TRAP_imm', True, frequency = 5)
 trap_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 0, 1, 0]}, 'TODO')
@@ -1502,7 +1502,7 @@ trap_reg_Instr.addTest({}, {}, {})
 isa.addInstruction(trap_reg_Instr)
 
 # Read State Register
-opCode = cxx_writer.Code("""
+opCode = cxx_writer.writer_code.Code("""
 """)
 readReg_Instr = trap.Instruction('READreg', True, frequency = 5)
 readReg_Instr.setMachineCode(dpi_format1, {'op3': [1, 0, 1, 0, 0, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, 'TODO')

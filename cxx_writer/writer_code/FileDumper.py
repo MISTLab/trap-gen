@@ -73,6 +73,7 @@ copyright = """(c) Luca Fossati, fossati@elet.polimi.it"""
 
 import os
 import Writer
+from Writer import printOnFile
 
 class FileDumper:
     """Dumps a file; a file is composed of members which are the ones described
@@ -99,20 +100,21 @@ class FileDumper:
         #in the same order in which they are contained
         #inside self.members
         fileHnd = open(self.name, 'wt')
-        print >> fileHnd, '/***************************************************************************\\'
-        print >> fileHnd, ' *'
+        printOnFile('/***************************************************************************\\', fileHnd)
+        printOnFile(' *', fileHnd)
         for line in banner.split('\n'):
-            print >> fileHnd, ' *   ' + line
-        print >> fileHnd, ' *'
-        print >> fileHnd, ' *'
+            printOnFile(' *   ' + line, fileHnd)
+        printOnFile(' *', fileHnd)
+        printOnFile(' *', fileHnd)
         for line in license.split('\n'):
-            print >> fileHnd, ' *   ' + line
-        print >> fileHnd, ' *'
-        print >> fileHnd, ' *'
+            printOnFile(' *   ' + line, fileHnd)
+        printOnFile(' *', fileHnd)
+        printOnFile(' *', fileHnd)
         for line in copyright.split('\n'):
-            print >> fileHnd, ' *   ' + line
-        print >> fileHnd, ' *'
-        print >> fileHnd, '\\***************************************************************************/\n\n'
+            printOnFile(' *   ' + line, fileHnd)
+        printOnFile(' *', fileHnd)
+        printOnFile('\\***************************************************************************/\n\n', fileHnd)
+
         # Now I can start priting the actual code: lets create the writer
         writer = Writer.CodeWriter(fileHnd)
         if self.isHeader:
@@ -214,52 +216,52 @@ class Folder:
 
     def createWscript(self, configure, tests):
         wscriptFile = open('wscript', 'wt')
-        print >> wscriptFile, '#!/usr/bin/env python\n'
+        printOnFile('#!/usr/bin/env python\n', wscriptFile)
         if configure:
-            print >> wscriptFile, 'import sys, Options\n'
-            print >> wscriptFile, '# these variables are mandatory'
-            print >> wscriptFile, 'srcdir = \'.\''
-            print >> wscriptFile, 'blddir = \'_build_\''
-        print >> wscriptFile, 'import os\n'
+            printOnFile('import sys, Options\n', wscriptFile)
+            printOnFile('# these variables are mandatory', wscriptFile)
+            printOnFile('srcdir = \'.\'', wscriptFile)
+            printOnFile('blddir = \'_build_\'', wscriptFile)
+        printOnFile('import os\n', wscriptFile)
         if self.codeFiles or self.subfolders:
-            print >> wscriptFile, 'def build(bld):'
+            printOnFile('def build(bld):', wscriptFile)
             if self.subfolders:
-                print >> wscriptFile, '    bld.add_subdirs(\'' + ' '.join([str(fold)[len(str(self.path)):] for fold in self.subfolders]) + '\')\n'
+                printOnFile('    bld.add_subdirs(\'' + ' '.join([str(fold)[len(str(self.path)):] for fold in self.subfolders]) + '\')\n', wscriptFile)
             if self.codeFiles:
                 if not self.mainFile:
-                    print >> wscriptFile, '    obj = bld.new_task_gen(\'cxx\', \'program\')'
+                    printOnFile('    obj = bld.new_task_gen(\'cxx\', \'program\')', wscriptFile)
                 else:
-                    print >> wscriptFile, '    obj = bld.new_task_gen(\'cxx\', \'staticlib\')'
-                print >> wscriptFile, '    obj.source=\"\"\"'
+                    printOnFile('    obj = bld.new_task_gen(\'cxx\', \'staticlib\')', wscriptFile)
+                printOnFile('    obj.source=\"\"\"', wscriptFile)
                 for codeFile in self.codeFiles:
                     if self.mainFile != codeFile.name:
-                        print >> wscriptFile, '        ' + codeFile.name
-                print >> wscriptFile, '    \"\"\"'
+                        printOnFile('        ' + codeFile.name, wscriptFile)
+                printOnFile('    \"\"\"', wscriptFile)
                 if tests:
-                    print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM BOOST_THREAD SYSTEMC TLM TRAP\''
+                    printOnFile('    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM BOOST_THREAD SYSTEMC TLM TRAP\'', wscriptFile)
                 else:
-                    print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_FILESYSTEM BOOST_THREAD SYSTEMC TLM TRAP\''
-                print >> wscriptFile, '    obj.includes = \'.\''
+                    printOnFile('    obj.uselib = \'BOOST BOOST_FILESYSTEM BOOST_THREAD SYSTEMC TLM TRAP\'', wscriptFile)
+                printOnFile('    obj.includes = \'.\'', wscriptFile)
                 if self.uselib_local:
-                    print >> wscriptFile, '    obj.uselib_local = \'' + ' '.join(self.uselib_local) + '\''
+                    printOnFile('    obj.uselib_local = \'' + ' '.join(self.uselib_local) + '\'', wscriptFile)
                 if self.mainFile:
-                    print >> wscriptFile, '    obj.export_incdirs = \'.\''
-                print >> wscriptFile, '    obj.name = \'' + os.path.split(self.path)[-1] + '\''
-                print >> wscriptFile, '    obj.target = \'' + os.path.split(self.path)[-1] + '\'\n'
+                    printOnFile('    obj.export_incdirs = \'.\'', wscriptFile)
+                printOnFile('    obj.name = \'' + os.path.split(self.path)[-1] + '\'', wscriptFile)
+                printOnFile('    obj.target = \'' + os.path.split(self.path)[-1] + '\'\n', wscriptFile)
             if self.mainFile:
-                print >> wscriptFile, '    obj = bld.new_task_gen(\'cxx\', \'program\')'
-                print >> wscriptFile, '    obj.source=\'' + self.mainFile + '\''
+                printOnFile('    obj = bld.new_task_gen(\'cxx\', \'program\')', wscriptFile)
+                printOnFile('    obj.source=\'' + self.mainFile + '\'', wscriptFile)
                 if tests:
-                    print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_THREAD BOOST_SYSTEM SYSTEMC TLM TRAP BFD LIBERTY\''
+                    printOnFile('    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_THREAD BOOST_SYSTEM SYSTEMC TLM TRAP BFD LIBERTY\'', wscriptFile)
                 else:
-                    print >> wscriptFile, '    obj.uselib = \'BOOST BOOST_PROGRAM_OPTIONS BOOST_THREAD BOOST_SYSTEM SYSTEMC TLM TRAP BFD LIBERTY\''
-                print >> wscriptFile, '    obj.uselib_local = \'' + ' '.join(self.uselib_local + [os.path.split(self.path)[-1]]) + '\''
-                print >> wscriptFile, '    obj.name = \'' + os.path.split(self.path)[-1] + '_main\''
-                print >> wscriptFile, '    obj.target = \'' + os.path.split(self.path)[-1] + '\'\n'
+                    printOnFile('    obj.uselib = \'BOOST BOOST_PROGRAM_OPTIONS BOOST_THREAD BOOST_SYSTEM SYSTEMC TLM TRAP BFD LIBERTY\'', wscriptFile)
+                printOnFile('    obj.uselib_local = \'' + ' '.join(self.uselib_local + [os.path.split(self.path)[-1]]) + '\'', wscriptFile)
+                printOnFile('    obj.name = \'' + os.path.split(self.path)[-1] + '_main\'', wscriptFile)
+                printOnFile('    obj.target = \'' + os.path.split(self.path)[-1] + '\'\n', wscriptFile)
         # Ok, here I need to insert the configure script if needed
         if configure:
-            print >> wscriptFile, 'def configure(conf):'
-            print >> wscriptFile, """
+            printOnFile('def configure(conf):', wscriptFile)
+            printOnFile("""
     # Check for standard tools
     conf.check_tool('g++ gcc misc')
     # Check for python
@@ -465,10 +467,10 @@ class Folder:
         }
     ''', msg='Check for TLM version (2.0 or greater required)', uselib='SYSTEMC TLM', mandatory=1)
 
-"""
+""", wscriptFile)
             # Finally now I can add the options
-            print >> wscriptFile, 'def set_options(opt):'
-            print >> wscriptFile, """
+            printOnFile('def set_options(opt):', wscriptFile)
+            printOnFile("""
     build_options = opt.add_option_group('General Build Options')
     opt.tool_options('python', option_group=build_options) # options for disabling pyc or pyo compilation
     opt.tool_options('gcc', option_group=build_options)
@@ -484,5 +486,5 @@ class Folder:
     # Specify the options for the processor creation
     # Specify if OS emulation support should be compiled inside processor models
     opt.add_option('-T', '--disable-tools', default=True, action="store_false", help='Disables support for support tools (debuger, os-emulator, etc.) (switch)', dest='enable_tools')
-"""
+""", wscriptFile)
         wscriptFile.close()

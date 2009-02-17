@@ -809,4 +809,4 @@ class decoderCreator:
         except:
             import traceback
             traceback.print_exc()
-            print 'Error in printing the decoding tree on file ' + fileName
+            print ('Error in printing the decoding tree on file ' + fileName)

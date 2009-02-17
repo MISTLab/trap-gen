@@ -34,9 +34,11 @@
 #
 ####################################################################################
 
+__all__ = ['Writer', 'CustomCode', 'SimpleDecls', 'ClassDecls', 'FileDumper']
 
 from Writer import *
 from CustomCode import *
 from SimpleDecls import *
 from ClassDecls import *
 from FileDumper import *
+
