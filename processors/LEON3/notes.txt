@@ -32,6 +32,8 @@ acknowledge the interrupt (how?? is there a separate line?) CHECK in the VHDL co
 
 -- Exception stage: do we check for interrupts here? or in fetch? CHECK in the VHDL code?
 from the processor manual (page 159) it seems that the check is performed in the fetch stage
+and that the exception stage simply checks for exceptions and it sets a flag which triggers
+the exception in the next fetch stage
 
 -- The 8 bit ASI is appended to the 32 bits when memory is accessed (do we need to
 send them on the output TLM port? and what if internal memory is used?)I think
