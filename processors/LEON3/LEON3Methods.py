@@ -133,14 +133,3 @@ ICC_writeSub.addInstuctionVar(('result', 'BIT<32>'))
 ICC_writeSub.addInstuctionVar(('rs1_op', 'BIT<32>'))
 ICC_writeSub.addInstuctionVar(('rs2_op', 'BIT<32>'))
 
-# Modification of the Integer Condition Codes of the Processor Status Register
-# after a multiply step operation
-opCode = cxx_writer.writer_code.Code("""
-PSR[key_ICC_n] = ((result & 0x80000000) >> 31);
-PSR[key_ICC_z] = (result == 0);
-PSR[key_ICC_v] = 0;
-PSR[key_ICC_c] = 0;
-""")
-ICC_writeMulS = trap.HelperOperation('ICC_writeMulS', opCode)
-ICC_writeMulS.addInstuctionVar(('result', 'BIT<32>'))
-

@@ -1328,14 +1328,57 @@ tsubcctv_reg_Instr.addTest({}, {}, {})
 isa.addInstruction(tsubcctv_reg_Instr)
 
 # Multiply Step
+opCodeRegsImm = cxx_writer.writer_code.Code("""
+rs1_op = rs1;
+rs2_op = SignExtend(simm13, 13);
+""")
+opCodeRegsRegs = cxx_writer.writer_code.Code("""
+rs1_op = rs1;
+rs2_op = rs2;
+""")
+opCodeWb = cxx_writer.writer_code.Code("""
+rd = result;
+""")
+opCodeExec = cxx_writer.writer_code.Code("""
+unsigned int yNew = (((unsigned int)Y) >> 1) | (rs1_op << 31);
+rs1_op = ((PSR[key_ICC_n] ^ PSR[key_ICC_v]) << 31) | (((unsigned int)rs1_op) >> 1);
+result = rs1_op;
+if((Y & 0x00000001) != 0){
+    result += rs2_op;
+}
+else{
+    rs2_op = 0;
+}
+Y = yNew;
+""")
 mulscc_imm_Instr = trap.Instruction('MULScc_imm', True, frequency = 5)
-mulscc_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 0, 0, 1, 0, 0]}, 'TODO')
-mulscc_imm_Instr.setCode(opCode, 'execute')
-mulscc_imm_Instr.addTest({}, {}, {})
+mulscc_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 0, 0, 1, 0, 0]}, ('mulscc r', '%rs1', ' ', '%simm13', ' r', '%rd'))
+mulscc_imm_Instr.setCode(opCodeRegsImm, 'regs')
+mulscc_imm_Instr.setCode(opCodeExec, 'execute')
+mulscc_imm_Instr.setCode(opCodeWb, 'wb')
+mulscc_imm_Instr.addBehavior(IncrementPC, 'fetch')
+mulscc_imm_Instr.addBehavior(ICC_writeAdd, 'execute', False)
+mulscc_imm_Instr.addVariable(('result', 'BIT<32>'))
+mulscc_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
+mulscc_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
+mulscc_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 0}, {'Y': 0, 'REGS[10]' : 0x04, 'PSR': 0}, {'Y': 0, 'REGS[0]': 0x0, 'PSR': 0})
+mulscc_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0}, {'Y': 0, 'REGS[10]' : 0x04, 'PSR': 0x0}, {'Y': 0, 'REGS[1]': 0x2, 'PSR': 0x0})
+mulscc_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0}, {'Y': 0, 'REGS[10]' : 0x04, 'PSR': 0x00800000}, {'Y': 0, 'REGS[1]': 0x80000002, 'PSR': 0x00800000})
+mulscc_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 1}, {'Y': 0x3, 'REGS[10]' : 0x04, 'PSR': 0x00800000}, {'Y': 0x1, 'REGS[1]': 0x80000003, 'PSR': 0x00800000})
+mulscc_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 1}, {'Y': 0x3, 'REGS[10]' : 0x05, 'PSR': 0x0}, {'Y': 0x80000001, 'REGS[1]': 0x3, 'PSR': 0x0})
+mulscc_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1000}, {'Y': 0x3, 'REGS[10]' : 0x05, 'PSR': 0x00800000}, {'Y': 0x80000001, 'REGS[1]': 0x7FFFF002, 'PSR': 0x00300000})
+mulscc_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1000}, {'Y': 0x3, 'REGS[10]' : 0x05, 'PSR': 0x00a00000}, {'Y': 0x80000001, 'REGS[1]': 0xFFFFF002, 'PSR': 0x00800000})
 isa.addInstruction(mulscc_imm_Instr)
 mulscc_reg_Instr = trap.Instruction('MULScc_reg', True, frequency = 5)
-mulscc_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 0, 0, 1, 0, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, 'TODO')
-mulscc_reg_Instr.setCode(opCode, 'execute')
+mulscc_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 0, 0, 1, 0, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('mulscc r', '%rs1', ' r', '%rs2', ' r', '%rd'))
+mulscc_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+mulscc_reg_Instr.setCode(opCodeExec, 'execute')
+mulscc_reg_Instr.setCode(opCodeWb, 'wb')
+mulscc_reg_Instr.addBehavior(IncrementPC, 'fetch')
+mulscc_reg_Instr.addBehavior(ICC_writeAdd, 'execute', False)
+mulscc_reg_Instr.addVariable(('result', 'BIT<32>'))
+mulscc_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
+mulscc_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
 mulscc_reg_Instr.addTest({}, {}, {})
 isa.addInstruction(mulscc_reg_Instr)
 
