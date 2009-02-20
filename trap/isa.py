@@ -305,6 +305,11 @@ class Instruction:
         self.subInstr = False
         # List of instruction which are subInstructions of the current one
         self.subInstructions = []
+        # Specifies the list of behaviors that have to be printed respectively to the
+        # functiona and cycle accurate models
+        self.behaviorAcc = []
+        self.behaviorFun = []
+
 
     def setMachineCode(self, machineCode, machineBits = {}, mnemonic = [], subInstr = False):
         # Sets the machine code for this instruction. Note that a machine
@@ -361,9 +366,12 @@ class Instruction:
                     behavior.archVars.append(procElem)
             behavior.archElems = newProcElem
 
-    def addBehavior(self, behavior, stage, pre = True):
-        # adds a behavior (an instance of the class
-        # HelperOperation)
+    def addBehavior(self, behavior, stage, pre = True, accurateModel = True, functionalModel = True):
+        # adds a behavior (an instance of the class HelperOperation)
+        if accurateModel:
+            self.behaviorAcc.append(behavior.name)
+        if functionalModel:
+            self.behaviorFun.append(behavior.name)
         if pre:
             if self.prebehaviors.has_key(stage):
                 self.prebehaviors[stage].append(behavior)

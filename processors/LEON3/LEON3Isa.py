@@ -1401,17 +1401,17 @@ opCodeWb = cxx_writer.writer_code.Code("""
 rd = result;
 """)
 opCodeExecS = cxx_writer.writer_code.Code("""
-long long resultTemp = ((long long)rs1_op)*((long long)rs2_op);
-Y = resultTemp >> 32;
+long long resultTemp = (long long)((int)rs1_op)*((int)rs2_op);
+Y = ((unsigned long long)resultTemp) >> 32;
 result = resultTemp & 0x00000000FFFFFFFF;
 """)
 opCodeExecU = cxx_writer.writer_code.Code("""
-unsigned long long resultTemp = ((unsigned long long)rs1_op)*((unsigned long long)rs2_op);
+unsigned long long resultTemp = (unsigned long long)((unsigned int)rs1_op)*((unsigned int)rs2_op);
 Y = resultTemp >> 32;
 result = resultTemp & 0x00000000FFFFFFFF;
 """)
 umul_imm_Instr = trap.Instruction('UMUL_imm', True, frequency = 5)
-umul_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 1, 0, 1, 0]}, 'TODO')
+umul_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 1, 0, 1, 0]}, ('umul r', '%rs1', ' ', '%simm13', ' r', '%rd'))
 umul_imm_Instr.setCode(opCodeRegsImm, 'regs')
 umul_imm_Instr.setCode(opCodeExecU, 'execute')
 umul_imm_Instr.setCode(opCodeWb, 'wb')
@@ -1419,10 +1419,16 @@ umul_imm_Instr.addBehavior(IncrementPC, 'fetch')
 umul_imm_Instr.addVariable(('result', 'BIT<32>'))
 umul_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 umul_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
-umul_imm_Instr.addTest({}, {}, {})
+umul_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {'REGS[10]' : 0x04}, {'Y': 0, 'REGS[0]': 0x0})
+umul_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {'REGS[10]' : 0xffffffff}, {'Y': 0x1, 'REGS[0]': 0x0})
+umul_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'REGS[10]' : 0x04}, {'Y': 0, 'REGS[1]': 0x08})
+umul_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'REGS[10]' : 0xffffffff}, {'Y': 0x1, 'REGS[1]': 0xfffffffe})
+umul_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'REGS[10]' : 0x2}, {'Y': 0x1, 'REGS[1]': 0xfffffffe})
+umul_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'REGS[10]' : 0xffffffff}, {'Y': 0xFFFFFFFE, 'REGS[1]': 0x00000001})
+umul_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0xfff}, {'REGS[10]' : 0xffffffff}, {'Y': 0xFFE, 'REGS[1]': 0xFFFFF001})
 isa.addInstruction(umul_imm_Instr)
 umul_reg_Instr = trap.Instruction('UMUL_reg', True, frequency = 5)
-umul_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 1, 0, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, 'TODO')
+umul_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 1, 0, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('umul r', '%rs1', ' r', '%rs2', ' r', '%rd'))
 umul_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 umul_reg_Instr.setCode(opCodeExecU, 'execute')
 umul_reg_Instr.setCode(opCodeWb, 'wb')
@@ -1430,10 +1436,16 @@ umul_reg_Instr.addBehavior(IncrementPC, 'fetch')
 umul_reg_Instr.addVariable(('result', 'BIT<32>'))
 umul_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 umul_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
-umul_reg_Instr.addTest({}, {}, {})
+umul_reg_Instr.addTest({'rd': 0, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'REGS[10]': 0x04}, {'Y': 0, 'REGS[0]': 0x0})
+umul_reg_Instr.addTest({'rd': 0, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'REGS[10]': 0xffffffff}, {'Y': 0x1, 'REGS[0]': 0x0})
+umul_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'REGS[10]': 0x04}, {'Y': 0, 'REGS[1]': 0x08})
+umul_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'REGS[10]': 0xffffffff}, {'Y': 0x1, 'REGS[1]': 0xfffffffe})
+umul_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0xffffffff, 'REGS[10]': 0x2}, {'Y': 0x1, 'REGS[1]': 0xfffffffe})
+umul_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0xffffffff, 'REGS[10]': 0xffffffff}, {'Y': 0xFFFFFFFE, 'REGS[1]': 0x00000001})
+umul_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0xfff, 'REGS[10]': 0xffffffff}, {'Y': 0xFFE, 'REGS[1]': 0xFFFFF001})
 isa.addInstruction(umul_reg_Instr)
 smul_imm_Instr = trap.Instruction('SMUL_imm', True, frequency = 5)
-smul_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 1, 0, 1, 1]}, 'TODO')
+smul_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 1, 0, 1, 1]}, ('smul r', '%rs1', ' ', '%simm13', ' r', '%rd'))
 smul_imm_Instr.setCode(opCodeRegsImm, 'regs')
 smul_imm_Instr.setCode(opCodeExecS, 'execute')
 smul_imm_Instr.setCode(opCodeWb, 'wb')
@@ -1441,10 +1453,16 @@ smul_imm_Instr.addBehavior(IncrementPC, 'fetch')
 smul_imm_Instr.addVariable(('result', 'BIT<32>'))
 smul_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 smul_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
-smul_imm_Instr.addTest({}, {}, {})
+smul_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {'REGS[10]' : 0x04}, {'Y': 0, 'REGS[0]': 0x0})
+smul_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {'REGS[10]' : 0xffffffff}, {'Y': 0xffffffff, 'REGS[0]': 0x0})
+smul_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'REGS[10]' : 0x04}, {'Y': 0, 'REGS[1]': 0x08})
+smul_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'REGS[10]' : 0xffffffff}, {'Y': 0xffffffff, 'REGS[1]': 0xfffffffe})
+smul_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'REGS[10]' : 0x2}, {'Y': 0xffffffff, 'REGS[1]': 0xfffffffe})
+smul_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'REGS[10]' : 0xffffffff}, {'Y': 0x0, 'REGS[1]': 0x1})
+smul_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0xfff}, {'REGS[10]' : 0xffffffff}, {'Y': 0xffffffff, 'REGS[1]': 0xFFFFF001})
 isa.addInstruction(smul_imm_Instr)
 smul_reg_Instr = trap.Instruction('SMUL_reg', True, frequency = 5)
-smul_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 1, 0, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, 'TODO')
+smul_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 1, 0, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('smul r', '%rs1', ' r', '%rs2', ' r', '%rd'))
 smul_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 smul_reg_Instr.setCode(opCodeExecS, 'execute')
 smul_reg_Instr.setCode(opCodeWb, 'wb')
@@ -1452,10 +1470,16 @@ smul_reg_Instr.addBehavior(IncrementPC, 'fetch')
 smul_reg_Instr.addVariable(('result', 'BIT<32>'))
 smul_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 smul_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
-smul_reg_Instr.addTest({}, {}, {})
+smul_reg_Instr.addTest({'rd': 0, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'REGS[10]' : 0x04}, {'Y': 0, 'REGS[0]': 0x0})
+smul_reg_Instr.addTest({'rd': 0, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'REGS[10]' : 0xffffffff}, {'Y': 0xffffffff, 'REGS[0]': 0x0})
+smul_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'REGS[10]' : 0x04}, {'Y': 0, 'REGS[1]': 0x08})
+smul_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'REGS[10]' : 0xffffffff}, {'Y': 0xffffffff, 'REGS[1]': 0xfffffffe})
+smul_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0xffffffff, 'REGS[10]' : 0x2}, {'Y': 0xffffffff, 'REGS[1]': 0xfffffffe})
+smul_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0xffffffff, 'REGS[10]' : 0xffffffff}, {'Y': 0x0, 'REGS[1]': 0x1})
+smul_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x0fff, 'REGS[10]' : 0xffffffff}, {'Y': 0xffffffff, 'REGS[1]': 0xFFFFF001})
 isa.addInstruction(smul_reg_Instr)
 umulcc_imm_Instr = trap.Instruction('UMULcc_imm', True, frequency = 5)
-umulcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 1, 0, 1, 0]}, 'TODO')
+umulcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 1, 0, 1, 0]}, ('umulcc r', '%rs1', ' ', '%simm13', ' r', '%rd'))
 umulcc_imm_Instr.setCode(opCodeRegsImm, 'regs')
 umulcc_imm_Instr.setCode(opCodeExecU, 'execute')
 umulcc_imm_Instr.setCode(opCodeWb, 'wb')
@@ -1464,10 +1488,17 @@ umulcc_imm_Instr.addBehavior(ICC_writeLogic, 'execute', False)
 umulcc_imm_Instr.addVariable(('result', 'BIT<32>'))
 umulcc_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 umulcc_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
-umulcc_imm_Instr.addTest({}, {}, {})
+umulcc_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {'REGS[10]' : 0x04, 'PSR': 0}, {'Y': 0, 'REGS[0]': 0x0, 'PSR': 0x0})
+umulcc_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {'REGS[10]' : 0xffffffff, 'PSR': 0}, {'Y': 0x1, 'REGS[0]': 0x0, 'PSR': 0x00800000})
+umulcc_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'REGS[10]' : 0x04, 'PSR': 0}, {'Y': 0, 'REGS[1]': 0x08, 'PSR': 0x0})
+umulcc_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'REGS[10]' : 0xffffffff, 'PSR': 0}, {'Y': 0x1, 'REGS[1]': 0xfffffffe, 'PSR': 0x00800000})
+umulcc_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'REGS[10]' : 0x2, 'PSR': 0}, {'Y': 0x1, 'REGS[1]': 0xfffffffe, 'PSR': 0x00800000})
+umulcc_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'REGS[10]' : 0xffffffff, 'PSR': 0}, {'Y': 0xFFFFFFFE, 'REGS[1]': 0x00000001, 'PSR': 0x0})
+umulcc_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0xfff}, {'REGS[10]' : 0xffffffff, 'PSR': 0}, {'Y': 0xFFE, 'REGS[1]': 0xFFFFF001, 'PSR': 0x00800000})
+umulcc_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x0}, {'REGS[10]' : 0xffffffff, 'PSR': 0}, {'Y': 0x0, 'REGS[1]': 0x0, 'PSR': 0x00400000})
 isa.addInstruction(umulcc_imm_Instr)
 umulcc_reg_Instr = trap.Instruction('UMULcc_reg', True, frequency = 5)
-umulcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 1, 0, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, 'TODO')
+umulcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 1, 0, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('umulcc r', '%rs1', ' r', '%rs2', ' r', '%rd'))
 umulcc_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 umulcc_reg_Instr.setCode(opCodeExecU, 'execute')
 umulcc_reg_Instr.setCode(opCodeWb, 'wb')
@@ -1476,10 +1507,17 @@ umulcc_reg_Instr.addBehavior(ICC_writeLogic, 'execute', False)
 umulcc_reg_Instr.addVariable(('result', 'BIT<32>'))
 umulcc_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 umulcc_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
-umulcc_reg_Instr.addTest({}, {}, {})
+umulcc_reg_Instr.addTest({'rd': 0, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'REGS[10]' : 0x04, 'PSR': 0}, {'Y': 0, 'REGS[0]': 0x0, 'PSR': 0x0})
+umulcc_reg_Instr.addTest({'rd': 0, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'REGS[10]' : 0xffffffff, 'PSR': 0}, {'Y': 0x1, 'REGS[0]': 0x0, 'PSR': 0x00800000})
+umulcc_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'REGS[10]' : 0x04, 'PSR': 0}, {'Y': 0, 'REGS[1]': 0x08, 'PSR': 0x0})
+umulcc_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'REGS[10]' : 0xffffffff, 'PSR': 0}, {'Y': 0x1, 'REGS[1]': 0xfffffffe, 'PSR': 0x00800000})
+umulcc_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0xffffffff, 'REGS[10]' : 0x2, 'PSR': 0}, {'Y': 0x1, 'REGS[1]': 0xfffffffe, 'PSR': 0x00800000})
+umulcc_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0xffffffff, 'REGS[10]' : 0xffffffff, 'PSR': 0}, {'Y': 0xFFFFFFFE, 'REGS[1]': 0x00000001, 'PSR': 0x0})
+umulcc_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x0fff, 'REGS[10]' : 0xffffffff, 'PSR': 0}, {'Y': 0xFFE, 'REGS[1]': 0xFFFFF001, 'PSR': 0x00800000})
+umulcc_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x0, 'REGS[10]' : 0xffffffff, 'PSR': 0}, {'Y': 0x0, 'REGS[1]': 0x0, 'PSR': 0x00400000})
 isa.addInstruction(umulcc_reg_Instr)
 smulcc_imm_Instr = trap.Instruction('SMULcc_imm', True, frequency = 5)
-smulcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 1, 0, 1, 1]}, 'TODO')
+smulcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 1, 0, 1, 1]}, ('smulcc r', '%rs1', ' ', '%simm13', ' r', '%rd'))
 smulcc_imm_Instr.setCode(opCodeRegsImm, 'regs')
 smulcc_imm_Instr.setCode(opCodeExecS, 'execute')
 smulcc_imm_Instr.setCode(opCodeWb, 'wb')
@@ -1488,10 +1526,17 @@ smulcc_imm_Instr.addBehavior(ICC_writeLogic, 'execute', False)
 smulcc_imm_Instr.addVariable(('result', 'BIT<32>'))
 smulcc_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 smulcc_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
-smulcc_imm_Instr.addTest({}, {}, {})
+smulcc_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {'REGS[10]' : 0x04, 'PSR': 0}, {'Y': 0, 'REGS[0]': 0x0, 'PSR': 0})
+smulcc_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {'REGS[10]' : 0xffffffff, 'PSR': 0}, {'Y': 0xffffffff, 'REGS[0]': 0x0, 'PSR': 0x00800000})
+smulcc_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'REGS[10]' : 0x04, 'PSR': 0}, {'Y': 0, 'REGS[1]': 0x08, 'PSR': 0})
+smulcc_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'REGS[10]' : 0xffffffff, 'PSR': 0}, {'Y': 0xffffffff, 'REGS[1]': 0xfffffffe, 'PSR': 0x00800000})
+smulcc_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'REGS[10]' : 0x2, 'PSR': 0}, {'Y': 0xffffffff, 'REGS[1]': 0xfffffffe, 'PSR': 0x00800000})
+smulcc_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'REGS[10]' : 0xffffffff, 'PSR': 0}, {'Y': 0x0, 'REGS[1]': 0x1, 'PSR': 0})
+smulcc_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0xfff}, {'REGS[10]' : 0xffffffff, 'PSR': 0}, {'Y': 0xffffffff, 'REGS[1]': 0xFFFFF001, 'PSR': 0x00800000})
+smulcc_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x0}, {'REGS[10]' : 0xffffffff, 'PSR': 0}, {'Y': 0x0, 'REGS[1]': 0x0, 'PSR': 0x00400000})
 isa.addInstruction(smulcc_imm_Instr)
 smulcc_reg_Instr = trap.Instruction('SMULcc_reg', True, frequency = 5)
-smulcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 1, 0, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, 'TODO')
+smulcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 1, 0, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('smulcc r', '%rs1', ' r', '%rs2', ' r', '%rd'))
 smulcc_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 smulcc_reg_Instr.setCode(opCodeExecS, 'execute')
 smulcc_reg_Instr.setCode(opCodeWb, 'wb')
@@ -1500,8 +1545,111 @@ smulcc_reg_Instr.addBehavior(ICC_writeLogic, 'execute', False)
 smulcc_reg_Instr.addVariable(('result', 'BIT<32>'))
 smulcc_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 smulcc_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
-smulcc_reg_Instr.addTest({}, {}, {})
+smulcc_reg_Instr.addTest({'rd': 0, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'REGS[10]' : 0x04, 'PSR': 0}, {'Y': 0, 'REGS[0]': 0x0, 'PSR': 0})
+smulcc_reg_Instr.addTest({'rd': 0, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'REGS[10]' : 0xffffffff, 'PSR': 0}, {'Y': 0xffffffff, 'REGS[0]': 0x0, 'PSR': 0x00800000})
+smulcc_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'REGS[10]' : 0x04, 'PSR': 0}, {'Y': 0, 'REGS[1]': 0x08, 'PSR': 0})
+smulcc_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'REGS[10]' : 0xffffffff, 'PSR': 0}, {'Y': 0xffffffff, 'REGS[1]': 0xfffffffe, 'PSR': 0x00800000})
+smulcc_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0xffffffff, 'REGS[10]' : 0x2, 'PSR': 0}, {'Y': 0xffffffff, 'REGS[1]': 0xfffffffe, 'PSR': 0x00800000})
+smulcc_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0xffffffff, 'REGS[10]' : 0xffffffff, 'PSR': 0}, {'Y': 0x0, 'REGS[1]': 0x1, 'PSR': 0})
+smulcc_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x0fff, 'REGS[10]' : 0xffffffff, 'PSR': 0}, {'Y': 0xffffffff, 'REGS[1]': 0xFFFFF001, 'PSR': 0x00800000})
+smulcc_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x0, 'REGS[10]' : 0xffffffff, 'PSR': 0}, {'Y': 0x0, 'REGS[1]': 0x0, 'PSR': 0x00400000})
 isa.addInstruction(smulcc_reg_Instr)
+
+# Multiply Accumulate Instructions
+opCodeRegsImm = cxx_writer.writer_code.Code("""
+rs1_op = rs1;
+rs2_op = SignExtend(simm13, 13);
+""")
+opCodeRegsRegs = cxx_writer.writer_code.Code("""
+rs1_op = rs1;
+rs2_op = rs2;
+""")
+opCodeWb = cxx_writer.writer_code.Code("""
+rd = result;
+""")
+opCodeExecS = cxx_writer.writer_code.Code("""
+int resultTemp = ((int)SignExtend(rs1_op & 0x0000ffff, 16))*((int)SignExtend(rs2_op & 0x0000ffff, 16));
+long long resultAcc = ((((long long)(Y & 0x000000ff)) << 32) | (int)ASR[18]) + resultTemp;
+Y = (resultAcc & 0x000000ff00000000LL) >> 32;
+ASR[18] = resultAcc & 0x00000000FFFFFFFFLL;
+result = resultAcc & 0x00000000FFFFFFFFLL;
+""")
+opCodeExecU = cxx_writer.writer_code.Code("""
+unsigned int resultTemp = ((unsigned int)rs1_op & 0x0000ffff)*((unsigned int)rs2_op & 0x0000ffff);
+unsigned long long resultAcc = ((((unsigned long long)(Y & 0x000000ff)) << 32) | (unsigned int)ASR[18]) + resultTemp;
+Y = (resultAcc & 0x000000ff00000000LL) >> 32;
+ASR[18] = resultAcc & 0x00000000FFFFFFFFLL;
+result = resultAcc & 0x00000000FFFFFFFFLL;
+""")
+umac_imm_Instr = trap.Instruction('UMAC_imm', True, frequency = 5)
+umac_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 1, 1, 0]}, ('umac r', '%rs1', ' ', '%simm13', ' r', '%rd'))
+umac_imm_Instr.setCode(opCodeRegsImm, 'regs')
+umac_imm_Instr.setCode(opCodeExecU, 'execute')
+umac_imm_Instr.setCode(opCodeWb, 'wb')
+umac_imm_Instr.addBehavior(IncrementPC, 'fetch')
+umac_imm_Instr.addVariable(('result', 'BIT<32>'))
+umac_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
+umac_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
+umac_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {'REGS[10]' : 0x04}, {'Y': 0, 'REGS[0]': 0x0})
+umac_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {'REGS[10]' : 0xffffffff}, {'Y': 0x1, 'REGS[0]': 0x0})
+umac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'REGS[10]' : 0x04}, {'Y': 0, 'REGS[1]': 0x08})
+umac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'REGS[10]' : 0xffffffff}, {'Y': 0x1, 'REGS[1]': 0xfffffffe})
+umac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'REGS[10]' : 0x2}, {'Y': 0x1, 'REGS[1]': 0xfffffffe})
+umac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'REGS[10]' : 0xffffffff}, {'Y': 0xFFFFFFFE, 'REGS[1]': 0x00000001})
+umac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0xfff}, {'REGS[10]' : 0xffffffff}, {'Y': 0xFFE, 'REGS[1]': 0xFFFFF001})
+isa.addInstruction(umac_imm_Instr)
+umac_reg_Instr = trap.Instruction('UMAC_reg', True, frequency = 5)
+umac_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 1, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('umac r', '%rs1', ' r', '%rs2', ' r', '%rd'))
+umac_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+umac_reg_Instr.setCode(opCodeExecU, 'execute')
+umac_reg_Instr.setCode(opCodeWb, 'wb')
+umac_reg_Instr.addBehavior(IncrementPC, 'fetch')
+umac_reg_Instr.addVariable(('result', 'BIT<32>'))
+umac_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
+umac_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
+umac_reg_Instr.addTest({'rd': 0, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'REGS[10]': 0x04}, {'Y': 0, 'REGS[0]': 0x0})
+umac_reg_Instr.addTest({'rd': 0, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'REGS[10]': 0xffffffff}, {'Y': 0x1, 'REGS[0]': 0x0})
+umac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'REGS[10]': 0x04}, {'Y': 0, 'REGS[1]': 0x08})
+umac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'REGS[10]': 0xffffffff}, {'Y': 0x1, 'REGS[1]': 0xfffffffe})
+umac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0xffffffff, 'REGS[10]': 0x2}, {'Y': 0x1, 'REGS[1]': 0xfffffffe})
+umac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0xffffffff, 'REGS[10]': 0xffffffff}, {'Y': 0xFFFFFFFE, 'REGS[1]': 0x00000001})
+umac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0xfff, 'REGS[10]': 0xffffffff}, {'Y': 0xFFE, 'REGS[1]': 0xFFFFF001})
+isa.addInstruction(umac_reg_Instr)
+smac_imm_Instr = trap.Instruction('SMAC_imm', True, frequency = 5)
+smac_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 1, 1, 1]}, ('smac r', '%rs1', ' ', '%simm13', ' r', '%rd'))
+smac_imm_Instr.setCode(opCodeRegsImm, 'regs')
+smac_imm_Instr.setCode(opCodeExecS, 'execute')
+smac_imm_Instr.setCode(opCodeWb, 'wb')
+smac_imm_Instr.addBehavior(IncrementPC, 'fetch')
+smac_imm_Instr.addVariable(('result', 'BIT<32>'))
+smac_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
+smac_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
+smac_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {'REGS[10]' : 0x04}, {'Y': 0, 'REGS[0]': 0x0})
+smac_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {'REGS[10]' : 0xffffffff}, {'Y': 0xffffffff, 'REGS[0]': 0x0})
+smac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'REGS[10]' : 0x04}, {'Y': 0, 'REGS[1]': 0x08})
+smac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'REGS[10]' : 0xffffffff}, {'Y': 0xffffffff, 'REGS[1]': 0xfffffffe})
+smac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'REGS[10]' : 0x2}, {'Y': 0xffffffff, 'REGS[1]': 0xfffffffe})
+smac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'REGS[10]' : 0xffffffff}, {'Y': 0x0, 'REGS[1]': 0x1})
+smac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0xfff}, {'REGS[10]' : 0xffffffff}, {'Y': 0xffffffff, 'REGS[1]': 0xFFFFF001})
+isa.addInstruction(smac_imm_Instr)
+smac_reg_Instr = trap.Instruction('SMAC_reg', True, frequency = 5)
+smac_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 1, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('smac r', '%rs1', ' r', '%rs2', ' r', '%rd'))
+smac_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+smac_reg_Instr.setCode(opCodeExecS, 'execute')
+smac_reg_Instr.setCode(opCodeWb, 'wb')
+smac_reg_Instr.addBehavior(IncrementPC, 'fetch')
+smac_reg_Instr.addVariable(('result', 'BIT<32>'))
+smac_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
+smac_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
+smac_reg_Instr.addTest({'rd': 0, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'REGS[10]' : 0x04}, {'Y': 0, 'REGS[0]': 0x0})
+smac_reg_Instr.addTest({'rd': 0, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'REGS[10]' : 0xffffffff}, {'Y': 0xffffffff, 'REGS[0]': 0x0})
+smac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'REGS[10]' : 0x04}, {'Y': 0, 'REGS[1]': 0x08})
+smac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'REGS[10]' : 0xffffffff}, {'Y': 0xffffffff, 'REGS[1]': 0xfffffffe})
+smac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0xffffffff, 'REGS[10]' : 0x2}, {'Y': 0xffffffff, 'REGS[1]': 0xfffffffe})
+smac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0xffffffff, 'REGS[10]' : 0xffffffff}, {'Y': 0x0, 'REGS[1]': 0x1})
+smac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x0fff, 'REGS[10]' : 0xffffffff}, {'Y': 0xffffffff, 'REGS[1]': 0xFFFFF001})
+isa.addInstruction(smac_reg_Instr)
+
 
 # Divide
 udiv_imm_Instr = trap.Instruction('UDIV_imm', True, frequency = 5)
@@ -1581,11 +1729,12 @@ switch(cond){
         }
         #else
         if(a == 1){
-            PC = targetPc - 8;
-            NPC = targetPc - 4;
+            PC = targetPc - 4;
+            NPC = targetPc;
         }
         else{
-            NPC = targetPc - 8;
+            PC = NPC;
+            NPC = targetPc - 4;
         }
         #endif
     break;}
@@ -1597,8 +1746,12 @@ switch(cond){
         }
         #else
         if(a == 1){
+            PC = NPC + 4;
+            NPC += 8;
+        }
+        else{
             PC = NPC;
-            NPC = NPC + 4;
+            NPC += 4;
         }
         #endif
     break;}
@@ -1624,15 +1777,24 @@ switch(cond){
             PC = targetPc;
             NPC = targetPc + 4;
             #else
-            NPC = targetPc - 8;
+            PC = NPC;
+            NPC = targetPc - 4;
             #endif
         }
-        else if(a == 1){
-            #ifdef ACC_MODEL
-            flush();
-            #else
-            PC = NPC;
-            NPC = NPC + 4;
+        else{
+            if(a == 1){
+                #ifdef ACC_MODEL
+                flush();
+                #else
+                PC = NPC + 4;
+                NPC += 8;
+                #endif
+            }
+            #ifndef ACC_MODEL
+            else{
+                PC = NPC;
+                NPC += 4;
+            }
             #endif
         }
     break;}
@@ -1646,7 +1808,7 @@ int('1011', 2) : 'ge', int('0011', 2) : 'l', int('1100', 2) : 'gu', int('0100', 
 int('01010', 2) : 'cs', int('1110', 2) : 'pos', int('0110', 2) : 'neg', int('1111', 2) : 'vc', int('0111', 2) : 'vs',}),
 ('%a', {1: ',a'}), ' ', '%disp22'))
 branch_Instr.setCode(opCode, 'decode')
-branch_Instr.addBehavior(IncrementPC, 'fetch')
+branch_Instr.addBehavior(IncrementPC, 'fetch', functionalModel = False)
 branch_Instr.addTest({'cond': int('1000', 2), 'a': 0, 'disp22': 0x200}, {'PC' : 0x0, 'NPC' : 0x4, 'PSR': 0x0}, {'PC' : 0x8, 'NPC' : 0x800})
 branch_Instr.addTest({'cond': int('1000', 2), 'a': 1, 'disp22': 0x200}, {'PC' : 0x0, 'NPC' : 0x4, 'PSR': 0x0}, {'PC' : 0x804, 'NPC' : 0x804})
 branch_Instr.addTest({'cond': int('0000', 2), 'a': 0, 'disp22': 0x200}, {'PC' : 0x0, 'NPC' : 0x4, 'PSR': 0x0}, {'PC' : 0x8, 'NPC' : 0x8})
@@ -1744,11 +1906,24 @@ isa.addInstruction(branch_Instr)
 
 # Call and Link
 opCode = cxx_writer.writer_code.Code("""
+unsigned int curPC = PC;
+unsigned int target = curPC + (disp30 << 2);
+REGS[15] = curPC - 4;
+#ifdef ACC_MODEL
+PC = target;
+NPC = target + 4;
+#else
+PC = NPC;
+NPC = target;
+#endif
 """)
 call_Instr = trap.Instruction('CALL', True, frequency = 5)
-call_Instr.setMachineCode(call_format, {}, 'TODO')
-call_Instr.setCode(opCode, 'execute')
-call_Instr.addTest({}, {}, {})
+call_Instr.setMachineCode(call_format, {}, ('call ', '%disp30'))
+call_Instr.setCode(opCode, 'decode')
+call_Instr.addBehavior(IncrementPC, 'fetch', functionalModel = False)
+call_Instr.addTest({'disp30': 0x0}, {'PC' : 0x0, 'NPC' : 0x4}, {'REGS[15]': 0, 'PC' : 0x8, 'NPC' : 0x4})
+call_Instr.addTest({'disp30': 0xff}, {'PC' : 0x0, 'NPC' : 0x4}, {'REGS[15]': 0, 'PC' : 0x8, 'NPC' : 0x400})
+call_Instr.addTest({'disp30': 0xff0}, {'PC' : 0x4, 'NPC' : 0x8}, {'REGS[15]': 4, 'PC' : 0xc, 'NPC' : 0x3fc8})
 isa.addInstruction(call_Instr)
 
 # Jump and Link

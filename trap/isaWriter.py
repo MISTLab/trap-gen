@@ -185,17 +185,18 @@ def getCPPInstr(self, model, processor, trace):
     global behClass
     for behaviors in self.postbehaviors.values() + self.prebehaviors.values():
         for beh in behaviors:
-            if behClass.has_key(beh.name):
-                baseClasses.append(behClass[beh.name].getType())
-                constrInitList.append(beh.name + '_op(' + baseInstrInitElement + ')')
-            elif beh.inline and not beh.name in alreadyDeclared and not model.startswith('acc'):
-                classElements.append(beh.getCppOperation())
-            elif not beh.name in alreadyDeclared:
-                toInline.append(beh.name)
-            for var in beh.instrvars:
-                if not var.name in behVars:
-                    classElements.append(cxx_writer.writer_code.Attribute(var.name, var.type, 'pro',  var.static))
-                    behVars.append(var.name)
+            if (model.startswith('acc') and beh.name in self.behaviorAcc) or (model.startswith('func') and beh.name in self.behaviorFun):
+                if behClass.has_key(beh.name):
+                    baseClasses.append(behClass[beh.name].getType())
+                    constrInitList.append(beh.name + '_op(' + baseInstrInitElement + ')')
+                elif beh.inline and not beh.name in alreadyDeclared and not model.startswith('acc'):
+                    classElements.append(beh.getCppOperation())
+                elif not beh.name in alreadyDeclared:
+                    toInline.append(beh.name)
+                for var in beh.instrvars:
+                    if not var.name in behVars:
+                        classElements.append(cxx_writer.writer_code.Attribute(var.name, var.type, 'pro',  var.static))
+                        behVars.append(var.name)
     if not baseClasses:
         baseClasses.append(instructionType)
 
@@ -222,6 +223,8 @@ def getCPPInstr(self, model, processor, trace):
             behaviorCode += '\n'
         if self.prebehaviors.has_key(pipeStage.name):
             for beh in self.prebehaviors[pipeStage.name]:
+                if not ((model.startswith('acc') and beh.name in self.behaviorAcc) or (model.startswith('func') and beh.name in self.behaviorFun)):
+                    continue
                 if beh.name in toInline:
                     behaviorCode += '{\n'
                     for var in beh.localvars:
@@ -250,6 +253,8 @@ def getCPPInstr(self, model, processor, trace):
             behaviorCode += str(self.code[pipeStage.name].code)
         if self.postbehaviors.has_key(pipeStage.name):
             for beh in self.postbehaviors[pipeStage.name]:
+                if not ((model.startswith('acc') and beh.name in self.behaviorAcc) or (model.startswith('func') and beh.name in self.behaviorFun)):
+                    continue
                 if beh.name in toInline:
                     behaviorCode += str(beh.code)
                 elif behClass.has_key(beh.name) or beh.name in baseBehaviors:

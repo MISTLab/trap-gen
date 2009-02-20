@@ -209,7 +209,8 @@ wbStage = trap.PipeStage('wb')
 wbStage.setWriteBack()
 wbStage.setEndHazard()
 processor.addPipeStage(wbStage)
-processor.setWBOrder('NPC', ('decode', 'execute'))
+processor.setWBOrder('NPC', ('decode', 'execute', 'wb'))
+processor.setWBOrder('PC', ('decode', 'fetch', 'execute', 'wb'))
 
 # The ABI is necessary to emulate system calls, personalize the GDB stub and,
 # eventually, retarget GCC
