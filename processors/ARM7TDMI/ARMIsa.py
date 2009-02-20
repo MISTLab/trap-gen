@@ -702,7 +702,7 @@ isa.addInstruction(ldrsb_off_Instr)
 opCode = cxx_writer.writer_code.Code("""
 rd = (int)((rm * rs) + REGS[rn]);
 
-if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
+if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){(long long)
     stall(2);
 }
 else if((rs & 0xFFFF0000) == 0x0 || (rs & 0xFFFF0000) == 0xFFFF0000){
@@ -749,9 +749,9 @@ isa.addInstruction(mul_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
 //Perform the operation
-long long result = (long long)(((long long)rm * (long long)rs) + (((long long)rd) << 32) + (long long)REGS[rn]);
+long long result = (long long)(((long long)((int)rm * (int)rs) + (((long long)rd)) << 32) + (int)REGS[rn]);
 //Check if I have to update the processor flags
-rd = (unsigned int)(result >> 32);
+rd = ((unsigned long long)result) >> 32;
 REGS[rn] = result & 0xFFFFFFFF;
 
 if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
@@ -777,9 +777,9 @@ isa.addInstruction(smlal_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
 //Perform the operation
-long long result = (long long)((long long)rm * (long long)rs);
+long long result = (long long)((int)rm * (int)rs);
 //Check if I have to update the processor flags
-rd = (unsigned int)(result >> 32);
+rd = ((unsigned long long)result) >> 32;
 REGS[rn] = result & 0xFFFFFFFF;
 
 if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
@@ -805,9 +805,9 @@ isa.addInstruction(smull_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
 //Perform the operation
-unsigned long long result = (unsigned long long)(((unsigned long long)rm * (unsigned long long)rs) + (((unsigned long long)rd) << 32) + (unsigned long long)REGS[rn]);
+unsigned long long result = (unsigned long long)(((unsigned long long)((unsigned int)rm * (unsigned int)rs)) + (((unsigned int)rd) << 32) + (unsigned int)REGS[rn]);
 //Check if I have to update the processor flags
-rd = (unsigned int)(result >> 32);
+rd = ((unsigned int)result) >> 32;
 REGS[rn] = result & 0xFFFFFFFF;
 
 if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
@@ -833,9 +833,9 @@ isa.addInstruction(umlal_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
 //Perform the operation
-unsigned long long result = (unsigned long long)((unsigned long long)rm * (unsigned long long)rs);
+unsigned long long result = (unsigned long long)((unsigned int)rm * (unsigned int)rs);
 //Check if I have to update the processor flags
-rd = (unsigned int)(result >> 32);
+rd = ((unsigned int)result) >> 32;
 REGS[rn] = result & 0xFFFFFFFF;
 
 if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
