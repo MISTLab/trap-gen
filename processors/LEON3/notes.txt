@@ -49,4 +49,7 @@ nPC, so the next instruction is not even fetched
 and cannot be modified (e.g. r0 of the sparc processor)
 
 -- Check when the ICC fields of the PSR are written: in the writeBack stage as normal registers or
-in the execution stage?
+in the execution stage? (it seems in the execute because of the number of stalls of a branch
+instruction when there is a preceding instruction which modifies the ICC)
+
+-- Check when the Y register is written: in the wb stage as normal registers or in the execute one?
