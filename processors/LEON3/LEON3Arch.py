@@ -115,6 +115,9 @@ processor.addRegister(npcReg)
 # 24-31 are used for hardware breakpoints
 # 17 is the processor configuration register
 asrRegs = trap.RegisterBank('ASR', 32, 32)
+# here I set the default value for the processor configuration register
+# (see page 24 of LEON3 preliminary datasheed)
+asrRegs.setDefaultValue(0x00000300 + numRegWindows, 17)
 processor.addRegBank(asrRegs)
 
 # Now I set the alias: they can (and will) be used by the instructions

@@ -1,3 +1,16 @@
+-- Exceptions: since the exception is resolved in the exceptions stage, there are other 5 instructions
+already in the pipeline. This does not happen in the functional model, where we trap at the
+immediately following instruction. How do we behave? are all the 5 instructions in the
+pipeline flushed or .... dowe have to implement a 5 instructions delay in the functional
+model???check with TSIM --- !!!!!Check, but I would say that there is a flush by looking
+at VHDL code!!!!!
+
+-- ASR and Y registers are written for mul/div (mul_res) in write back stage...so I guess that
+all but PSR are written in the WB stage. Actually, from the VHDL code, it seems that there is
+not WB stage and that write back is performed in the exception stage????????? TODO TODO. What about
+the ICC in the PSR? it looks like it is written in the WB a part from some forwarding for
+branch .... CHECK
+
 -- Branch: I have to check that instructions already issued to not modify the psr.icc otherwise the branch cannot
 be resolved in the decode stage, but I have to wait for one or two pipeline cycles.
 ES:
@@ -10,6 +23,21 @@ can get the the newest icc until A passes execute stage?
 So I have to stall the pipeline for two cycles in this case, until I pass
 the execute stage. Does this mean that PSR is written in the execute stage and not
 in the WB one?
+
+-- Interrupts: the processor has in input one line of 4 bits encoding the interrupt
+request level of the corresponding interrupt; the queue of interrupts is dealt with by
+the interrupt controller, so I should not bother with it. Processor should be able to
+acknowledge the interrupt (how?? is there a separate line?) CHECK in the VHDL code.
+
+-- The 8 bit ASI is appended to the 32 bits when memory is accessed (do we need to
+send them on the output TLM port? and what if internal memory is used?)I think
+they are dealt with inside the processor itself and never sent out...CHECK on VHDL model...
+otherwise, if they are sent out, we need to accordingly modify the bus
+
+-- Accurately check the result of the multiplication signed operations with respect to
+tsim implementation
+
+ALREADY CONSIDERED NOTES:
 
 -- Branch instruction directly modifies not only NPC but also the program counter directly,
 so there is no need for bubbles in the pipeline. Actually all instructions do so, they do not
@@ -25,21 +53,6 @@ annulled is done in the decode stage (??is this really true?? so not just branch
 all instructions with condition code are delayed if a preceding instruction is not
 in fetch yet?) - actually the only instructions with condition code are the branches
 
--- Interrupts: the processor has in input one line of 4 bits encoding the interrupt
-request level of the corresponding interrupt; the queue of interrupts is dealt with by
-the interrupt controller, so I should not bother with it. Processor should be able to
-acknowledge the interrupt (how?? is there a separate line?) CHECK in the VHDL code.
-
--- Exception stage: do we check for interrupts here? or in fetch? CHECK in the VHDL code?
-from the processor manual (page 159) it seems that the check is performed in the fetch stage
-and that the exception stage simply checks for exceptions and it sets a flag which triggers
-the exception in the next fetch stage
-
--- The 8 bit ASI is appended to the 32 bits when memory is accessed (do we need to
-send them on the output TLM port? and what if internal memory is used?)I think
-they are dealt with inside the processor itself and never sent out...CHECK on VHDL model...
-otherwise, if they are sent out, we need to accordingly modify the bus
-
 -- Branch instruction, depending on the a bit may annull the successive instruction; in the
 pipeline this just means a flush (which is the stage where the annull is done?? CHECK on
 VHDL). For the functional model, this means that I also modify the PC and not just the
@@ -48,11 +61,11 @@ nPC, so the next instruction is not even fetched
 -- For efficiency, shall we use constant registers, whose value is set at processor startup
 and cannot be modified (e.g. r0 of the sparc processor)
 
--- Check when the ICC fields of the PSR are written: in the writeBack stage as normal registers or
-in the execution stage? (it seems in the execute because of the number of stalls of a branch
-instruction when there is a preceding instruction which modifies the ICC)
-
--- Check when the Y register is written: in the wb stage as normal registers or in the execute one?
-
--- smac e umac: are only bits 7:0 of the Y register written or all the bits are written (i.e. all set to 0
-a part from 7:0 where the result is put)
+-- Memory stage: In this stage we also check for interrupts in the interrupt line (irq_trap) and
+for interrupts due to instructions (mem_trap). We actually set the trap variable trap = 1 in
+case it is necessary. This variable is then checked in the exception stage (in the
+following clock cycle) and variable xc_exception is set. This variable is finally checked
+in the following fetch and the appropriate flow is followed (so we jump to the correct
+trap handler, etc.) --> Actually I modify in the exception stage the program
+counter in order to perform a jump to the correct trap handler in case there is a
+trap

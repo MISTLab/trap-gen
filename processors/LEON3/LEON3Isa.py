@@ -1590,13 +1590,13 @@ umac_imm_Instr.addBehavior(IncrementPC, 'fetch')
 umac_imm_Instr.addVariable(('result', 'BIT<32>'))
 umac_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 umac_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
-umac_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {'ASR[18]': 0, 'Y': 0, 'REGS[10]' : 0x04}, {'ASR[18]': 0, 'Y': 0, 'REGS[0]': 0x0})
-umac_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {'ASR[18]': 0, 'Y': 0, 'REGS[10]' : 0xffffffff}, {'ASR[18]': 0, 'Y': 0x1, 'REGS[0]': 0x0})
-umac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'ASR[18]': 0, 'Y': 0, 'REGS[10]' : 0x04}, {'ASR[18]': 0, 'Y': 0, 'REGS[1]': 0x08})
-umac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'ASR[18]': 0, 'Y': 0, 'REGS[10]' : 0xffffffff}, {'ASR[18]': 0, 'Y': 0x1, 'REGS[1]': 0xfffffffe})
-umac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'ASR[18]': 0, 'Y': 0, 'REGS[10]' : 0x2}, {'ASR[18]': 0, 'Y': 0x1, 'REGS[1]': 0xfffffffe})
-umac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'ASR[18]': 0, 'Y': 0, 'REGS[10]' : 0xffffffff}, {'ASR[18]': 0, 'Y': 0xFFFFFFFE, 'REGS[1]': 0x00000001})
-umac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0xfff}, {'ASR[18]': 0, 'Y': 0, 'REGS[10]' : 0xffffffff}, {'ASR[18]': 0, 'Y': 0xFFE, 'REGS[1]': 0xFFFFF001})
+umac_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {'ASR[18]': 0x04, 'Y': 0x08, 'REGS[10]' : 0x04}, {'ASR[18]': 0x0c, 'Y': 0x08, 'REGS[0]': 0x0})
+umac_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {'ASR[18]': 0xfffffffe, 'Y': 0x08, 'REGS[10]' : 0x7fffffff}, {'ASR[18]': 0x1fffc, 'Y': 0x09, 'REGS[0]': 0x0})
+umac_imm_Instr.addTest({'rd': 10, 'rs1': 10, 'simm13': 2}, {'ASR[18]': 0x04, 'Y': 0x08, 'REGS[10]' : 0x04}, {'ASR[18]': 0x0c, 'Y': 0x08, 'REGS[10]': 0x0c})
+umac_imm_Instr.addTest({'rd': 10, 'rs1': 10, 'simm13': 2}, {'ASR[18]': 0xfffffffe, 'Y': 0x08, 'REGS[10]' : 0x7fffffff}, {'ASR[18]': 0x1fffc, 'Y': 0x09, 'REGS[10]': 0x1fffc})
+umac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'ASR[18]': 0x04, 'Y': 0xff, 'REGS[10]' : 0x2}, {'ASR[18]': 0x20002, 'Y': 0xff, 'REGS[1]': 0x20002})
+umac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'ASR[18]': 0x04, 'Y': 0x0f, 'REGS[10]' : 0xffffffff}, {'ASR[18]': 0xFFFE0005, 'Y': 0x0f, 'REGS[1]': 0xFFFE0005})
+umac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0xfff}, {'ASR[18]': 0x04, 'Y': 0x0f, 'REGS[10]' : 0xffffffff}, {'ASR[18]': 0xFFEF005, 'Y': 0x0f, 'REGS[1]': 0xFFEF005})
 isa.addInstruction(umac_imm_Instr)
 umac_reg_Instr = trap.Instruction('UMAC_reg', True, frequency = 5)
 umac_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 1, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('umac r', '%rs1', ' r', '%rs2', ' r', '%rd'))
@@ -1607,13 +1607,13 @@ umac_reg_Instr.addBehavior(IncrementPC, 'fetch')
 umac_reg_Instr.addVariable(('result', 'BIT<32>'))
 umac_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 umac_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
-umac_reg_Instr.addTest({'rd': 0, 'rs1': 10, 'rs2': 2}, {'ASR[18]': 0, 'Y': 0, 'REGS[2]': 0x02, 'REGS[10]': 0x04}, {'ASR[18]': 0, 'Y': 0, 'REGS[0]': 0x0})
-umac_reg_Instr.addTest({'rd': 0, 'rs1': 10, 'rs2': 2}, {'ASR[18]': 0, 'Y': 0, 'REGS[2]': 0x02, 'REGS[10]': 0xffffffff}, {'ASR[18]': 0, 'Y': 0x1, 'REGS[0]': 0x0})
-umac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'ASR[18]': 0, 'Y': 0, 'REGS[2]': 0x02, 'REGS[10]': 0x04}, {'ASR[18]': 0, 'Y': 0, 'REGS[1]': 0x08})
-umac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'ASR[18]': 0, 'Y': 0, 'REGS[2]': 0x02, 'REGS[10]': 0xffffffff}, {'ASR[18]': 0, 'Y': 0x1, 'REGS[1]': 0xfffffffe})
-umac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'ASR[18]': 0, 'Y': 0, 'REGS[2]': 0xffffffff, 'REGS[10]': 0x2}, {'ASR[18]': 0, 'Y': 0x1, 'REGS[1]': 0xfffffffe})
-umac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'ASR[18]': 0, 'Y': 0, 'REGS[2]': 0xffffffff, 'REGS[10]': 0xffffffff}, {'ASR[18]': 0, 'Y': 0xFFFFFFFE, 'REGS[1]': 0x00000001})
-umac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'ASR[18]': 0, 'Y': 0, 'REGS[2]': 0xfff, 'REGS[10]': 0xffffffff}, {'ASR[18]': 0, 'Y': 0xFFE, 'REGS[1]': 0xFFFFF001})
+umac_reg_Instr.addTest({'rd': 0, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'ASR[18]': 0x04, 'Y': 0x08, 'REGS[10]': 0x04}, {'ASR[18]': 0x0c, 'Y': 0x08, 'REGS[0]': 0x0})
+umac_reg_Instr.addTest({'rd': 0, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'ASR[18]': 0xfffffffe, 'Y': 0x08, 'REGS[10]' : 0x7fffffff}, {'ASR[18]': 0x1fffc, 'Y': 0x09, 'REGS[0]': 0x0})
+umac_reg_Instr.addTest({'rd': 10, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'ASR[18]': 0x04, 'Y': 0x08, 'REGS[10]' : 0x04}, {'ASR[18]': 0x0c, 'Y': 0x08, 'REGS[10]': 0x0c})
+umac_reg_Instr.addTest({'rd': 10, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'ASR[18]': 0xfffffffe, 'Y': 0x08, 'REGS[10]' : 0x7fffffff}, {'ASR[18]': 0x1fffc, 'Y': 0x09, 'REGS[10]': 0x1fffc})
+umac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0xffffffff, 'ASR[18]': 0x04, 'Y': 0xff, 'REGS[10]' : 0x2}, {'ASR[18]': 0x20002, 'Y': 0xff, 'REGS[1]': 0x20002})
+umac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0xffffffff, 'ASR[18]': 0x04, 'Y': 0x0f, 'REGS[10]' : 0xffffffff}, {'ASR[18]': 0xFFFE0005, 'Y': 0x0f, 'REGS[1]': 0xFFFE0005})
+umac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x00000fff, 'ASR[18]': 0x04, 'Y': 0x0f, 'REGS[10]' : 0xffffffff}, {'ASR[18]': 0xFFEF005, 'Y': 0x0f, 'REGS[1]': 0xFFEF005})
 isa.addInstruction(umac_reg_Instr)
 smac_imm_Instr = trap.Instruction('SMAC_imm', True, frequency = 5)
 smac_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 1, 1, 1]}, ('smac r', '%rs1', ' ', '%simm13', ' r', '%rd'))
@@ -1624,13 +1624,13 @@ smac_imm_Instr.addBehavior(IncrementPC, 'fetch')
 smac_imm_Instr.addVariable(('result', 'BIT<32>'))
 smac_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 smac_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
-smac_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {'ASR[18]': 0, 'Y': 0, 'REGS[10]' : 0x04}, {'ASR[18]': 0, 'Y': 0, 'REGS[0]': 0x0})
-smac_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {'ASR[18]': 0, 'Y': 0, 'REGS[10]' : 0xffffffff}, {'ASR[18]': 0, 'Y': 0xffffffff, 'REGS[0]': 0x0})
-smac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'ASR[18]': 0, 'Y': 0, 'REGS[10]' : 0x04}, {'ASR[18]': 0, 'Y': 0, 'REGS[1]': 0x08})
-smac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'ASR[18]': 0, 'Y': 0, 'REGS[10]' : 0xffffffff}, {'ASR[18]': 0, 'Y': 0xffffffff, 'REGS[1]': 0xfffffffe})
-smac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'ASR[18]': 0, 'Y': 0, 'REGS[10]' : 0x2}, {'ASR[18]': 0, 'Y': 0xffffffff, 'REGS[1]': 0xfffffffe})
-smac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'ASR[18]': 0, 'Y': 0, 'REGS[10]' : 0xffffffff}, {'ASR[18]': 0, 'Y': 0x0, 'REGS[1]': 0x1})
-smac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0xfff}, {'ASR[18]': 0, 'Y': 0, 'REGS[10]' : 0xffffffff}, {'ASR[18]': 0, 'Y': 0xffffffff, 'REGS[1]': 0xFFFFF001})
+smac_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {'ASR[18]': 0x04, 'Y': 0x08, 'REGS[10]': 0x04}, {'ASR[18]': 0x0c, 'Y': 0x08, 'REGS[0]': 0x0})
+smac_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {'ASR[18]': 0xfffffffe, 'Y': 0x08, 'REGS[10]': 0x7fffffff}, {'ASR[18]': 0xfffffffc, 'Y': 0xff, 'REGS[0]': 0x0})
+smac_imm_Instr.addTest({'rd': 10, 'rs1': 10, 'simm13': 2}, {'ASR[18]': 0x04, 'Y': 0x08, 'REGS[10]': 0x04}, {'ASR[18]': 0x0c, 'Y': 0x08, 'REGS[10]': 0x0c})
+smac_imm_Instr.addTest({'rd': 10, 'rs1': 10, 'simm13': 2}, {'ASR[18]': 0xfffffffe, 'Y': 0x08, 'REGS[10]': 0x7fffffff}, {'ASR[18]': 0xfffffffc, 'Y': 0xff, 'REGS[10]': 0xfffffffc})
+smac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'ASR[18]': 0x04, 'Y': 0xff, 'REGS[10]': 0x2}, {'ASR[18]': 0x02, 'Y': 0xff, 'REGS[1]': 0x02})
+smac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'ASR[18]': 0x04, 'Y': 0x0f, 'REGS[10]': 0xffffffff}, {'ASR[18]': 0x5, 'Y': 0x0f, 'REGS[1]': 0x5})
+smac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0xfff}, {'ASR[18]': 0x04, 'Y': 0x0f, 'REGS[10]': 0xffffffff}, {'ASR[18]': 0xFFFFF005, 'Y': 0x0e, 'REGS[1]': 0xFFFFF005})
 isa.addInstruction(smac_imm_Instr)
 smac_reg_Instr = trap.Instruction('SMAC_reg', True, frequency = 5)
 smac_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 1, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('smac r', '%rs1', ' r', '%rs2', ' r', '%rd'))
@@ -1641,13 +1641,13 @@ smac_reg_Instr.addBehavior(IncrementPC, 'fetch')
 smac_reg_Instr.addVariable(('result', 'BIT<32>'))
 smac_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 smac_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
-smac_reg_Instr.addTest({'rd': 0, 'rs1': 10, 'rs2': 2}, {'ASR[18]': 0, 'Y': 0, 'REGS[2]': 0x02, 'REGS[10]' : 0x04}, {'ASR[18]': 0, 'Y': 0, 'REGS[0]': 0x0})
-smac_reg_Instr.addTest({'rd': 0, 'rs1': 10, 'rs2': 2}, {'ASR[18]': 0, 'Y': 0, 'REGS[2]': 0x02, 'REGS[10]' : 0xffffffff}, {'ASR[18]': 0, 'Y': 0xffffffff, 'REGS[0]': 0x0})
-smac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'ASR[18]': 0, 'Y': 0, 'REGS[2]': 0x02, 'REGS[10]' : 0x04}, {'ASR[18]': 0, 'Y': 0, 'REGS[1]': 0x08})
-smac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'ASR[18]': 0, 'Y': 0, 'REGS[2]': 0x02, 'REGS[10]' : 0xffffffff}, {'ASR[18]': 0, 'Y': 0xffffffff, 'REGS[1]': 0xfffffffe})
-smac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'ASR[18]': 0, 'Y': 0, 'REGS[2]': 0xffffffff, 'REGS[10]' : 0x2}, {'ASR[18]': 0, 'Y': 0xffffffff, 'REGS[1]': 0xfffffffe})
-smac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'ASR[18]': 0, 'Y': 0, 'REGS[2]': 0xffffffff, 'REGS[10]' : 0xffffffff}, {'ASR[18]': 0, 'Y': 0x0, 'REGS[1]': 0x1})
-smac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'ASR[18]': 0, 'Y': 0, 'REGS[2]': 0x0fff, 'REGS[10]' : 0xffffffff}, {'ASR[18]': 0, 'Y': 0xffffffff, 'REGS[1]': 0xFFFFF001})
+smac_reg_Instr.addTest({'rd': 0, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'ASR[18]': 0x04, 'Y': 0x08, 'REGS[10]': 0x04}, {'ASR[18]': 0x0c, 'Y': 0x08, 'REGS[0]': 0x0})
+smac_reg_Instr.addTest({'rd': 0, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'ASR[18]': 0xfffffffe, 'Y': 0x08, 'REGS[10]': 0x7fffffff}, {'ASR[18]': 0xfffffffc, 'Y': 0xff, 'REGS[0]': 0x0})
+smac_reg_Instr.addTest({'rd': 10, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'ASR[18]': 0x04, 'Y': 0x08, 'REGS[10]': 0x04}, {'ASR[18]': 0x0c, 'Y': 0x08, 'REGS[10]': 0x0c})
+smac_reg_Instr.addTest({'rd': 10, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'ASR[18]': 0xfffffffe, 'Y': 0x08, 'REGS[10]': 0x7fffffff}, {'ASR[18]': 0xfffffffc, 'Y': 0xff, 'REGS[10]': 0xfffffffc})
+smac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0xffffffff, 'ASR[18]': 0x04, 'Y': 0xff, 'REGS[10]': 0x2}, {'ASR[18]': 0x02, 'Y': 0xff, 'REGS[1]': 0x02})
+smac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0xffffffff, 'ASR[18]': 0x04, 'Y': 0x0f, 'REGS[10]': 0xffffffff}, {'ASR[18]': 0x5, 'Y': 0x0f, 'REGS[1]': 0x5})
+smac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x00000fff, 'ASR[18]': 0x04, 'Y': 0x0f, 'REGS[10]': 0xffffffff}, {'ASR[18]': 0xFFFFF005, 'Y': 0x0e, 'REGS[1]': 0xFFFFF005})
 isa.addInstruction(smac_reg_Instr)
 
 # Divide
@@ -1717,7 +1717,7 @@ isa.addInstruction(restore_reg_Instr)
 # Branch on Integer Condition Codes
 opCode = cxx_writer.writer_code.Code("""
 switch(cond){
-    case 0b1000:{
+    case 0x8:{
         // Branch Always
         unsigned int targetPc = PC + 4*(SignExtend(disp22, 22));
         #ifdef ACC_MODEL
@@ -1737,7 +1737,7 @@ switch(cond){
         }
         #endif
     break;}
-    case 0b0000:{
+    case 0:{
         // Branch Never
         #ifdef ACC_MODEL
         if(a == 1){
@@ -1756,20 +1756,20 @@ switch(cond){
     break;}
     default:{
         // All the other non-special situations
-        bool exec = ((cond == 0b1001) && PSR[key_ICC_z] == 0) ||
-                    ((cond == 0b0001) && PSR[key_ICC_z] != 0) ||
-                    ((cond == 0b1010) && (PSR[key_ICC_z] == 0) && (PSR[key_ICC_n] == PSR[key_ICC_v])) ||
-                    ((cond == 0b0010) && ((PSR[key_ICC_z] != 0) || (PSR[key_ICC_n] != PSR[key_ICC_v]))) ||
-                    ((cond == 0b1011) && PSR[key_ICC_n] == PSR[key_ICC_v]) ||
-                    ((cond == 0b0011) && PSR[key_ICC_n] != PSR[key_ICC_v]) ||
-                    ((cond == 0b1100) && (PSR[key_ICC_c] + PSR[key_ICC_z]) == 0) ||
-                    ((cond == 0b0100) && (PSR[key_ICC_c] + PSR[key_ICC_z]) > 0) ||
-                    ((cond == 0b1101) && PSR[key_ICC_c] == 0) ||
-                    ((cond == 0b0101) && PSR[key_ICC_c] != 0) ||
-                    ((cond == 0b1110) && PSR[key_ICC_n] == 0) ||
-                    ((cond == 0b0110) && PSR[key_ICC_n] != 0) ||
-                    ((cond == 0b1111) && PSR[key_ICC_v] == 0) ||
-                    ((cond == 0b0111) && PSR[key_ICC_v] != 0);
+        bool exec = ((cond == 0x9) && PSR[key_ICC_z] == 0) ||
+                    ((cond == 0x1) && PSR[key_ICC_z] != 0) ||
+                    ((cond == 0xa) && (PSR[key_ICC_z] == 0) && (PSR[key_ICC_n] == PSR[key_ICC_v])) ||
+                    ((cond == 0x2) && ((PSR[key_ICC_z] != 0) || (PSR[key_ICC_n] != PSR[key_ICC_v]))) ||
+                    ((cond == 0xb) && PSR[key_ICC_n] == PSR[key_ICC_v]) ||
+                    ((cond == 0x3) && PSR[key_ICC_n] != PSR[key_ICC_v]) ||
+                    ((cond == 0xc) && (PSR[key_ICC_c] + PSR[key_ICC_z]) == 0) ||
+                    ((cond == 0x4) && (PSR[key_ICC_c] + PSR[key_ICC_z]) > 0) ||
+                    ((cond == 0xd) && PSR[key_ICC_c] == 0) ||
+                    ((cond == 0x5) && PSR[key_ICC_c] != 0) ||
+                    ((cond == 0xe) && PSR[key_ICC_n] == 0) ||
+                    ((cond == 0x6) && PSR[key_ICC_n] != 0) ||
+                    ((cond == 0xf) && PSR[key_ICC_v] == 0) ||
+                    ((cond == 0x7) && PSR[key_ICC_v] != 0);
         if(exec){
             unsigned int targetPc = PC + 4*(SignExtend(disp22, 22));
             #ifdef ACC_MODEL
@@ -2056,4 +2056,3 @@ flush_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 0, 1, 1]}, 'TODO')
 flush_imm_Instr.setCode(opCode, 'execute')
 flush_imm_Instr.addTest({}, {}, {})
 isa.addInstruction(flush_imm_Instr)
-

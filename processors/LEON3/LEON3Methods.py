@@ -96,6 +96,9 @@ NPC += 4;
 """)
 IncrementPC = trap.HelperOperation('IncrementPC', opCode)
 
+# Code used to jump to the trap handler address. This code modifies the PC and the NPC
+# so that the next instruction fetched is the one of the trap handler.
+
 # Modification of the Integer Condition Codes of the Processor Status Register
 # after an logical operation or after the multiply operation
 opCode = cxx_writer.writer_code.Code("""
