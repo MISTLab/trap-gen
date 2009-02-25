@@ -51,7 +51,7 @@ import cxx_writer
 # the check that there is an empty valid window and in the update of
 # the window aliases
 IncrementRegWindow_code = """
-newCwp = (PSR[key_CWP] + 1) % NUM_REG_WIN;
+newCwp = ((unsigned int)(PSR[key_CWP] + 1)) % NUM_REG_WIN;
 if(((0x01 << (newCwp)) & WIM) != 0){
     // There is a window underflow exception: TODO
 }
@@ -66,7 +66,7 @@ IncrementRegWindow_method.addVariable(('newCwp', 'BIT<32>'))
 # the check that there is an empty valid window and in the update of
 # the window aliases
 DecrementRegWindow_code = """
-newCwp = (PSR[key_CWP] - 1) % NUM_REG_WIN;
+newCwp = ((unsigned int)(PSR[key_CWP] - 1)) % NUM_REG_WIN;
 if(((0x01 << (newCwp)) & WIM) != 0){
     // There is a window overflow exception: TODO
 }

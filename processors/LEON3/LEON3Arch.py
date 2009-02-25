@@ -66,6 +66,8 @@ processor.setISA(LEON3Isa.isa) # lets set the instruction set
 # Number of register windows, between 2 and 32, default is 8 for LEON3
 numRegWindows = 8
 
+# Here I add a constant to the instruction set so that it can be used from the code implementing
+# the various instructions
 LEON3Isa.isa.addConstant(cxx_writer.writer_code.uintType, 'NUM_REG_WIN', numRegWindows)
 
 # There are 8 global register, and a variable number of
@@ -75,23 +77,20 @@ LEON3Isa.isa.addConstant(cxx_writer.writer_code.uintType, 'NUM_REG_WIN', numRegW
 globalRegs = trap.RegisterBank('GLOBAL', 8, 32)
 globalRegs.setConst(0, 0)
 processor.addRegBank(globalRegs)
+# Register sets
 windowRegs = trap.RegisterBank('WINREGS', 16*numRegWindows, 32)
 processor.addRegBank(windowRegs)
 # Program status register
 psrBitMask = {'IMPL': (31, 28), 'VER': (27, 24), 'ICC_n': (23, 23), 'ICC_z': (22, 22), 'ICC_v': (21, 21), 'ICC_c': (20, 20), 'EC': (13, 13), 'EF': (12, 12), 'PIL': (11, 8), 'S': (7, 7), 'PS': (6, 6), 'ET': (5, 5), 'CWP': (4, 0)}
 psrReg = trap.Register('PSR', 32, psrBitMask)
-# TODO: Check: should the CWP be the last (i.e. numRegWindows - 1) or fist (i.e. 0)
-# register window????In case change also the initialization of the alias register windows
-psrReg.setDefaultValue(0xF3000080 + numRegWindows - 1)
+psrReg.setDefaultValue(0xF30000C0)
 processor.addRegister(psrReg)
 # Window Invalid Mask Register
 wimBitMask = {}
 for i in range(0, 32):
     wimBitMask['WIM_' + str(i)] = (i, i)
 wimReg = trap.Register('WIM', 32, wimBitMask)
-# TODO: CHECK: should this be init to 0 or not?????is is set by
-# hardware or software?
-wimReg.setDefaultValue(0xFFFFFFFF ^ (pow(2, numRegWindows) - 1))
+wimReg.setDefaultValue(0x00000002)
 processor.addRegister(wimReg)
 # Trap Base Register
 tbrBitMask = {'TBA' : (31, 12), 'TT' : (11, 4)}
@@ -123,7 +122,7 @@ processor.addRegBank(asrRegs)
 # Now I set the alias: they can (and will) be used by the instructions
 # to access the registers more easily. Note that, in general, it is
 # responsibility of the programmer keeping the aliases updated
-regs = trap.AliasRegBank('REGS', 32, ('GLOBAL[0-7]', 'WINREGS['  + str(16*(numRegWindows - 1) - 8) + '-' + str(16*numRegWindows - 1) + ']'))
+regs = trap.AliasRegBank('REGS', 32, ('GLOBAL[0-7]', 'WINREGS[0-23]'))
 processor.addAliasRegBank(regs)
 FP = trap.AliasRegister('FP', 'REGS[30]')
 processor.addAliasReg(FP)

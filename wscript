@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: iso-8859-1 -*-
 
 import sys, Options
 
@@ -12,7 +13,8 @@ def build(bld):
 
 def configure(conf):
     # Check for standard tools
-    conf.check_tool('gcc g++ misc')
+    conf.check_tool('gcc g++')
+    conf.check_tool('misc')
     # Check for python
     conf.check_tool('python')
     conf.check_python_version((2,4))
@@ -48,7 +50,15 @@ def configure(conf):
     ##################################################
     # Check for BFD library and header
     ##################################################
-    result = os.popen(conf.env['CXX'][0] + ' -print-search-dirs')
+    compilerExecutable = ''
+    if len(conf.env['CXX']):
+        compilerExecutable = conf.env['CXX'][0]
+    elif len(conf.env['CC']):
+        compilerExecutable = conf.env['CC'][0]
+    else:
+        conf.fatal('CC or CXX environment variables not defined: Error, is the compiler correctly detected?')
+
+    result = os.popen(compilerExecutable + ' -print-search-dirs')
     curLine = result.readline()
     while curLine.find('libraries: =') == -1:
         curLine = result.readline()
@@ -69,7 +79,7 @@ def configure(conf):
         foundShared += glob.glob(os.path.join(directory, conf.env['shlib_PATTERN'].split('%s')[0] + 'bfd*' + conf.env['shlib_PATTERN'].split('%s')[1]))
         foundStatic += glob.glob(os.path.join(directory, conf.env['staticlib_PATTERN'].split('%s')[0] + 'bfd*' + conf.env['staticlib_PATTERN'].split('%s')[1]))
     if not foundStatic and not foundShared:
-        conf.fatal('BFD library not found')
+        conf.fatal('BFD library not found, install binutils development package for your distribution')
     tempLibs = []
     for bfdlib in foundStatic:
         tempLibs.append(os.path.basename(bfdlib)[3:os.path.basename(bfdlib).rfind('.')])

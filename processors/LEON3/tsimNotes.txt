@@ -1,0 +1,8 @@
+Command Line for TSIM with no floating point unit, with 8 MB or normal memory, with hardware breakpoints, with no ROM
+
+tsim-leon -hwbp -logfile +tsimOutLog -nfp -nouart -ram 8192
+
+Using the BCC compiler, the compiltion options are
+-msoft-float -mv8
+in order to use soft floating point the SPARC multiplication and division instructions
+

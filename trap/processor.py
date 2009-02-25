@@ -81,6 +81,8 @@ class Register:
         self.constValue = None
 
     def setDefaultValue(self, value):
+        if self.defValue:
+            raise Exception('Default value already set for register ' + self.name)
         self.defValue = value
 
     def setConst(self, value):
@@ -131,6 +133,9 @@ class RegisterBank:
         return constRegs
 
     def setDefaultValues(self, values):
+        for i in range(0, len(self.defValues)):
+            if self.defValues[i]:
+                raise Exception('Default value already set for register ' + str(i) + ' in register bank' + self.name)
         if len(values) != self.numRegs:
             raise Exception('The initialization values for register bank ' + self.name + ' are different, in number, from the number of registers')
         self.defValues = values
@@ -138,6 +143,8 @@ class RegisterBank:
     def setDefaultValue(self, value, position):
         if position < 0 or position >= self.numRegs:
             raise Exception('The initialization value for register bank ' + self.name + ' position ' + position + ' is not valid: position out of range')
+        if self.defValues[position]:
+            raise Exception('Default value already set for register ' + str(position) + ' in register bank' + self.name)
         self.defValues[position] = value
 
     def getCPPClass(self, model, regType):

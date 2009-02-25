@@ -307,7 +307,15 @@ class Folder:
     ###########################################################
     # Check for BFD library and header and for LIBERTY library
     ###########################################################
-    result = os.popen(conf.env['CXX'][0] + ' -print-search-dirs')
+    compilerExecutable = ''
+    if len(conf.env['CXX']):
+        compilerExecutable = conf.env['CXX'][0]
+    elif len(conf.env['CC']):
+        compilerExecutable = conf.env['CC'][0]
+    else:
+        conf.fatal('CC or CXX environment variables not defined: Error, is the compiler correctly detected?')
+
+    result = os.popen(compilerExecutable + ' -print-search-dirs')
     curLine = result.readline()
     while curLine.find('libraries: =') == -1:
         curLine = result.readline()
@@ -328,7 +336,7 @@ class Folder:
         foundShared += glob.glob(os.path.join(directory, conf.env['shlib_PATTERN'].split('%s')[0] + 'bfd*' + conf.env['shlib_PATTERN'].split('%s')[1]))
         foundStatic += glob.glob(os.path.join(directory, conf.env['staticlib_PATTERN'].split('%s')[0] + 'bfd*' + conf.env['staticlib_PATTERN'].split('%s')[1]))
     if not foundStatic and not foundShared:
-        conf.fatal('BFD library not found')
+        conf.fatal('BFD library not found, install binutils development package for your distribution')
     tempLibs = []
     for bfdlib in foundStatic:
         tempLibs.append(os.path.basename(bfdlib)[3:os.path.basename(bfdlib).rfind('.')])

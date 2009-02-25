@@ -1,7 +1,17 @@
+-- Write to special registers has 3 cycles delay!!! does this mean that also special registers are
+written in the WB stage? how is this modeled in the functional model???Can I model delayed writes in
+the registers (so not using the = operator for assignment) but with the effect that assignments are
+delayed. This does not affect the cycle accurate simulator, but it means that delayed registers are
+refreshed after each cycle in the CA model (I also have to keep a queue of 3 yet to commit values
+in the queue in case there is a queue of such instructions, all of this for the functional model).
+This also means that SPECIAL REGISTERS ARE WRITTEN IN THE WB STAGE AND THAT BYPASSES ARE PRESENT
+FOR PSR IN CASE THERE IS A BRANCH (bypass from the execute stage: how do we implement this??)
+Are there other bypasses???
+
 -- Exceptions: since the exception is resolved in the exceptions stage, there are other 5 instructions
 already in the pipeline. This does not happen in the functional model, where we trap at the
 immediately following instruction. How do we behave? are all the 5 instructions in the
-pipeline flushed or .... dowe have to implement a 5 instructions delay in the functional
+pipeline flushed or .... do we have to implement a 5 instructions delay in the functional
 model???check with TSIM --- !!!!!Check, but I would say that there is a flush by looking
 at VHDL code!!!!!
 
