@@ -246,7 +246,7 @@ opCode = cxx_writer.writer_code.Code("""
 if(l == 1) {
     LINKR = PC - 4;
 }
-PC = PC + (SignExtend(offset, 24) << 2);
+PC = PC + (((int)SignExtend(offset, 24)) << 2);
 stall(2);
 flush();
 """)
@@ -700,7 +700,7 @@ isa.addInstruction(ldrsb_off_Instr)
 
 # Mutiply instruction family
 opCode = cxx_writer.writer_code.Code("""
-rd = (rm * rs) + REGS[rn];
+rd = (rm * rs) + (int)REGS[rn];
 
 if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
     stall(2);
@@ -834,7 +834,6 @@ isa.addInstruction(umlal_Instr)
 opCode = cxx_writer.writer_code.Code("""
 //Perform the operation
 unsigned long long result = (unsigned long long)(((unsigned long long)((unsigned int)rm)) * ((unsigned long long)((unsigned int)rs)));
-std::cerr << "The result is " << std::hex << std::showbase << result << std::endl;
 //Check if I have to update the processor flags
 rd = (unsigned int)(result >> 32);
 REGS[rn] = (unsigned int)(result & 0x00000000FFFFFFFFLL);
