@@ -700,7 +700,7 @@ isa.addInstruction(ldrsb_off_Instr)
 
 # Mutiply instruction family
 opCode = cxx_writer.writer_code.Code("""
-rd = (int)((rm * rs) + REGS[rn]);
+rd = (rm * rs) + REGS[rn];
 
 if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
     stall(2);
@@ -724,7 +724,7 @@ mla_Instr.addBehavior(UpdatePSRmul, 'execute', False)
 isa.addInstruction(mla_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
-rd = (int)(rm * rs);
+rd = rm * rs;
 
 if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
     stall(1);
@@ -752,7 +752,7 @@ opCode = cxx_writer.writer_code.Code("""
 long long result = (long long)(((long long)((int)rm * (int)rs) + (((long long)rd)) << 32) + (int)REGS[rn]);
 //Check if I have to update the processor flags
 rd = ((unsigned long long)result) >> 32;
-REGS[rn] = result & 0xFFFFFFFF;
+REGS[rn] = (unsigned int)(result & 0x00000000FFFFFFFF);
 
 if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
     stall(3);
@@ -779,8 +779,8 @@ opCode = cxx_writer.writer_code.Code("""
 //Perform the operation
 long long result = (long long)((int)rm * (int)rs);
 //Check if I have to update the processor flags
-rd = ((unsigned long long)result) >> 32;
-REGS[rn] = result & 0xFFFFFFFF;
+rd = (int)(result >> 32);
+REGS[rn] = (int)(result & 0x00000000FFFFFFFF);
 
 if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
     stall(3);
@@ -808,7 +808,7 @@ opCode = cxx_writer.writer_code.Code("""
 unsigned long long result = (unsigned long long)(((unsigned long long)((unsigned int)rm * (unsigned int)rs)) + (((unsigned long long)rd) << 32) + (unsigned int)REGS[rn]);
 //Check if I have to update the processor flags
 rd = (unsigned int)(result >> 32);
-REGS[rn] = result & 0xFFFFFFFF;
+REGS[rn] = (unsigned int)(result & 0x00000000FFFFFFFF);
 
 if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
     stall(3);
@@ -836,7 +836,7 @@ opCode = cxx_writer.writer_code.Code("""
 unsigned long long result = (unsigned long long)((unsigned int)rm * (unsigned int)rs);
 //Check if I have to update the processor flags
 rd = (unsigned int)(result >> 32);
-REGS[rn] = result & 0xFFFFFFFF;
+REGS[rn] = (unsigned int)(result & 0x00000000FFFFFFFF);
 
 if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
     stall(3);
