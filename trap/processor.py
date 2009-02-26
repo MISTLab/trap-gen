@@ -251,7 +251,7 @@ class Processor:
     functional processor in case a local memory is used (in case TLM ports
     are used the systemc parameter is not taken into account)
     """
-    def __init__(self, name, version = 0.1, systemc = True, coprocessor = False, instructionCache = True, fastFetch = False, externalClock = False):
+    def __init__(self, name, version = '0.1', systemc = True, coprocessor = False, instructionCache = True, fastFetch = False, externalClock = False):
         self.name = name
         self.version = version
         self.isBigEndian = None
@@ -789,11 +789,11 @@ class Processor:
             curFolder.setMain(mainFile.name)
             curFolder.create()
             if (model == 'funcLT') and (not self.systemc):
-                testFolder.create(False, True)
+                testFolder.create(configure = False, tests = True)
             print ('\t\tCreated')
         # We create and print the main folder and also add a configuration
         # part to the wscript
-        mainFolder.create(True)
+        mainFolder.create(configure = True, projectName = self.name, version = self.version)
 
 class PipeStage:
     """Identified by (a) name (b) optional, if it is wb,

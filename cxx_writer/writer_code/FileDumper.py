@@ -190,7 +190,7 @@ class Folder:
         if subfolder and not subfolder in self.subfolders:
             self.subfolders.append(subfolder)
 
-    def create(self, configure = False, tests = False):
+    def create(self, configure = False, tests = False, projectName = '', version = ''):
         # Creates the folder and populates it with files.
         # it also creates the appropriate wscript for the
         # compilation
@@ -207,14 +207,14 @@ class Folder:
         # Now I can finally create the wscript for the compilation
         # of the current folder; note that event though the project is
         # small we need to create the configure part
-        self.createWscript(configure, tests)
+        self.createWscript(configure, tests, projectName, version)
         if configure:
             import shutil, sys
             wafPath = os.path.abspath(os.path.join(os.path.dirname(sys.modules['cxx_writer'].__file__), 'waf'))
             shutil.copy(wafPath, os.path.abspath(os.path.join('.', 'waf')))
         os.chdir(curDir)
 
-    def createWscript(self, configure, tests):
+    def createWscript(self, configure, tests, projectName, version):
         wscriptFile = open('wscript', 'wt')
         printOnFile('#!/usr/bin/env python\n', wscriptFile)
         if configure:
@@ -222,6 +222,8 @@ class Folder:
             printOnFile('# these variables are mandatory', wscriptFile)
             printOnFile('srcdir = \'.\'', wscriptFile)
             printOnFile('blddir = \'_build_\'', wscriptFile)
+            printOnFile('VERSION = \'' + version + '\'', wscriptFile)
+            printOnFile('APPNAME = \'' + projectName + '\'', wscriptFile)
         printOnFile('import os\n', wscriptFile)
         if self.codeFiles or self.subfolders:
             printOnFile('def build(bld):', wscriptFile)

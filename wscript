@@ -6,6 +6,8 @@ import sys, Options
 # these variables are mandatory
 srcdir = '.'
 blddir = '_build_'
+VERSION = '0.3'
+APPNAME = 'trap'
 import os
 
 def build(bld):
