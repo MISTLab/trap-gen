@@ -749,10 +749,10 @@ isa.addInstruction(mul_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
 //Perform the operation
-long long result = (long long)(((long long)((int)rm * (int)rs) + (((long long)rd)) << 32) + (int)REGS[rn]);
+long long result = (long long)(((long long)((int)rm * (int)rs) + (((long long)rd) << 32)) + (int)REGS[rn]);
 //Check if I have to update the processor flags
-rd = ((unsigned long long)result) >> 32;
-REGS[rn] = (unsigned int)(result & 0x00000000FFFFFFFF);
+rd = (int)(result >> 32);
+REGS[rn] = (int)(result & 0x00000000FFFFFFFF);
 
 if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
     stall(3);
