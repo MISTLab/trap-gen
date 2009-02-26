@@ -749,7 +749,7 @@ isa.addInstruction(mul_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
 //Perform the operation
-long long result = (long long)(((long long)((int)rm * (int)rs) + (((long long)rd) << 32)) + (int)REGS[rn]);
+long long result = (long long)((((long long)(((long long)((int)rm)) * ((long long)((int)rs)))) + (((long long)rd) << 32)) + (int)REGS[rn]);
 //Check if I have to update the processor flags
 rd = (int)(result >> 32);
 REGS[rn] = (int)(result & 0x00000000FFFFFFFF);
@@ -777,7 +777,7 @@ isa.addInstruction(smlal_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
 //Perform the operation
-long long result = (long long)((int)rm * (int)rs);
+long long result = (long long)(((long long)((int)rm)) * ((long long)((int)rs)));
 //Check if I have to update the processor flags
 rd = (int)(result >> 32);
 REGS[rn] = (int)(result & 0x00000000FFFFFFFF);
@@ -805,7 +805,7 @@ isa.addInstruction(smull_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
 //Perform the operation
-unsigned long long result = (unsigned long long)(((unsigned long long)((unsigned int)rm * (unsigned int)rs)) + (((unsigned long long)rd) << 32) + (unsigned int)REGS[rn]);
+unsigned long long result = (unsigned long long)(((unsigned long long)(((unsigned long long)((unsigned int)rm)) * ((unsigned long long)((unsigned int)rs)))) + (((unsigned long long)rd) << 32) + (unsigned int)REGS[rn]);
 //Check if I have to update the processor flags
 rd = (unsigned int)(result >> 32);
 REGS[rn] = (unsigned int)(result & 0x00000000FFFFFFFF);
@@ -833,10 +833,11 @@ isa.addInstruction(umlal_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
 //Perform the operation
-unsigned long long result = (unsigned long long)((unsigned int)rm * (unsigned int)rs);
+unsigned long long result = (unsigned long long)(((unsigned long long)((unsigned int)rm)) * ((unsigned long long)((unsigned int)rs)));
+std::cerr << "The result is " << std::hex << std::showbase << result << std::endl;
 //Check if I have to update the processor flags
 rd = (unsigned int)(result >> 32);
-REGS[rn] = (unsigned int)(result & 0x00000000FFFFFFFF);
+REGS[rn] = (unsigned int)(result & 0x00000000FFFFFFFFLL);
 
 if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
     stall(3);
