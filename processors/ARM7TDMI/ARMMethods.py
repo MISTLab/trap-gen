@@ -82,7 +82,7 @@ RotateRight_method.addVariable(('rotated', 'BIT<32>'))
 RotateRight_method.addVariable(('toGlue', 'BIT<32>'))
 
 opCode = cxx_writer.writer_code.Code("""
-long long resultSign = (long long)((long long)(int)operand1 + (long long)(int)operand2);
+long long resultSign = (long long)((long long)((int)operand1) + (long long)((int)operand2));
 //unsigned long long resultUnSign = (unsigned long long)((unsigned long long)operand1 + (unsigned long long)operand2);
 // N flag if the results is negative
 CPSR[key_N] = ((resultSign & 0x0000000080000000LL) != 0);
@@ -97,7 +97,7 @@ UpdatePSRAdd_method = trap.HelperMethod('UpdatePSRAddInner', opCode, 'execute')
 UpdatePSRAdd_method.setSignature(parameters = [('operand1', 'BIT<32>'), ('operand2', 'BIT<32>')])
 
 opCode = cxx_writer.writer_code.Code("""
-long long resultSign = (long long)((long long)(int)operand1 - (long long)(int)operand2);
+long long resultSign = (long long)((long long)((int)operand1) - (long long)((int)operand2));
 //unsigned long long resultUnSign = (unsigned long long)((unsigned long long)operand1 - (unsigned long long)operand2);
 // N flag if the results is negative
 CPSR[key_N] = ((resultSign & 0x0000000080000000LL) != 0);

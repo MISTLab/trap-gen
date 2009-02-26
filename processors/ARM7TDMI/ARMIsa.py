@@ -88,7 +88,7 @@ isa.addMethod(UpdatePSRSub_method)
 opCode = cxx_writer.writer_code.Code("""
 rd = (int)rn + (int)operand;
 if (CPSR[key_C]){
-    rd += 1;
+    rd = ((int)rd) + 1;
 }
 """)
 adc_shift_imm_Instr = trap.Instruction('ADC_si', True, frequency = 5)
@@ -700,7 +700,7 @@ isa.addInstruction(ldrsb_off_Instr)
 
 # Mutiply instruction family
 opCode = cxx_writer.writer_code.Code("""
-rd = (rm * rs) + (int)REGS[rn];
+rd = ((int)rm * (int)rs) + (int)REGS[rn];
 
 if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
     stall(2);
@@ -724,7 +724,7 @@ mla_Instr.addBehavior(UpdatePSRmul, 'execute', False)
 isa.addInstruction(mla_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
-rd = rm * rs;
+rd = (int)rm * (int)rs;
 
 if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
     stall(1);
@@ -751,7 +751,7 @@ opCode = cxx_writer.writer_code.Code("""
 //Perform the operation
 long long result = (long long)((((long long)(((long long)((int)rm)) * ((long long)((int)rs)))) + (((long long)rd) << 32)) + (int)REGS[rn]);
 //Check if I have to update the processor flags
-rd = (int)(result >> 32);
+rd = (int)((result >> 32) & 0x00000000FFFFFFFF);
 REGS[rn] = (int)(result & 0x00000000FFFFFFFF);
 
 if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
@@ -779,7 +779,7 @@ opCode = cxx_writer.writer_code.Code("""
 //Perform the operation
 long long result = (long long)(((long long)((int)rm)) * ((long long)((int)rs)));
 //Check if I have to update the processor flags
-rd = (int)(result >> 32);
+rd = (int)((result >> 32) & 0x00000000FFFFFFFF);
 REGS[rn] = (int)(result & 0x00000000FFFFFFFF);
 
 if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
@@ -807,8 +807,8 @@ opCode = cxx_writer.writer_code.Code("""
 //Perform the operation
 unsigned long long result = (unsigned long long)(((unsigned long long)(((unsigned long long)((unsigned int)rm)) * ((unsigned long long)((unsigned int)rs)))) + (((unsigned long long)rd) << 32) + (unsigned int)REGS[rn]);
 //Check if I have to update the processor flags
-rd = (unsigned int)(result >> 32);
-REGS[rn] = (unsigned int)(result & 0x00000000FFFFFFFF);
+rd = (unsigned int)((result >> 32) & 0x00000000FFFFFFFF);
+REGS[rn] = (unsigned int)(result & 0x00000000FFFFFFFFLL);
 
 if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
     stall(3);
@@ -835,7 +835,7 @@ opCode = cxx_writer.writer_code.Code("""
 //Perform the operation
 unsigned long long result = (unsigned long long)(((unsigned long long)((unsigned int)rm)) * ((unsigned long long)((unsigned int)rs)));
 //Check if I have to update the processor flags
-rd = (unsigned int)(result >> 32);
+rd = (unsigned int)((result >> 32) & 0x00000000FFFFFFFF);
 REGS[rn] = (unsigned int)(result & 0x00000000FFFFFFFFLL);
 
 if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
@@ -1328,8 +1328,8 @@ isa.addInstruction(rsb_imm_Instr)
 # RSC instruction family
 opCode = cxx_writer.writer_code.Code("""
 rd = (int)operand - (int)rn;
-if (CPSR[key_C]){
-    rd -= 1;
+if (CPSR[key_C] == 0){
+    rd = ((int)rd) -1;
 }
 """)
 rsc_shift_imm_Instr = trap.Instruction('RSC_si', True, frequency = 4)
@@ -1363,8 +1363,8 @@ isa.addInstruction(rsc_imm_Instr)
 # SBC instruction family
 opCode = cxx_writer.writer_code.Code("""
 rd = (int)rn - (int)operand;
-if (CPSR[key_C]){
-    rd -= 1;
+if (CPSR[key_C] == 0){
+    rd = ((int)rd) -1;
 }
 """)
 sbc_shift_imm_Instr = trap.Instruction('SBC_si', True, frequency = 4)
