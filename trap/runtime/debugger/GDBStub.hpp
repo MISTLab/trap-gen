@@ -49,11 +49,11 @@
 #ifndef GDBSTUB_HPP
 #define GDBSTUB_HPP
 
+#include <csignal>
 #ifndef SIGTRAP
 #define SIGTRAP 5
 #endif
 
-#include <signal.h>
 #include <systemc.h>
 
 #include <vector>

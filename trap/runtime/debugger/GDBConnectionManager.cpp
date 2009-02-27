@@ -44,6 +44,7 @@
 #define _WIN32_WINNT 0x0501
 #endif
 
+#include <csignal>
 #ifndef SIGTRAP
 #define SIGTRAP 5
 #endif
@@ -60,7 +61,6 @@
 #include <vector>
 #include <iostream>
 #include <iomanip>
-#include <csignal>
 #include <boost/asio.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/thread/condition.hpp>
