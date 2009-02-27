@@ -9,7 +9,7 @@ def build(bld):
         syscCallB.cpp
     """
     obj.includes = '. ../bfdFontend ../utils ..'
-    obj.uselib = 'SYSTEMC BOOST BOOST_REGEX'
+    obj.uselib = 'SYSTEMC BOOST BOOST_REGEX BFD'
     obj.export_incdirs = '.'
     obj.name = 'syscall'
     obj.target = 'syscall'

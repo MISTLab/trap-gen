@@ -15,11 +15,13 @@ def build(bld):
 
 def configure(conf):
     # Check for standard tools
+    usingMsvc = False
     try:
         conf.check_tool('gcc g++')
     except:
         conf.check_message_2('Error in GCC compiler detection, reverting to Microsoft CL')
         conf.check_tool('msvc')
+        usingMsvc = True
     conf.check_tool('misc')
     # Check for python
     conf.check_tool('python')
@@ -51,73 +53,88 @@ def configure(conf):
     # Check for boost libraries
     ########################################
     conf.check_tool('boost')
-    conf.check_boost(lib='regex thread', kind='STATIC_NOSTATIC', min_version='1.35.0')
+    conf.check_boost(lib='regex thread', kind='STATIC_NOSTATIC', min_version='1.35.0', mandatory = 1, errmsg = 'Unable to find regex and/or thread boost libraries, please install them and specify their location with the --boost-includes and --boost-libs configuration options')
 
     ##################################################
     # Check for BFD library and header
     ##################################################
-    compilerExecutable = ''
-    if len(conf.env['CXX']):
-        compilerExecutable = conf.env['CXX'][0]
-    elif len(conf.env['CC']):
-        compilerExecutable = conf.env['CC'][0]
-    else:
-        conf.fatal('CC or CXX environment variables not defined: Error, is the compiler correctly detected?')
-
-    result = os.popen(compilerExecutable + ' -print-search-dirs')
-    curLine = result.readline()
-    while curLine.find('libraries: =') == -1:
-        curLine = result.readline()
-        startFound = curLine.find('libraries: =')
-        searchDirs = []
-        if startFound != -1:
-            curLine = curLine[startFound + 12:-1]
-            searchDirs_ = curLine.split(':')
-            for i in searchDirs_:
-                if not os.path.abspath(i) in searchDirs:
-                    searchDirs.append(os.path.abspath(i))
-            break
-
-    import glob
-    foundStatic = []
-    foundShared = []
-    for directory in searchDirs:
-        foundShared += glob.glob(os.path.join(directory, conf.env['shlib_PATTERN'].split('%s')[0] + 'bfd*' + conf.env['shlib_PATTERN'].split('%s')[1]))
-        foundStatic += glob.glob(os.path.join(directory, conf.env['staticlib_PATTERN'].split('%s')[0] + 'bfd*' + conf.env['staticlib_PATTERN'].split('%s')[1]))
-    if not foundStatic and not foundShared:
-        conf.fatal('BFD library not found, install binutils development package for your distribution')
-    tempLibs = []
-    for bfdlib in foundStatic:
-        tempLibs.append(os.path.basename(bfdlib)[3:os.path.basename(bfdlib).rfind('.')])
-    foundStatic = tempLibs
-    tempLibs = []
-    for bfdlib in foundShared:
-        tempLibs.append(os.path.basename(bfdlib)[3:os.path.basename(bfdlib).rfind('.')])
-    foundShared = tempLibs
-    bfd_lib_name = ''
-    for bfdlib in foundStatic:
-        if bfdlib in foundShared:
-            bfd_lib_name = bfdlib
-        break
-    if not bfd_lib_name:
-        if foundShared:
-            bfd_lib_name = foundShared[0]
+    if not usingMsvc:
+        compilerExecutable = ''
+        if len(conf.env['CXX']):
+            compilerExecutable = conf.env['CXX'][0]
+        elif len(conf.env['CC']):
+            compilerExecutable = conf.env['CC'][0]
         else:
-            bfd_lib_name = foundStatic[0]
+            conf.fatal('CC or CXX environment variables not defined: Error, is the compiler correctly detected?')
 
-    conf.check_cc(lib=bfd_lib_name, uselib_store='BFD', mandatory=1, libpath=searchDirs)
-    conf.check_cc(header_name='bfd.h', uselib_store='BFD', mandatory=1)
+        result = os.popen(compilerExecutable + ' -print-search-dirs')
+        curLine = result.readline()
+        while curLine.find('libraries: =') == -1:
+            curLine = result.readline()
+            startFound = curLine.find('libraries: =')
+            searchDirs = []
+            if startFound != -1:
+                curLine = curLine[startFound + 12:-1]
+                searchDirs_ = curLine.split(':')
+                for i in searchDirs_:
+                    if not os.path.abspath(i) in searchDirs:
+                        searchDirs.append(os.path.abspath(i))
+                break
+        if Options.options.bfddir:
+            searchDirs.append(os.path.abspath(os.path.join(Options.options.bfddir, 'lib')))
 
+        import glob
+        foundStatic = []
+        foundShared = []
+        for directory in searchDirs:
+            foundShared += glob.glob(os.path.join(directory, conf.env['shlib_PATTERN'].split('%s')[0] + 'bfd*' + conf.env['shlib_PATTERN'].split('%s')[1]))
+            foundStatic += glob.glob(os.path.join(directory, conf.env['staticlib_PATTERN'].split('%s')[0] + 'bfd*' + conf.env['staticlib_PATTERN'].split('%s')[1]))
+        if not foundStatic and not foundShared:
+            conf.fatal('BFD library not found, install binutils development package for your distribution')
+        tempLibs = []
+        for bfdlib in foundStatic:
+            tempLibs.append(os.path.basename(bfdlib)[3:os.path.basename(bfdlib).rfind('.')])
+        foundStatic = tempLibs
+        tempLibs = []
+        for bfdlib in foundShared:
+            tempLibs.append(os.path.basename(bfdlib)[3:os.path.basename(bfdlib).rfind('.')])
+        foundShared = tempLibs
+        bfd_lib_name = ''
+        for bfdlib in foundStatic:
+            if bfdlib in foundShared:
+                bfd_lib_name = bfdlib
+            break
+        if not bfd_lib_name:
+            if foundShared:
+                bfd_lib_name = foundShared[0]
+            else:
+                bfd_lib_name = foundStatic[0]
+
+        conf.check_cc(lib=bfd_lib_name, uselib_store='BFD', mandatory=1, libpath=searchDirs)
+        if Options.options.bfddir:
+            conf.check_cc(header_name='bfd.h', uselib_store='BFD', mandatory=1, includes=[os.path.abspath(os.path.join(Options.options.bfddir, 'include'))])
+        else:
+            conf.check_cc(header_name='bfd.h', uselib_store='BFD', mandatory=1)
+
+    else:
+        if not Options.options.bfddir:
+            conf.fatal('Please specify the location of the BFD library using the --with-bfd configuration option')
+        conf.check_cc(lib='bfd', uselib_store='BFD', mandatory=1, libpath=[os.path.abspath(os.path.join(Options.options.bfddir, 'lib'))])
+        conf.check_cc(header_name='bfd.h', uselib_store='BFD', mandatory=1, includes=[os.path.abspath(os.path.join(Options.options.bfddir, 'include'))])
+        
     ##################################################
     # Check for pthread library/flag
     ##################################################
-    if conf.check_cxx(linkflags='-pthread') is None or conf.check_cxx(cxxflags='-pthread') is None:
-        conf.env.append_unique('LIB', 'pthread')
+    if not usingMsvc:
+        if conf.check_cxx(linkflags='-pthread') is None or conf.check_cxx(cxxflags='-pthread') is None:
+            conf.env.append_unique('LIB', 'pthread')
+        else:
+            conf.env.append_unique('LINKFLAGS', '-pthread')
+            conf.env.append_unique('CXXFLAGS', '-pthread')
+            conf.env.append_unique('CFLAGS', '-pthread')
+            conf.env.append_unique('CCFLAGS', '-pthread')
+            pthread_uselib = []
     else:
-        conf.env.append_unique('LINKFLAGS', '-pthread')
-        conf.env.append_unique('CXXFLAGS', '-pthread')
-        conf.env.append_unique('CFLAGS', '-pthread')
-        conf.env.append_unique('CCFLAGS', '-pthread')
         pthread_uselib = []
 
     ##################################################
@@ -126,14 +143,20 @@ def configure(conf):
     ##################################################
     syscpath = None
     if Options.options.systemcdir:
-        syscpath = ([os.path.abspath(os.path.join(Options.options.systemcdir, 'include'))])
+        if usingMsvc:
+            syscpath = ([os.path.abspath(os.path.join(Options.options.systemcdir, 'src'))])
+        else:
+            syscpath = ([os.path.abspath(os.path.join(Options.options.systemcdir, 'include'))])
     elif 'SYSTEMC' in os.environ:
         syscpath = ([os.path.abspath(os.path.join(os.environ['SYSTEMC'], 'include'))])
 
     import glob
     sysclib = ''
     if syscpath:
-        sysclib = glob.glob(os.path.join(os.path.abspath(os.path.join(syscpath[0], '..')), 'lib-*'))
+        if usingMsvc:
+            sysclib = [os.path.abspath(os.path.join(syscpath[0], '..', 'msvc71', 'SystemC', 'Release'))]
+        else:
+            sysclib = glob.glob(os.path.join(os.path.abspath(os.path.join(syscpath[0], '..')), 'lib-*'))
     conf.check_cxx(lib='systemc', uselib_store='SYSTEMC', mandatory=1, libpath=sysclib)
     ######################################################
     # Check if systemc is compiled with quick threads or not
@@ -180,5 +203,7 @@ def set_options(opt):
     opt.tool_options('compiler_cxx')
     opt.add_option('--py-install-dir', type='string', help='Folder where the python files will be installed', dest='pyinstalldir')
     opt.tool_options('boost', option_group=build_options)
-    # Specify SystemC and TLM path
+    # Specify SystemC path
     opt.add_option('--with-systemc', type='string', help='SystemC installation directory', dest='systemcdir' )
+    # Specify BFD library path
+    opt.add_option('--with-bfd', type='string', help='BFD installation directory', dest='bfddir' )

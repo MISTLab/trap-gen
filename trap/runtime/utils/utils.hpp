@@ -49,6 +49,14 @@
 #include <exception>
 #include <stdexcept>
 
+#ifndef __PRETTY_FUNCTION__
+#ifdef __FUNCDNAME__
+#define __PRETTY_FUNCTION__ __FUNCDNAME__
+#else
+#define __PRETTY_FUNCTION__ "NONAME"
+#endif
+#endif
+
 #ifdef MAKE_STRING
 #undef MAKE_STRING
 #endif
