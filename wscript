@@ -15,7 +15,11 @@ def build(bld):
 
 def configure(conf):
     # Check for standard tools
-    conf.check_tool('gcc g++')
+    try:
+        conf.check_tool('gcc g++')
+    except:
+        conf.check_message_2('Error in GCC compiler detection, reverting to Microsoft CL')
+        conf.check_tool('msvc')
     conf.check_tool('misc')
     # Check for python
     conf.check_tool('python')
