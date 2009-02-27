@@ -66,7 +66,7 @@
 #endif
 
 template <class AddressType> struct Breakpoint{
-    enum Type{MEM=0, HW, WRITE, READ, ACCESS};
+    enum Type{MEM_break=0, HW_break, WRITE_break, READ_break, ACCESS_break};
     AddressType address;
     unsigned int length;
     Type type;

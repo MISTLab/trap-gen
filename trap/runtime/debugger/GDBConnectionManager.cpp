@@ -40,6 +40,22 @@
  *
 \***************************************************************************/
 
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0501
+#endif
+
+#ifndef SIGTRAP
+#define SIGTRAP 5
+#endif
+
+#ifndef __PRETTY_FUNCTION__
+#ifdef __FUNCDNAME__
+#define __PRETTY_FUNCTION__ __FUNCDNAME__
+#else
+#define __PRETTY_FUNCTION__ "NONAME"
+#endif
+#endif
+
 #include <string>
 #include <vector>
 #include <iostream>
@@ -110,11 +126,11 @@ void GDBConnectionManager::sendResponse(GDBResponse &response){
     //First of all I compute the payload; it depends on the particular packet
     //sent by GDB
     switch(response.type){
-        case GDBResponse::S:{
+        case GDBResponse::S_rsp:{
             //S request: informs GDB that a signal interrupted program execution
             payload = 'S' + this->toHexString((unsigned char)response.payload, 2);
         break;}
-        case GDBResponse::T:{
+        case GDBResponse::T_rsp:{
             //T request: informs GDB that a signal interrupted program execution;
             //more datailed information is provided
             payload = 'T' + this->toHexString((unsigned char)response.payload, 2);
@@ -136,16 +152,16 @@ void GDBConnectionManager::sendResponse(GDBResponse &response){
             payload += ';';
             }
         break;}
-        case GDBResponse::W:{
+        case GDBResponse::W_rsp:{
             //Process Exited
             payload = 'W' + this->toHexString((unsigned char)response.payload, 2);
             this->killed = true;
         break;}
-        case GDBResponse::X:{
+        case GDBResponse::X_rsp:{
             //Process Exited
             payload = 'X' + this->toHexString((unsigned char)response.payload);
         break;}
-        case GDBResponse::OUTPUT:{
+        case GDBResponse::OUTPUT_rsp:{
             //Sending output message to the GDB debugger console
             payload = 'O';
         std::string::iterator messageIter, messageEnd;
@@ -154,14 +170,14 @@ void GDBConnectionManager::sendResponse(GDBResponse &response){
             payload += this->toHexString((unsigned char)*messageIter, 2);
             }
         break;}
-        case GDBResponse::OK:{
+        case GDBResponse::OK_rsp:{
             payload = "OK";
         break;}
-        case GDBResponse::ERROR:{
+        case GDBResponse::ERROR_rsp:{
             payload = 'E' + this->toHexString((unsigned char)response.payload, 2);
         break;}
-        case GDBResponse::REG_READ:
-        case GDBResponse::MEM_READ:{
+        case GDBResponse::REG_READ_rsp:
+        case GDBResponse::MEM_READ_rsp:{
         std::vector<char>::iterator dataIter, dataEnd;
         for(dataIter = response.data.begin(), dataEnd = response.data.end(); dataIter != dataEnd; dataIter++)
             payload += this->toHexString((unsigned char)*dataIter, 2);
@@ -231,7 +247,7 @@ GDBRequest GDBConnectionManager::processRequest(){
             receivedChar = this->readQueueChar();
             if(receivedChar == '\x0'){
                 std::cerr << "Connection Unexpetedly closed by the GDB Debugger" << std::endl;
-                req.type = GDBRequest::ERROR;
+                req.type = GDBRequest::ERROR_req;
                 this->killed = true;
                 return req;
             }
@@ -239,7 +255,7 @@ GDBRequest GDBConnectionManager::processRequest(){
         if(receivedChar == 0x03){
             //It means that I received an interrupt from GDB, I stop the simulation and
             //become responsive
-            req.type = GDBRequest::INTR;
+            req.type = GDBRequest::INTR_req;
             return req;
         }
 
@@ -249,7 +265,7 @@ GDBRequest GDBConnectionManager::processRequest(){
             receivedChar = this->readQueueChar();
             if(receivedChar == '\x0'){
                 std::cerr << "Connection Unexpetedly closed by the GDB Debugger" << std::endl;
-                req.type = GDBRequest::ERROR;
+                req.type = GDBRequest::ERROR_req;
                 this->killed = true;
                 return req;
             }
@@ -262,14 +278,14 @@ GDBRequest GDBConnectionManager::processRequest(){
         checkSum[0] = this->readQueueChar();
         if(checkSum[0] == '\x0'){
             std::cerr << "Connection Unexpetedly closed by the GDB Debugger" << std::endl;
-            req.type = GDBRequest::ERROR;
+            req.type = GDBRequest::ERROR_req;
             this->killed = true;
             return req;
         }
         checkSum[1] = this->readQueueChar();
         if(checkSum[1] == '\x0'){
             std::cerr << "Connection Unexpetedly closed by the GDB Debugger" << std::endl;
-            req.type = GDBRequest::ERROR;
+            req.type = GDBRequest::ERROR_req;
             this->killed = true;
             return req;
         }
@@ -288,7 +304,7 @@ GDBRequest GDBConnectionManager::processRequest(){
         boost::asio::write(*this->socket, boost::asio::buffer(&checkRes, 1), boost::asio::transfer_all(), asioError);
         if(asioError){
             std::cerr << __PRETTY_FUNCTION__ << ": WriteError " << asioError.message() << std::endl;
-            req.type = GDBRequest::ERROR;
+            req.type = GDBRequest::ERROR_req;
             return req;
         }
     }while(!correctlyReceived);
@@ -298,13 +314,13 @@ GDBRequest GDBConnectionManager::processRequest(){
     payload = payload.substr(1);
     switch(payType){
         case '!':{
-            req.type = GDBRequest::EXCL;
+            req.type = GDBRequest::EXCL_req;
         break;}
         case '?':{
-            req.type = GDBRequest::QUEST;
+            req.type = GDBRequest::QUEST_req;
         break;}
         case 'c':{
-            req.type = GDBRequest::c;
+            req.type = GDBRequest::c_req;
             if(payload.size() > 0){
                 req.address = this->toIntNum(payload);
             }
@@ -312,7 +328,7 @@ GDBRequest GDBConnectionManager::processRequest(){
                 req.address = 0;
         break;}
         case 'C':{
-            req.type = GDBRequest::C;
+            req.type = GDBRequest::C_req;
             std::string::size_type sepIndex = payload.find(';');
             if(sepIndex == std::string::npos)
                 req.signal = this->toIntNum(payload);
@@ -324,13 +340,13 @@ GDBRequest GDBConnectionManager::processRequest(){
             }
         break;}
         case 'D':{
-            req.type = GDBRequest::D;
+            req.type = GDBRequest::D_req;
         break;}
         case 'g':{
-            req.type = GDBRequest::g;
+            req.type = GDBRequest::g_req;
         break;}
         case 'G':{
-            req.type = GDBRequest::G;
+            req.type = GDBRequest::G_req;
             std::string::iterator payIter, payIterEnd;
             for(payIter = payload.begin(), payIterEnd = payload.end();
                                         payIter != payIterEnd; payIter++){
@@ -341,13 +357,13 @@ GDBRequest GDBConnectionManager::processRequest(){
             }
         break;}
         case 'H':{
-            req.type = GDBRequest::H;
+            req.type = GDBRequest::H_req;
             req.data.push_back(payload[0]);
             payload = payload.substr(1);
             req.value = boost::lexical_cast<int>(payload);
         break;}
         case 'i':{
-            req.type = GDBRequest::i;
+            req.type = GDBRequest::i_req;
             if(payload.size() > 0){
                 std::string::size_type sepIndex = payload.find(',');
                 if(sepIndex == std::string::npos){
@@ -367,14 +383,14 @@ GDBRequest GDBConnectionManager::processRequest(){
             }
         break;}
         case 'I':{
-            req.type = GDBRequest::I;
+            req.type = GDBRequest::I_req;
         break;}
         case 'k':{
             this->killed = true;
-            req.type = GDBRequest::k;
+            req.type = GDBRequest::k_req;
         break;}
         case 'm':{
-            req.type = GDBRequest::m;
+            req.type = GDBRequest::m_req;
             std::string::size_type sepIndex = payload.find(',');
             std::string temp = payload.substr(0, sepIndex);
             req.address = this->toIntNum(temp);
@@ -382,7 +398,7 @@ GDBRequest GDBConnectionManager::processRequest(){
             req.length = this->toIntNum(temp);
         break;}
         case 'M':{
-            req.type = GDBRequest::M;
+            req.type = GDBRequest::M_req;
             std::string::size_type sepIndex = payload.find(',');
             std::string::size_type sepIndex2 = payload.find(':');
             std::string temp = payload.substr(0, sepIndex);
@@ -403,11 +419,11 @@ GDBRequest GDBConnectionManager::processRequest(){
                 std::cerr << __PRETTY_FUNCTION__ << ": error in the M message: different length of bytes" << std::endl;
         break;}
         case 'p':{
-            req.type = GDBRequest::p;
+            req.type = GDBRequest::p_req;
             req.reg = this->toIntNum(payload);
         break;}
         case 'P':{
-            req.type = GDBRequest::P;
+            req.type = GDBRequest::P_req;
             std::string::size_type sepIndex = payload.find('=');
             if(sepIndex == std::string::npos)
                 std::cerr << __PRETTY_FUNCTION__ << ": error in the P message: no arguments given" << std::endl;
@@ -417,10 +433,10 @@ GDBRequest GDBConnectionManager::processRequest(){
             req.value = this->toIntNum(temp);
         break;}
         case 'q':{
-            req.type = GDBRequest::q;
+            req.type = GDBRequest::q_req;
             std::string::size_type sepIndex = payload.find(',');
             if(sepIndex == std::string::npos){
-                req.type = GDBRequest::UNK;
+                req.type = GDBRequest::UNK_req;
                 break;
             }
             std::string temp = payload.substr(0, sepIndex);
@@ -429,14 +445,14 @@ GDBRequest GDBConnectionManager::processRequest(){
             req.extension = this->toStr(temp);
         break;}
         case 's':{
-            req.type = GDBRequest::s;
+            req.type = GDBRequest::s_req;
             if(payload.size() > 0)
                 req.address = this->toIntNum(payload);
             else
                 req.address = 0;
         break;}
         case 'S':{
-            req.type = GDBRequest::S;
+            req.type = GDBRequest::S_req;
             std::string::size_type sepIndex = payload.find(';');
             if(sepIndex == std::string::npos)
                 req.signal = this->toIntNum(payload);
@@ -448,7 +464,7 @@ GDBRequest GDBConnectionManager::processRequest(){
             }
         break;}
         case 't':{
-            req.type = GDBRequest::t;
+            req.type = GDBRequest::t_req;
             std::string::size_type sepIndex = payload.find(':');
             std::string::size_type sepIndex2 = payload.find(',');
             if(sepIndex == std::string::npos || sepIndex2 == std::string::npos)
@@ -461,11 +477,11 @@ GDBRequest GDBConnectionManager::processRequest(){
             req.length = this->toIntNum(temp);
         break;}
         case 'T':{
-            req.type = GDBRequest::T;
+            req.type = GDBRequest::T_req;
             req.value = this->toIntNum(payload);
         break;}
         case 'X':{
-            req.type = GDBRequest::X;
+            req.type = GDBRequest::X_req;
             std::string::size_type sepIndex = payload.find(',');
             std::string::size_type sepIndex2 = payload.find(':');
             if(sepIndex == std::string::npos || sepIndex2 == std::string::npos)
@@ -485,7 +501,7 @@ GDBRequest GDBConnectionManager::processRequest(){
                 std::cerr << __PRETTY_FUNCTION__ << ": error in the X message: different length of bytes" << std::endl;
         break;}
         case 'z':{
-            req.type = GDBRequest::z;
+            req.type = GDBRequest::z_req;
             std::string::size_type sepIndex = payload.find(',');
             std::string::size_type sepIndex2 = payload.find_last_of(',');
             if(sepIndex == std::string::npos || sepIndex2 == std::string::npos)
@@ -498,7 +514,7 @@ GDBRequest GDBConnectionManager::processRequest(){
             req.length = this->toIntNum(temp);
         break;}
         case 'Z':{
-            req.type = GDBRequest::Z;
+            req.type = GDBRequest::Z_req;
             std::string::size_type sepIndex = payload.find(',');
             std::string::size_type sepIndex2 = payload.find_last_of(',');
             if(sepIndex == std::string::npos || sepIndex2 == std::string::npos)
@@ -511,7 +527,7 @@ GDBRequest GDBConnectionManager::processRequest(){
             req.length = this->toIntNum(temp);
         break;}
         default:{
-            req.type = GDBRequest::UNK;
+            req.type = GDBRequest::UNK_req;
         break;}
     }
 
@@ -558,7 +574,7 @@ unsigned char GDBConnectionManager::readQueueChar(){
 ///program under test
 void GDBConnectionManager::sendInterrupt(){
    GDBResponse response;
-   response.type = GDBResponse::S;
+   response.type = GDBResponse::S_rsp;
    response.payload = SIGTRAP;
 
    this->sendResponse(response);
