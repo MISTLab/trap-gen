@@ -1,0 +1,7 @@
+%rename link                old_link
+
+*link:
+-T osemu.ld%s %(old_link)
+
+*startfile:
+vectors%O%s crti%O%s crtbegin%O%s osemu-crt0%O%s libcStub%O%s

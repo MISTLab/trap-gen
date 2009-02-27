@@ -1,3 +1,12 @@
+-- After examining the VHDL code the determined register bypasses are:
+In order fo all this to work correctly we need to extend TRAP to:
+** Declare what are the special registers read by each instruction: we should stall also on them
+** think well about register bypassing: the best thing seems to declare a new fake register, where we
+write the value after computation; if the instruction receives values from a bypass it reads from
+that register, otherwise it reads from the normal register. For each instruction I also specify
+the registers from which it receives values as a bypass: in this case I wait for them and not for the
+real register, thus eliminating the stall.
+
 -- Write to special registers has 3 cycles delay!!! does this mean that also special registers are
 written in the WB stage? how is this modeled in the functional model???Can I model delayed writes in
 the registers (so not using the = operator for assignment) but with the effect that assignments are
@@ -7,6 +16,10 @@ in the queue in case there is a queue of such instructions, all of this for the 
 This also means that SPECIAL REGISTERS ARE WRITTEN IN THE WB STAGE AND THAT BYPASSES ARE PRESENT
 FOR PSR IN CASE THERE IS A BRANCH (bypass from the execute stage: how do we implement this??)
 Are there other bypasses???
+** For this to work correctly in the functional model we can implement delayed register assignment (which
+has no effect in the ca model): the value gets assigned to the register after the specified number
+of cycles. For the instructions which have bypasses I read from the fake bypass register: this is a
+non delayed register, so the problem is solved, and the instruction immediately sees the correct value.
 
 -- Exceptions: since the exception is resolved in the exceptions stage, there are other 5 instructions
 already in the pipeline. This does not happen in the functional model, where we trap at the
@@ -14,25 +27,6 @@ immediately following instruction. How do we behave? are all the 5 instructions 
 pipeline flushed or .... do we have to implement a 5 instructions delay in the functional
 model???check with TSIM --- !!!!!Check, but I would say that there is a flush by looking
 at VHDL code!!!!!
-
--- ASR and Y registers are written for mul/div (mul_res) in write back stage...so I guess that
-all but PSR are written in the WB stage. Actually, from the VHDL code, it seems that there is
-not WB stage and that write back is performed in the exception stage????????? TODO TODO. What about
-the ICC in the PSR? it looks like it is written in the WB a part from some forwarding for
-branch .... CHECK
-
--- Branch: I have to check that instructions already issued to not modify the psr.icc otherwise the branch cannot
-be resolved in the decode stage, but I have to wait for one or two pipeline cycles.
-ES:
-If there are two instructions:
-A
-branch
-Instruction A will change the psr.icc, so is it right that one
-pipeline hold should be at decode stage so that branch instruction
-can get the the newest icc until A passes execute stage?
-So I have to stall the pipeline for two cycles in this case, until I pass
-the execute stage. Does this mean that PSR is written in the execute stage and not
-in the WB one?
 
 -- Interrupts: the processor has in input one line of 4 bits encoding the interrupt
 request level of the corresponding interrupt; the queue of interrupts is dealt with by
@@ -79,3 +73,22 @@ in the following fetch and the appropriate flow is followed (so we jump to the c
 trap handler, etc.) --> Actually I modify in the exception stage the program
 counter in order to perform a jump to the correct trap handler in case there is a
 trap
+
+-- ASR and Y registers are written for mul/div (mul_res) in write back stage...so I guess that
+all but PSR are written in the WB stage. Actually, from the VHDL code, it seems that there is
+not WB stage and that write back is performed in the exception stage????????? TODO TODO. What about
+the ICC in the PSR? it looks like it is written in the WB a part from some forwarding for
+branch .... CHECK
+
+-- Branch: I have to check that instructions already issued to not modify the psr.icc otherwise the branch cannot
+be resolved in the decode stage, but I have to wait for one or two pipeline cycles.
+ES:
+If there are two instructions:
+A
+branch
+Instruction A will change the psr.icc, so is it right that one
+pipeline hold should be at decode stage so that branch instruction
+can get the the newest icc until A passes execute stage?
+So I have to stall the pipeline for two cycles in this case, until I pass
+the execute stage. Does this mean that PSR is written in the execute stage and not
+in the WB one?

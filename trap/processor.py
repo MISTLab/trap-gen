@@ -79,6 +79,7 @@ class Register:
         self.defValue = 0
         self.offset = 0
         self.constValue = None
+        self.delay = 0
 
     def setDefaultValue(self, value):
         if self.defValue:
@@ -87,6 +88,9 @@ class Register:
 
     def setConst(self, value):
         self.constValue = value
+
+    def setDelay(self, value):
+        self.delay = value
 
     def setOffset(self, value):
         # TODO: eliminate this restriction
@@ -119,16 +123,35 @@ class RegisterBank:
         self.defValues = [0 for i in range(0, numRegs)]
         self.offset = 0
         self.constValue = {}
+        self.delay = {}
 
     def setConst(self, numReg, value):
-        self.constValue[numReg] = value
+        if value != 0:
+            self.constValue[numReg] = value
 
     def getConstRegs(self):
         constRegs = []
         for key, constVal in self.constValue.items():
             fakeReg = Register(self.name + '[' + str(key) + ']', self.bitWidth, self.bitMask)
             fakeReg.setOffset(self.offset)
+            if self.delay.has_key(key):
+                fakeReg.setDelay(self.delay[key])
             fakeReg.setConst(constVal)
+            constRegs.append(fakeReg)
+        return constRegs
+
+    def setDelay(self, numReg, value):
+        if value > 0:
+            self.delay[numReg] = value
+
+    def getDelayRegs(self):
+        delayRegs = []
+        for key, delayVal in self.delay.items():
+            fakeReg = Register(self.name + '[' + str(key) + ']', self.bitWidth, self.bitMask)
+            fakeReg.setOffset(self.offset)
+            fakeReg.setDelay(delayVal)
+            if self.constValue.has_key(key):
+                fakeReg.setConst(self.constValue[key])
             constRegs.append(fakeReg)
         return constRegs
 

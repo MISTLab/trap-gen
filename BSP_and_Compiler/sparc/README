@@ -1,0 +1,18 @@
+The BSP added to the cross-compiler in order to be used for the OS-emulation mechanisms of ReSP is composed of:
+
+-- osemu-crt0.S: contains the start routine of the program (the entry point); it is a modified version of file newlib/libgloss/sparc/crt0.S. The modifications were made in order to eliminate the stack initialization, which is performed by our hardware thread manager component.
+-- libcStub.c: contains the stubs for the missing library routines (just placeholders for compilation purposes, the functionality is imlpemented in hardware through OS emulation)
+-- exceptionTrap.S contains the register window overflow traps; these traps are configured to work with a window size of 8; in case your processor has a different window size, this file should be recompiled.
+-- osemu.ld: linker script, exactly the same of the output of "ld --verbose" (the original linker script), only modified in order to put the start address at 0. Note that the symbol _stack is put at 5MB, since we suppose that we have 5 MB of RAM; in case your system is different, change it.
+-- osemu.specs: puts everything together, when specifying -specs=osemu.specs on the compiler command line, this file is read in order to identify the start file (osemu-crt0.S), the linker script (osemu.ld) ...
+-- asm.h has to be present in the BSP because it is used by osemu-crt0.S and exceptionTrap.S
+
+All these files (well, for libcStub.c, osemu-crt0.S and exceptionTrap.S we consider the object file and not the source file) are copied inside sparc-elf/lib. In order to use them simple specify -specs=osemu.specs as an additional parameter to gcc when performing the compilation.
+
+File configOptions.txt contains the additional configuration option that were given to the crossCreate.py script in order to create the cross-compiler
+
+It should in theory be possible to use the files in this folder with any recent version of the binutils, gcc and newlib. Anyway they have been tested with: binutils-2.19.tar.bz2 gcc-4.3.3.tar.bz2 gdb-6.8.tar.bz2 newlib-1.17.0.tar.gz
+
+TODO:
+Symbol exit has been defined in the linkwer script to equal __exit; this is an ugly hack and it has the problem that the destructors are not called. The corrected exit routine should be written (or we should find a way of including the correct one from newlib).
+

@@ -399,34 +399,44 @@ def getCPPRegisters(self, model):
     registerElements.append(operatorIntDecl)
 
     ################ Here we determine the different register types which have to be declared ##################
-    constRegBanksElemens = []
+    customRegBanksElemens = []
     for i in self.regBanks:
-        constRegBanksElemens += i.getConstRegs()
+        customRegBanksElemens += i.getConstRegs()
+        customDelayElem = i.getDelayRegs()
+        for j in customDelayElem:
+            if not j.name in [rb.name for rb in customRegBanksElemens]:
+                customRegBanksElemens.append(j)
 
     global resourceType
     regTypes = []
     regTypeNames = []
     bitFieldHash = {}
-    for reg in self.regs + self.regBanks + constRegBanksElemens:
+    for reg in self.regs + self.regBanks + customRegBanksElemens:
         bitFieldSig = ''
         for maskName, maskPos in reg.bitMask.items():
             bitFieldSig += maskName + str(maskPos[0]) + str(maskPos[1])
         if not bitFieldSig in bitFieldHash:
             bitFieldHash[bitFieldSig] = len(bitFieldHash)
-        curName = str(reg.bitWidth) + '_' + str(bitFieldHash[bitFieldSig]) + '_' + str(reg.offset)
+        curName = str(reg.bitWidth) + '_' + str(bitFieldHash[bitFieldSig])
+        if not model.startswith('acc'):
+            curName += '_' + str(reg.offset)
         if type(reg.constValue) == type(0):
             curName += '_' + str(reg.constValue)
+        if type(reg.delay) == type(0) and not model.startswith('acc'):
+            curName += '_' + str(reg.delay)
         if not curName in regTypeNames:
             regTypes.append(reg)
             regTypeNames.append(curName)
         regTypeName = 'Reg' + str(reg.bitWidth) + '_' + str(bitFieldHash[bitFieldSig])
-        if reg.offset:
-            regTypeName += '_off' + str(reg.offset)
+        if reg.offset and not model.startswith('acc'):
+            regTypeName += '_off_' + str(reg.offset)
         if type(reg.constValue) == type(0):
             regTypeName += '_const_' + str(reg.constValue)
+        if type(reg.delay) == type(0) and not model.startswith('acc'):
+            regTypeName += '_delay_' + str(reg.delay)
         resourceType[reg.name] = cxx_writer.writer_code.Type(regTypeName, 'registers.hpp')
         if reg in self.regBanks:
-            if reg.constValue:
+            if reg.constValue or (reg.delay and not model.startswith('acc')):
                 resourceType[reg.name + '_baseType'] = resourceType[reg.name]
                 resourceType[reg.name] = cxx_writer.writer_code.Type('RegisterBankClass', 'registers.hpp')
             else:
@@ -434,6 +444,8 @@ def getCPPRegisters(self, model):
     realRegClasses = []
     for regType in regTypes:
         realRegClasses.append(regType.getCPPClass(model, resourceType[regType.name]))
+    ################ End of part where we determine the different register types which have to be declared ##################
+
     registerDecl = cxx_writer.writer_code.SCModule('Register', registerElements)
     registerDecl.addConstructor(publicConstr)
 
