@@ -59,7 +59,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#ifdef __GNUC__
 #include <unistd.h>
+#else
+#include <io.h>
+#endif
 #if !(defined(__MACOSX__) || defined(__DARWIN__) || defined(__APPLE__))
 #include <error.h>
 #endif
@@ -114,7 +118,11 @@ template<class wordSize> class openSysCall : public SyscallCB<wordSize>{
         int flags = callArgs[1];
         OSEmulatorBase::correct_flags(flags);
         int mode = callArgs[2];
+        #ifdef __GNUC__
         int ret = ::open(pathname, flags, mode);
+        #else
+        int ret = ::_open(pathname, flags, mode);
+        #endif
         this->processorInstance.setRetVal(ret);
         this->processorInstance.setPC(this->processorInstance.readLR());
         return true;
@@ -138,7 +146,11 @@ template<class wordSize> class creatSysCall : public SyscallCB<wordSize>{
         #ifndef NDEBUG
         std::cerr << "Creating file -->" << pathname << "<--" << std::endl;
         #endif
+        #ifdef __GNUC__
         int ret = ::creat((char*)pathname, mode);
+        #else
+        int ret = ::_creat((char*)pathname, mode);
+        #endif
         this->processorInstance.setRetVal(ret);
         this->processorInstance.setPC(this->processorInstance.readLR());
         return true;
@@ -157,7 +169,11 @@ template<class wordSize> class closeSysCall : public SyscallCB<wordSize>{
             this->processorInstance.setPC(this->processorInstance.readLR());
         }
         else{
+            #ifdef __GNUC__
             int ret = ::close(fd);
+            #else
+            int ret = ::_close(fd);
+            #endif
             this->processorInstance.setRetVal(ret);
             this->processorInstance.setPC(this->processorInstance.readLR());
         }
@@ -174,7 +190,11 @@ template<class wordSize> class readSysCall : public SyscallCB<wordSize>{
         int fd = callArgs[0];
         unsigned count = callArgs[2];
         unsigned char *buf = new unsigned char[count];
+        #ifdef __GNUC__
         int ret = ::read(fd, buf, count);
+        #else
+        int ret = ::_read(fd, buf, count);
+        #endif
         // Now I have to write the read content into memory
         wordSize destAddress = callArgs[1];
         for(int i = 0; i < ret; i++){
@@ -200,7 +220,11 @@ template<class wordSize> class writeSysCall : public SyscallCB<wordSize>{
         for(unsigned int i = 0; i < count; i++){
             buf[i] = this->processorInstance.readCharMem(destAddress + i);
         }
+        #ifdef __GNUC__
         int ret = ::write(fd, buf, count);
+        #else
+        int ret = ::_write(fd, buf, count);
+        #endif
         this->processorInstance.setRetVal(ret);
         this->processorInstance.setPC(this->processorInstance.readLR());
         delete [] buf;
@@ -215,7 +239,11 @@ template<class wordSize> class isattySysCall : public SyscallCB<wordSize>{
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
         int desc = callArgs[0];
+        #ifdef __GNUC__
         int ret = ::isatty(desc);
+        #else
+        int ret = ::_isatty(desc);
+        #endif
         this->processorInstance.setRetVal(ret);
         this->processorInstance.setPC(this->processorInstance.readLR());
         return true;
@@ -264,7 +292,11 @@ template<class wordSize> class lseekSysCall : public SyscallCB<wordSize>{
         int fd = callArgs[0];
         int offset = callArgs[1];
         int whence = callArgs[2];
+        #ifdef __GNUC__
         int ret = ::lseek(fd, offset, whence);
+        #else
+        int ret = ::_lseek(fd, offset, whence);
+        #endif
         this->processorInstance.setRetVal(ret);
         this->processorInstance.setPC(this->processorInstance.readLR());
         return true;
@@ -281,7 +313,11 @@ template<class wordSize> class fstatSysCall : public SyscallCB<wordSize>{
         struct stat buf_stat;
         int fd = callArgs[0];
         int retAddr = callArgs[1];
+        #ifdef __GNUC__
         int ret = ::fstat(fd, &buf_stat);
+        #else
+        int ret = ::_fstat(fd, &buf_stat);
+        #endif
         if(ret >= 0 && retAddr != 0){
             this->processorInstance.writeMem(retAddr, buf_stat.st_dev, 2);
             this->processorInstance.writeMem(retAddr + 2, buf_stat.st_ino, 2);
@@ -319,7 +355,11 @@ template<class wordSize> class statSysCall : public SyscallCB<wordSize>{
                 break;
         }
         int retAddr = callArgs[1];
+        #ifdef __GNUC__
         int ret = ::stat((char *)pathname, &buf_stat);
+        #else
+        int ret = ::_stat((char *)pathname, &buf_stat);
+        #endif
         if(ret >= 0 && retAddr != 0){
             this->processorInstance.writeMem(retAddr, buf_stat.st_dev, 2);
             this->processorInstance.writeMem(retAddr + 2, buf_stat.st_ino, 2);
@@ -409,7 +449,7 @@ template<class wordSize> class randomSysCall : public SyscallCB<wordSize>{
     public:
     randomSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     bool operator()(){
-        int ret = ::random();
+        int ret = ::rand();
         this->processorInstance.setRetVal(ret);
         this->processorInstance.setPC(this->processorInstance.readLR());
         return true;
@@ -440,7 +480,11 @@ template<class wordSize> class chmodSysCall : public SyscallCB<wordSize>{
                 break;
         }
         int mode = callArgs[1];
+        #ifdef __GNUC__
         int ret = ::chmod((char*)pathname, mode);
+        #else
+        int ret = ::_chmod((char*)pathname, mode);
+        #endif
         this->processorInstance.setRetVal(ret);
         this->processorInstance.setPC(this->processorInstance.readLR());
         return true;
@@ -455,7 +499,11 @@ template<class wordSize> class dupSysCall : public SyscallCB<wordSize>{
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
 
         int fd = callArgs[0];
+        #ifdef __GNUC__
         int ret = ::dup(fd);
+        #else
+        int ret = ::_dup(fd);
+        #endif
         this->processorInstance.setRetVal(ret);
         this->processorInstance.setPC(this->processorInstance.readLR());
         return true;
@@ -471,7 +519,11 @@ template<class wordSize> class dup2SysCall : public SyscallCB<wordSize>{
 
         int fd = callArgs[0];
         int newfd = callArgs[1];
+        #ifdef __GNUC__
         int ret = ::dup2(fd,  newfd);
+        #else
+        int ret = ::_dup2(fd,  newfd);
+        #endif
         this->processorInstance.setRetVal(ret);
         this->processorInstance.setPC(this->processorInstance.readLR());
         return true;
@@ -589,6 +641,7 @@ template<class wordSize> class chownSysCall : public SyscallCB<wordSize>{
     public:
     chownSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     bool operator()(){
+        #ifdef __GNUC__
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
 
@@ -604,6 +657,9 @@ template<class wordSize> class chownSysCall : public SyscallCB<wordSize>{
         std::cerr << "Chowning file -->" << pathname << "<--" << std::endl;
         #endif
         int ret = ::chown((char*)pathname, owner, group);
+        #else
+        int ret = 0;
+        #endif
         this->processorInstance.setRetVal(ret);
         this->processorInstance.setPC(this->processorInstance.readLR());
         return true;
@@ -626,7 +682,11 @@ template<class wordSize> class unlinkSysCall : public SyscallCB<wordSize>{
         #ifndef NDEBUG
         std::cerr << "Unlinking file -->" << pathname << "<--" << std::endl;
         #endif
+        #ifdef __GNUC__
         int ret = ::unlink((char*)pathname);
+        #else
+        int ret = ::_unlink((char*)pathname);
+        #endif
         this->processorInstance.setRetVal(ret);
         this->processorInstance.setPC(this->processorInstance.readLR());
         return true;
