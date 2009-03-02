@@ -265,10 +265,16 @@ class Folder:
             printOnFile('def configure(conf):', wscriptFile)
             printOnFile("""
     # Check for standard tools
-    conf.check_tool('g++ gcc misc')
+    usingMsvc = False
+    try:
+        conf.check_tool('gcc g++')
+    except:
+        conf.check_message_2('Error in GCC compiler detection, reverting to Microsoft CL')
+        conf.check_tool('msvc')
+        usingMsvc = True
+    conf.check_tool('misc')
     # Check for python
     conf.check_tool('python')
-    conf.check_python_version((2,4))
 
     ########################################
     # Check for special gcc flags
@@ -304,75 +310,92 @@ class Folder:
     # Check for boost libraries
     ########################################
     conf.check_tool('boost')
-    conf.check_boost(lib='thread regex date_time program_options filesystem unit_test_framework system', kind='STATIC_NOSTATIC', min_version='1.35.0')
+    conf.check_boost(lib='thread regex date_time program_options filesystem unit_test_framework system', kind='STATIC_NOSTATIC', min_version='1.35.0', mandatory = 1, errmsg = 'Unable to find regex and/or thread boost libraries, please install them and specify their location with the --boost-includes and --boost-libs configuration options')
 
     ###########################################################
     # Check for BFD library and header and for LIBERTY library
     ###########################################################
-    compilerExecutable = ''
-    if len(conf.env['CXX']):
-        compilerExecutable = conf.env['CXX'][0]
-    elif len(conf.env['CC']):
-        compilerExecutable = conf.env['CC'][0]
-    else:
-        conf.fatal('CC or CXX environment variables not defined: Error, is the compiler correctly detected?')
-
-    result = os.popen(compilerExecutable + ' -print-search-dirs')
-    curLine = result.readline()
-    while curLine.find('libraries: =') == -1:
-        curLine = result.readline()
-        startFound = curLine.find('libraries: =')
-        searchDirs = []
-        if startFound != -1:
-            curLine = curLine[startFound + 12:-1]
-            searchDirs_ = curLine.split(':')
-            for i in searchDirs_:
-                if not os.path.abspath(i) in searchDirs:
-                    searchDirs.append(os.path.abspath(i))
-            break
-
-    import glob
-    foundStatic = []
-    foundShared = []
-    for directory in searchDirs:
-        foundShared += glob.glob(os.path.join(directory, conf.env['shlib_PATTERN'].split('%s')[0] + 'bfd*' + conf.env['shlib_PATTERN'].split('%s')[1]))
-        foundStatic += glob.glob(os.path.join(directory, conf.env['staticlib_PATTERN'].split('%s')[0] + 'bfd*' + conf.env['staticlib_PATTERN'].split('%s')[1]))
-    if not foundStatic and not foundShared:
-        conf.fatal('BFD library not found, install binutils development package for your distribution')
-    tempLibs = []
-    for bfdlib in foundStatic:
-        tempLibs.append(os.path.basename(bfdlib)[3:os.path.basename(bfdlib).rfind('.')])
-    foundStatic = tempLibs
-    tempLibs = []
-    for bfdlib in foundShared:
-        tempLibs.append(os.path.basename(bfdlib)[3:os.path.basename(bfdlib).rfind('.')])
-    foundShared = tempLibs
-    bfd_lib_name = ''
-    for bfdlib in foundStatic:
-        if bfdlib in foundShared:
-            bfd_lib_name = bfdlib
-        break
-    if not bfd_lib_name:
-        if foundShared:
-            bfd_lib_name = foundShared[0]
+    if not usingMsvc:
+        compilerExecutable = ''
+        if len(conf.env['CXX']):
+            compilerExecutable = conf.env['CXX'][0]
+        elif len(conf.env['CC']):
+            compilerExecutable = conf.env['CC'][0]
         else:
-            bfd_lib_name = foundStatic[0]
+            conf.fatal('CC or CXX environment variables not defined: Error, is the compiler correctly detected?')
 
-    if Options.options.static_build:
-        conf.check_cc(lib='iberty', uselib_store='LIBERTY', mandatory=1, libpath=searchDirs)
-    conf.check_cc(lib=bfd_lib_name, uselib='LIBERTY', uselib_store='BFD', mandatory=1, libpath=searchDirs)
-    conf.check_cc(header_name='bfd.h', uselib='LIBERTY', uselib_store='BFD', mandatory=1)
+        result = os.popen(compilerExecutable + ' -print-search-dirs')
+        curLine = result.readline()
+        while curLine.find('libraries: =') == -1:
+            curLine = result.readline()
+            startFound = curLine.find('libraries: =')
+            searchDirs = []
+            if startFound != -1:
+                curLine = curLine[startFound + 12:-1]
+                searchDirs_ = curLine.split(':')
+                for i in searchDirs_:
+                    if not os.path.abspath(i) in searchDirs:
+                        searchDirs.append(os.path.abspath(i))
+                break
+        if Options.options.bfddir:
+            searchDirs.append(os.path.abspath(os.path.join(Options.options.bfddir, 'lib')))
 
+        import glob
+        foundStatic = []
+        foundShared = []
+        for directory in searchDirs:
+            foundShared += glob.glob(os.path.join(directory, conf.env['shlib_PATTERN'].split('%s')[0] + 'bfd*' + conf.env['shlib_PATTERN'].split('%s')[1]))
+            foundStatic += glob.glob(os.path.join(directory, conf.env['staticlib_PATTERN'].split('%s')[0] + 'bfd*' + conf.env['staticlib_PATTERN'].split('%s')[1]))
+        if not foundStatic and not foundShared:
+            conf.fatal('BFD library not found, install binutils development package for your distribution')
+        tempLibs = []
+        for bfdlib in foundStatic:
+            tempLibs.append(os.path.basename(bfdlib)[3:os.path.basename(bfdlib).rfind('.')])
+        foundStatic = tempLibs
+        tempLibs = []
+        for bfdlib in foundShared:
+            tempLibs.append(os.path.basename(bfdlib)[3:os.path.basename(bfdlib).rfind('.')])
+        foundShared = tempLibs
+        bfd_lib_name = ''
+        for bfdlib in foundStatic:
+            if bfdlib in foundShared:
+                bfd_lib_name = bfdlib
+            break
+        if not bfd_lib_name:
+            if foundShared:
+                bfd_lib_name = foundShared[0]
+            else:
+                bfd_lib_name = foundStatic[0]
+
+        if Options.options.static_build:
+            conf.check_cc(lib='iberty', uselib_store='LIBERTY', mandatory=1, libpath=searchDirs)
+        conf.check_cc(lib=bfd_lib_name, uselib_store='BFD', mandatory=1, libpath=searchDirs)
+        if Options.options.bfddir:
+            conf.check_cc(header_name='bfd.h', uselib_store='BFD', mandatory=1, includes=[os.path.abspath(os.path.join(Options.options.bfddir, 'include'))])
+        else:
+            conf.check_cc(header_name='bfd.h', uselib_store='BFD', mandatory=1)
+
+    else:
+        if not Options.options.bfddir:
+            conf.fatal('Please specify the location of the BFD and IBERTY libraries using the --with-bfd configuration option')
+        if Options.options.static_build:
+            conf.check_cc(lib='iberty', uselib_store='LIBERTY', mandatory=1, libpath=[os.path.abspath(os.path.join(Options.options.bfddir, 'lib'))])
+        conf.check_cc(lib='bfd', uselib_store='BFD', mandatory=1, libpath=[os.path.abspath(os.path.join(Options.options.bfddir, 'lib'))])
+        conf.check_cc(header_name='bfd.h', uselib_store='BFD', mandatory=1, includes=[os.path.abspath(os.path.join(Options.options.bfddir, 'include'))])
+        
     ##################################################
     # Check for pthread library/flag
     ##################################################
-    if conf.check_cxx(linkflags='-pthread') is None or conf.check_cxx(cxxflags='-pthread') is None:
-        conf.env.append_unique('LIB', 'pthread')
+    if not usingMsvc:
+        if conf.check_cxx(linkflags='-pthread') is None or conf.check_cxx(cxxflags='-pthread') is None:
+            conf.env.append_unique('LIB', 'pthread')
+        else:
+            conf.env.append_unique('LINKFLAGS', '-pthread')
+            conf.env.append_unique('CXXFLAGS', '-pthread')
+            conf.env.append_unique('CFLAGS', '-pthread')
+            conf.env.append_unique('CCFLAGS', '-pthread')
+            pthread_uselib = []
     else:
-        conf.env.append_unique('LINKFLAGS', '-pthread')
-        conf.env.append_unique('CXXFLAGS', '-pthread')
-        conf.env.append_unique('CFLAGS', '-pthread')
-        conf.env.append_unique('CCFLAGS', '-pthread')
         pthread_uselib = []
 
     ##################################################
@@ -407,14 +430,20 @@ class Folder:
     conf.env.append_unique('CPPFLAGS','-DSC_INCLUDE_DYNAMIC_PROCESSES')
     syscpath = None
     if Options.options.systemcdir:
-        syscpath = ([os.path.abspath(os.path.join(Options.options.systemcdir, 'include'))])
+        if usingMsvc:
+            syscpath = ([os.path.abspath(os.path.join(Options.options.systemcdir, 'src'))])
+        else:
+            syscpath = ([os.path.abspath(os.path.join(Options.options.systemcdir, 'include'))])
     elif 'SYSTEMC' in os.environ:
         syscpath = ([os.path.abspath(os.path.join(os.environ['SYSTEMC'], 'include'))])
 
     import glob
     sysclib = ''
     if syscpath:
-        sysclib = glob.glob(os.path.join(os.path.abspath(os.path.join(syscpath[0], '..')), 'lib-*'))
+        if usingMsvc:
+            sysclib = [os.path.abspath(os.path.join(syscpath[0], '..', 'msvc71', 'SystemC', 'Release'))]
+        else:
+            sysclib = glob.glob(os.path.join(os.path.abspath(os.path.join(syscpath[0], '..')), 'lib-*'))
     conf.check_cxx(lib='systemc', uselib_store='SYSTEMC', mandatory=1, libpath=sysclib)
 
     if not os.path.exists(os.path.join(syscpath[0] , 'sysc' , 'qt')):
@@ -492,9 +521,12 @@ class Folder:
     opt.add_option('--with-systemc', type='string', help='SystemC installation directory', dest='systemcdir' )
     opt.add_option('--with-tlm', type='string', help='TLM installation directory', dest='tlmdir')
     opt.add_option('--with-trap', type='string', help='TRAP libraries and headers installation directory', dest='trapdir')
+    # Specify BFD and IBERTY libraries path
+    opt.add_option('--with-bfd', type='string', help='BFD installation directory', dest='bfddir' )
     opt.add_option('--static', default=False, action="store_true", help='Triggers a static build, with no dependences from any dynamic library', dest='static_build')
     # Specify the options for the processor creation
     # Specify if OS emulation support should be compiled inside processor models
     opt.add_option('-T', '--disable-tools', default=True, action="store_false", help='Disables support for support tools (debuger, os-emulator, etc.) (switch)', dest='enable_tools')
 """, wscriptFile)
         wscriptFile.close()
+

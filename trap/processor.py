@@ -152,8 +152,8 @@ class RegisterBank:
             fakeReg.setDelay(delayVal)
             if self.constValue.has_key(key):
                 fakeReg.setConst(self.constValue[key])
-            constRegs.append(fakeReg)
-        return constRegs
+            delayRegs.append(fakeReg)
+        return delayRegs
 
     def setDefaultValues(self, values):
         for i in range(0, len(self.defValues)):
