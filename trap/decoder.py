@@ -406,11 +406,7 @@ class decoderCreator:
         allTests = []
         testCount = 0
         for instrId, instruction in self.instrId.items():
-            if instrId != -1:
-                code = 'BOOST_AUTO_TEST_CASE( test' + str(testCount) + '_' + self.instrName[instrId] + ' ){\n'
-            else:
-                code = 'BOOST_AUTO_TEST_CASE( test' + str(testCount) + '_Invalid ){\n'
-            code += 'Decoder dec;\n'
+            code = 'Decoder dec;\n'
             pattern = instruction[0]
             try:
                 pattern[0][0]
@@ -447,10 +443,16 @@ class decoderCreator:
             else:
                 code += '// Checking Invalid Instruction\n'
             code += 'BOOST_CHECK_EQUAL(dec.decode( ' + hex(int(''.join(pattern), 2)) + ' ), ' + str(expectedId) + ');\n'
-            code += '}\n\n'
             curTest = cxx_writer.writer_code.Code(code)
-            curTest.addInclude(['boost/test/auto_unit_test.hpp', 'boost/test/test_tools.hpp', 'decoder.hpp'])
-            allTests.append(curTest)
+            curTest.addInclude(['boost/test/test_tools.hpp', 'decoder.hpp'])
+            if instrId != -1:
+                testName = self.instrName[instrId] + '_' + str(testCount) + '_decode'
+            else:
+                testName = 'Invalid_' + str(testCount) + '_decode'
+            curTestFunction = cxx_writer.writer_code.Function(testName, curTest, cxx_writer.writer_code.voidType)
+            from procWriter import testNames
+            testNames.append(testName)
+            allTests.append(curTestFunction)
             testCount += 1
         return allTests
 

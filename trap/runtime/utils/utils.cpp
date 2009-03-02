@@ -40,38 +40,14 @@
  *
 \***************************************************************************/
 
-#ifndef UTILS_HPP
-#define UTILS_HPP
-
+#include <cstdlib>
 #include <string>
 #include <iostream>
 #include <sstream>
-#include <exception>
-#include <stdexcept>
 
-#ifndef __PRETTY_FUNCTION__
-#ifdef __FUNCDNAME__
-#define __PRETTY_FUNCTION__ __FUNCDNAME__
-#else
-#define __PRETTY_FUNCTION__ "NONAME"
-#endif
-#endif
+#include "utils.hpp"
 
-#ifdef MAKE_STRING
-#undef MAKE_STRING
-#endif
-#define MAKE_STRING( msg )  ( ((std::ostringstream&)((std::ostringstream() << '\x0') << msg)).str().substr(1) )
-
-#ifdef THROW_EXCEPTION
-#undef THROW_EXCEPTION
-#endif
-#define THROW_EXCEPTION( msg ) ( throw std::runtime_error(MAKE_STRING( "At: function " << __PRETTY_FUNCTION__ << " file: " << __FILE__ << ":" << __LINE__ << " --> " << msg )) )
-
-void throw_error_helper(std::string message);
-
-#ifdef THROW_ERROR
-#undef THROW_ERROR
-#endif
-#define THROW_ERROR( msg ) ( throw_error_helper(MAKE_STRING( "At: function " << __PRETTY_FUNCTION__ << " file: " << __FILE__ << ":" << __LINE__ << " --> " << msg << std::endl )) )
-
-#endif
+void throw_error_helper(std::string message){
+    std::cerr << message;
+    ::exit(0);
+}

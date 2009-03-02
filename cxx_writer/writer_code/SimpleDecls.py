@@ -94,12 +94,13 @@ class Type(DumpElement):
         newType.modifiers.append('&')
         return newType
     def makeNormal(self):
-        if not self.modifiers:
-            raise Exception('Unable to create a normal copy of type ' + self.name + ': the type is not a pointer or a ref')
         import copy
         newType = copy.deepcopy(self)
-        newType.modifiers.pop()
-        return newType
+        if not self.modifiers:
+            return newType
+        else:
+            newType.modifiers.pop()
+            return newType
     def makeConst(self):
         import copy
         newType = copy.deepcopy(self)

@@ -4,4 +4,14 @@
 import os
 
 def build(bld):
+    obj = bld.new_task_gen('cxx', 'objects')
+    obj.source="""
+        utils.cpp
+    """
+    obj.includes = '.'
+    obj.export_incdirs = '.'
+    obj.name = 'utils'
+    obj.target = 'utils'
+    obj.install_path = None
+
     bld.install_files('${PREFIX}/include', 'utils.hpp customExceptions.hpp')

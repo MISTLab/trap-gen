@@ -126,8 +126,7 @@ class RegisterBank:
         self.delay = {}
 
     def setConst(self, numReg, value):
-        if value != 0:
-            self.constValue[numReg] = value
+        self.constValue[numReg] = value
 
     def getConstRegs(self):
         constRegs = []
@@ -775,13 +774,21 @@ class Processor:
                 testFolder = cxx_writer.writer_code.Folder('tests')
                 curFolder.addSubFolder(testFolder)
                 decTestsFile = cxx_writer.writer_code.FileDumper('decoderTests.cpp', False)
+                decTestsFile.addInclude('decoderTests.hpp')
+                hdecTestsFile = cxx_writer.writer_code.FileDumper('decoderTests.hpp', True)
                 decTests = dec.getCPPTests()
                 decTestsFile.addMember(decTests)
+                hdecTestsFile.addMember(decTests)
                 testFolder.addCode(decTestsFile)
+                testFolder.addHeader(hdecTestsFile)
                 ISATestsFile = cxx_writer.writer_code.FileDumper('isaTests.cpp', False)
+                ISATestsFile.addInclude('isaTests.hpp')
+                hISATestsFile = cxx_writer.writer_code.FileDumper('isaTests.hpp', True)
                 ISATests = self.isa.getCPPTests(self, model)
                 ISATestsFile.addMember(ISATests)
+                hISATestsFile.addMember(ISATests)
                 testFolder.addCode(ISATestsFile)
+                testFolder.addHeader(hISATestsFile)
                 mainTestFile = cxx_writer.writer_code.FileDumper('main.cpp', False)
                 mainTestFile.addMember(self.getTestMainCode())
                 testFolder.addCode(mainTestFile)

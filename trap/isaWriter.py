@@ -538,7 +538,7 @@ def getCPPInstrTest(self, processor, model):
                     curIndex += 1
     tests = []
     for test in self.tests:
-        code = 'BOOST_AUTO_TEST_CASE( test_' + self.name + '_' + str(len(tests)) + ' ){\n'
+        code = ''
         # First of all I create the instance of the instruction and of all the
         # processor elements
         code += archElemsDeclStr + '\n' + aliasInit + '\n'
@@ -588,10 +588,13 @@ def getCPPInstrTest(self, processor, model):
                 code += resource
             global archWordType
             code += ', (' + str(archWordType) + ')' + hex(value) + ');\n\n'
-        code += destrDecls + '\n}\n\n'
+        code += destrDecls
         curTest = cxx_writer.writer_code.Code(code)
-        curTest.addInclude(['boost/test/auto_unit_test.hpp', 'boost/test/test_tools.hpp', 'memory.hpp', 'customExceptions.hpp'])
-        tests.append(curTest)
+        curTest.addInclude(['boost/test/test_tools.hpp', 'memory.hpp', 'customExceptions.hpp'])
+        curTestFunction = cxx_writer.writer_code.Function(self.name + '_' + str(len(tests)), curTest, cxx_writer.writer_code.voidType)
+        from procWriter import testNames
+        testNames.append(self.name + '_' + str(len(tests)))
+        tests.append(curTestFunction)
     return tests
 
 def getCPPClasses(self, processor, model, trace):
@@ -897,6 +900,8 @@ def getCPPTests(self, processor, modelType):
     # code at the beginning in order to being able to access the private
     # part of the instructions
     tests = []
+    wariningDisableCode = cxx_writer.writer_code.Code('#ifdef _WIN32\n#pragma warning( disable : 4101 )\n#endif')
+    tests.append(wariningDisableCode)
     includeCode = cxx_writer.writer_code.Code('#define private public\n#define protected public\n#include \"instructions.hpp\"\n#undef private\n#undef protected\n')
     tests.append(includeCode)
     for instr in self.instructions.values():

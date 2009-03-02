@@ -43,6 +43,10 @@
 #ifndef SYSCCALLB_H
 #define SYSCCALLB_H
 
+#ifdef _WIN32
+#pragma warning( disable : 4244 )
+#endif
+
 #include "utils.hpp"
 
 #include "ABIIf.hpp"
@@ -314,7 +318,11 @@ template<class wordSize> class fstatSysCall : public SyscallCB<wordSize>{
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
 
+		#ifdef __GNUC__
         struct stat buf_stat;
+		#else
+		struct _stat buf_stat;
+		#endif
         int fd = callArgs[0];
         int retAddr = callArgs[1];
         #ifdef __GNUC__
@@ -334,8 +342,10 @@ template<class wordSize> class fstatSysCall : public SyscallCB<wordSize>{
             this->processorInstance.writeMem(retAddr + 20, buf_stat.st_atime, 4);
             this->processorInstance.writeMem(retAddr + 28, buf_stat.st_mtime, 4);
             this->processorInstance.writeMem(retAddr + 36, buf_stat.st_ctime, 4);
+			#ifdef __GNUC__
             this->processorInstance.writeMem(retAddr + 44, buf_stat.st_blksize, 4);
             this->processorInstance.writeMem(retAddr + 48, buf_stat.st_blocks, 4);
+			#endif
         }
         this->processorInstance.setRetVal(ret);
         this->processorInstance.setPC(this->processorInstance.readLR());
@@ -350,7 +360,11 @@ template<class wordSize> class statSysCall : public SyscallCB<wordSize>{
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
 
+        #ifdef __GNUC__
         struct stat buf_stat;
+        #else
+        struct _stat buf_stat;
+        #endif
 
         char pathname[256];
         for(int i = 0; i < 256; i++){
@@ -376,8 +390,10 @@ template<class wordSize> class statSysCall : public SyscallCB<wordSize>{
             this->processorInstance.writeMem(retAddr + 20, buf_stat.st_atime, 4);
             this->processorInstance.writeMem(retAddr + 28, buf_stat.st_mtime, 4);
             this->processorInstance.writeMem(retAddr + 36, buf_stat.st_ctime, 4);
+            #ifdef __GNUC__
             this->processorInstance.writeMem(retAddr + 44, buf_stat.st_blksize, 4);
             this->processorInstance.writeMem(retAddr + 48, buf_stat.st_blocks, 4);
+            #endif
         }
         this->processorInstance.setRetVal(ret);
         this->processorInstance.setPC(this->processorInstance.readLR());
@@ -409,6 +425,14 @@ template<class wordSize> class timesSysCall : public SyscallCB<wordSize>{
         unsigned int curSimTime = (unsigned int)(sc_time_stamp().to_double()/1.0e+6);
         wordSize timesRetLoc = callArgs[0];
         if(timesRetLoc != 0){
+            #ifndef __GNUC__
+            struct tms {
+                clock_t tms_utime;  /* user time */
+                clock_t tms_stime;  /* system time */
+                clock_t tms_cutime; /* user time of children */
+                clock_t tms_cstime; /* system time of children */
+            };
+            #endif
             struct tms buf;
             buf.tms_utime = curSimTime;
             buf.tms_stime = curSimTime;
@@ -594,13 +618,12 @@ template<class wordSize> class gettimeofdaySysCall : public SyscallCB<wordSize>{
 
         int timesRetLoc = callArgs[0];
         if(timesRetLoc != 0){
-            struct timeval buf;
             double curSimTime = sc_time_stamp().to_double();
-            buf.tv_sec = (time_t)(curSimTime/1.0e+12);
-            buf.tv_usec = (suseconds_t)((curSimTime - buf.tv_sec*1.0e+12)/1.0e+6);
-            this->processorInstance.writeMem(timesRetLoc, buf.tv_sec, 4);
+            unsigned int tv_sec = (unsigned int)(curSimTime/1.0e+12);
+            unsigned int tv_usec = (unsigned int)((curSimTime - tv_sec*1.0e+12)/1.0e+6);
+            this->processorInstance.writeMem(timesRetLoc, tv_sec, 4);
             timesRetLoc += 4;
-            this->processorInstance.writeMem(timesRetLoc, buf.tv_usec, 4);
+            this->processorInstance.writeMem(timesRetLoc, tv_usec, 4);
         }
         this->processorInstance.setRetVal(0);
         this->processorInstance.setPC(this->processorInstance.readLR());

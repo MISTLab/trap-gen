@@ -57,6 +57,7 @@ regMaxType = None
 resourceType = {}
 baseInstrInitElement = ''
 aliasGraph = None
+testNames = []
 
 hash_map_include = """
 #ifdef __GNUC__
@@ -73,8 +74,13 @@ hash_map_include = """
 #define  template_map __gnu_cxx::hash_map
 #endif
 #else
-#include <ext/hash_map>
-#define  template_map __gnu_cxx::hash_map
+#ifdef _WIN32
+#include <hash_map>
+#define  template_map stdext::hash_map
+#else
+#include <map>
+#define  template_map std::map
+#endif
 #endif
 """
 
@@ -98,12 +104,18 @@ def getCPPRegClass(self, model, regType):
     registerType = cxx_writer.writer_code.Type('Register')
     InnerFieldType = cxx_writer.writer_code.Type('InnerField')
     registerElements = []
+    regType = regType.makeNormal()
 
     # First of all I determine if there is the need to create a const element
     if self.constValue != None and type(self.constValue) != type({}):
-        curValueItem = str(self.constValue)
+        assignValueItem = str(self.constValue)
+        readValueItem = str(self.constValue)
+    elif model.startswith('acc') or type(self.delay) == type({}) or self.delay == 0:
+        assignValueItem = 'this->value'
+        readValueItem = 'this->value'
     else:
-        curValueItem = 'this->value'
+        assignValueItem = 'this->values[0]'
+        readValueItem = 'this->value'
 
 
     ####################### Lets declare the operators used to access the register fields ##############
@@ -119,9 +131,9 @@ def getCPPRegClass(self, model, regType):
     #################### Lets declare the normal operators (implementation of the pure operators of the base class) ###########
     for i in unaryOps:
         if self.offset and not model.startswith('acc'):
-            operatorBody = cxx_writer.writer_code.Code('return ' + i + '(' + curValueItem + ' + ' + str(self.offset) + ');')
+            operatorBody = cxx_writer.writer_code.Code('return ' + i + '(' + readValueItem + ' + ' + str(self.offset) + ');')
         else:
-            operatorBody = cxx_writer.writer_code.Code('return ' + i + '(' + curValueItem + ');')
+            operatorBody = cxx_writer.writer_code.Code('return ' + i + '(' + readValueItem + ');')
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu')
         registerElements.append(operatorDecl)
     # Now I have the three versions of the operators, depending whether they take
@@ -138,35 +150,35 @@ def getCPPRegClass(self, model, regType):
 #         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
 #         registerElements.append(operatorDecl)
     for i in assignmentOps:
-        if type(curValueItem) == type(0):
+        if self.constValue != None and type(self.constValue) != type({}):
             operatorBody = cxx_writer.writer_code.Code('return *this;')
         else:
-            operatorBody = cxx_writer.writer_code.Code('this->value ' + i + ' other;\nreturn *this;')
+            operatorBody = cxx_writer.writer_code.Code(assignValueItem + ' ' + i + ' other;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regType.makeRef(), 'pu', [operatorParam])
         registerElements.append(operatorDecl)
     # SPECIFIC REGISTER
     for i in binaryOps:
         if self.offset and not model.startswith('acc'):
-            operatorBody = cxx_writer.writer_code.Code('return ((' + curValueItem + '  + ' + str(self.offset) + ') ' + i + ' (other.value + ' + str(self.offset) + '));')
+            operatorBody = cxx_writer.writer_code.Code('return ((' + readValueItem + '  + ' + str(self.offset) + ') ' + i + ' (other.value + ' + str(self.offset) + '));')
         else:
-            operatorBody = cxx_writer.writer_code.Code('return (' + curValueItem + ' ' + i + ' other.value);')
+            operatorBody = cxx_writer.writer_code.Code('return (' + readValueItem + ' ' + i + ' other.value);')
         operatorParam = cxx_writer.writer_code.Parameter('other', regType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True)
         registerElements.append(operatorDecl)
     for i in comparisonOps:
         if self.offset and not model.startswith('acc'):
-            operatorBody = cxx_writer.writer_code.Code('return ((' + curValueItem + ' + ' + str(self.offset) + ') ' + i + ' (other.value + ' + str(self.offset) + '));')
+            operatorBody = cxx_writer.writer_code.Code('return ((' + readValueItem + ' + ' + str(self.offset) + ') ' + i + ' (other.value + ' + str(self.offset) + '));')
         else:
-            operatorBody = cxx_writer.writer_code.Code('return (' + curValueItem + ' ' + i + ' other.value);')
+            operatorBody = cxx_writer.writer_code.Code('return (' + readValueItem + ' ' + i + ' other.value);')
         operatorParam = cxx_writer.writer_code.Parameter('other', regType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
         registerElements.append(operatorDecl)
     for i in assignmentOps:
-        if type(curValueItem) == type(0):
+        if self.constValue != None and type(self.constValue) != type({}):
             operatorBody = cxx_writer.writer_code.Code('return *this;')
         else:
-            operatorBody = cxx_writer.writer_code.Code('this->value ' + i + ' other.value;\nreturn *this;')
+            operatorBody = cxx_writer.writer_code.Code(assignValueItem + ' ' + i + ' other.value;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', regType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regType.makeRef(), 'pu', [operatorParam])
         registerElements.append(operatorDecl)
@@ -174,51 +186,54 @@ def getCPPRegClass(self, model, regType):
     # operators of parameter other
     for i in binaryOps:
         if self.offset and not model.startswith('acc'):
-            operatorBody = cxx_writer.writer_code.Code('return (' + curValueItem + '  + ' + str(self.offset) + ' ' + i + ' other);')
+            operatorBody = cxx_writer.writer_code.Code('return (' + readValueItem + '  + ' + str(self.offset) + ' ' + i + ' other);')
         else:
-            operatorBody = cxx_writer.writer_code.Code('return (' + curValueItem + ' ' + i + ' other);')
+            operatorBody = cxx_writer.writer_code.Code('return (' + readValueItem + ' ' + i + ' other);')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True)
         registerElements.append(operatorDecl)
     for i in comparisonOps:
         if self.offset and not model.startswith('acc'):
-            operatorBody = cxx_writer.writer_code.Code('return (' + curValueItem + '  + ' + str(self.offset) + ' ' + i + ' other);')
+            operatorBody = cxx_writer.writer_code.Code('return (' + readValueItem + '  + ' + str(self.offset) + ' ' + i + ' other);')
         else:
-            operatorBody = cxx_writer.writer_code.Code('return (' + curValueItem + ' ' + i + ' other);')
+            operatorBody = cxx_writer.writer_code.Code('return (' + readValueItem + ' ' + i + ' other);')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
         registerElements.append(operatorDecl)
     for i in assignmentOps:
-        if type(curValueItem) == type(0):
+        if self.constValue != None and type(self.constValue) != type({}):
             operatorBody = cxx_writer.writer_code.Code('return *this;')
         else:
-            operatorBody = cxx_writer.writer_code.Code('this->value ' + i + ' other;\nreturn *this;')
+            operatorBody = cxx_writer.writer_code.Code(assignValueItem + ' ' + i + ' other;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regType.makeRef(), 'pu', [operatorParam])
         registerElements.append(operatorDecl)
     # Scalar value cast operator
     if self.offset and not model.startswith('acc'):
-        operatorBody = cxx_writer.writer_code.Code('return (' + curValueItem + '  + ' + str(self.offset) + ');')
+        operatorBody = cxx_writer.writer_code.Code('return (' + readValueItem + '  + ' + str(self.offset) + ');')
     else:
-        operatorBody = cxx_writer.writer_code.Code('return ' + curValueItem + ';')
+        operatorBody = cxx_writer.writer_code.Code('return ' + readValueItem + ';')
     operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True, noException = True)
     registerElements.append(operatorIntDecl)
 
     # Constructors
     fieldInit = []
     for field in self.bitMask.keys():
-        fieldInit.append('field_' + field + '(value)')
-    if type(curValueItem) == type(0):
-        constructorBody = cxx_writer.writer_code.Code('this->value = ' + str(curValueItem) + ';')
+        fieldInit.append('field_' + field + '(this->value)')
+    if self.constValue != None and type(self.constValue) != type({}):
+        constructorCode = 'this->value = ' + readValueItem + ';'
     else:
-        constructorBody = cxx_writer.writer_code.Code('this->value = 0;')
+        constructorCode = 'this->value = 0;'
+    if not model.startswith('acc') and type(self.delay) != type({}) and self.delay != 0:
+        constructorCode = 'this->values = new ' + str(regWidthType) + '[' + str(self.delay) + '];'
+    constructorBody = cxx_writer.writer_code.Code(constructorCode)
     constructorParams = [cxx_writer.writer_code.Parameter('name', cxx_writer.writer_code.sc_module_nameType)]
     publicMainClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['Register(name, ' + str(self.bitWidth) + ')'] + fieldInit)
     publicMainClassEmptyConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', initList = ['Register(sc_gen_unique_name(\"' + regType.name + '\"), ' + str(self.bitWidth) + ')'] + fieldInit)
 
     # Stream Operators
     outStreamType = cxx_writer.writer_code.Type('std::ostream', 'ostream')
-    code = 'stream << std::hex << std::showbase << this->value << std::dec;\nreturn stream;'
+    code = 'stream << std::hex << std::showbase << ' + readValueItem + ' << std::dec;\nreturn stream;'
     operatorBody = cxx_writer.writer_code.Code(code)
     operatorParam = cxx_writer.writer_code.Parameter('stream', outStreamType.makeRef())
     operatorDecl = cxx_writer.writer_code.MemberOperator('<<', operatorBody, outStreamType.makeRef(), 'pu', [operatorParam], const = True)
@@ -239,7 +254,7 @@ def getCPPRegClass(self, model, regType):
             else:
                 negatedMask = '1' + negatedMask
                 mask = '0' + mask
-        if type(curValueItem) == type(0):
+        if type(readValueItem) == type(0):
             operatorCode = ''
         else:
             operatorCode = 'this->value &= ' + hex(int(negatedMask, 2)) + ';\nthis->value |= '
@@ -289,6 +304,12 @@ def getCPPRegClass(self, model, regType):
     if self.offset and not model.startswith('acc'):
         offsetAttribute = cxx_writer.writer_code.Attribute('offset', cxx_writer.writer_code.intType, 'pri')
         attrs.append(offsetAttribute)
+    if not model.startswith('acc') and type(self.delay) != type({}) and self.delay != 0:
+        delaySlotAttribute = cxx_writer.writer_code.Attribute('values', regWidthType.makePointer(), 'pri')
+        attrs.append(delaySlotAttribute)
+        lockBody = cxx_writer.writer_code.Code('this->locked = true;')
+        lockMethod = cxx_writer.writer_code.Method('lock', lockBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
+        registerElements.append(lockMethod)
     registerElements = attrs + registerElements
 
     registerDecl = cxx_writer.writer_code.ClassDeclaration(regType.name, registerElements, [registerType])
@@ -422,7 +443,7 @@ def getCPPRegisters(self, model):
             curName += '_' + str(reg.offset)
         if type(reg.constValue) == type(0):
             curName += '_' + str(reg.constValue)
-        if type(reg.delay) == type(0) and not model.startswith('acc'):
+        if type(reg.delay) == type(0) and not model.startswith('acc') and reg.delay > 0:
             curName += '_' + str(reg.delay)
         if not curName in regTypeNames:
             regTypes.append(reg)
@@ -432,7 +453,7 @@ def getCPPRegisters(self, model):
             regTypeName += '_off_' + str(reg.offset)
         if type(reg.constValue) == type(0):
             regTypeName += '_const_' + str(reg.constValue)
-        if type(reg.delay) == type(0) and not model.startswith('acc'):
+        if type(reg.delay) == type(0) and not model.startswith('acc') and reg.delay > 0:
             regTypeName += '_delay_' + str(reg.delay)
         resourceType[reg.name] = cxx_writer.writer_code.Type(regTypeName, 'registers.hpp')
         if reg in self.regBanks:
@@ -2911,12 +2932,25 @@ def getGetPipelineStages(self, trace):
 def getTestMainCode(self):
     # Returns the code for the file which contains the main
     # routine for the execution of the tests.
-    # actually it is nothing but a file which includes
-    # boost/test/auto_unit_test.hpp and defines
-    # BOOST_AUTO_TEST_MAIN and BOOST_TEST_DYN_LINK
-    code = '#define BOOST_AUTO_TEST_MAIN\n#define BOOST_TEST_DYN_LINK\n#include <boost/test/auto_unit_test.hpp>'
+    global testNames
+    code = ''
+    for test in testNames:
+        code += 'boost::unit_test::framework::master_test_suite().add( BOOST_TEST_CASE( &' + test + ' ) );\n'
+    code += '\nreturn 0;'
+    initCode = cxx_writer.writer_code.Code(code)
+    initCode.addInclude('boost/test/included/unit_test.hpp')
+    initCode.addInclude('isaTests.hpp')
+    initCode.addInclude('decoderTests.hpp')
+    parameters = [cxx_writer.writer_code.Parameter('argc', cxx_writer.writer_code.intType), cxx_writer.writer_code.Parameter('argv', cxx_writer.writer_code.charPtrType.makePointer())]
+    initFunction = cxx_writer.writer_code.Function('init_unit_test_suite', initCode, cxx_writer.writer_code.Type('boost::unit_test::test_suite').makePointer(), parameters)
+
+    code = 'return boost::unit_test::unit_test_main( &init_unit_test_suite, argc, argv );'
     mainCode = cxx_writer.writer_code.Code(code)
-    return mainCode
+    mainCode.addInclude('systemc.h')
+    mainCode.addInclude('boost/test/included/unit_test.hpp')
+    parameters = [cxx_writer.writer_code.Parameter('argc', cxx_writer.writer_code.intType), cxx_writer.writer_code.Parameter('argv', cxx_writer.writer_code.charPtrType.makePointer())]
+    mainFunction = cxx_writer.writer_code.Function('sc_main', mainCode, cxx_writer.writer_code.intType, parameters)
+    return [initFunction, mainFunction]
 
 def getMainCode(self, model):
     # Returns the code which instantiate the processor
@@ -3034,6 +3068,7 @@ def getMainCode(self, model):
     return 0;
     """
     mainCode = cxx_writer.writer_code.Code(code)
+    mainCode.addInclude('#define WIN32_LEAN_AND_MEAN')
     if model.endswith('LT'):
         mainCode.addInclude('MemoryLT.hpp')
     else:
@@ -3050,6 +3085,6 @@ def getMainCode(self, model):
     mainCode.addInclude('boost/program_options.hpp')
     mainCode.addInclude('boost/timer.hpp')
     parameters = [cxx_writer.writer_code.Parameter('argc', cxx_writer.writer_code.intType), cxx_writer.writer_code.Parameter('argv', cxx_writer.writer_code.charPtrType.makePointer())]
-    function = cxx_writer.writer_code.Function('main', mainCode, cxx_writer.writer_code.intType, parameters)
+    function = cxx_writer.writer_code.Function('sc_main', mainCode, cxx_writer.writer_code.intType, parameters)
     return function
 

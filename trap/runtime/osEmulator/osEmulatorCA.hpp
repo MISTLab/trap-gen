@@ -60,8 +60,13 @@
 #define  template_map __gnu_cxx::hash_map
 #endif
 #else
-#include <ext/hash_map>
-#define  template_map __gnu_cxx::hash_map
+#ifdef _WIN32
+#include <hash_map>
+#define  template_map stdext::hash_map
+#else
+#include <map>
+#define  template_map std::map
+#endif
 #endif
 
 #include "ABIIf.hpp"

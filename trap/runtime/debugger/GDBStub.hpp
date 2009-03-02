@@ -53,6 +53,9 @@
 #ifndef SIGTRAP
 #define SIGTRAP 5
 #endif
+#ifndef SIGQUIT
+#define SIGQUIT 3
+#endif
 
 #include <systemc.h>
 
@@ -224,8 +227,8 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
                     THROW_EXCEPTION("I stopped because of a breakpoint, but it is NULL");
                 }
 
-                if(this->breakReached->type == Breakpoint<issueWidth>::HW ||
-                            this->breakReached->type == Breakpoint<issueWidth>::MEM){
+                if(this->breakReached->type == Breakpoint<issueWidth>::HW_break ||
+                            this->breakReached->type == Breakpoint<issueWidth>::MEM_break){
                     GDBResponse response;
                     response.type = GDBResponse::S_rsp;
                     response.payload = SIGTRAP;
@@ -669,7 +672,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
                 if(this->breakManager.addBreakpoint(Breakpoint<issueWidth>::WRITE_break, req.address, req.length))
                     resp.type = GDBResponse::OK_rsp;
                 else
-                    resp.type = GDBResponse::ERROR;
+                    resp.type = GDBResponse::ERROR_rsp;
             break;
             case 3:
                 if(this->breakManager.addBreakpoint(Breakpoint<issueWidth>::READ_break, req.address, req.length))

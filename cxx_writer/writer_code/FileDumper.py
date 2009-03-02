@@ -228,7 +228,13 @@ class Folder:
         if self.codeFiles or self.subfolders:
             printOnFile('def build(bld):', wscriptFile)
             if self.subfolders:
-                printOnFile('    bld.add_subdirs(\'' + ' '.join([str(fold)[len(str(self.path)):] for fold in self.subfolders]) + '\')\n', wscriptFile)
+                subFolds = []
+                for fold in self.subfolders:
+                    subFold = str(fold)[len(str(os.path.commonprefix([os.path.abspath(os.path.normpath(fold)),os.path.abspath(os.path.normpath(self.path))]))):]
+                    if subFold.startswith(os.sep):
+                        subFold = subFold[1:]
+                    subFolds.append(subFold)
+                printOnFile('    bld.add_subdirs(\'' + ' '.join(subFolds) + '\')\n', wscriptFile)
             if self.codeFiles:
                 if not self.mainFile:
                     printOnFile('    obj = bld.new_task_gen(\'cxx\', \'program\')', wscriptFile)
@@ -378,11 +384,10 @@ class Folder:
     else:
         if not Options.options.bfddir:
             conf.fatal('Please specify the location of the BFD and IBERTY libraries using the --with-bfd configuration option')
-        if Options.options.static_build:
-            conf.check_cc(lib='iberty', uselib_store='LIBERTY', mandatory=1, libpath=[os.path.abspath(os.path.join(Options.options.bfddir, 'lib'))])
+        conf.check_cc(lib='iberty', uselib_store='LIBERTY', mandatory=1, libpath=[os.path.abspath(os.path.join(Options.options.bfddir, 'lib'))])
         conf.check_cc(lib='bfd', uselib_store='BFD', mandatory=1, libpath=[os.path.abspath(os.path.join(Options.options.bfddir, 'lib'))])
         conf.check_cc(header_name='bfd.h', uselib_store='BFD', mandatory=1, includes=[os.path.abspath(os.path.join(Options.options.bfddir, 'include'))])
-        
+
     ##################################################
     # Check for pthread library/flag
     ##################################################
