@@ -64,15 +64,19 @@
 #else
 #include <io.h>
 #endif
+#ifdef __GNUC__
 #if !(defined(__MACOSX__) || defined(__DARWIN__) || defined(__APPLE__))
 #include <error.h>
+#endif
 #endif
 #include <cerrno>
 #if !defined(errno) && !defined(HAVE_ERRNO_DECL)
 extern int errno;
 #endif
 #include <sstream>
+#ifdef __GNUC__
 #include <sys/times.h>
+#endif
 #include <ctime>
 
 class OSEmulatorBase{
