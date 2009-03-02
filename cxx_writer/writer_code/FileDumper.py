@@ -239,7 +239,7 @@ class Folder:
                 if not self.mainFile:
                     printOnFile('    obj = bld.new_task_gen(\'cxx\', \'program\')', wscriptFile)
                 else:
-                    printOnFile('    obj = bld.new_task_gen(\'cxx\', \'staticlib\')', wscriptFile)
+                    printOnFile('    obj = bld.new_task_gen(\'cxx\', \'objects\')', wscriptFile)
                 printOnFile('    obj.source=\"\"\"', wscriptFile)
                 for codeFile in self.codeFiles:
                     if self.mainFile != codeFile.name:
@@ -249,9 +249,13 @@ class Folder:
                     printOnFile('    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM BOOST_THREAD SYSTEMC TLM TRAP\'', wscriptFile)
                 else:
                     printOnFile('    obj.uselib = \'BOOST BOOST_FILESYSTEM BOOST_THREAD SYSTEMC TLM TRAP\'', wscriptFile)
-                printOnFile('    obj.includes = \'.\'', wscriptFile)
+
                 if self.uselib_local:
-                    printOnFile('    obj.uselib_local = \'' + ' '.join(self.uselib_local) + '\'', wscriptFile)
+                    printOnFile('    obj.add_objects = \'' + ' '.join(self.uselib_local) + '\'', wscriptFile)
+                    printOnFile('    obj.includes = \'. ..\'', wscriptFile)
+                else:
+                    printOnFile('    obj.includes = \'.\'', wscriptFile)
+
                 if self.mainFile:
                     printOnFile('    obj.export_incdirs = \'.\'', wscriptFile)
                 printOnFile('    obj.name = \'' + os.path.split(self.path)[-1] + '\'', wscriptFile)
@@ -259,11 +263,12 @@ class Folder:
             if self.mainFile:
                 printOnFile('    obj = bld.new_task_gen(\'cxx\', \'program\')', wscriptFile)
                 printOnFile('    obj.source=\'' + self.mainFile + '\'', wscriptFile)
+                printOnFile('    obj.includes = \'.\'', wscriptFile)
                 if tests:
                     printOnFile('    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_THREAD BOOST_SYSTEM SYSTEMC TLM TRAP BFD LIBERTY\'', wscriptFile)
                 else:
                     printOnFile('    obj.uselib = \'BOOST BOOST_PROGRAM_OPTIONS BOOST_THREAD BOOST_SYSTEM SYSTEMC TLM TRAP BFD LIBERTY\'', wscriptFile)
-                printOnFile('    obj.uselib_local = \'' + ' '.join(self.uselib_local + [os.path.split(self.path)[-1]]) + '\'', wscriptFile)
+                printOnFile('    obj.add_objects = \'' + ' '.join(self.uselib_local + [os.path.split(self.path)[-1]]) + '\'', wscriptFile)
                 printOnFile('    obj.name = \'' + os.path.split(self.path)[-1] + '_main\'', wscriptFile)
                 printOnFile('    obj.target = \'' + os.path.split(self.path)[-1] + '\'\n', wscriptFile)
         # Ok, here I need to insert the configure script if needed
