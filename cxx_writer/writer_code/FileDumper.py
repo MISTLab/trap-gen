@@ -301,6 +301,7 @@ class Folder:
     if usingMsvc:
         conf.env.append_unique('LINKFLAGS','/FORCE')
         conf.env.append_unique('LINKFLAGS','/IGNORE:4006')
+        conf.env.append_unique('CPPFLAGS','/D\"_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1\"')
 
     if conf.env['CPPFLAGS']:
         conf.check_cc(cflags=conf.env['CPPFLAGS'])

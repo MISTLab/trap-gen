@@ -175,7 +175,11 @@ template<class wordSize> class closeSysCall : public SyscallCB<wordSize>{
         if(fd < 0){
             THROW_EXCEPTION("File descriptor not valid");
         }
+        #ifdef __GNUC__
         if( fd == fileno(stdin) || fd == fileno(stdout) || fd == fileno(stderr) ){
+        #else
+        if( fd == _fileno(stdin) || fd == _fileno(stdout) || fd == _fileno(stderr) ){
+        #endif
             this->processorInstance.setRetVal(0);
             this->processorInstance.setPC(this->processorInstance.readLR());
         }
