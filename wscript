@@ -30,6 +30,15 @@ def configure(conf):
     ########################################
     # Check for special gcc flags
     ########################################
+    if type(conf.env['CCFLAGS']) == type(''):
+        conf.env['CCFLAGS'] = conf.env['CCFLAGS'].split(' ')
+    if type(conf.env['CXXFLAGS']) == type(''):
+        conf.env['CXXFLAGS'] = conf.env['CXXFLAGS'].split(' ')
+    if type(conf.env['CPPFLAGS']) == type(''):
+        conf.env['CPPFLAGS'] = conf.env['CPPFLAGS'].split(' ')
+    if type(conf.env['LINKFLAGS']) == type(''):
+        conf.env['LINKFLAGS'] = conf.env['LINKFLAGS'].split(' ')
+
     if conf.env['CPPFLAGS']:
         conf.check_cc(cflags=conf.env['CPPFLAGS'])
     if conf.env['CCFLAGS']:
