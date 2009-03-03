@@ -32,8 +32,8 @@ def configure(conf):
     ########################################
     if conf.env['CPPFLAGS']:
         conf.check_cc(cflags=conf.env['CPPFLAGS'])
-    if conf.env['CFLAGS']:
-        conf.check_cc(cflags=conf.env['CFLAGS'])
+    if conf.env['CCFLAGS']:
+        conf.check_cc(cflags=conf.env['CCFLAGS'])
     if conf.env['CXXFLAGS']:
         conf.check_cxx(cxxflags=conf.env['CXXFLAGS'])
     if conf.env['LINKFLAGS']:
@@ -121,7 +121,7 @@ def configure(conf):
             conf.fatal('Please specify the location of the BFD library using the --with-bfd configuration option')
         conf.check_cc(lib='bfd', uselib_store='BFD', mandatory=1, libpath=[os.path.abspath(os.path.join(Options.options.bfddir, 'lib'))])
         conf.check_cc(header_name='bfd.h', uselib_store='BFD', mandatory=1, includes=[os.path.abspath(os.path.join(Options.options.bfddir, 'include'))])
-        
+
     ##################################################
     # Check for pthread library/flag
     ##################################################

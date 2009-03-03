@@ -292,8 +292,8 @@ class Folder:
     ########################################
     if conf.env['CPPFLAGS']:
         conf.check_cc(cflags=conf.env['CPPFLAGS'])
-    if conf.env['CFLAGS']:
-        conf.check_cc(cflags=conf.env['CFLAGS'])
+    if conf.env['CCFLAGS']:
+        conf.check_cc(cflags=conf.env['CCFLAGS'])
     if conf.env['CXXFLAGS']:
         conf.check_cxx(cxxflags=conf.env['CXXFLAGS'])
     if conf.env['LINKFLAGS']:
