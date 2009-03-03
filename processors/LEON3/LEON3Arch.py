@@ -84,6 +84,7 @@ processor.addRegBank(windowRegs)
 psrBitMask = {'IMPL': (31, 28), 'VER': (27, 24), 'ICC_n': (23, 23), 'ICC_z': (22, 22), 'ICC_v': (21, 21), 'ICC_c': (20, 20), 'EC': (13, 13), 'EF': (12, 12), 'PIL': (11, 8), 'S': (7, 7), 'PS': (6, 6), 'ET': (5, 5), 'CWP': (4, 0)}
 psrReg = trap.Register('PSR', 32, psrBitMask)
 psrReg.setDefaultValue(0xF30000C0)
+psrReg.setDelay(3)
 processor.addRegister(psrReg)
 # Window Invalid Mask Register
 wimBitMask = {}
@@ -91,13 +92,16 @@ for i in range(0, 32):
     wimBitMask['WIM_' + str(i)] = (i, i)
 wimReg = trap.Register('WIM', 32, wimBitMask)
 wimReg.setDefaultValue(0x00000002)
+wimReg.setDelay(3)
 processor.addRegister(wimReg)
 # Trap Base Register
 tbrBitMask = {'TBA' : (31, 12), 'TT' : (11, 4)}
 tbrReg = trap.Register('TBR', 32, tbrBitMask)
+tbrReg.setDelay(3)
 processor.addRegister(tbrReg)
 # Multiply / Divide Register
 yReg = trap.Register('Y', 32)
+yReg.setDelay(3)
 processor.addRegister(yReg)
 # Program Counter
 pcReg = trap.Register('PC', 32)
@@ -117,6 +121,7 @@ asrRegs = trap.RegisterBank('ASR', 32, 32)
 # here I set the default value for the processor configuration register
 # (see page 24 of LEON3 preliminary datasheed)
 asrRegs.setDefaultValue(0x00000300 + numRegWindows, 17)
+asrRegs.setGlobalDelay(3)
 processor.addRegBank(asrRegs)
 
 # Now I set the alias: they can (and will) be used by the instructions

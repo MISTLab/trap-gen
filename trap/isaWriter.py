@@ -474,10 +474,10 @@ def getCPPInstrTest(self, processor, model):
         archElemsDeclStr += str(resourceType[reg.name]) + ' ' + reg.name + ';\n'
         baseInitElement += reg.name + ', '
     for regB in processor.regBanks:
-        if regB.constValue:
+        if regB.constValue or regB.delay:
             archElemsDeclStr += str(resourceType[regB.name]) + ' ' + regB.name + '(' + str(regB.numRegs) + ');\n'
             for i in range(0, regB.numRegs):
-                if regB.constValue.has_key(i):
+                if regB.constValue.has_key(i) or regB.delay.has_key(i):
                     archElemsDeclStr += regB.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '[' + str(i) + ']']) + '());\n'
                 else:
                     archElemsDeclStr += regB.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '_baseType']) + '());\n'
@@ -565,7 +565,7 @@ def getCPPInstrTest(self, processor, model):
                 except ValueError:
                     code += resource[:brackIndex] + '.write_word(' + hex(int(resource[brackIndex + 1:-1], 16)) + ', ' + hex(value) + ');\n'
             else:
-                code += resource + ' = ' + hex(value) + ';\n'
+                code += resource + '.immediateWrite(' + hex(value) + ');\n'
         code += 'toTest.setParams(' + hex(int(''.join(instrCode), 2)) + ');\n'
         code += 'try{\n'
         if not model.startswith('acc'):
@@ -583,14 +583,14 @@ def getCPPInstrTest(self, processor, model):
             if processor.memory:
                 memories.append(processor.memory[0])
             if brackIndex > 0 and resource[:brackIndex] in memories:
-                code += resource + '.read_word(' + hex(value) + ', ' + hex(resource[brackIndex + 1:-1]) + ')'
+                code += resource[:brackIndex] + '.read_word(' + hex(value) + ', ' + hex(resource[brackIndex + 1:-1]) + ')'
             else:
-                code += resource
+                code += resource + '.readNewValue()'
             global archWordType
             code += ', (' + str(archWordType) + ')' + hex(value) + ');\n\n'
         code += destrDecls
         curTest = cxx_writer.writer_code.Code(code)
-        curTest.addInclude(['boost/test/test_tools.hpp', 'memory.hpp', 'customExceptions.hpp'])
+        curTest.addInclude(['boost/test/test_tools.hpp', 'customExceptions.hpp'])
         curTestFunction = cxx_writer.writer_code.Function(self.name + '_' + str(len(tests)), curTest, cxx_writer.writer_code.voidType)
         from procWriter import testNames
         testNames.append(self.name + '_' + str(len(tests)))
@@ -900,9 +900,9 @@ def getCPPTests(self, processor, modelType):
     # code at the beginning in order to being able to access the private
     # part of the instructions
     tests = []
-    wariningDisableCode = cxx_writer.writer_code.Code('#ifdef _WIN32\n#pragma warning( disable : 4101 )\n#endif')
+    wariningDisableCode = cxx_writer.writer_code.Code('#ifdef _WIN32\n#pragma warning( disable : 4101 )\n#endif\n')
     tests.append(wariningDisableCode)
-    includeCode = cxx_writer.writer_code.Code('#define private public\n#define protected public\n#include \"instructions.hpp\"\n#undef private\n#undef protected\n')
+    includeCode = cxx_writer.writer_code.Code('#define private public\n#define protected public\n#include \"instructions.hpp\"\n#include \"registers.hpp\"\n#include \"memory.hpp\"\n#undef private\n#undef protected\n')
     tests.append(includeCode)
     for instr in self.instructions.values():
         tests += instr.getCPPTest(processor, modelType)

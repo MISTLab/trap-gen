@@ -104,7 +104,7 @@ def getCPPRegClass(self, model, regType):
     registerType = cxx_writer.writer_code.Type('Register')
     InnerFieldType = cxx_writer.writer_code.Type('InnerField')
     registerElements = []
-    regType = regType.makeNormal()
+    normalRegType = regType.makeNormal()
 
     # First of all I determine if there is the need to create a const element
     if self.constValue != None and type(self.constValue) != type({}):
@@ -114,7 +114,7 @@ def getCPPRegClass(self, model, regType):
         assignValueItem = 'this->value'
         readValueItem = 'this->value'
     else:
-        assignValueItem = 'this->values[0]'
+        assignValueItem = 'this->updateSlot[' + str(self.delay - 1) + '] = true;\nthis->values[0]'
         readValueItem = 'this->value'
 
 
@@ -127,6 +127,61 @@ def getCPPRegClass(self, model, regType):
     operatorParam = [cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.intType)]
     operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, InnerFieldType.makeRef(), 'pu', operatorParam, noException = True)
     registerElements.append(operatorDecl)
+
+    ################ Methods used for the update of delayed registers ######################
+    if not model.startswith('acc') and type(self.delay) != type({}) and self.delay > 0:
+        clockCycleCode = """if(this->updateSlot[0]){
+                    this->value = this->values[0];
+                    this->updateSlot[0] = false;
+                }
+                """
+        for i in range(1, self.delay):
+            clockCycleCode += """if(this->updateSlot[""" + str(i) + """]){
+                        this->values[""" + str(i - 1) + """] = this->values[""" + str(i) + """];
+                        this->updateSlot[""" + str(i) + """] = false;
+                        this->updateSlot[""" + str(i - 1) + """] = true;
+                    }
+                    """
+        clockCycleBody = cxx_writer.writer_code.Code(clockCycleCode)
+        clockCycleMethod = cxx_writer.writer_code.Method('clockCycle', clockCycleBody, cxx_writer.writer_code.voidType, 'pu', noException = True)
+        registerElements.append(clockCycleMethod)
+    immediateWriteCode = 'this->value = value;\n'
+    if not model.startswith('acc') and type(self.delay) != type({}) and self.delay > 0:
+        for i in range(0, self.delay):
+            immediateWriteCode += 'this->updateSlot[' + str(i) + '] = false;\n'
+    immediateWriteBody = cxx_writer.writer_code.Code(immediateWriteCode)
+    immediateWriteParam = [cxx_writer.writer_code.Parameter('value', regMaxType.makeRef().makeConst())]
+    immediateWriteMethod = cxx_writer.writer_code.Method('immediateWrite', immediateWriteBody, cxx_writer.writer_code.voidType, 'pu', immediateWriteParam, noException = True)
+    registerElements.append(immediateWriteMethod)
+
+    if not model.startswith('acc') and type(self.delay) != type({}) and self.delay > 0:
+        readNewValueCode = ''
+        delays = range(0, self.delay)
+        delays.reverse()
+        if self.offset:
+            for i in delays:
+                readNewValueCode += """if(this->updateSlot[""" + str(i) + """]){
+                            return this->values[""" + str(i - 1) + """] + """ + str(self.offset) + """;
+                        }
+                        """
+            readNewValueCode += 'return this->value + ' + str(self.offset) + ';\n'
+        else:
+            for i in delays:
+                readNewValueCode += """if(this->updateSlot[""" + str(i) + """]){
+                            return this->values[""" + str(i - 1) + """];
+                        }
+                        """
+            readNewValueCode += 'return this->value;\n'
+    else:
+        if not model.startswith('acc') and self.offset:
+            readNewValueCode = 'return this->value + ' + str(self.offset) + ';\n'
+        else:
+            readNewValueCode = 'return this->value;\n'
+        for i in range(0, self.delay):
+            immediateWriteCode += 'this->updateSlot[' + str(i) + '] = false;\n'
+    readNewValueBody = cxx_writer.writer_code.Code(readNewValueCode)
+    readNewValueMethod = cxx_writer.writer_code.Method('readNewValue', readNewValueBody, regMaxType, 'pu', noException = True)
+    registerElements.append(readNewValueMethod)
 
     #################### Lets declare the normal operators (implementation of the pure operators of the base class) ###########
     for i in unaryOps:
@@ -221,11 +276,14 @@ def getCPPRegClass(self, model, regType):
     for field in self.bitMask.keys():
         fieldInit.append('field_' + field + '(this->value)')
     if self.constValue != None and type(self.constValue) != type({}):
-        constructorCode = 'this->value = ' + readValueItem + ';'
+        constructorCode = 'this->value = ' + readValueItem + ';\n'
     else:
-        constructorCode = 'this->value = 0;'
+        constructorCode = 'this->value = 0;\n'
     if not model.startswith('acc') and type(self.delay) != type({}) and self.delay != 0:
-        constructorCode = 'this->values = new ' + str(regWidthType) + '[' + str(self.delay) + '];'
+        constructorCode += 'this->values = new ' + str(regWidthType) + '[' + str(self.delay) + '];\n'
+        constructorCode += 'this->updateSlot = new bool[' + str(self.delay) + '];\n'
+        for i in range(0, self.delay):
+            constructorCode += 'this->updateSlot[' + str(i) + '] = false;\n'
     constructorBody = cxx_writer.writer_code.Code(constructorCode)
     constructorParams = [cxx_writer.writer_code.Parameter('name', cxx_writer.writer_code.sc_module_nameType)]
     publicMainClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['Register(name, ' + str(self.bitWidth) + ')'] + fieldInit)
@@ -307,9 +365,8 @@ def getCPPRegClass(self, model, regType):
     if not model.startswith('acc') and type(self.delay) != type({}) and self.delay != 0:
         delaySlotAttribute = cxx_writer.writer_code.Attribute('values', regWidthType.makePointer(), 'pri')
         attrs.append(delaySlotAttribute)
-        lockBody = cxx_writer.writer_code.Code('this->locked = true;')
-        lockMethod = cxx_writer.writer_code.Method('lock', lockBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
-        registerElements.append(lockMethod)
+        updateSlotAttribute = cxx_writer.writer_code.Attribute('updateSlot', cxx_writer.writer_code.boolType.makePointer(), 'pri')
+        attrs.append(updateSlotAttribute)
     registerElements = attrs + registerElements
 
     registerDecl = cxx_writer.writer_code.ClassDeclaration(regType.name, registerElements, [registerType])
@@ -378,6 +435,16 @@ def getCPPRegisters(self, model):
             registerElements.append(waitHazardMethod)
             hazardEventAttribute = cxx_writer.writer_code.Attribute('hazardEvent', cxx_writer.writer_code.sc_eventType, 'pri')
             registerElements.append(hazardEventAttribute)
+
+    ################ Methods used for the management of delayed registers ######################
+    if not model.startswith('acc'):
+        clockCycleMethod = cxx_writer.writer_code.Method('clockCycle', emptyBody, cxx_writer.writer_code.voidType, 'pu', virtual = True, noException = True)
+        registerElements.append(clockCycleMethod)
+        immediateWriteParam = [cxx_writer.writer_code.Parameter('value', regMaxType.makeRef().makeConst())]
+        immediateWriteMethod = cxx_writer.writer_code.Method('immediateWrite', emptyBody, cxx_writer.writer_code.voidType, 'pu', immediateWriteParam, virtual = True, noException = True)
+        registerElements.append(immediateWriteMethod)
+        readNewValueMethod = cxx_writer.writer_code.Method('readNewValue', emptyBody, regMaxType, 'pu', virtual = True, noException = True)
+        registerElements.append(readNewValueMethod)
 
     ################ Operators working with the base class, employed when polimorphism is used ##################
     # First lets declare the class which will be used to manipulate the
@@ -585,6 +652,16 @@ def getCPPAlias(self, model):
             waitHazardBody = cxx_writer.writer_code.Code('this->reg->waitHazard();')
             waitHazardMethod = cxx_writer.writer_code.Method('waitHazard', waitHazardBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
             aliasElements.append(waitHazardMethod)
+
+    ################ Methods used for the management of delayed registers ######################
+    if not model.startswith('acc'):
+        immediateWriteBody = isLockedBody = cxx_writer.writer_code.Code('this->reg->immediateWrite(value);')
+        immediateWriteParam = [cxx_writer.writer_code.Parameter('value', regMaxType.makeRef().makeConst())]
+        immediateWriteMethod = cxx_writer.writer_code.Method('immediateWrite', immediateWriteBody, cxx_writer.writer_code.voidType, 'pu', immediateWriteParam, virtual = True, noException = True)
+        aliasElements.append(immediateWriteMethod)
+        readNewValueBody = isLockedBody = cxx_writer.writer_code.Code('return this->reg->readNewValue();')
+        readNewValueMethod = cxx_writer.writer_code.Method('readNewValue', readNewValueBody, regMaxType, 'pu', virtual = True, noException = True)
+        aliasElements.append(readNewValueMethod)
 
     #################### Lets declare the normal operators (implementation of the pure operators of the base class) ###########
     for i in unaryOps:
@@ -1089,6 +1166,13 @@ def getCPPProc(self, model, trace):
         else:
             codeString += 'this->totalCycles += (numCycles + 1);\n'
         codeString += 'this->numInstructions++;\n\n'
+        # Now I have to call the update method for all the delayed registers
+        for reg in self.regs:
+            if reg.delay:
+                codeString += reg.name + '.clockCycle();\n'
+        for reg in self.regBanks:
+            for regNum in reg.delay.keys():
+                codeString += reg.name + '[' + str(regNum) + '].clockCycle();\n'
         if not self.externalClock:
             codeString += '}'
         mainLoopCode = cxx_writer.writer_code.Code(codeString)
@@ -1227,11 +1311,11 @@ def getCPPProc(self, model, trace):
                 processorElements.append(attribute)
     for regB in self.regBanks:
         attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name], 'pu')
-        if regB.constValue:
+        if regB.constValue or (not model.startswith('acc') and regB.delay):
             # There are constant registers, so I have to declare the special register bank
             bodyInits += 'this->' + regB.name + '.setSize(' + str(regB.numRegs) + ');\n'
             for i in range(0, regB.numRegs):
-                if regB.constValue.has_key(i):
+                if regB.constValue.has_key(i) or regB.delay.has_key(i):
                     bodyInits += 'this->' + regB.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '[' + str(i) + ']']) + '());\n'
                 else:
                     bodyInits += 'this->' + regB.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '_baseType']) + '());\n'

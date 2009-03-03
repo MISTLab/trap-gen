@@ -172,6 +172,9 @@ template<class wordSize> class closeSysCall : public SyscallCB<wordSize>{
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
         int fd = callArgs[0];
+        if(fd < 0){
+            THROW_EXCEPTION("File descriptor not valid");
+        }
         if( fd == fileno(stdin) || fd == fileno(stdout) || fd == fileno(stderr) ){
             this->processorInstance.setRetVal(0);
             this->processorInstance.setPC(this->processorInstance.readLR());
@@ -196,6 +199,9 @@ template<class wordSize> class readSysCall : public SyscallCB<wordSize>{
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
         int fd = callArgs[0];
+        if(fd < 0){
+            THROW_EXCEPTION("File descriptor not valid");
+        }
         unsigned count = callArgs[2];
         unsigned char *buf = new unsigned char[count];
         #ifdef __GNUC__
@@ -222,6 +228,9 @@ template<class wordSize> class writeSysCall : public SyscallCB<wordSize>{
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
         int fd = callArgs[0];
+        if(fd < 0){
+            THROW_EXCEPTION("File descriptor not valid");
+        }
         unsigned count = callArgs[2];
         wordSize destAddress = callArgs[1];
         unsigned char *buf = new unsigned char[count];
@@ -296,8 +305,10 @@ template<class wordSize> class lseekSysCall : public SyscallCB<wordSize>{
     bool operator()(){
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
-
         int fd = callArgs[0];
+        if(fd < 0){
+            THROW_EXCEPTION("File descriptor not valid");
+        }
         int offset = callArgs[1];
         int whence = callArgs[2];
         #ifdef __GNUC__
@@ -317,13 +328,15 @@ template<class wordSize> class fstatSysCall : public SyscallCB<wordSize>{
     bool operator()(){
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
-
 		#ifdef __GNUC__
         struct stat buf_stat;
 		#else
 		struct _stat buf_stat;
 		#endif
         int fd = callArgs[0];
+        if(fd < 0){
+            THROW_EXCEPTION("File descriptor not valid");
+        }
         int retAddr = callArgs[1];
         #ifdef __GNUC__
         int ret = ::fstat(fd, &buf_stat);
@@ -525,8 +538,10 @@ template<class wordSize> class dupSysCall : public SyscallCB<wordSize>{
     bool operator()(){
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
-
         int fd = callArgs[0];
+        if(fd < 0){
+            THROW_EXCEPTION("File descriptor not valid");
+        }
         #ifdef __GNUC__
         int ret = ::dup(fd);
         #else
@@ -544,8 +559,10 @@ template<class wordSize> class dup2SysCall : public SyscallCB<wordSize>{
     bool operator()(){
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
-
         int fd = callArgs[0];
+        if(fd < 0){
+            THROW_EXCEPTION("File descriptor not valid");
+        }
         int newfd = callArgs[1];
         #ifdef __GNUC__
         int ret = ::dup2(fd,  newfd);

@@ -87,9 +87,13 @@ class Register:
         self.defValue = value
 
     def setConst(self, value):
+        if self.delay:
+            raise Exception('Register ' + self.name + ' contains a delay assignment, so specifying it as constant does not make sense')
         self.constValue = value
 
     def setDelay(self, value):
+        if self.constValue != None:
+            raise Exception('Register ' + self.name + ' is specified as contant, so setting a delay assignment does not make sense')
         self.delay = value
 
     def setOffset(self, value):
@@ -126,6 +130,8 @@ class RegisterBank:
         self.delay = {}
 
     def setConst(self, numReg, value):
+        if self.delay.has_key(numReg):
+            raise Exception('Register ' + str(numReg) + ' in register bank ' + self.name + ' contains a delay assignment, so specifying it as constant does not make sense')
         self.constValue[numReg] = value
 
     def getConstRegs(self):
@@ -140,8 +146,17 @@ class RegisterBank:
         return constRegs
 
     def setDelay(self, numReg, value):
+        if self.constValue.has_key(numReg):
+            raise Exception('Register ' + str(numReg) + ' in register bank ' + self.name + ' is declared as constant, so specifying a delay assignment does not make sense')
         if value > 0:
             self.delay[numReg] = value
+
+    def setGlobalDelay(self, value):
+        if value > 0:
+            for i in range(0, self.numRegs):
+                if self.constValue.has_key(i):
+                    raise Exception('Register ' + str(i) + ' in register bank ' + self.name + ' is declared as constant, so specifying a delay assignment does not make sense')
+                self.delay[i] = value
 
     def getDelayRegs(self):
         delayRegs = []
