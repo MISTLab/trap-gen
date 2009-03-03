@@ -194,16 +194,6 @@ def getCPPRegClass(self, model, regType):
     # Now I have the three versions of the operators, depending whether they take
     # in input the integer value, the specific register or the base one
     # INTEGER
-#     for i in binaryOps:
-#         operatorBody = cxx_writer.writer_code.Code('return (this->value ' + i + ' other);')
-#         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
-#         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True)
-#         registerElements.append(operatorDecl)
-#     for i in comparisonOps:
-#         operatorBody = cxx_writer.writer_code.Code('return (this->value ' + i + ' other);')
-#         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
-#         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
-#         registerElements.append(operatorDecl)
     for i in assignmentOps:
         if self.constValue != None and type(self.constValue) != type({}):
             operatorBody = cxx_writer.writer_code.Code('return *this;')
@@ -241,7 +231,7 @@ def getCPPRegClass(self, model, regType):
     # operators of parameter other
     for i in binaryOps:
         if self.offset and not model.startswith('acc'):
-            operatorBody = cxx_writer.writer_code.Code('return (' + readValueItem + '  + ' + str(self.offset) + ' ' + i + ' other);')
+            operatorBody = cxx_writer.writer_code.Code('return ((' + readValueItem + '  + ' + str(self.offset) + ') ' + i + ' other);')
         else:
             operatorBody = cxx_writer.writer_code.Code('return (' + readValueItem + ' ' + i + ' other);')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
@@ -249,7 +239,7 @@ def getCPPRegClass(self, model, regType):
         registerElements.append(operatorDecl)
     for i in comparisonOps:
         if self.offset and not model.startswith('acc'):
-            operatorBody = cxx_writer.writer_code.Code('return (' + readValueItem + '  + ' + str(self.offset) + ' ' + i + ' other);')
+            operatorBody = cxx_writer.writer_code.Code('return ((' + readValueItem + '  + ' + str(self.offset) + ') ' + i + ' other);')
         else:
             operatorBody = cxx_writer.writer_code.Code('return (' + readValueItem + ' ' + i + ' other);')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
@@ -443,7 +433,7 @@ def getCPPRegisters(self, model):
         immediateWriteParam = [cxx_writer.writer_code.Parameter('value', regMaxType.makeRef().makeConst())]
         immediateWriteMethod = cxx_writer.writer_code.Method('immediateWrite', emptyBody, cxx_writer.writer_code.voidType, 'pu', immediateWriteParam, virtual = True, noException = True)
         registerElements.append(immediateWriteMethod)
-        readNewValueMethod = cxx_writer.writer_code.Method('readNewValue', emptyBody, regMaxType, 'pu', virtual = True, noException = True)
+        readNewValueMethod = cxx_writer.writer_code.Method('readNewValue', emptyBody, regMaxType, 'pu', pure = True, noException = True)
         registerElements.append(readNewValueMethod)
 
     ################ Operators working with the base class, employed when polimorphism is used ##################
@@ -563,7 +553,7 @@ def getCPPRegisters(self, model):
         setNewRegisterMethod = cxx_writer.writer_code.Method('setNewRegister', setNewRegisterBody, cxx_writer.writer_code.voidType, 'pu', setNewRegisterParams, inline = True)
         regBankElements.append(setNewRegisterMethod)
         setSizeBody = cxx_writer.writer_code.Code("""
-            for(int i = 0; i < this->size; i++){
+            for(unsigned int i = 0; i < this->size; i++){
                 if(this->registers[i] != NULL){
                     delete this->registers[i];
                 }
@@ -573,7 +563,7 @@ def getCPPRegisters(self, model):
             }
             this->size = size;
             this->registers = new """ + str(registerType.makePointer()) + """[this->size];
-            for(int i = 0; i < this->size; i++){
+            for(unsigned int i = 0; i < this->size; i++){
                 this->registers[i] = NULL;
             }
         """)
@@ -587,7 +577,7 @@ def getCPPRegisters(self, model):
         regBankClass = cxx_writer.writer_code.ClassDeclaration('RegisterBankClass', regBankElements)
         constructorBody = cxx_writer.writer_code.Code("""this->size = size;
             this->registers = new """ + str(registerType.makePointer()) + """[this->size];
-            for(int i = 0; i < this->size; i++){
+            for(unsigned int i = 0; i < this->size; i++){
                 this->registers[i] = NULL;
             }
         """)
@@ -600,7 +590,7 @@ def getCPPRegisters(self, model):
         publicRegBankConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu')
         regBankClass.addConstructor(publicRegBankConstr)
         destructorBody = cxx_writer.writer_code.Code("""
-            for(int i = 0; i < this->size; i++){
+            for(unsigned int i = 0; i < this->size; i++){
                 if(this->registers[i] != NULL){
                     delete this->registers[i];
                 }

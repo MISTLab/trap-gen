@@ -298,6 +298,9 @@ class Folder:
         conf.env['CPPFLAGS'] = conf.env['CPPFLAGS'].split(' ')
     if type(conf.env['LINKFLAGS']) == type(''):
         conf.env['LINKFLAGS'] = conf.env['LINKFLAGS'].split(' ')
+    if usingMsvc:
+        conf.env.append_unique('LINKFLAGS','/FORCE')
+        conf.env.append_unique('LINKFLAGS','/IGNORE:4006')
 
     if conf.env['CPPFLAGS']:
         conf.check_cc(cflags=conf.env['CPPFLAGS'])

@@ -3,6 +3,8 @@
 
 import sys, Options
 
+# configuration line for microsoft windows: python waf configure --with-systemc=C:\systemc-2.2.0 --with-bfd=C:\binutilsInstall --prefix=c:\trapInstall --boost-includes=C:\boost\boost_1_36_0 --boost-libs=C:\boost\boost_1_36_0\lib
+
 # these variables are mandatory
 srcdir = '.'
 blddir = '_build_'
@@ -38,6 +40,9 @@ def configure(conf):
         conf.env['CPPFLAGS'] = conf.env['CPPFLAGS'].split(' ')
     if type(conf.env['LINKFLAGS']) == type(''):
         conf.env['LINKFLAGS'] = conf.env['LINKFLAGS'].split(' ')
+    if usingMsvc:
+        conf.env.append_unique('LINKFLAGS','/FORCE')
+        conf.env.append_unique('LINKFLAGS','/IGNORE:4006')
 
     if conf.env['CPPFLAGS']:
         conf.check_cc(cflags=conf.env['CPPFLAGS'])
