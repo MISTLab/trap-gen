@@ -287,9 +287,13 @@ class Folder:
     # Check for python
     conf.check_tool('python')
 
-    ########################################
-    # Check for special gcc flags
-    ########################################
+    ##################################################################
+    # Correcting custom environment vars to lists as required by waf
+    ##################################################################
+    if type(conf.env['CXX']) == type(''):
+        conf.env['CXX'] = conf.env['CXX'].split(' ')
+    if type(conf.env['CC']) == type(''):
+        conf.env['CC'] = conf.env['CC'].split(' ')
     if type(conf.env['CCFLAGS']) == type(''):
         conf.env['CCFLAGS'] = conf.env['CCFLAGS'].split(' ')
     if type(conf.env['CXXFLAGS']) == type(''):
@@ -298,6 +302,10 @@ class Folder:
         conf.env['CPPFLAGS'] = conf.env['CPPFLAGS'].split(' ')
     if type(conf.env['LINKFLAGS']) == type(''):
         conf.env['LINKFLAGS'] = conf.env['LINKFLAGS'].split(' ')
+
+    ########################################
+    # Check for special gcc flags
+    ########################################
     if usingMsvc:
         conf.env.append_unique('LINKFLAGS','/FORCE')
         conf.env.append_unique('LINKFLAGS','/IGNORE:4006')
