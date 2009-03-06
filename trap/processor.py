@@ -288,7 +288,7 @@ class Processor:
     functional processor in case a local memory is used (in case TLM ports
     are used the systemc parameter is not taken into account)
     """
-    def __init__(self, name, version = '0.1', systemc = True, coprocessor = False, instructionCache = True, fastFetch = False, externalClock = False):
+    def __init__(self, name, version, systemc = True, coprocessor = False, instructionCache = True, fastFetch = False, externalClock = False):
         self.name = name
         self.version = version
         self.isBigEndian = None
