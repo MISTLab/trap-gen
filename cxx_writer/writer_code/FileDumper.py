@@ -421,6 +421,7 @@ class Folder:
         conf.check_cc(lib='gcc', uselib_store='BFD', mandatory=1, libpath=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'lib'))))])
         conf.check_cc(lib='mingwex', uselib_store='BFD', mandatory=1, libpath=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'lib'))))])
         conf.check_cc(lib='user32', uselib_store='BFD', mandatory=1, libpath=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'lib'))))])
+        conf.check_cc(lib='msvcr90', uselib_store='BFD', mandatory=1, libpath=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'lib'))))])
         conf.check_cc(header_name='bfd.h', uselib_store='BFD', mandatory=1, includes=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'include'))))])
 
     ##################################################
