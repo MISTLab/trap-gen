@@ -44,23 +44,29 @@ def configure(conf):
         conf.env['CPPFLAGS'] = conf.env['CPPFLAGS'].split(' ')
     if type(conf.env['LINKFLAGS']) == type(''):
         conf.env['LINKFLAGS'] = conf.env['LINKFLAGS'].split(' ')
+    if type(conf.env['STLINKFLAGS']) == type(''):
+        conf.env['STLINKFLAGS'] = conf.env['STLINKFLAGS'].split(' ')
 
     ########################################
     # Check for special gcc flags
     ########################################
     if usingMsvc:
-        conf.env.append_unique('LINKFLAGS','/FORCE')
+        conf.env.append_unique('LINKFLAGS','/FORCE:MULTIPLE')
         conf.env.append_unique('LINKFLAGS','/IGNORE:4006')
-        conf.env.append_unique('CPPFLAGS','/D\"_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1\"')
+        conf.env.append_unique('STLINKFLAGS','/IGNORE:4006')
+        conf.env.append_unique('CPPFLAGS','/D_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1')
+        conf.env.append_unique('CPPFLAGS','/D_CRT_SECURE_NO_WARNINGS=1')
 
     if conf.env['CPPFLAGS']:
-        conf.check_cc(cflags=conf.env['CPPFLAGS'])
+        conf.check_cc(cflags=conf.env['CPPFLAGS'], mandatory=1)
     if conf.env['CCFLAGS']:
-        conf.check_cc(cflags=conf.env['CCFLAGS'])
+        conf.check_cc(cflags=conf.env['CCFLAGS'], mandatory=1)
     if conf.env['CXXFLAGS']:
-        conf.check_cxx(cxxflags=conf.env['CXXFLAGS'])
+        conf.check_cxx(cxxflags=conf.env['CXXFLAGS'], mandatory=1)
     if conf.env['LINKFLAGS']:
-        conf.check_cxx(linkflags=conf.env['LINKFLAGS'])
+        conf.check_cxx(linkflags=conf.env['LINKFLAGS'], mandatory=1)
+    if conf.env['STLINKFLAGS']:
+        conf.check_cxx(linkflags=conf.env['STLINKFLAGS'], mandatory=1)
 
     ########################################
     # Setting the host endianess

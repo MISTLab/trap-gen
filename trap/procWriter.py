@@ -3015,7 +3015,7 @@ def getTestMainCode(self):
     initCode.addInclude('boost/test/included/unit_test.hpp')
     initCode.addInclude('isaTests.hpp')
     initCode.addInclude('decoderTests.hpp')
-    parameters = [cxx_writer.writer_code.Parameter('argc', cxx_writer.writer_code.intType), cxx_writer.writer_code.Parameter('argv', cxx_writer.writer_code.charPtrType.makePointer())]
+    parameters = [cxx_writer.writer_code.Parameter('argc', cxx_writer.writer_code.intType), cxx_writer.writer_code.Parameter('argv[]', cxx_writer.writer_code.charPtrType)]
     initFunction = cxx_writer.writer_code.Function('init_unit_test_suite', initCode, cxx_writer.writer_code.Type('boost::unit_test::test_suite').makePointer(), parameters)
 
     code = 'return boost::unit_test::unit_test_main( &init_unit_test_suite, argc, argv );'
@@ -3142,6 +3142,10 @@ def getMainCode(self, model):
     return 0;
     """
     mainCode = cxx_writer.writer_code.Code(code)
+    mainCode.addInclude("""#ifdef _WIN32
+#pragma warning( disable : 4101 )
+#endif""")
+
     mainCode.addInclude('#define WIN32_LEAN_AND_MEAN')
     if model.endswith('LT'):
         mainCode.addInclude('MemoryLT.hpp')
