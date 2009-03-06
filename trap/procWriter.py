@@ -119,10 +119,13 @@ def getCPPRegClass(self, model, regType):
 
 
     ####################### Lets declare the operators used to access the register fields ##############
-    codeOperatorBody = 'switch(bitField){\n'
-    for key in self.bitMask.keys():
-        codeOperatorBody += 'case key_' + key + ':{\nreturn this->field_' + key + ';\nbreak;\n}\n'
-    codeOperatorBody += 'default:{\nreturn this->field_empty;\nbreak;\n}\n}\n'
+    if self.bitMask:
+        codeOperatorBody = 'switch(bitField){\n'
+        for key in self.bitMask.keys():
+            codeOperatorBody += 'case key_' + key + ':{\nreturn this->field_' + key + ';\nbreak;\n}\n'
+        codeOperatorBody += 'default:{\nreturn this->field_empty;\nbreak;\n}\n}\n'
+    else:
+        codeOperatorBody = 'return this->field_empty;'
     operatorBody = cxx_writer.writer_code.Code(codeOperatorBody)
     operatorParam = [cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.intType)]
     operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, InnerFieldType.makeRef(), 'pu', operatorParam, noException = True)

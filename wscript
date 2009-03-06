@@ -110,7 +110,7 @@ def configure(conf):
                         searchDirs.append(os.path.abspath(i))
                 break
         if Options.options.bfddir:
-            searchDirs.append(os.path.abspath(os.path.join(Options.options.bfddir, 'lib')))
+            searchDirs.append(os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'lib')))))
 
         import glob
         foundStatic = []
@@ -141,15 +141,15 @@ def configure(conf):
 
         conf.check_cc(lib=bfd_lib_name, uselib_store='BFD', mandatory=1, libpath=searchDirs)
         if Options.options.bfddir:
-            conf.check_cc(header_name='bfd.h', uselib_store='BFD', mandatory=1, includes=[os.path.abspath(os.path.join(Options.options.bfddir, 'include'))])
+            conf.check_cc(header_name='bfd.h', uselib_store='BFD', mandatory=1, includes=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'include'))))])
         else:
             conf.check_cc(header_name='bfd.h', uselib_store='BFD', mandatory=1)
 
     else:
         if not Options.options.bfddir:
             conf.fatal('Please specify the location of the BFD library using the --with-bfd configuration option')
-        conf.check_cc(lib='bfd', uselib_store='BFD', mandatory=1, libpath=[os.path.abspath(os.path.join(Options.options.bfddir, 'lib'))])
-        conf.check_cc(header_name='bfd.h', uselib_store='BFD', mandatory=1, includes=[os.path.abspath(os.path.join(Options.options.bfddir, 'include'))])
+        conf.check_cc(lib='bfd', uselib_store='BFD', mandatory=1, libpath=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'lib'))))])
+        conf.check_cc(header_name='bfd.h', uselib_store='BFD', mandatory=1, includes=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'include'))))])
 
     ##################################################
     # Check for pthread library/flag
@@ -173,11 +173,11 @@ def configure(conf):
     syscpath = None
     if Options.options.systemcdir:
         if usingMsvc:
-            syscpath = ([os.path.abspath(os.path.join(Options.options.systemcdir, 'src'))])
+            syscpath = ([os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.systemcdir, 'src'))))])
         else:
-            syscpath = ([os.path.abspath(os.path.join(Options.options.systemcdir, 'include'))])
+            syscpath = ([os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.systemcdir, 'include'))))])
     elif 'SYSTEMC' in os.environ:
-        syscpath = ([os.path.abspath(os.path.join(os.environ['SYSTEMC'], 'include'))])
+        syscpath = ([os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(os.environ['SYSTEMC'], 'include'))))])
 
     import glob
     sysclib = ''

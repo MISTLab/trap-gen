@@ -376,7 +376,7 @@ class Folder:
                         searchDirs.append(os.path.abspath(i))
                 break
         if Options.options.bfddir:
-            searchDirs.append(os.path.abspath(os.path.join(Options.options.bfddir, 'lib')))
+            searchDirs.append(os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'lib')))))
 
         import glob
         foundStatic = []
@@ -409,19 +409,19 @@ class Folder:
             conf.check_cc(lib='iberty', uselib_store='LIBERTY', mandatory=1, libpath=searchDirs)
         conf.check_cc(lib=bfd_lib_name, uselib_store='BFD', mandatory=1, libpath=searchDirs)
         if Options.options.bfddir:
-            conf.check_cc(header_name='bfd.h', uselib_store='BFD', mandatory=1, includes=[os.path.abspath(os.path.join(Options.options.bfddir, 'include'))])
+            conf.check_cc(header_name='bfd.h', uselib_store='BFD', mandatory=1, includes=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'include'))))])
         else:
             conf.check_cc(header_name='bfd.h', uselib_store='BFD', mandatory=1)
 
     else:
         if not Options.options.bfddir:
             conf.fatal('Please specify the location of the BFD and IBERTY libraries using the --with-bfd configuration option')
-        conf.check_cc(lib='iberty', uselib_store='LIBERTY', mandatory=1, libpath=[os.path.abspath(os.path.join(Options.options.bfddir, 'lib'))])
-        conf.check_cc(lib='bfd', uselib_store='BFD', mandatory=1, libpath=[os.path.abspath(os.path.join(Options.options.bfddir, 'lib'))])
-        conf.check_cc(lib='gcc', uselib_store='BFD', mandatory=1, libpath=[os.path.abspath(os.path.join(Options.options.bfddir, 'lib'))])
-        conf.check_cc(lib='mingwex', uselib_store='BFD', mandatory=1, libpath=[os.path.abspath(os.path.join(Options.options.bfddir, 'lib'))])
-        conf.check_cc(lib='user32', uselib_store='BFD', mandatory=1, libpath=[os.path.abspath(os.path.join(Options.options.bfddir, 'lib'))])
-        conf.check_cc(header_name='bfd.h', uselib_store='BFD', mandatory=1, includes=[os.path.abspath(os.path.join(Options.options.bfddir, 'include'))])
+        conf.check_cc(lib='iberty', uselib_store='LIBERTY', mandatory=1, libpath=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'lib'))))])
+        conf.check_cc(lib='bfd', uselib_store='BFD', mandatory=1, libpath=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'lib'))))])
+        conf.check_cc(lib='gcc', uselib_store='BFD', mandatory=1, libpath=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'lib'))))])
+        conf.check_cc(lib='mingwex', uselib_store='BFD', mandatory=1, libpath=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'lib'))))])
+        conf.check_cc(lib='user32', uselib_store='BFD', mandatory=1, libpath=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'lib'))))])
+        conf.check_cc(header_name='bfd.h', uselib_store='BFD', mandatory=1, includes=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'include'))))])
 
     ##################################################
     # Check for pthread library/flag
@@ -471,11 +471,11 @@ class Folder:
     syscpath = None
     if Options.options.systemcdir:
         if usingMsvc:
-            syscpath = ([os.path.abspath(os.path.join(Options.options.systemcdir, 'src'))])
+            syscpath = ([os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.systemcdir, 'src'))))])
         else:
-            syscpath = ([os.path.abspath(os.path.join(Options.options.systemcdir, 'include'))])
+            syscpath = ([os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.systemcdir, 'include'))))])
     elif 'SYSTEMC' in os.environ:
-        syscpath = ([os.path.abspath(os.path.join(os.environ['SYSTEMC'], 'include'))])
+        syscpath = ([os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(os.environ['SYSTEMC'], 'include'))))])
 
     import glob
     sysclib = ''
@@ -518,9 +518,9 @@ class Folder:
     ##################################################
     tlmPath = ''
     if Options.options.tlmdir:
-        tlmPath = [os.path.abspath(os.path.join(Options.options.tlmdir, 'tlm'))]
+        tlmPath = [os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.tlmdir, 'tlm'))))]
     elif 'TLM' in os.environ:
-        tlmPath = [os.path.abspath(os.path.join(os.environ['TLM'], 'tlm'))]
+        tlmPath = [os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(os.environ['TLM'], 'tlm'))))]
 
     conf.check_cxx(header_name='tlm.h', uselib='SYSTEMC', uselib_store='TLM', mandatory=1, includes=tlmPath)
     conf.check_cxx(fragment='''
