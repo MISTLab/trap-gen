@@ -124,6 +124,19 @@ asrRegs.setDefaultValue(0x00000300 + numRegWindows, 17)
 asrRegs.setGlobalDelay(3)
 processor.addRegBank(asrRegs)
 
+# Now I declare some fake registers for the exclusive use
+# in the bypass: they allow exchangin information between
+# different pipeline stages before register is written back
+# to the register file.
+# PSR forwarding is done for ICC code towards BRANCH and
+# ALU instruction which generate a TRAP
+psrBypassReg = trap.Register('PSRbp', 32, psrBitMask)
+processor.addRegister(psrBypassReg)
+# The forwarding for the Y register is performed after
+#
+yBypassReg = trap.Register('Ybp', 32)
+processor.addRegister(yBypassReg)
+
 # Now I set the alias: they can (and will) be used by the instructions
 # to access the registers more easily. Note that, in general, it is
 # responsibility of the programmer keeping the aliases updated
@@ -218,6 +231,8 @@ wbStage.setEndHazard()
 processor.addPipeStage(wbStage)
 processor.setWBOrder('NPC', ('decode', 'execute', 'wb'))
 processor.setWBOrder('PC', ('decode', 'fetch', 'execute', 'wb'))
+processor.setWBOrder('PSRbp', ('execute', 'wb'))
+processor.setWBOrder('Ybp', ('execute', 'wb'))
 
 # The ABI is necessary to emulate system calls, personalize the GDB stub and,
 # eventually, retarget GCC

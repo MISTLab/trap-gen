@@ -1940,6 +1940,8 @@ jump_reg_Instr.addTest({}, {}, {})
 isa.addInstruction(jump_reg_Instr)
 
 # Return from Trap
+# N.B. In the reg read stage it writes the values of the SU and ET PSR
+# fields???????
 opCode = cxx_writer.writer_code.Code("""
 """)
 rett_imm_Instr = trap.Instruction('RETT_imm', True, frequency = 5)

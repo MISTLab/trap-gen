@@ -317,14 +317,30 @@ def getCPPInstr(self, model, processor, trace):
                 if externalClock:
                     checkHazardCode += 'return false;\n'
                 else:
-                    checkHazardCode += 'this->' + name + '.waitHazard()\n'
+                    checkHazardCode += 'this->' + name + '.waitHazard();\n'
                 checkHazardCode += '}\n'
             for name, correspondence in self.bitCorrespondence.items():
                 checkHazardCode += 'if(this->' + name + '.isLocked()){\n'
                 if externalClock:
                     checkHazardCode += 'return false;\n'
                 else:
-                    checkHazardCode += 'this->' + name + '.waitHazard()\n'
+                    checkHazardCode += 'this->' + name + '.waitHazard();\n'
+                checkHazardCode += '}\n'
+            for specialRegName in self.specialInRegs:
+                checkHazardCode += 'if(this->' + specialRegName + '.isLocked()){\n'
+                if externalClock:
+                    checkHazardCode += 'return false;\n'
+                else:
+                    checkHazardCode += 'this->' + specialRegName + '.waitHazard();\n'
+                checkHazardCode += '}\n'
+            for specialRegName in self.specialOutRegs:
+                if specialRegName in self.specialInRegs:
+                    continue
+                checkHazardCode += 'if(this->' + specialRegName + '.isLocked()){\n'
+                if externalClock:
+                    checkHazardCode += 'return false;\n'
+                else:
+                    checkHazardCode += 'this->' + specialRegName + '.waitHazard();\n'
                 checkHazardCode += '}\n'
             checkHazardBody = cxx_writer.writer_code.Code(checkHazardCode)
             if externalClock:
@@ -334,25 +350,25 @@ def getCPPInstr(self, model, processor, trace):
             classElements.append(checkHazardDecl)
             wbCode = ''
             for name, correspondence in self.machineCode.bitCorrespondence.items():
-                if not 'in' in self.machineCode.bitDirection[name]:
-                    continue
-                wbCode += 'this->' + name + '.unlock();\n'
+                if 'out' in self.machineCode.bitDirection[name]:
+                    wbCode += 'this->' + name + '.unlock();\n'
             for name, correspondence in self.bitCorrespondence.items():
-                if not 'in' in self.bitDirection[name]:
-                    continue
-                wbCode += 'this->' + name + '.unlock();\n'
+                if 'out' in self.bitDirection[name]:
+                    wbCode += 'this->' + name + '.unlock();\n'
+            for specialRegName in self.specialOutRegs:
+                wbCode += 'this->' + specialRegName + '.unlock();\n'
             wbBody = cxx_writer.writer_code.Code(wbCode)
             wbDecl = cxx_writer.writer_code.Method('registerWb', wbBody, cxx_writer.writer_code.voidType, 'pu')
             classElements.append(wbDecl)
             lockCode = ''
             for name, correspondence in self.machineCode.bitCorrespondence.items():
-                if not 'in' in self.machineCode.bitDirection[name]:
-                    continue
-                lockCode += 'this->' + name + '.lock();\n'
+                if 'out' in self.machineCode.bitDirection[name]:
+                    lockCode += 'this->' + name + '.lock();\n'
             for name, correspondence in self.bitCorrespondence.items():
-                if not 'in' in self.bitDirection[name]:
-                    continue
-                lockCode += 'this->' + name + '.lock();\n'
+                if 'out' in self.bitDirection[name]:
+                    lockCode += 'this->' + name + '.lock();\n'
+            for specialRegName in self.specialOutRegs:
+                lockCode += 'this->' + specialRegName + '.lock();\n'
             lockBody = cxx_writer.writer_code.Code(lockCode)
             lockDecl = cxx_writer.writer_code.Method('lockRegs', lockBody, cxx_writer.writer_code.voidType, 'pu')
             classElements.append(lockDecl)
@@ -630,6 +646,30 @@ def getCPPClasses(self, processor, model, trace):
     getMnemonicDecl = cxx_writer.writer_code.Method('getMnemonic', emptyBody, cxx_writer.writer_code.stringType, 'pu', pure = True)
     instructionElements.append(getMnemonicDecl)
 
+    if model.startswith('acc'):
+        # Now I have to add the code for checking data hazards
+        hasCheckHazard = False
+        hasWb = False
+        for pipeStage in processor.pipes:
+            if pipeStage.checkHazard:
+                if processor.pipes.index(pipeStage) + 1 < len(processor.pipes):
+                    if not processor.pipes[processor.pipes.index(pipeStage) + 1].wb:
+                        hasCheckHazard = True
+            if pipeStage.wb:
+                if processor.pipes.index(pipeStage) - 1 >= 0:
+                    if not processor.pipes[processor.pipes.index(pipeStage) - 1].checkHazard:
+                        hasWb = True
+        if hasCheckHazard:
+            if externalClock:
+                checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.boolType, 'pu', pure = True)
+            else:
+                checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.voidType, 'pu', pure = True)
+            instructionElements.append(checkHazardDecl)
+            wbDecl = cxx_writer.writer_code.Method('registerWb', emptyBody, cxx_writer.writer_code.voidType, 'pu', pure = True)
+            instructionElements.append(wbDecl)
+            lockDecl = cxx_writer.writer_code.Method('lockRegs', emptyBody, cxx_writer.writer_code.voidType, 'pu', pure = True)
+            instructionElements.append(lockDecl)
+
     if trace:
         # I have to print the value of all the registers in the processor
         printTraceCode = ''
@@ -818,7 +858,9 @@ def getCPPClasses(self, processor, model, trace):
                         behClass[beh.name] = beh.getCppOpClass()
                         classes.append(behClass[beh.name])
 
-    # Now I print the invalid instruction
+    #########################################################################
+    ############### Now I print the invalid instruction #####################
+
     invalidInstrElements = []
     behaviorReturnBody = cxx_writer.writer_code.Code('return 0;')
     codeString = 'THROW_EXCEPTION(\"Unknown Instruction at PC: \" << this->' + processor.fetchReg[0]
@@ -854,7 +896,17 @@ def getCPPClasses(self, processor, model, trace):
     getMnemonicBody = cxx_writer.writer_code.Code('return \"invalid\";')
     getMnemonicDecl = cxx_writer.writer_code.Method('getMnemonic', getMnemonicBody, cxx_writer.writer_code.stringType, 'pu')
     invalidInstrElements.append(getMnemonicDecl)
-
+    if model.startswith('acc'):
+        if hasCheckHazard:
+            if externalClock:
+                checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', cxx_writer.writer_code.Code('return false;'), cxx_writer.writer_code.boolType, 'pu')
+            else:
+                checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.voidType, 'pu')
+            invalidInstrElements.append(checkHazardDecl)
+            wbDecl = cxx_writer.writer_code.Method('registerWb', emptyBody, cxx_writer.writer_code.voidType, 'pu')
+            invalidInstrElements.append(wbDecl)
+            lockDecl = cxx_writer.writer_code.Method('lockRegs', emptyBody, cxx_writer.writer_code.voidType, 'pu')
+            invalidInstrElements.append(lockDecl)
     from procWriter import baseInstrInitElement
     publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, ['Instruction(' + baseInstrInitElement + ')'])
     invalidInstrDecl = cxx_writer.writer_code.ClassDeclaration('InvalidInstr', invalidInstrElements, [instructionDecl.getType()])
@@ -862,6 +914,10 @@ def getCPPClasses(self, processor, model, trace):
     publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
     invalidInstrDecl.addDestructor(publicDestr)
     classes.append(invalidInstrDecl)
+
+    #########################################################################
+    ############### Now I print the NOP instruction #####################
+
     if model.startswith('acc'):
         # finally I print the NOP instruction, which I put in the pipeline when flushes occurr
         NOPInstructionElements = []
@@ -881,6 +937,16 @@ def getCPPClasses(self, processor, model, trace):
         getMnemonicBody = cxx_writer.writer_code.Code('return \"nop\";')
         getMnemonicDecl = cxx_writer.writer_code.Method('getMnemonic', getMnemonicBody, cxx_writer.writer_code.stringType, 'pu')
         NOPInstructionElements.append(getMnemonicDecl)
+        if hasCheckHazard:
+            if externalClock:
+                checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', cxx_writer.writer_code.Code('return false;'), cxx_writer.writer_code.boolType, 'pu')
+            else:
+                checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.voidType, 'pu')
+            NOPInstructionElements.append(checkHazardDecl)
+            wbDecl = cxx_writer.writer_code.Method('registerWb', emptyBody, cxx_writer.writer_code.voidType, 'pu')
+            NOPInstructionElements.append(wbDecl)
+            lockDecl = cxx_writer.writer_code.Method('lockRegs', emptyBody, cxx_writer.writer_code.voidType, 'pu')
+            NOPInstructionElements.append(lockDecl)
         from procWriter import baseInstrInitElement
         publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, ['Instruction(' + baseInstrInitElement + ')'])
         NOPInstructionElements = cxx_writer.writer_code.ClassDeclaration('NOPInstruction', NOPInstructionElements, [instructionDecl.getType()])
