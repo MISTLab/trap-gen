@@ -1,25 +1,7 @@
--- After examining the VHDL code the determined register bypasses are:
-In order fo all this to work correctly we need to extend TRAP to:
-** Declare what are the special registers read by each instruction: we should stall also on them
-** think well about register bypassing: the best thing seems to declare a new fake register, where we
-write the value after computation; if the instruction receives values from a bypass it reads from
-that register, otherwise it reads from the normal register. For each instruction I also specify
-the registers from which it receives values as a bypass: in this case I wait for them and not for the
-real register, thus eliminating the stall.
-
--- Write to special registers has 3 cycles delay!!! does this mean that also special registers are
-written in the WB stage? how is this modeled in the functional model???Can I model delayed writes in
-the registers (so not using the = operator for assignment) but with the effect that assignments are
-delayed. This does not affect the cycle accurate simulator, but it means that delayed registers are
-refreshed after each cycle in the CA model (I also have to keep a queue of 3 yet to commit values
-in the queue in case there is a queue of such instructions, all of this for the functional model).
-This also means that SPECIAL REGISTERS ARE WRITTEN IN THE WB STAGE AND THAT BYPASSES ARE PRESENT
-FOR PSR IN CASE THERE IS A BRANCH (bypass from the execute stage: how do we implement this??)
-Are there other bypasses???
-** For this to work correctly in the functional model we can implement delayed register assignment (which
-has no effect in the ca model): the value gets assigned to the register after the specified number
-of cycles. For the instructions which have bypasses I read from the fake bypass register: this is a
-non delayed register, so the problem is solved, and the instruction immediately sees the correct value.
+-- TODO: check well the setting of special registers and change how stalls are performed:
+I should stall only on read, and lock only on write, and the unlock only on write (so first
+I check for stall, then I lock if the case) -- in the addSpecialRegister method, check that
+register really exists.
 
 -- Exceptions: since the exception is resolved in the exceptions stage, there are other 5 instructions
 already in the pipeline. This does not happen in the functional model, where we trap at the
@@ -42,6 +24,29 @@ otherwise, if they are sent out, we need to accordingly modify the bus
 tsim implementation
 
 ALREADY CONSIDERED NOTES:
+
+-- After examining the VHDL code the determined register bypasses are:
+In order fo all this to work correctly we need to extend TRAP to:
+** Declare what are the special registers read by each instruction: we should stall also on them
+** think well about register bypassing: the best thing seems to declare a new fake register, where we
+write the value after computation; if the instruction receives values from a bypass it reads from
+that register, otherwise it reads from the normal register. For each instruction I also specify
+the registers from which it receives values as a bypass: in this case I wait for them and not for the
+real register, thus eliminating the stall.
+
+-- Write to special registers has 3 cycles delay!!! does this mean that also special registers are
+written in the WB stage? how is this modeled in the functional model???Can I model delayed writes in
+the registers (so not using the = operator for assignment) but with the effect that assignments are
+delayed. This does not affect the cycle accurate simulator, but it means that delayed registers are
+refreshed after each cycle in the CA model (I also have to keep a queue of 3 yet to commit values
+in the queue in case there is a queue of such instructions, all of this for the functional model).
+This also means that SPECIAL REGISTERS ARE WRITTEN IN THE WB STAGE AND THAT BYPASSES ARE PRESENT
+FOR PSR IN CASE THERE IS A BRANCH (bypass from the execute stage: how do we implement this??)
+Are there other bypasses???
+** For this to work correctly in the functional model we can implement delayed register assignment (which
+has no effect in the ca model): the value gets assigned to the register after the specified number
+of cycles. For the instructions which have bypasses I read from the fake bypass register: this is a
+non delayed register, so the problem is solved, and the instruction immediately sees the correct value.
 
 -- Branch instruction directly modifies not only NPC but also the program counter directly,
 so there is no need for bubbles in the pipeline. Actually all instructions do so, they do not

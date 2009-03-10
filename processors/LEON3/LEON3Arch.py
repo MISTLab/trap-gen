@@ -129,13 +129,17 @@ processor.addRegBank(asrRegs)
 # different pipeline stages before register is written back
 # to the register file.
 # PSR forwarding is done for ICC code towards BRANCH and
-# ALU instruction which generate a TRAP
+# ALU instruction which need it.
 psrBypassReg = trap.Register('PSRbp', 32, psrBitMask)
 processor.addRegister(psrBypassReg)
-# The forwarding for the Y register is performed after
-#
+# The forwarding for the Y register is performed for
+# all ALU operations which use Y.
 yBypassReg = trap.Register('Ybp', 32)
 processor.addRegister(yBypassReg)
+# The forwarding for the ASR[18] register is performed for
+# the MAC operation which use the ASR register
+ASR18BypassReg = trap.Register('ASR18bp', 32)
+processor.addRegister(ASR18BypassReg)
 
 # Now I set the alias: they can (and will) be used by the instructions
 # to access the registers more easily. Note that, in general, it is

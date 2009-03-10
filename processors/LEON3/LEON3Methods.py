@@ -99,13 +99,77 @@ IncrementPC = trap.HelperOperation('IncrementPC', opCode)
 # Code used to jump to the trap handler address. This code modifies the PC and the NPC
 # so that the next instruction fetched is the one of the trap handler.
 
+# Write back of the result of most operations, expecially ALUs;
+# such operations do not modify the PSR
+opCode = cxx_writer.writer_code.Code("""
+rd = result;
+""")
+WB_plain = trap.HelperOperation('WB_plain', opCode)
+WB_plain.addInstuctionVar(('result', 'BIT<32>'))
+WB_plain.addUserInstructionElement('rd')
+
+# Write back of the result of most operations, expecially ALUs;
+# such operations also modify the PSR
+opCode = cxx_writer.writer_code.Code("""
+rd = result;
+PSR = PSRbp;
+""")
+WB_icc = trap.HelperOperation('WB_icc', opCode)
+WB_icc.addInstuctionVar(('result', 'BIT<32>'))
+WB_icc.addUserInstructionElement('rd')
+
+# Write back of the result of mutiplication operations
+# which modify the ICC conditions codes and the Y register
+opCode = cxx_writer.writer_code.Code("""
+rd = result;
+PSR = PSRbp;
+Y = Ybp;
+""")
+WB_yicc = trap.HelperOperation('WB_yicc', opCode)
+WB_yicc.addInstuctionVar(('result', 'BIT<32>'))
+WB_yicc.addUserInstructionElement('rd')
+
+# Write back of the result of MAC operations
+# which modify the ICC conditions codes, the Y register, and ASR[18]
+opCode = cxx_writer.writer_code.Code("""
+rd = result;
+PSR = PSRbp;
+Y = Ybp;
+ASR[18] = ASR18bp;
+""")
+WB_yiccasr = trap.HelperOperation('WB_yiccasr', opCode)
+WB_yiccasr.addInstuctionVar(('result', 'BIT<32>'))
+WB_yiccasr.addUserInstructionElement('rd')
+
+# Write back of the result of MAC operations
+# which modify the Y register, and ASR[18]
+opCode = cxx_writer.writer_code.Code("""
+rd = result;
+Y = Ybp;
+ASR[18] = ASR18bp;
+""")
+WB_yasr = trap.HelperOperation('WB_yasr', opCode)
+WB_yasr.addInstuctionVar(('result', 'BIT<32>'))
+WB_yasr.addUserInstructionElement('rd')
+
+# Write back of the normal of mutiplication operations
+# which modify the Y register
+opCode = cxx_writer.writer_code.Code("""
+rd = result;
+Y = Ybp;
+""")
+WB_y = trap.HelperOperation('WB_y', opCode)
+WB_y.addInstuctionVar(('result', 'BIT<32>'))
+WB_y.addUserInstructionElement('rd')
+
 # Modification of the Integer Condition Codes of the Processor Status Register
 # after an logical operation or after the multiply operation
 opCode = cxx_writer.writer_code.Code("""
-PSR[key_ICC_n] = ((result & 0x80000000) >> 31);
-PSR[key_ICC_z] = (result == 0);
-PSR[key_ICC_v] = 0;
-PSR[key_ICC_c] = 0;
+PSRbp = PSR;
+PSRbp[key_ICC_n] = ((result & 0x80000000) >> 31);
+PSRbp[key_ICC_z] = (result == 0);
+PSRbp[key_ICC_v] = 0;
+PSRbp[key_ICC_c] = 0;
 """)
 ICC_writeLogic = trap.HelperOperation('ICC_writeLogic', opCode)
 ICC_writeLogic.addInstuctionVar(('result', 'BIT<32>'))
@@ -113,10 +177,11 @@ ICC_writeLogic.addInstuctionVar(('result', 'BIT<32>'))
 # Modification of the Integer Condition Codes of the Processor Status Register
 # after an addition operation
 opCode = cxx_writer.writer_code.Code("""
-PSR[key_ICC_n] = ((result & 0x80000000) >> 31);
-PSR[key_ICC_z] = (result == 0);
-PSR[key_ICC_v] = ((unsigned int)((rs1_op & rs2_op & (~result)) | ((~rs1_op) & (~rs2_op) & result))) >> 31;
-PSR[key_ICC_c] = ((unsigned int)((rs1_op & rs2_op) | ((rs1_op | rs2_op) & (~result)))) >> 31;
+PSRbp = PSR;
+PSRbp[key_ICC_n] = ((result & 0x80000000) >> 31);
+PSRbp[key_ICC_z] = (result == 0);
+PSRbp[key_ICC_v] = ((unsigned int)((rs1_op & rs2_op & (~result)) | ((~rs1_op) & (~rs2_op) & result))) >> 31;
+PSRbp[key_ICC_c] = ((unsigned int)((rs1_op & rs2_op) | ((rs1_op | rs2_op) & (~result)))) >> 31;
 """)
 ICC_writeAdd = trap.HelperOperation('ICC_writeAdd', opCode)
 ICC_writeAdd.addInstuctionVar(('result', 'BIT<32>'))
@@ -126,13 +191,13 @@ ICC_writeAdd.addInstuctionVar(('rs2_op', 'BIT<32>'))
 # Modification of the Integer Condition Codes of the Processor Status Register
 # after an subtraction operation
 opCode = cxx_writer.writer_code.Code("""
-PSR[key_ICC_n] = ((result & 0x80000000) >> 31);
-PSR[key_ICC_z] = (result == 0);
-PSR[key_ICC_v] = ((unsigned int)((rs1_op & (~rs2_op) & (~result)) | ((~rs1_op) & rs2_op & result))) >> 31;
-PSR[key_ICC_c] = ((unsigned int)(((~rs1_op) & rs2_op) | (((~rs1_op) | rs2_op) & result))) >> 31;
+PSRbp = PSR;
+PSRbp[key_ICC_n] = ((result & 0x80000000) >> 31);
+PSRbp[key_ICC_z] = (result == 0);
+PSRbp[key_ICC_v] = ((unsigned int)((rs1_op & (~rs2_op) & (~result)) | ((~rs1_op) & rs2_op & result))) >> 31;
+PSRbp[key_ICC_c] = ((unsigned int)(((~rs1_op) & rs2_op) | (((~rs1_op) | rs2_op) & result))) >> 31;
 """)
 ICC_writeSub = trap.HelperOperation('ICC_writeSub', opCode)
 ICC_writeSub.addInstuctionVar(('result', 'BIT<32>'))
 ICC_writeSub.addInstuctionVar(('rs1_op', 'BIT<32>'))
 ICC_writeSub.addInstuctionVar(('rs2_op', 'BIT<32>'))
-
