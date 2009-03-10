@@ -114,7 +114,7 @@ def getCPPRegClass(self, model, regType):
         assignValueItem = 'this->value'
         readValueItem = 'this->value'
     else:
-        assignValueItem = 'this->updateSlot[' + str(self.delay - 1) + '] = true;\nthis->values[0]'
+        assignValueItem = 'this->updateSlot[' + str(self.delay - 1) + '] = true;\nthis->values[' + str(self.delay - 1) + ']'
         readValueItem = 'this->value'
 
 
@@ -148,10 +148,13 @@ def getCPPRegClass(self, model, regType):
         clockCycleBody = cxx_writer.writer_code.Code(clockCycleCode)
         clockCycleMethod = cxx_writer.writer_code.Method('clockCycle', clockCycleBody, cxx_writer.writer_code.voidType, 'pu', noException = True)
         registerElements.append(clockCycleMethod)
-    immediateWriteCode = 'this->value = value;\n'
-    if not model.startswith('acc') and type(self.delay) != type({}) and self.delay > 0:
-        for i in range(0, self.delay):
-            immediateWriteCode += 'this->updateSlot[' + str(i) + '] = false;\n'
+    if self.constValue == None or type(self.constValue) == type({}):
+        immediateWriteCode = 'this->value = value;\n'
+        if not model.startswith('acc') and type(self.delay) != type({}) and self.delay > 0:
+            for i in range(0, self.delay):
+                immediateWriteCode += 'this->updateSlot[' + str(i) + '] = false;\n'
+    else:
+        immediateWriteCode = ''
     immediateWriteBody = cxx_writer.writer_code.Code(immediateWriteCode)
     immediateWriteParam = [cxx_writer.writer_code.Parameter('value', regMaxType.makeRef().makeConst())]
     immediateWriteMethod = cxx_writer.writer_code.Method('immediateWrite', immediateWriteBody, cxx_writer.writer_code.voidType, 'pu', immediateWriteParam, noException = True)
@@ -164,14 +167,14 @@ def getCPPRegClass(self, model, regType):
         if self.offset:
             for i in delays:
                 readNewValueCode += """if(this->updateSlot[""" + str(i) + """]){
-                            return this->values[""" + str(i - 1) + """] + """ + str(self.offset) + """;
+                            return this->values[""" + str(i) + """] + """ + str(self.offset) + """;
                         }
                         """
             readNewValueCode += 'return this->value + ' + str(self.offset) + ';\n'
         else:
             for i in delays:
                 readNewValueCode += """if(this->updateSlot[""" + str(i) + """]){
-                            return this->values[""" + str(i - 1) + """];
+                            return this->values[""" + str(i) + """];
                         }
                         """
             readNewValueCode += 'return this->value;\n'
@@ -434,7 +437,7 @@ def getCPPRegisters(self, model):
         clockCycleMethod = cxx_writer.writer_code.Method('clockCycle', emptyBody, cxx_writer.writer_code.voidType, 'pu', virtual = True, noException = True)
         registerElements.append(clockCycleMethod)
         immediateWriteParam = [cxx_writer.writer_code.Parameter('value', regMaxType.makeRef().makeConst())]
-        immediateWriteMethod = cxx_writer.writer_code.Method('immediateWrite', emptyBody, cxx_writer.writer_code.voidType, 'pu', immediateWriteParam, virtual = True, noException = True)
+        immediateWriteMethod = cxx_writer.writer_code.Method('immediateWrite', emptyBody, cxx_writer.writer_code.voidType, 'pu', immediateWriteParam, pure = True, noException = True)
         registerElements.append(immediateWriteMethod)
         readNewValueMethod = cxx_writer.writer_code.Method('readNewValue', emptyBody, regMaxType, 'pu', pure = True, noException = True)
         registerElements.append(readNewValueMethod)

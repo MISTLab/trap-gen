@@ -49,11 +49,13 @@
 #include <exception>
 #include <stdexcept>
 
+#ifndef __GNUC__
 #ifndef __PRETTY_FUNCTION__
 #ifdef __FUNCDNAME__
 #define __PRETTY_FUNCTION__ __FUNCDNAME__
 #else
 #define __PRETTY_FUNCTION__ "NONAME"
+#endif
 #endif
 #endif
 

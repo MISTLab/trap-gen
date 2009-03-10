@@ -53,14 +53,16 @@ import cxx_writer
 IncrementRegWindow_code = """
 newCwp = ((unsigned int)(PSR[key_CWP] + 1)) % NUM_REG_WIN;
 if(((0x01 << (newCwp)) & WIM) != 0){
-    // There is a window underflow exception: TODO
+    return false;
 }
 PSR[key_CWP] = newCwp;
 """
 for i in range(8, 32):
-    IncrementRegWindow_code += 'REGS[' + str(i) + '].updateAlias(WINREGS[(PSR[key_CWP]*16 + ' + str(i) + ') % (16*NUM_REG_WIN)]);\n'
+    IncrementRegWindow_code += 'REGS[' + str(i) + '].updateAlias(WINREGS[(newCwp*16 + ' + str(i) + ') % (16*NUM_REG_WIN)]);\n'
+IncrementRegWindow_code += 'return true;'
 opCode = cxx_writer.writer_code.Code(IncrementRegWindow_code)
 IncrementRegWindow_method = trap.HelperMethod('IncrementRegWindow', opCode, 'execute')
+IncrementRegWindow_method.setSignature(cxx_writer.writer_code.boolType)
 IncrementRegWindow_method.addVariable(('newCwp', 'BIT<32>'))
 # Method used to move to the previous register window; this simply consists in
 # the check that there is an empty valid window and in the update of
@@ -68,14 +70,16 @@ IncrementRegWindow_method.addVariable(('newCwp', 'BIT<32>'))
 DecrementRegWindow_code = """
 newCwp = ((unsigned int)(PSR[key_CWP] - 1)) % NUM_REG_WIN;
 if(((0x01 << (newCwp)) & WIM) != 0){
-    // There is a window overflow exception: TODO
+    return false;
 }
 PSR[key_CWP] = newCwp;
 """
 for i in range(8, 32):
-    DecrementRegWindow_code += 'REGS[' + str(i) + '].updateAlias(WINREGS[(PSR[key_CWP]*16 + ' + str(i) + ') % (16*NUM_REG_WIN)]);\n'
+    DecrementRegWindow_code += 'REGS[' + str(i) + '].updateAlias(WINREGS[(newCwp*16 + ' + str(i) + ') % (16*NUM_REG_WIN)]);\n'
+DecrementRegWindow_code += 'return true;'
 opCode = cxx_writer.writer_code.Code(DecrementRegWindow_code)
 DecrementRegWindow_method = trap.HelperMethod('DecrementRegWindow', opCode, 'execute')
+DecrementRegWindow_method.setSignature(cxx_writer.writer_code.boolType)
 DecrementRegWindow_method.addVariable(('newCwp', 'BIT<32>'))
 
 # Sign extends the input bitstring
@@ -91,13 +95,168 @@ SignExtend_method.setSignature(('BIT<32>'), [('bitSeq', 'BIT<32>'), cxx_writer.w
 # I will directly modify both PC and nPC in case we are in a the cycle accurate model,
 # while just nPC in case we are in the functional one; if the branch has the annulling bit
 # set, then also in the functional model both the PC and nPC will be modified
+raiseExcCode = """
+if(PSR[key_ET] == 0){
+    if(exceptionId < IRQ_LEV_15){
+        THROW_EXCEPTION("Exception " << exceptionId << " happened while the PSR[ET] = 0");
+    }
+}
+else{
+    PSR[key_PS] = PSR[key_S];
+    PSR[key_S] = 1;
+    PSR[key_ET] = 0;
+    unsigned int newCwp = ((unsigned int)(PSR[key_CWP] - 1)) % NUM_REG_WIN;
+"""
+for i in range(8, 32):
+    raiseExcCode += 'REGS[' + str(i) + '].updateAlias(WINREGS[(newCwp*16 + ' + str(i) + ') % (16*NUM_REG_WIN)]);\n'
+raiseExcCode +=  """
+    PSR[key_CWP] = newCwp;
+    REGS[17] = PC;
+    REGS[18] = NPC;
+    switch(exceptionId){
+        case RESET:{
+        }break;
+        case DATA_STORE_ERROR:{
+            TBR[key_TT] = 0x2b;
+        }break;
+        case INSTR_ACCESS_MMU_MISS:{
+            TBR[key_TT] = 0x3c;
+        }break;
+        case INSTR_ACCESS_ERROR:{
+            TBR[key_TT] = 0x21;
+        }break;
+        case R_REGISTER_ACCESS_ERROR:{
+            TBR[key_TT] = 0x20;
+        }break;
+        case INSTR_ACCESS_EXC:{
+            TBR[key_TT] = 0x01;
+        }break;
+        case PRIVILEDGE_INSTR:{
+            TBR[key_TT] = 0x03;
+        }break;
+        case ILLEGAL_INSTR:{
+            TBR[key_TT] = 0x02;
+        }break;
+        case FP_DISABLED:{
+            TBR[key_TT] = 0x04;
+        }break;
+        case CP_DISABLED:{
+            TBR[key_TT] = 0x24;
+        }break;
+        case UNIMPL_FLUSH:{
+            TBR[key_TT] = 0x25;
+        }break;
+        case WATCHPOINT_DETECTED:{
+            TBR[key_TT] = 0x0b;
+        }break;
+        case WINDOW_OVERFLOW:{
+            TBR[key_TT] = 0x05;
+        }break;
+        case WINDOW_UNDERFLOW:{
+            TBR[key_TT] = 0x06;
+        }break;
+        case MEM_ADDR_NOT_ALIGNED:{
+            TBR[key_TT] = 0x07;
+        }break;
+        case FP_EXCEPTION:{
+            TBR[key_TT] = 0x08;
+        }break;
+        case CP_EXCEPTION:{
+            TBR[key_TT] = 0x28;
+        }break;
+        case DATA_ACCESS_ERROR:{
+            TBR[key_TT] = 0x29;
+        }break;
+        case DATA_ACCESS_MMU_MISS:{
+            TBR[key_TT] = 0x2c;
+        }break;
+        case DATA_ACCESS_EXC:{
+            TBR[key_TT] = 0x09;
+        }break;
+        case TAG_OVERFLOW:{
+            TBR[key_TT] = 0x0a;
+        }break;
+        case DIV_ZERO:{
+            TBR[key_TT] = 0x2a;
+        }break;
+        case TRAP_INSTRUCTION:{
+            TBR[key_TT] = 0x80 + customTrapOffset;
+        }break;
+        case IRQ_LEV_15:{
+            TBR[key_TT] = 0x1f;
+        }break;
+        case IRQ_LEV_14:{
+            TBR[key_TT] = 0x1e;
+        }break;
+        case IRQ_LEV_13:{
+            TBR[key_TT] = 0x1d;
+        }break;
+        case IRQ_LEV_12:{
+            TBR[key_TT] = 0x1c;
+        }break;
+        case IRQ_LEV_11:{
+            TBR[key_TT] = 0x1b;
+        }break;
+        case IRQ_LEV_10:{
+            TBR[key_TT] = 0x1a;
+        }break;
+        case IRQ_LEV_9:{
+            TBR[key_TT] = 0x19;
+        }break;
+        case IRQ_LEV_8:{
+            TBR[key_TT] = 0x18;
+        }break;
+        case IRQ_LEV_7:{
+            TBR[key_TT] = 0x17;
+        }break;
+        case IRQ_LEV_6:{
+            TBR[key_TT] = 0x16;
+        }break;
+        case IRQ_LEV_5:{
+            TBR[key_TT] = 0x15;
+        }break;
+        case IRQ_LEV_4:{
+            TBR[key_TT] = 0x14;
+        }break;
+        case IRQ_LEV_3:{
+            TBR[key_TT] = 0x13;
+        }break;
+        case IRQ_LEV_2:{
+            TBR[key_TT] = 0x12;
+        }break;
+        case IRQ_LEV_1:{
+            TBR[key_TT] = 0x11;
+        }break;
+        case IMPL_DEP_EXC:{
+            TBR[key_TT] = 0x60 + customTrapOffset;
+        }break;
+        default:{
+        }break;
+    }
+    if(exceptionId == RESET){
+        // I have to jump to address 0 and restart execution
+        PC = 0;
+        NPC = 4;
+    }
+    else{
+        // I have to jump to the address contained in the TBR register
+        PC = TBR;
+        NPC = TBR + 4;
+    }
+}
+"""
+RaiseException_method = trap.HelperMethod('RaiseException', cxx_writer.writer_code.Code(raiseExcCode), 'exception')
+RaiseException_methodParams = [cxx_writer.writer_code.Parameter('exceptionId', cxx_writer.writer_code.uintType)]
+RaiseException_methodParams.append(cxx_writer.writer_code.Parameter('customTrapOffset', cxx_writer.writer_code.uintType, initValue = '0'))
+RaiseException_method.setSignature(cxx_writer.writer_code.voidType, RaiseException_methodParams)
+
+# Code used to jump to the trap handler address. This code modifies the PC and the NPC
+# so that the next instruction fetched is the one of the trap handler;
+# it also performs a flush of the pipeline
 opCode = cxx_writer.writer_code.Code("""PC = NPC;
 NPC += 4;
 """)
 IncrementPC = trap.HelperOperation('IncrementPC', opCode)
-
-# Code used to jump to the trap handler address. This code modifies the PC and the NPC
-# so that the next instruction fetched is the one of the trap handler.
 
 # Write back of the result of most operations, expecially ALUs;
 # such operations do not modify the PSR

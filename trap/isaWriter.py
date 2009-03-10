@@ -313,29 +313,22 @@ def getCPPInstr(self, model, processor, trace):
         if hasCheckHazard:
             checkHazardCode = ''
             for name, correspondence in self.machineCode.bitCorrespondence.items():
-                checkHazardCode += 'if(this->' + name + '.isLocked()){\n'
-                if externalClock:
-                    checkHazardCode += 'return false;\n'
-                else:
-                    checkHazardCode += 'this->' + name + '.waitHazard();\n'
-                checkHazardCode += '}\n'
+                if 'in' in self.machineCode.bitDirection[name]:
+                    checkHazardCode += 'if(this->' + name + '.isLocked()){\n'
+                    if externalClock:
+                        checkHazardCode += 'return false;\n'
+                    else:
+                        checkHazardCode += 'this->' + name + '.waitHazard();\n'
+                    checkHazardCode += '}\n'
             for name, correspondence in self.bitCorrespondence.items():
-                checkHazardCode += 'if(this->' + name + '.isLocked()){\n'
-                if externalClock:
-                    checkHazardCode += 'return false;\n'
-                else:
-                    checkHazardCode += 'this->' + name + '.waitHazard();\n'
-                checkHazardCode += '}\n'
+                if 'in' in self.bitDirection[name]:
+                    checkHazardCode += 'if(this->' + name + '.isLocked()){\n'
+                    if externalClock:
+                        checkHazardCode += 'return false;\n'
+                    else:
+                        checkHazardCode += 'this->' + name + '.waitHazard();\n'
+                    checkHazardCode += '}\n'
             for specialRegName in self.specialInRegs:
-                checkHazardCode += 'if(this->' + specialRegName + '.isLocked()){\n'
-                if externalClock:
-                    checkHazardCode += 'return false;\n'
-                else:
-                    checkHazardCode += 'this->' + specialRegName + '.waitHazard();\n'
-                checkHazardCode += '}\n'
-            for specialRegName in self.specialOutRegs:
-                if specialRegName in self.specialInRegs:
-                    continue
                 checkHazardCode += 'if(this->' + specialRegName + '.isLocked()){\n'
                 if externalClock:
                     checkHazardCode += 'return false;\n'
@@ -622,8 +615,13 @@ def getCPPClasses(self, processor, model, trace):
     classes = []
     # Here I add the define code, definig the type of the current model
     defString = '#define ' + model[:-2].upper() + '_MODEL\n'
-    defString = '#define ' + model[-2:].upper() + '_IF\n'
+    defString += '#define ' + model[-2:].upper() + '_IF\n'
     defCode = cxx_writer.writer_code.Define(defString)
+    classes.append(defCode)
+    # Now I add the custon definitions
+    for i in self.defines:
+        classes.append(cxx_writer.writer_code.Define(i + '\n'))
+
     # First of all I create the base instruction type: note that it contains references
     # to the architectural elements
     instructionType = cxx_writer.writer_code.Type('Instruction')

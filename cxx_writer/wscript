@@ -3,9 +3,21 @@
 
 import os, Options
 
+def installWafFun(tsk):
+    if Options.commands['install']:
+        import shutil
+        shutil.copy2(os.path.join('..', 'waf'), tsk.env['wafDestPath'])
+    elif Options.commands['uninstall']:
+        os.remove(os.path.join('..', 'waf', tsk.env['wafDestPath'], 'waf'))
+
 def build(bld):
     obj = bld.new_task_gen('py')
     obj.find_sources_in_dirs('.', exts=['.py'])
     obj.install_path = os.path.join('${PYTHON_INSTALL_DIR}', 'cxx_writer')
+
+    if Options.is_install:
+        objCopy = bld.new_task_gen('cmd')
+        objCopy.fun = installWafFun
+        objCopy.env['wafDestPath'] = os.path.join(objCopy.env['PYTHON_INSTALL_DIR'], 'cxx_writer')
 
     bld.add_subdirs('writer_code')

@@ -1,8 +1,3 @@
--- TODO: check well the setting of special registers and change how stalls are performed:
-I should stall only on read, and lock only on write, and the unlock only on write (so first
-I check for stall, then I lock if the case) -- in the addSpecialRegister method, check that
-register really exists.
-
 -- Exceptions: since the exception is resolved in the exceptions stage, there are other 5 instructions
 already in the pipeline. This does not happen in the functional model, where we trap at the
 immediately following instruction. How do we behave? are all the 5 instructions in the

@@ -90,6 +90,11 @@ class ISA:
         self.endOp = None
         self.subInstructions = {}
         self.constants = []
+        # Definitions used inside the ISA to ease the description
+        self.defines = []
+
+    def addDefines(self, defineCode):
+        self.defines.append(defineCode)
 
     def addConstant(self, varType, name, value):
         self.constants.append((varType, name, value))
@@ -314,7 +319,6 @@ class Instruction:
         # functiona and cycle accurate models
         self.behaviorAcc = []
         self.behaviorFun = []
-
 
     def setMachineCode(self, machineCode, machineBits = {}, mnemonic = [], subInstr = False):
         # Sets the machine code for this instruction. Note that a machine

@@ -587,6 +587,34 @@ class Processor:
                 if not self.isRegExisting(alias.initAlias):
                     raise Exception('Register ' + alias.initAlias + ' referenced by alias ' + alias.name + ' does not exists')
 
+    def checkISARegs(self):
+        # Checks that registers declared in the instruction encoding and the ISA really exists
+        architecturalNames = [archElem.name for archElem in self.regs + self.regBanks + self.aliasRegs + self.aliasRegBanks]
+        for name, instruction in self.isa.instructions:
+            # inside each instruction I have to check for registers defined in the machine code (bitCorrespondence),
+            # the correspondence declared inside the instruction itself (bitCorrespondence), the input and output
+            # special registers (specialInRegs, specialOutRegs)
+            for regName in instruction.machineCode.bitCorrespondence.values():
+                if not regName[0] in architecturalNames:
+                    raise Exception('Architectural Element ' + str(regName[0]) + ' specified in machine code of instruction ' + name + ' does not exist')
+            for regName in instruction.bitCorrespondence.values():
+                if not regName[0] in architecturalNames:
+                    raise Exception('Architectural Element ' + str(regName[0]) + ' specified in machine code of instruction ' + name + ' does not exist')
+            for regName in instruction.specialInRegs + instruction.specialOutRegs:
+                index = extractRegInterval(regName)
+                if index:
+                    # I'm aliasing part of a register bank or another alias:
+                    # I check that it exists and that I am still within
+                    # boundaries
+                    refName = regName[:regName.find('[')]
+                    if not self.isRegExisting(refName, index):
+                        raise Exception('Register Bank ' + regName + ' referenced as spcieal register in insrtuction ' + name + ' does not exists')
+                else:
+                    # Single register or alias: I check that it exists
+                    if not self.isRegExisting(regName):
+                        raise Exception('Register ' + regName + ' referenced as spcieal register in insrtuction ' + name + ' does not exists')
+
+
     def checkABI(self):
         # checks that the registers specified for the ABI interface
         # refer to existing registers
@@ -618,7 +646,7 @@ class Processor:
                 # Single register or alias: I check that it exists
                 if not self.isRegExisting(i):
                     raise Exception('Register ' + i + ' used in the ABI does not exists')
-        # TODO: check also the memories
+        ################à TODO: check also the memories #######################
 
     def getCPPRegisters(self, model):
         # This method creates all the classes necessary for declaring

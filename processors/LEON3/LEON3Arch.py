@@ -97,7 +97,6 @@ processor.addRegister(wimReg)
 # Trap Base Register
 tbrBitMask = {'TBA' : (31, 12), 'TT' : (11, 4)}
 tbrReg = trap.Register('TBR', 32, tbrBitMask)
-tbrReg.setDelay(3)
 processor.addRegister(tbrReg)
 # Multiply / Divide Register
 yReg = trap.Register('Y', 32)
