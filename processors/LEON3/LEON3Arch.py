@@ -54,6 +54,7 @@ import cxx_writer
 # It is nice to keep the ISA and the architecture separated
 # so we use the import trick
 import LEON3Isa
+import LEON3Tests
 
 # Lets now start building the processor
 processor = trap.Processor('LEON3', version = '0.0.1', systemc = False, instructionCache = True, fastFetch = True)

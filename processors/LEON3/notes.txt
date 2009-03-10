@@ -1,3 +1,7 @@
+-- TODO: there are problems when releasing the lock on the registers in the CA model. I could release the
+lock simply when the register is written. But this means that if an instruction does not write to a register
+(e.g. for an exception) the lock is never released. ???? think well about it
+
 -- Exceptions: since the exception is resolved in the exceptions stage, there are other 5 instructions
 already in the pipeline. This does not happen in the functional model, where we trap at the
 immediately following instruction. How do we behave? are all the 5 instructions in the

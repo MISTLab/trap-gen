@@ -398,11 +398,18 @@ def getCPPInstr(self, model, processor, trace):
         if shiftAmm > 0:
             setParamsCode += ' >> ' + str(shiftAmm)
         setParamsCode += ';\n'
-        if model.startswith('acc'):
-            for pipeStage in pipeline:
-                setParamsCode += 'this->' + name + '_' + pipeStage.name + '.updateAlias(this->' + correspondence[0] + '_' + pipeStage.name + '[' + str(correspondence[1]) + ' + this->' + name + '_bit]);\n'
+        if correspondence[1]:
+            if model.startswith('acc'):
+                for pipeStage in pipeline:
+                    setParamsCode += 'this->' + name + '_' + pipeStage.name + '.updateAlias(this->' + correspondence[0] + '_' + pipeStage.name + '[' + str(correspondence[1]) + ' + this->' + name + '_bit]);\n'
+            else:
+                setParamsCode += 'this->' + name + '.updateAlias(this->' + correspondence[0] + '[' + str(correspondence[1]) + ' + this->' + name + '_bit]);\n'
         else:
-            setParamsCode += 'this->' + name + '.updateAlias(this->' + correspondence[0] + '[' + str(correspondence[1]) + ' + this->' + name + '_bit]);\n'
+            if model.startswith('acc'):
+                for pipeStage in pipeline:
+                    setParamsCode += 'this->' + name + '_' + pipeStage.name + '.updateAlias(this->' + correspondence[0] + '_' + pipeStage.name + '[this->' + name + '_bit]);\n'
+            else:
+                setParamsCode += 'this->' + name + '.updateAlias(this->' + correspondence[0] + '[this->' + name + '_bit]);\n'
     # now I need to declare the fields for the variable parts of the
     # instruction
     for name, length in self.machineCode.bitFields:

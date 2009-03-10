@@ -98,6 +98,9 @@ SignExtend_method.setSignature(('BIT<32>'), [('bitSeq', 'BIT<32>'), cxx_writer.w
 raiseExcCode = """
 if(PSR[key_ET] == 0){
     if(exceptionId < IRQ_LEV_15){
+        // I print a core dump and then I signal an error: an exception happened while
+        // exceptions were disabled in the processor core
+        printTrace();
         THROW_EXCEPTION("Exception " << exceptionId << " happened while the PSR[ET] = 0");
     }
 }
@@ -243,6 +246,8 @@ raiseExcCode +=  """
         PC = TBR;
         NPC = TBR + 4;
     }
+    flush();
+    annull();
 }
 """
 RaiseException_method = trap.HelperMethod('RaiseException', cxx_writer.writer_code.Code(raiseExcCode), 'exception')
@@ -271,17 +276,30 @@ WB_plain.addUserInstructionElement('rd')
 # such operations also modify the PSR
 opCode = cxx_writer.writer_code.Code("""
 rd = result;
-PSR = PSRbp;
+PSR = (PSR & 0xff0fffff) | (PSRbp & 0x00f00000);
 """)
 WB_icc = trap.HelperOperation('WB_icc', opCode)
 WB_icc.addInstuctionVar(('result', 'BIT<32>'))
 WB_icc.addUserInstructionElement('rd')
 
+# Write back of the result of most operations, expecially ALUs;
+# such operations also modify the PSR
+opCode = cxx_writer.writer_code.Code("""
+if(!temp_V){
+    rd = result;
+    PSR = (PSR & 0xff0fffff) | (PSRbp & 0x00f00000);
+}
+""")
+WB_icctv = trap.HelperOperation('WB_icctv', opCode)
+WB_icctv.addInstuctionVar(('result', 'BIT<32>'))
+WB_icctv.addInstuctionVar(('temp_V', 'BIT<1>'))
+WB_icctv.addUserInstructionElement('rd')
+
 # Write back of the result of mutiplication operations
 # which modify the ICC conditions codes and the Y register
 opCode = cxx_writer.writer_code.Code("""
 rd = result;
-PSR = PSRbp;
+PSR = (PSR & 0xff0fffff) | (PSRbp & 0x00f00000);
 Y = Ybp;
 """)
 WB_yicc = trap.HelperOperation('WB_yicc', opCode)
@@ -292,7 +310,7 @@ WB_yicc.addUserInstructionElement('rd')
 # which modify the ICC conditions codes, the Y register, and ASR[18]
 opCode = cxx_writer.writer_code.Code("""
 rd = result;
-PSR = PSRbp;
+PSR = (PSR & 0xff0fffff) | (PSRbp & 0x00f00000);
 Y = Ybp;
 ASR[18] = ASR18bp;
 """)
@@ -324,7 +342,6 @@ WB_y.addUserInstructionElement('rd')
 # Modification of the Integer Condition Codes of the Processor Status Register
 # after an logical operation or after the multiply operation
 opCode = cxx_writer.writer_code.Code("""
-PSRbp = PSR;
 PSRbp[key_ICC_n] = ((result & 0x80000000) >> 31);
 PSRbp[key_ICC_z] = (result == 0);
 PSRbp[key_ICC_v] = 0;
@@ -336,7 +353,6 @@ ICC_writeLogic.addInstuctionVar(('result', 'BIT<32>'))
 # Modification of the Integer Condition Codes of the Processor Status Register
 # after an addition operation
 opCode = cxx_writer.writer_code.Code("""
-PSRbp = PSR;
 PSRbp[key_ICC_n] = ((result & 0x80000000) >> 31);
 PSRbp[key_ICC_z] = (result == 0);
 PSRbp[key_ICC_v] = ((unsigned int)((rs1_op & rs2_op & (~result)) | ((~rs1_op) & (~rs2_op) & result))) >> 31;
@@ -348,9 +364,38 @@ ICC_writeAdd.addInstuctionVar(('rs1_op', 'BIT<32>'))
 ICC_writeAdd.addInstuctionVar(('rs2_op', 'BIT<32>'))
 
 # Modification of the Integer Condition Codes of the Processor Status Register
-# after an subtraction operation
+# after a tagged addition operation
 opCode = cxx_writer.writer_code.Code("""
-PSRbp = PSR;
+PSRbp[key_ICC_n] = ((result & 0x80000000) >> 31);
+PSRbp[key_ICC_z] = (result == 0);
+PSRbp[key_ICC_v] = temp_V;
+PSRbp[key_ICC_c] = ((unsigned int)((rs1_op & rs2_op) | ((rs1_op | rs2_op) & (~result)))) >> 31;
+""")
+ICC_writeTAdd = trap.HelperOperation('ICC_writeTAdd', opCode)
+ICC_writeTAdd.addInstuctionVar(('result', 'BIT<32>'))
+ICC_writeTAdd.addInstuctionVar(('temp_V', 'BIT<1>'))
+ICC_writeTAdd.addInstuctionVar(('rs1_op', 'BIT<32>'))
+ICC_writeTAdd.addInstuctionVar(('rs2_op', 'BIT<32>'))
+
+# Modification of the Integer Condition Codes of the Processor Status Register
+# after a tagged addition operation
+opCode = cxx_writer.writer_code.Code("""
+if(!temp_V){
+    PSRbp[key_ICC_n] = ((result & 0x80000000) >> 31);
+    PSRbp[key_ICC_z] = (result == 0);
+    PSRbp[key_ICC_v] = 0;
+    PSRbp[key_ICC_c] = ((unsigned int)((rs1_op & rs2_op) | ((rs1_op | rs2_op) & (~result)))) >> 31;
+}
+""")
+ICC_writeTVAdd = trap.HelperOperation('ICC_writeTVAdd', opCode)
+ICC_writeTVAdd.addInstuctionVar(('result', 'BIT<32>'))
+ICC_writeTVAdd.addInstuctionVar(('temp_V', 'BIT<1>'))
+ICC_writeTVAdd.addInstuctionVar(('rs1_op', 'BIT<32>'))
+ICC_writeTVAdd.addInstuctionVar(('rs2_op', 'BIT<32>'))
+
+# Modification of the Integer Condition Codes of the Processor Status Register
+# after a subtraction operation
+opCode = cxx_writer.writer_code.Code("""
 PSRbp[key_ICC_n] = ((result & 0x80000000) >> 31);
 PSRbp[key_ICC_z] = (result == 0);
 PSRbp[key_ICC_v] = ((unsigned int)((rs1_op & (~rs2_op) & (~result)) | ((~rs1_op) & rs2_op & result))) >> 31;
@@ -360,3 +405,33 @@ ICC_writeSub = trap.HelperOperation('ICC_writeSub', opCode)
 ICC_writeSub.addInstuctionVar(('result', 'BIT<32>'))
 ICC_writeSub.addInstuctionVar(('rs1_op', 'BIT<32>'))
 ICC_writeSub.addInstuctionVar(('rs2_op', 'BIT<32>'))
+
+# Modification of the Integer Condition Codes of the Processor Status Register
+# after a tagged subtraction operation
+opCode = cxx_writer.writer_code.Code("""
+PSRbp[key_ICC_n] = ((result & 0x80000000) >> 31);
+PSRbp[key_ICC_z] = (result == 0);
+PSRbp[key_ICC_v] = temp_V;
+PSRbp[key_ICC_c] = ((unsigned int)(((~rs1_op) & rs2_op) | (((~rs1_op) | rs2_op) & result))) >> 31;
+""")
+ICC_writeTSub = trap.HelperOperation('ICC_writeTSub', opCode)
+ICC_writeTSub.addInstuctionVar(('result', 'BIT<32>'))
+ICC_writeTSub.addInstuctionVar(('temp_V', 'BIT<1>'))
+ICC_writeTSub.addInstuctionVar(('rs1_op', 'BIT<32>'))
+ICC_writeTSub.addInstuctionVar(('rs2_op', 'BIT<32>'))
+
+# Modification of the Integer Condition Codes of the Processor Status Register
+# after a tagged subtraction operation
+opCode = cxx_writer.writer_code.Code("""
+if(!temp_V){
+    PSRbp[key_ICC_n] = ((result & 0x80000000) >> 31);
+    PSRbp[key_ICC_z] = (result == 0);
+    PSRbp[key_ICC_v] = temp_V;
+    PSRbp[key_ICC_c] = ((unsigned int)(((~rs1_op) & rs2_op) | (((~rs1_op) | rs2_op) & result))) >> 31;
+}
+""")
+ICC_writeTVSub = trap.HelperOperation('ICC_writeTVSub', opCode)
+ICC_writeTVSub.addInstuctionVar(('result', 'BIT<32>'))
+ICC_writeTVSub.addInstuctionVar(('temp_V', 'BIT<1>'))
+ICC_writeTVSub.addInstuctionVar(('rs1_op', 'BIT<32>'))
+ICC_writeTVSub.addInstuctionVar(('rs2_op', 'BIT<32>'))
