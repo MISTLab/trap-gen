@@ -281,8 +281,6 @@ def getCPPRegClass(self, model, regType):
     else:
         constructorCode = 'this->value = 0;\n'
     if not model.startswith('acc') and type(self.delay) != type({}) and self.delay != 0:
-        constructorCode += 'this->values = new ' + str(regWidthType) + '[' + str(self.delay) + '];\n'
-        constructorCode += 'this->updateSlot = new bool[' + str(self.delay) + '];\n'
         for i in range(0, self.delay):
             constructorCode += 'this->updateSlot[' + str(i) + '] = false;\n'
     constructorBody = cxx_writer.writer_code.Code(constructorCode)
@@ -321,10 +319,10 @@ def getCPPRegClass(self, model, regType):
                 fieldLenMask = '0' + fieldLenMask
         operatorCode = ''
         if not model.startswith('acc') and type(self.delay) != type({}) and self.delay > 0:
-            operatorCode += 'this->lastValid = true;\nthis->valueLast = this->value;\n'
+            operatorCode += 'this->lastValid = true;\n'
             if type(readValueItem) != type(0):
                 if onesMask != negatedMask:
-                    operatorCode += 'this->valueLast &= ' + hex(int(negatedMask, 2)) + ';\n'
+                    operatorCode += 'this->valueLast = (this->value & ' + hex(int(negatedMask, 2)) + ');\n'
                 operatorCode += 'this->valueLast |= '
                 if length[0] > 0:
                     operatorCode += '((other & ' + hex(int(fieldLenMask, 2)) + ') << ' + str(length[0]) + ');\n'
@@ -392,9 +390,9 @@ def getCPPRegClass(self, model, regType):
         offsetAttribute = cxx_writer.writer_code.Attribute('offset', cxx_writer.writer_code.intType, 'pri')
         attrs.append(offsetAttribute)
     if not model.startswith('acc') and type(self.delay) != type({}) and self.delay != 0:
-        delaySlotAttribute = cxx_writer.writer_code.Attribute('values', regWidthType.makePointer(), 'pri')
+        delaySlotAttribute = cxx_writer.writer_code.Attribute('values[' + str(self.delay) + ']', regWidthType, 'pri')
         attrs.append(delaySlotAttribute)
-        updateSlotAttribute = cxx_writer.writer_code.Attribute('updateSlot', cxx_writer.writer_code.boolType.makePointer(), 'pri')
+        updateSlotAttribute = cxx_writer.writer_code.Attribute('updateSlot[' + str(self.delay) + ']', cxx_writer.writer_code.boolType, 'pri')
         attrs.append(updateSlotAttribute)
     registerElements = attrs + registerElements
 
@@ -3215,4 +3213,3 @@ def getMainCode(self, model):
     parameters = [cxx_writer.writer_code.Parameter('argc', cxx_writer.writer_code.intType), cxx_writer.writer_code.Parameter('argv', cxx_writer.writer_code.charPtrType.makePointer())]
     function = cxx_writer.writer_code.Function('sc_main', mainCode, cxx_writer.writer_code.intType, parameters)
     return function
-

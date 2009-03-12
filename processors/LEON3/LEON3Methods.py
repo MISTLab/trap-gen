@@ -105,15 +105,17 @@ if(PSR[key_ET] == 0){
     }
 }
 else{
-    PSR[key_PS] = PSR[key_S];
-    PSR[key_S] = 1;
-    PSR[key_ET] = 0;
+    unsigned int curPSR = PSR;
+    curPSR = (curPSR & 0xffffffbf) | (PSR[key_S] << 6);
+    curPSR = (curPSR & 0xffffff7f) | 0x00000080;
+    curPSR &= 0xffffffdf;
     unsigned int newCwp = ((unsigned int)(PSR[key_CWP] - 1)) % NUM_REG_WIN;
 """
 for i in range(8, 32):
     raiseExcCode += 'REGS[' + str(i) + '].updateAlias(WINREGS[(newCwp*16 + ' + str(i) + ') % (16*NUM_REG_WIN)]);\n'
 raiseExcCode +=  """
-    PSR[key_CWP] = newCwp;
+    curPSR = (curPSR & 0xffffffe0) + newCwp;
+    PSR = curPSR;
     REGS[17] = PC;
     REGS[18] = NPC;
     switch(exceptionId){
