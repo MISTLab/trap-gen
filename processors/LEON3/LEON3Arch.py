@@ -82,7 +82,7 @@ processor.addRegBank(globalRegs)
 windowRegs = trap.RegisterBank('WINREGS', 16*numRegWindows, 32)
 processor.addRegBank(windowRegs)
 # Program status register
-psrBitMask = {'IMPL': (31, 28), 'VER': (27, 24), 'ICC_n': (23, 23), 'ICC_z': (22, 22), 'ICC_v': (21, 21), 'ICC_c': (20, 20), 'EC': (13, 13), 'EF': (12, 12), 'PIL': (11, 8), 'S': (7, 7), 'PS': (6, 6), 'ET': (5, 5), 'CWP': (4, 0)}
+psrBitMask = {'IMPL': (28, 31), 'VER': (24, 27), 'ICC_n': (23, 23), 'ICC_z': (22, 22), 'ICC_v': (21, 21), 'ICC_c': (20, 20), 'EC': (13, 13), 'EF': (12, 12), 'PIL': (8, 11), 'S': (7, 7), 'PS': (6, 6), 'ET': (5, 5), 'CWP': (0, 4)}
 psrReg = trap.Register('PSR', 32, psrBitMask)
 psrReg.setDefaultValue(0xF30000C0)
 psrReg.setDelay(3)
@@ -96,8 +96,9 @@ wimReg.setDefaultValue(0x00000002)
 wimReg.setDelay(3)
 processor.addRegister(wimReg)
 # Trap Base Register
-tbrBitMask = {'TBA' : (31, 12), 'TT' : (11, 4)}
+tbrBitMask = {'TBA' : (12, 31), 'TT' : (4, 11)}
 tbrReg = trap.Register('TBR', 32, tbrBitMask)
+tbrReg.setDefaultValue(0)
 processor.addRegister(tbrReg)
 # Multiply / Divide Register
 yReg = trap.Register('Y', 32)

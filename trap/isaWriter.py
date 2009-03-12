@@ -200,6 +200,20 @@ def getCPPInstr(self, model, processor, trace):
     if not baseClasses:
         baseClasses.append(instructionType)
 
+    if model.startswith('acc'):
+        # Now I have to add the code for checking data hazards
+        hasCheckHazard = False
+        hasWb = False
+        for pipeStage in pipeline:
+            if pipeStage.checkHazard:
+                if pipeline.index(pipeStage) + 1 < len(pipeline):
+                    if not pipeline[pipeline.index(pipeStage) + 1].wb:
+                        hasCheckHazard = True
+            if pipeStage.wb:
+                if pipeline.index(pipeStage) - 1 >= 0:
+                    if not pipeline[pipeline.index(pipeStage) - 1].checkHazard:
+                        hasWb = True
+
     if not model.startswith('acc'):
         behaviorCode = 'this->totalInstrCycles = 0;\n'
     for pipeStage in pipeline:
@@ -276,7 +290,8 @@ def getCPPInstr(self, model, processor, trace):
                 else:
                     behaviorCode += 'this->' + beh.name + '();\n'
         if model.startswith('acc'):
-            behaviorCode += 'return this->stageCycles;\n\n'
+            unlockQueueType = cxx_writer.writer_code.TemplateType('std::vector', [registerType.makePointer()])
+            unlockQueueParam = cxx_writer.writer_code.Parameter('unlockQueue', unlockQueueType.makeRef())
             for reg in processor.regs:
                 behaviorCode += '#undef ' + reg.name + '\n'
             for regB in processor.regBanks:
@@ -289,8 +304,26 @@ def getCPPInstr(self, model, processor, trace):
                 behaviorCode += '#undef ' + instrFieldName + '\n'
             for instrFieldName, correspondence in self.bitCorrespondence.items():
                 behaviorCode += '#undef ' + instrFieldName + '\n'
+            if hasCheckHazard:
+                # Now I have to insert the code to fill in the queue of registers to unlock
+                if self.specialOutRegsWB.has_key(pipeStage.name):
+                    for regToUnlock in self.specialOutRegsWB[pipeStage.name]:
+                        behaviorCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
+                if pipeStage.endHazard:
+                    # Here I have to unlock all the registers for which a special unlock stage
+                    # was not specified
+                    for regToUnlock in self.machineCode.bitCorrespondence.keys():
+                        if 'out' in self.machineCode.bitDirection[regToUnlock] and not regToUnlock in self.specialOutRegsWB.values():
+                            behaviorCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
+                    for regToUnlock, correspondence in self.bitCorrespondence.keys():
+                        if 'out' in self.bitDirection[regToUnlock] and not regToUnlock in self.specialOutRegsWB.values():
+                            behaviorCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
+                    for regToUnlock in self.specialOutRegs:
+                        if not regToUnlock in self.specialOutRegsWB.values():
+                            behaviorCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
+            behaviorCode += 'return this->stageCycles;\n\n'
             behaviorBody = cxx_writer.writer_code.Code(behaviorCode)
-            behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage.name, behaviorBody, cxx_writer.writer_code.uintType, 'pu')
+            behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage.name, behaviorBody, cxx_writer.writer_code.uintType, 'pu', [unlockQueueParam])
             classElements.append(behaviorDecl)
     if not model.startswith('acc'):
         behaviorCode += 'return this->totalInstrCycles;'
@@ -299,17 +332,6 @@ def getCPPInstr(self, model, processor, trace):
         classElements.append(behaviorDecl)
     if model.startswith('acc'):
         # Now I have to add the code for checking data hazards
-        hasCheckHazard = False
-        hasWb = False
-        for pipeStage in pipeline:
-            if pipeStage.checkHazard:
-                if pipeline.index(pipeStage) + 1 < len(pipeline):
-                    if not pipeline[pipeline.index(pipeStage) + 1].wb:
-                        hasCheckHazard = True
-            if pipeStage.wb:
-                if pipeline.index(pipeStage) - 1 >= 0:
-                    if not pipeline[pipeline.index(pipeStage) - 1].checkHazard:
-                        hasWb = True
         if hasCheckHazard:
             checkHazardCode = ''
             for name, correspondence in self.machineCode.bitCorrespondence.items():
@@ -341,18 +363,6 @@ def getCPPInstr(self, model, processor, trace):
             else:
                 checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', checkHazardBody, cxx_writer.writer_code.voidType, 'pu')
             classElements.append(checkHazardDecl)
-            wbCode = ''
-            for name, correspondence in self.machineCode.bitCorrespondence.items():
-                if 'out' in self.machineCode.bitDirection[name]:
-                    wbCode += 'this->' + name + '.unlock();\n'
-            for name, correspondence in self.bitCorrespondence.items():
-                if 'out' in self.bitDirection[name]:
-                    wbCode += 'this->' + name + '.unlock();\n'
-            for specialRegName in self.specialOutRegs:
-                wbCode += 'this->' + specialRegName + '.unlock();\n'
-            wbBody = cxx_writer.writer_code.Code(wbCode)
-            wbDecl = cxx_writer.writer_code.Method('registerWb', wbBody, cxx_writer.writer_code.voidType, 'pu')
-            classElements.append(wbDecl)
             lockCode = ''
             for name, correspondence in self.machineCode.bitCorrespondence.items():
                 if 'out' in self.machineCode.bitDirection[name]:
@@ -365,6 +375,21 @@ def getCPPInstr(self, model, processor, trace):
             lockBody = cxx_writer.writer_code.Code(lockCode)
             lockDecl = cxx_writer.writer_code.Method('lockRegs', lockBody, cxx_writer.writer_code.voidType, 'pu')
             classElements.append(lockDecl)
+            getUnlockCode = ''
+            for regToUnlock in self.specialOutRegsWB.values():
+                getUnlockCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
+            for regToUnlock in self.machineCode.bitCorrespondence.keys():
+                if 'out' in self.machineCode.bitDirection[regToUnlock] and not regToUnlock in self.specialOutRegsWB.values():
+                    getUnlockCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
+            for regToUnlock, correspondence in self.bitCorrespondence.keys():
+                if 'out' in self.bitDirection[regToUnlock] and not regToUnlock in self.specialOutRegsWB.values():
+                    getUnlockCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
+            for regToUnlock in self.specialOutRegs:
+                if not regToUnlock in self.specialOutRegsWB.values():
+                    getUnlockCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
+            getUnlockBody = cxx_writer.writer_code.Code(getUnlockCode)
+            getUnlockDecl = cxx_writer.writer_code.Method('getUnlock', lockBody, cxx_writer.writer_code.voidType, 'pu', [unlockQueueParam])
+            classElements.append(getUnlockDecl)
 
     replicateBody = cxx_writer.writer_code.Code('return new ' + self.name + '(' + baseInstrInitElement + ');')
     replicateDecl = cxx_writer.writer_code.Method('replicate', replicateBody, instructionType.makePointer(), 'pu', noException = True, const = True)
@@ -584,11 +609,7 @@ def getCPPInstrTest(self, processor, model):
                 code += resource + '.immediateWrite(' + hex(value) + ');\n'
         code += 'toTest.setParams(' + hex(int(''.join(instrCode), 2)) + ');\n'
         code += 'try{\n'
-        if not model.startswith('acc'):
-            code += 'toTest.behavior();'
-        else:
-            for pipeStage in processor.pipes:
-                code += 'toTest.behavior_' + pipeStage + '();'
+        code += 'toTest.behavior();'
         code += '\n}\ncatch(annull_exception &etc){\n}\n\n'
         for resource, value in test[2].items():
             # I check the value of the listed resources to make sure that the
@@ -619,6 +640,9 @@ def getCPPClasses(self, processor, model, trace):
     global archWordType
     archWordType = resolveBitType('BIT<' + str(processor.wordSize*processor.byteSize) + '>')
     memoryType = cxx_writer.writer_code.Type('MemoryInterface', 'memory.hpp')
+    registerType = cxx_writer.writer_code.Type('Register')
+    unlockQueueType = cxx_writer.writer_code.TemplateType('std::vector', [registerType.makePointer()])
+
     classes = []
     # Here I add the define code, definig the type of the current model
     defString = '#define ' + model[:-2].upper() + '_MODEL\n'
@@ -638,8 +662,9 @@ def getCPPClasses(self, processor, model, trace):
         behaviorDecl = cxx_writer.writer_code.Method('behavior', emptyBody, cxx_writer.writer_code.uintType, 'pu', pure = True)
         instructionElements.append(behaviorDecl)
     else:
+        unlockQueueParam = cxx_writer.writer_code.Parameter('unlockQueue', unlockQueueType.makeRef())
         for pipeStage in processor.pipes:
-            behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage.name, emptyBody, cxx_writer.writer_code.uintType, 'pu', pure = True)
+            behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage.name, emptyBody, cxx_writer.writer_code.uintType, 'pu', [unlockQueueParam], pure = True)
             instructionElements.append(behaviorDecl)
     replicateDecl = cxx_writer.writer_code.Method('replicate', emptyBody, instructionType.makePointer(), 'pu', pure = True, noException = True, const = True)
     instructionElements.append(replicateDecl)
@@ -670,10 +695,10 @@ def getCPPClasses(self, processor, model, trace):
             else:
                 checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.voidType, 'pu', pure = True)
             instructionElements.append(checkHazardDecl)
-            wbDecl = cxx_writer.writer_code.Method('registerWb', emptyBody, cxx_writer.writer_code.voidType, 'pu', pure = True)
-            instructionElements.append(wbDecl)
             lockDecl = cxx_writer.writer_code.Method('lockRegs', emptyBody, cxx_writer.writer_code.voidType, 'pu', pure = True)
             instructionElements.append(lockDecl)
+            getUnlockDecl = cxx_writer.writer_code.Method('getUnlock', emptyBody, cxx_writer.writer_code.voidType, 'pu', [unlockQueueParam], pure = True)
+            instructionElements.append(getUnlockDecl)
 
     if trace:
         # I have to print the value of all the registers in the processor
@@ -864,7 +889,7 @@ def getCPPClasses(self, processor, model, trace):
                         classes.append(behClass[beh.name])
 
     #########################################################################
-    ############### Now I print the invalid instruction #####################
+    ############### Now I print the INVALID instruction #####################
 
     invalidInstrElements = []
     behaviorReturnBody = cxx_writer.writer_code.Code('return 0;')
@@ -881,9 +906,9 @@ def getCPPClasses(self, processor, model, trace):
             if pipeStage.checkUnknown:
                 behaviorBody.prependCode('#define ' + processor.fetchReg[0] + ' ' + processor.fetchReg[0] + '_' + pipeStage.name + '\n')
                 behaviorBody.appendCode('\n#undef ' + processor.fetchReg[0])
-                behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage.name, behaviorBody, cxx_writer.writer_code.uintType, 'pu')
+                behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage.name, behaviorBody, cxx_writer.writer_code.uintType, 'pu', [unlockQueueParam])
             else:
-                behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage.name, behaviorReturnBody, cxx_writer.writer_code.uintType, 'pu')
+                behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage.name, behaviorReturnBody, cxx_writer.writer_code.uintType, 'pu', [unlockQueueParam])
             invalidInstrElements.append(behaviorDecl)
     else:
         behaviorDecl = cxx_writer.writer_code.Method('behavior', behaviorBody, cxx_writer.writer_code.uintType, 'pu')
@@ -908,10 +933,10 @@ def getCPPClasses(self, processor, model, trace):
             else:
                 checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.voidType, 'pu')
             invalidInstrElements.append(checkHazardDecl)
-            wbDecl = cxx_writer.writer_code.Method('registerWb', emptyBody, cxx_writer.writer_code.voidType, 'pu')
-            invalidInstrElements.append(wbDecl)
             lockDecl = cxx_writer.writer_code.Method('lockRegs', emptyBody, cxx_writer.writer_code.voidType, 'pu')
             invalidInstrElements.append(lockDecl)
+            getUnlockDecl = cxx_writer.writer_code.Method('getUnlock', emptyBody, cxx_writer.writer_code.voidType, 'pu', [unlockQueueParam])
+            invalidInstrElements.append(getUnlockDecl)
     from procWriter import baseInstrInitElement
     publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, ['Instruction(' + baseInstrInitElement + ')'])
     invalidInstrDecl = cxx_writer.writer_code.ClassDeclaration('InvalidInstr', invalidInstrElements, [instructionDecl.getType()])
@@ -927,7 +952,7 @@ def getCPPClasses(self, processor, model, trace):
         # finally I print the NOP instruction, which I put in the pipeline when flushes occurr
         NOPInstructionElements = []
         for pipeStage in processor.pipes:
-            behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage.name, behaviorReturnBody, cxx_writer.writer_code.uintType, 'pu')
+            behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage.name, behaviorReturnBody, cxx_writer.writer_code.uintType, 'pu', [unlockQueueParam])
             NOPInstructionElements.append(behaviorDecl)
         from procWriter import baseInstrInitElement
         replicateBody = cxx_writer.writer_code.Code('return new NOPInstruction(' + baseInstrInitElement + ');')
@@ -948,10 +973,10 @@ def getCPPClasses(self, processor, model, trace):
             else:
                 checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.voidType, 'pu')
             NOPInstructionElements.append(checkHazardDecl)
-            wbDecl = cxx_writer.writer_code.Method('registerWb', emptyBody, cxx_writer.writer_code.voidType, 'pu')
-            NOPInstructionElements.append(wbDecl)
             lockDecl = cxx_writer.writer_code.Method('lockRegs', emptyBody, cxx_writer.writer_code.voidType, 'pu')
             NOPInstructionElements.append(lockDecl)
+            getUnlockDecl = cxx_writer.writer_code.Method('getUnlock', emptyBody, cxx_writer.writer_code.voidType, 'pu', [unlockQueueParam])
+            NOPInstructionElements.append(getUnlockDecl)
         from procWriter import baseInstrInitElement
         publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, ['Instruction(' + baseInstrInitElement + ')'])
         NOPInstructionElements = cxx_writer.writer_code.ClassDeclaration('NOPInstruction', NOPInstructionElements, [instructionDecl.getType()])

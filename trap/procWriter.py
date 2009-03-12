@@ -101,6 +101,7 @@ def getCPPRegClass(self, model, regType):
     # define all the operators;
     emptyBody = cxx_writer.writer_code.Code('')
     regWidthType = regMaxType
+
     registerType = cxx_writer.writer_code.Type('Register')
     InnerFieldType = cxx_writer.writer_code.Type('InnerField')
     registerElements = []
@@ -269,8 +270,12 @@ def getCPPRegClass(self, model, regType):
 
     # Constructors
     fieldInit = []
-    for field in self.bitMask.keys():
-        fieldInit.append('field_' + field + '(this->value)')
+    if not model.startswith('acc') and type(self.delay) != type({}) and self.delay > 0:
+        for field in self.bitMask.keys():
+            fieldInit.append('field_' + field + '(this->value, this->values[' + str(self.delay - 1) + '], this->updateSlot[' + str(self.delay - 1) + '])')
+    else:
+        for field in self.bitMask.keys():
+            fieldInit.append('field_' + field + '(this->value)')
     if self.constValue != None and type(self.constValue) != type({}):
         constructorCode = 'this->value = ' + readValueItem + ';\n'
     else:
@@ -301,21 +306,39 @@ def getCPPRegClass(self, model, regType):
         # Here I have to define the classes that represent the different fields
         negatedMask = ''
         mask = ''
+        fieldLenMask = ''
+        onesMask = ''.join(['1' for i in range(0, self.bitWidth)])
         for i in range(0, self.bitWidth):
-            if(i >= length[0] and i <= length[1]):
+            if (i >= length[0]) and (i <= length[1]):
                 negatedMask = '0' + negatedMask
                 mask = '1' + mask
             else:
                 negatedMask = '1' + negatedMask
                 mask = '0' + mask
-        if type(readValueItem) == type(0):
-            operatorCode = ''
-        else:
-            operatorCode = 'this->value &= ' + hex(int(negatedMask, 2)) + ';\nthis->value |= '
-            if length[0] > 0:
-                operatorCode += '(other << ' + str(length[0]) + ');\n'
+            if i <= (length[1] - length[0]):
+                fieldLenMask = '1' + fieldLenMask
             else:
-                operatorCode += 'other;\n'
+                fieldLenMask = '0' + fieldLenMask
+        operatorCode = ''
+        if not model.startswith('acc') and type(self.delay) != type({}) and self.delay > 0:
+            operatorCode += 'this->lastValid = true;\nthis->valueLast = this->value;\n'
+            if type(readValueItem) != type(0):
+                if onesMask != negatedMask:
+                    operatorCode += 'this->valueLast &= ' + hex(int(negatedMask, 2)) + ';\n'
+                operatorCode += 'this->valueLast |= '
+                if length[0] > 0:
+                    operatorCode += '((other & ' + hex(int(fieldLenMask, 2)) + ') << ' + str(length[0]) + ');\n'
+                else:
+                    operatorCode += 'other;\n'
+        else:
+            if type(readValueItem) != type(0):
+                if onesMask != negatedMask:
+                    operatorCode += 'this->value &= ' + hex(int(negatedMask, 2)) + ';\n'
+                operatorCode += 'this->value |= '
+                if length[0] > 0:
+                    operatorCode += '((other & ' + hex(int(fieldLenMask, 2)) + ') << ' + str(length[0]) + ');\n'
+                else:
+                    operatorCode += 'other;\n'
         operatorCode += 'return *this;'
         operatorBody = cxx_writer.writer_code.Code(operatorCode)
         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
@@ -330,8 +353,18 @@ def getCPPRegClass(self, model, regType):
         InnerFieldElems.append(operatorIntDecl)
         fieldAttribute = cxx_writer.writer_code.Attribute('value', regMaxType.makeRef(), 'pri')
         InnerFieldElems.append(fieldAttribute)
+        if not model.startswith('acc') and type(self.delay) != type({}) and self.delay > 0:
+            fieldAttribute = cxx_writer.writer_code.Attribute('valueLast', regMaxType.makeRef(), 'pri')
+            InnerFieldElems.append(fieldAttribute)
+            fieldAttribute = cxx_writer.writer_code.Attribute('lastValid', cxx_writer.writer_code.boolType.makeRef(), 'pri')
+            InnerFieldElems.append(fieldAttribute)
         constructorParams = [cxx_writer.writer_code.Parameter('value', regMaxType.makeRef())]
         constructorInit = ['value(value)']
+        if not model.startswith('acc') and type(self.delay) != type({}) and self.delay > 0:
+            constructorParams.append(cxx_writer.writer_code.Parameter('valueLast', regMaxType.makeRef()))
+            constructorInit.append('valueLast(valueLast)')
+            constructorParams.append(cxx_writer.writer_code.Parameter('lastValid', cxx_writer.writer_code.boolType.makeRef()))
+            constructorInit.append('lastValid(lastValid)')
         publicConstr = cxx_writer.writer_code.Constructor(cxx_writer.writer_code.Code(''), 'pu', constructorParams, constructorInit)
         InnerFieldClass = cxx_writer.writer_code.ClassDeclaration('InnerField_' + field, InnerFieldElems, [cxx_writer.writer_code.Type('InnerField')])
         InnerFieldClass.addConstructor(publicConstr)
@@ -445,10 +478,14 @@ def getCPPRegisters(self, model):
     ################ Operators working with the base class, employed when polimorphism is used ##################
     # First lets declare the class which will be used to manipulate the
     # bitfields
+    InnerFieldType = cxx_writer.writer_code.Type('InnerField')
+    operatorBody = cxx_writer.writer_code.Code('*this = (unsigned int)other;\nreturn *this;')
+    operatorParam = cxx_writer.writer_code.Parameter('other', InnerFieldType.makeRef().makeConst())
+    operatorEqualInnerDecl = cxx_writer.writer_code.MemberOperator('=', operatorBody, InnerFieldType.makeRef(), 'pu', [operatorParam])
     operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
-    operatorEqualDecl = cxx_writer.writer_code.MemberOperator('=', emptyBody, cxx_writer.writer_code.Type('InnerField').makeRef(), 'pu', [operatorParam], pure = True)
+    operatorEqualDecl = cxx_writer.writer_code.MemberOperator('=', emptyBody, InnerFieldType.makeRef(), 'pu', [operatorParam], pure = True)
     operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), emptyBody, cxx_writer.writer_code.Type(''), 'pu', const = True, pure = True)
-    InnerFieldClass = cxx_writer.writer_code.ClassDeclaration('InnerField', [operatorEqualDecl, operatorIntDecl])
+    InnerFieldClass = cxx_writer.writer_code.ClassDeclaration('InnerField', [operatorEqualInnerDecl, operatorEqualDecl, operatorIntDecl])
     publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
     InnerFieldClass.addDestructor(publicDestr)
 
@@ -2408,6 +2445,7 @@ def getGetPipelineStages(self, trace):
     baseConstructorInit = ''
     pipeType = cxx_writer.writer_code.Type('BasePipeStage')
     IntructionType = cxx_writer.writer_code.Type('Instruction', include = 'instructions.hpp')
+    registerType = cxx_writer.writer_code.Type('Register', include = 'registers.hpp')
 
     stageEndedFlag = cxx_writer.writer_code.Attribute('stageEnded', cxx_writer.writer_code.boolType, 'pu')
     pipelineElements.append(stageEndedFlag)
@@ -2529,6 +2567,8 @@ def getGetPipelineStages(self, trace):
     pipelineElements.append(stageAttr)
     stageAttr = cxx_writer.writer_code.Attribute('succStage', pipeType.makePointer(), 'pro')
     pipelineElements.append(stageAttr)
+    unlockQueueAttr = cxx_writer.writer_code.Attribute('unlockQueue', cxx_writer.writer_code.TemplateType('std::vector', [registerType.makePointer()], 'vector'), 'pro', static = True)
+    pipelineElements.append(unlockQueueAttr)
     prevStageParam = cxx_writer.writer_code.Parameter('prevStage', pipeType.makePointer(), initValue = 'NULL')
     succStageParam = cxx_writer.writer_code.Parameter('succStage', pipeType.makePointer(), initValue = 'NULL')
     constructorParamsBase.append(prevStageParam)
@@ -2663,7 +2703,7 @@ def getGetPipelineStages(self, trace):
                         if(!(this->toolManager.newIssue(""" + fetchAddress + """, this->curInstruction))){
                         #endif"""
                 codeString += """
-                        numCycles = this->curInstruction->behavior_""" + pipeStage.name + """();
+                        numCycles = this->curInstruction->behavior_""" + pipeStage.name + """(BasePipeStage::unlockQueue);
                 """
                 if pipeStage.checkTools:
                     codeString += """
@@ -2704,7 +2744,7 @@ def getGetPipelineStages(self, trace):
                     if(!(this->toolManager.newIssue(""" + fetchAddress + """, this->curInstruction))){
                     #endif"""
             codeString += """
-                    numCycles = this->curInstruction->behavior_""" + pipeStage.name + """();
+                    numCycles = this->curInstruction->behavior_""" + pipeStage.name + """(BasePipeStage::unlockQueue);
             """
             if pipeStage.checkTools:
                 codeString += """
@@ -2794,7 +2834,7 @@ def getGetPipelineStages(self, trace):
                     if(!(this->toolManager.newIssue(this->""" + self.fetchReg[0] + """, this->curInstruction))){
                     #endif
                 """
-            codeString += 'numCycles = this->curInstruction->behavior_' + pipeStage.name + '();\n'
+            codeString += 'numCycles = this->curInstruction->behavior_' + pipeStage.name + '(BasePipeStage::unlockQueue);\n'
             if trace and pipeStage == self.pipes[-1]:
                 codeString += """
                     this->curInstruction->printTrace();
@@ -2811,11 +2851,11 @@ def getGetPipelineStages(self, trace):
                 """
             codeString += '}\n'
             codeString += 'catch(annull_exception &etc){\n'
-            if hasWb and checkHazardsMet and pipeStage.endHazard:
-                codeString += 'this->curInstruction->registerWb();\n'
             if trace:
                 codeString += """std::cerr << "Stage """ + pipeStage.name + """: Skipped Instruction " << this->curInstruction->getInstructionName() << std::endl << std::endl;
                 """
+            if hasCheckHazard:
+                codeString += 'this->curInstruction->getUnlock(BasePipeStage::unlockQueue);\n'
             codeString += """this->curInstruction = this->NOPInstrInstance;
                 numCycles = 0;
             }
@@ -2831,8 +2871,6 @@ def getGetPipelineStages(self, trace):
                 this->prevStage->flush();
             }
             """
-            if hasWb and checkHazardsMet and pipeStage.endHazard:
-                codeString += 'this->curInstruction->registerWb();\n'
             if self.externalClock:
                 codeString += """}
                 // HERE WAIT FOR END OF ALL STAGES
@@ -2932,8 +2970,14 @@ def getGetPipelineStages(self, trace):
                             if upPipe != wbStage:
                                 codeString += 'this->NOPInstrInstance->' + regB.name + '_' + upPipe.name + '[i] = this->' + regB.name + '[i];\n'
                         codeString += '}\n'
-
                 codeString += '}\n'
+            # Now I have to produce the code for unlocking the registers in the unlockQueue
+            codeString += """
+            std::vector<Register *>::iterator unlockQueueIter, unlockQueueEnd;
+            for(unlockQueueIter = BasePipeStage::unlockQueue.begin(), unlockQueueEnd = BasePipeStage::unlockQueue.end(); unlockQueueIter != unlockQueueEnd; unlockQueueIter++){
+                (*unlockQueueIter)->unlock();
+            }
+            """
             refreshRegistersBody = cxx_writer.writer_code.Code(codeString)
             refreshRegistersDecl = cxx_writer.writer_code.Method('refreshRegisters', refreshRegistersBody, cxx_writer.writer_code.voidType, 'pu')
             curPipeElements.append(refreshRegistersDecl)

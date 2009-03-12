@@ -69,6 +69,8 @@ class Register:
         self.bitWidth = bitWidth
         if bitMask:
             for key, value in bitMask.items():
+                if value[0] > value[1]:
+                    raise Exception('The bit mask specified for register ' + self.name + ' for field ' + key + ' has the start value ' + str(value[0]) + ' bigger than the end value ' + str(value[0]))
                 if value[1] >= bitWidth:
                     raise Exception('The bit mask specified for register ' + self.name + ' for field ' + key + ' is of size ' + str(value[1]) + ' while the register has size ' + str(bitWidth))
                 for key1, value1 in bitMask.items():
@@ -116,6 +118,8 @@ class RegisterBank:
         totalBits = 0
         if bitMask:
             for key, value in bitMask.items():
+                if value[0] > value[1]:
+                    raise Exception('The bit mask specified for register bank ' + self.name + ' for field ' + key + ' has the start value ' + str(value[0]) + ' bigger than the end value ' + str(value[0]))
                 if value[1] >= bitWidth:
                     raise Exception('The bit mask specified for register bank ' + self.name + ' for field ' + key + ' is of size ' + str(value[1]) + ' while the register has size ' + str(bitWidth))
                 for key1, value1 in bitMask.items():
@@ -613,7 +617,9 @@ class Processor:
                     # Single register or alias: I check that it exists
                     if not self.isRegExisting(regName):
                         raise Exception('Register ' + regName + ' referenced as spcieal register in insrtuction ' + name + ' does not exists')
-
+            for stage in instruction.specialOutRegsWB.keys():
+                if not stage in [i.name for i in self.pipes]:
+                    raise Exception('Stage ' + stage + ' specified for WB of instruction ' + name + ' does not exists')
 
     def checkABI(self):
         # checks that the registers specified for the ABI interface

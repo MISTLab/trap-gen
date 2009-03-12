@@ -310,6 +310,7 @@ class Instruction:
         # registers)
         self.specialInRegs = []
         self.specialOutRegs = []
+        self.specialOutRegsWB = {}
         # Specifies if the coding of this instruction is a special case of a more general
         # instruction
         self.subInstr = False
@@ -468,11 +469,15 @@ class Instruction:
         raise Exception('GCC Retargeting not yet supported')
         self.templateString = templateString
 
-    def addSpecialRegister(self, regName, direction = 'inout'):
+    def addSpecialRegister(self, regName, direction = 'inout', stage = ''):
         if direction in ['inout', 'in']:
             self.specialInRegs.append(regName)
         if direction in ['inout', 'out']:
             self.specialOutRegs.append(regName)
+            if self.specialOutRegsWB.has_key(stage):
+                self.specialOutRegsWB[stage].append(regName)
+            else:
+                self.specialOutRegsWB[stage] = [regName]
         if not direction in ['inout', 'out', 'in']:
             raise Exception(str(direction) + ' is  not valid; valid values are: \'inout\', \'in\', and \'out\'')
 
