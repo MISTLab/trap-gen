@@ -290,6 +290,7 @@ def getCPPInstr(self, model, processor, trace):
                 else:
                     behaviorCode += 'this->' + beh.name + '();\n'
         if model.startswith('acc'):
+            registerType = cxx_writer.writer_code.Type('Register')
             unlockQueueType = cxx_writer.writer_code.TemplateType('std::vector', [registerType.makePointer()])
             unlockQueueParam = cxx_writer.writer_code.Parameter('unlockQueue', unlockQueueType.makeRef())
             for reg in processor.regs:
