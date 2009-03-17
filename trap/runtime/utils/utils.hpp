@@ -49,6 +49,8 @@
 #include <exception>
 #include <stdexcept>
 
+#include "customExceptions.hpp"
+
 #ifndef __GNUC__
 #ifndef __PRETTY_FUNCTION__
 #ifdef __FUNCDNAME__
@@ -67,7 +69,7 @@
 #ifdef THROW_EXCEPTION
 #undef THROW_EXCEPTION
 #endif
-#define THROW_EXCEPTION( msg ) ( throw std::runtime_error(MAKE_STRING( "At: function " << __PRETTY_FUNCTION__ << " file: " << __FILE__ << ":" << __LINE__ << " --> " << msg )) )
+#define THROW_EXCEPTION( msg ) ( throw ExceptionTracer(MAKE_STRING( "At: function " << __PRETTY_FUNCTION__ << " file: " << __FILE__ << ":" << __LINE__ << " --> " << msg )) )
 
 void throw_error_helper(std::string message);
 
