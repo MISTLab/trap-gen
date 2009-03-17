@@ -1767,28 +1767,97 @@ isa.addInstruction(jump_reg_Instr)
 # Return from Trap
 # N.B. In the reg read stage it writes the values of the SU and ET PSR
 # fields???????
-opCode = cxx_writer.writer_code.Code("""
+opCodeRegsImm = cxx_writer.writer_code.Code("""
+rs1_op = rs1;
+rs2_op = SignExtend(simm13, 13);
+""")
+opCodeRegsRegs = cxx_writer.writer_code.Code("""
+rs1_op = rs1;
+rs2_op = rs2;
 """)
 rett_imm_Instr = trap.Instruction('RETT_imm', True, frequency = 5)
 rett_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 0, 0, 1]}, 'TODO')
-rett_imm_Instr.setCode(opCode, 'execute')
 isa.addInstruction(rett_imm_Instr)
 rett_reg_Instr = trap.Instruction('RETT_reg', True, frequency = 5)
 rett_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 0, 0, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, 'TODO')
-rett_reg_Instr.setCode(opCode, 'execute')
 isa.addInstruction(rett_reg_Instr)
 
 # Trap on Integer Condition Code; note this instruction also receives the forwarding
-# of the PSR
+# of the PSR, the same as the branch instruction
 opCode = cxx_writer.writer_code.Code("""
+// All the other non-special situations
+raiseException = (cond == 0x8) ||
+            ((cond == 0x9) && PSRbp[key_ICC_z] == 0) ||
+            ((cond == 0x1) && PSRbp[key_ICC_z] != 0) ||
+            ((cond == 0xa) && (PSRbp[key_ICC_z] == 0) && (PSRbp[key_ICC_n] == PSRbp[key_ICC_v])) ||
+            ((cond == 0x2) && ((PSRbp[key_ICC_z] != 0) || (PSRbp[key_ICC_n] != PSRbp[key_ICC_v]))) ||
+            ((cond == 0xb) && PSRbp[key_ICC_n] == PSRbp[key_ICC_v]) ||
+            ((cond == 0x3) && PSR[key_ICC_n] != PSRbp[key_ICC_v]) ||
+            ((cond == 0xc) && (PSRbp[key_ICC_c] + PSRbp[key_ICC_z]) == 0) ||
+            ((cond == 0x4) && (PSRbp[key_ICC_c] + PSRbp[key_ICC_z]) > 0) ||
+            ((cond == 0xd) && PSRbp[key_ICC_c] == 0) ||
+            ((cond == 0x5) && PSRbp[key_ICC_c] != 0) ||
+            ((cond == 0xe) && PSRbp[key_ICC_n] == 0) ||
+            ((cond == 0x6) && PSRbp[key_ICC_n] != 0) ||
+            ((cond == 0xf) && PSRbp[key_ICC_v] == 0) ||
+            ((cond == 0x7) && PSRbp[key_ICC_v] != 0);
+""")
+opCodeRegs = cxx_writer.writer_code.Code("""
+if(raiseException){
+    flush();
+}
+""")
+opCodeExe = cxx_writer.writer_code.Code("""
+if(raiseException){
+    flush();
+}
+""")
+opCodeMem = cxx_writer.writer_code.Code("""
+if(raiseException){
+    flush();
+}
+""")
+opCodeTrapImm = cxx_writer.writer_code.Code("""
+if(raiseException){
+    RaiseException(TRAP_INSTRUCTION, (rs1 + SignExtend(imm7, 7)) & 0x0000007F);
+}
+""")
+opCodeTrapReg = cxx_writer.writer_code.Code("""
+if(raiseException){
+    RaiseException(TRAP_INSTRUCTION, (rs1 + rs2) & 0x0000007F);
+}
 """)
 trap_imm_Instr = trap.Instruction('TRAP_imm', True, frequency = 5)
-trap_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 0, 1, 0]}, 'TODO')
-trap_imm_Instr.setCode(opCode, 'execute')
+trap_imm_Instr.setMachineCode(ticc_format2, {'op3': [1, 1, 1, 0, 1, 0]},
+('t', ('%cond', {int('1000', 2) : 'a',
+int('0000', 2) : 'n', int('1001', 2) : 'ne', int('0001', 2) : 'e', int('1010', 2) : 'g', int('0010', 2) : 'le',
+int('1011', 2) : 'ge', int('0011', 2) : 'l', int('1100', 2) : 'gu', int('0100', 2) : 'leu', int('1101', 2) : 'cc',
+int('01010', 2) : 'cs', int('1110', 2) : 'pos', int('0110', 2) : 'neg', int('1111', 2) : 'vc', int('0111', 2) : 'vs',}),
+' r', '%rs1', '+', '%imm7'))
+trap_imm_Instr.setCode(opCode, 'decode')
+trap_imm_Instr.setCode(opCodeRegs, 'regs')
+trap_imm_Instr.setCode(opCodeExe, 'execute')
+trap_imm_Instr.setCode(opCodeMem, 'memory')
+trap_imm_Instr.setCode(opCodeTrapImm, 'exception')
+trap_imm_Instr.addBehavior(IncrementPC, 'fetch')
+trap_imm_Instr.addSpecialRegister('PSRbp', 'in')
+trap_imm_Instr.addVariable(cxx_writer.writer_code.Variable('raiseException', cxx_writer.writer_code.boolType))
 isa.addInstruction(trap_imm_Instr)
 trap_reg_Instr = trap.Instruction('TRAP_reg', True, frequency = 5)
-trap_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 0, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, 'TODO')
-trap_reg_Instr.setCode(opCode, 'execute')
+trap_reg_Instr.setMachineCode(ticc_format1, {'op3': [1, 1, 1, 0, 1, 0]},
+('t', ('%cond', {int('1000', 2) : 'a',
+int('0000', 2) : 'n', int('1001', 2) : 'ne', int('0001', 2) : 'e', int('1010', 2) : 'g', int('0010', 2) : 'le',
+int('1011', 2) : 'ge', int('0011', 2) : 'l', int('1100', 2) : 'gu', int('0100', 2) : 'leu', int('1101', 2) : 'cc',
+int('01010', 2) : 'cs', int('1110', 2) : 'pos', int('0110', 2) : 'neg', int('1111', 2) : 'vc', int('0111', 2) : 'vs',}),
+' r', '%rs1', '+r', '%rs2'))
+trap_reg_Instr.setCode(opCode, 'decode')
+trap_reg_Instr.setCode(opCodeRegs, 'regs')
+trap_reg_Instr.setCode(opCodeExe, 'execute')
+trap_reg_Instr.setCode(opCodeMem, 'memory')
+trap_reg_Instr.setCode(opCodeTrapReg, 'exception')
+trap_reg_Instr.addBehavior(IncrementPC, 'fetch')
+trap_reg_Instr.addSpecialRegister('PSRbp', 'in')
+trap_reg_Instr.addVariable(cxx_writer.writer_code.Variable('raiseException', cxx_writer.writer_code.boolType))
 isa.addInstruction(trap_reg_Instr)
 
 # Read State Register
@@ -1852,8 +1921,13 @@ stbar_Instr.setCode(opCode, 'execute')
 isa.addInstruction(stbar_Instr)
 
 # Unimplemented Instruction
+opCode = cxx_writer.writer_code.Code("""
+RaiseException(ILLEGAL_INSTR);
+""")
 unimpl_Instr = trap.Instruction('UNIMP', True, frequency = 5)
-unimpl_Instr.setMachineCode(b_sethi_format1, {'op2' : [0, 0, 0]}, 'TODO')
+unimpl_Instr.setMachineCode(b_sethi_format1, {'op2' : [0, 0, 0]}, ('unimp', ' ', '%imm22'))
+unimpl_Instr.setCode(opCode, 'exception')
+unimpl_Instr.addBehavior(IncrementPC, 'fetch')
 isa.addInstruction(unimpl_Instr)
 
 # Flush Memory
