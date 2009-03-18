@@ -879,9 +879,13 @@ readWim_Instr.addTest({}, {}, {})
 readTbr_Instr.addTest({}, {}, {})
 
 # Write State Register
-writeReg_reg_Instr.addTest({}, {}, {})
+writeY_reg_Instr.addTest({}, {}, {})
 
-writeReg_imm_Instr.addTest({}, {}, {})
+writeY_imm_Instr.addTest({}, {}, {})
+
+writeASR_reg_Instr.addTest({}, {}, {})
+
+writeASR_imm_Instr.addTest({}, {}, {})
 
 writePsr_reg_Instr.addTest({}, {}, {})
 

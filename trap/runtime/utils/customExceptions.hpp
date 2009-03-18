@@ -47,6 +47,7 @@
 #include <string>
 #include <exception>
 #include <stdexcept>
+#include <iostream>
 #include <execinfo.h>
 
 class annull_exception: public std::runtime_error{
