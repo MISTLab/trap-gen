@@ -868,7 +868,9 @@ trap_imm_Instr.addTest({}, {}, {})
 trap_reg_Instr.addTest({}, {}, {})
 
 # Read State Register
-readReg_Instr.addTest({}, {}, {})
+readY_Instr.addTest({}, {}, {})
+
+readASR_Instr.addTest({}, {}, {})
 
 readPsr_Instr.addTest({}, {}, {})
 

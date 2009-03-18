@@ -85,6 +85,21 @@ dpi_format2.setBitfield('op', [1, 0])
 dpi_format2.setVarField('rd', ('REGS', 0), 'out')
 dpi_format2.setVarField('rs1', ('REGS', 0), 'in')
 
+# Format for reading special instructions
+read_special_format = trap.MachineCode([('op', 2), ('rd', 5), ('op3', 6), ('asr', 5), ('zero', 14)])
+read_special_format.setBitfield('op', [1, 0])
+read_special_format.setVarField('rd', ('REGS', 0), 'out')
+
+# Format for writing special instructions
+write_special_format1 = trap.MachineCode([('op', 2), ('rd', 5), ('op3', 6), ('rs1', 5), ('zero', 9), ('rs2', 5)])
+write_special_format1.setBitfield('op', [1, 0])
+write_special_format1.setVarField('rs1', ('REGS', 0), 'in')
+write_special_format1.setVarField('rs2', ('REGS', 0), 'in')
+
+write_special_format2 = trap.MachineCode([('op', 2), ('rd', 5), ('op3', 6), ('rs1', 5), ('one', 1), ('simm13', 13)])
+write_special_format2.setBitfield('op', [1, 0])
+write_special_format2.setVarField('rs1', ('REGS', 0), 'in')
+
 # Trap on integer condition code format
 ticc_format1 = trap.MachineCode([('op', 2), ('reserved1', 1), ('cond', 4), ('op3', 6), ('rs1', 5), ('zero', 1), ('asi', 8), ('rs2', 5)])
 ticc_format1.setBitfield('op', [1, 0])
@@ -101,4 +116,3 @@ coprocessor_format.setBitfield('op', [1, 0])
 coprocessor_format.setVarField('rd', ('REGS', 0), 'out')
 coprocessor_format.setVarField('rs1', ('REGS', 0), 'in')
 coprocessor_format.setVarField('rs2', ('REGS', 0), 'in')
-
