@@ -66,10 +66,12 @@
 #endif
 #define MAKE_STRING( msg )  ( ((std::ostringstream&)((std::ostringstream() << '\x0') << msg)).str().substr(1) )
 
+void throw_exception_helper(std::string message);
+
 #ifdef THROW_EXCEPTION
 #undef THROW_EXCEPTION
 #endif
-#define THROW_EXCEPTION( msg ) ( throw ExceptionTracer(MAKE_STRING( "At: function " << __PRETTY_FUNCTION__ << " file: " << __FILE__ << ":" << __LINE__ << " --> " << msg )) )
+#define THROW_EXCEPTION( msg ) ( throw_exception_helper(MAKE_STRING( "At: function " << __PRETTY_FUNCTION__ << " file: " << __FILE__ << ":" << __LINE__ << " --> " << msg )) )
 
 void throw_error_helper(std::string message);
 
