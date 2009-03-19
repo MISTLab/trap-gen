@@ -900,9 +900,9 @@ writeTbr_reg_Instr.addTest({}, {}, {})
 writeTbr_imm_Instr.addTest({}, {}, {})
 
 ## Store Barrier
-stbar_Instr.addTest({}, {}, {})
+#stbar_Instr.addTest({}, {}, {})
 
 # Flush Memory
-flush_reg_Instr.addTest({}, {}, {})
+#flush_reg_Instr.addTest({}, {}, {})
 
-flush_imm_Instr.addTest({}, {}, {})
+#flush_imm_Instr.addTest({}, {}, {})

@@ -1766,20 +1766,67 @@ isa.addInstruction(jump_reg_Instr)
 
 # Return from Trap
 # N.B. In the reg read stage it writes the values of the SU and ET PSR
-# fields???????
+# fields??????? TODO: check the stages where the operations are performed:
+# is everything performed in the decode stage?
 opCodeRegsImm = cxx_writer.writer_code.Code("""
 rs1_op = rs1;
 rs2_op = SignExtend(simm13, 13);
+exceptionEnabled = PSR[key_ET];
+supervisor = PSR[key_S];
 """)
 opCodeRegsRegs = cxx_writer.writer_code.Code("""
 rs1_op = rs1;
 rs2_op = rs2;
 """)
+opCodeExec = cxx_writer.writer_code.Code("""
+targetAddr = rs1_op + rs2_op;
+newCwp = ((unsigned int)(PSR[key_CWP] + 1)) % NUM_REG_WIN;
+""")
+opCodeTrap = cxx_writer.writer_code.Code("""
+if(exceptionEnabled){
+    if(supervisor){
+        RaiseException(ILLEGAL_INSTR);
+    }
+    else{
+        RaiseException(PRIVILEDGE_INSTR);
+    }
+}
+else if(supervisor || ((0x01 << (newCwp)) & WIM) != 0 || (targetAddr & 0x00000003) != 0){
+    THROW_EXCEPTION("Invalid processor mode during execution of the RETT instruction");
+}
+IncrementRegWindow();
+""")
+opCodeWb = cxx_writer.writer_code.Code("""
+PSR[key_ET] = 1;
+PSR[key_S] = PSR[key_PS];
+PC = NPC;
+NPC = targetAddr;
+""")
 rett_imm_Instr = trap.Instruction('RETT_imm', True, frequency = 5)
-rett_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 0, 0, 1]}, 'TODO')
+rett_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 0, 0, 1]}, ('rett r', '%rs1', '+', '%simm13'))
+rett_imm_Instr.setCode(opCodeRegsImm, 'regs')
+rett_imm_Instr.setCode(opCodeExec, 'execute')
+rett_imm_Instr.setCode(opCodeTrap, 'exception')
+rett_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
+rett_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
+rett_imm_Instr.addVariable(('targetAddr', 'BIT<32>'))
+rett_imm_Instr.addVariable(('newCwp', 'BIT<32>'))
+rett_imm_Instr.addVariable(cxx_writer.writer_code.Variable('exceptionEnabled', cxx_writer.writer_code.boolType))
+rett_imm_Instr.addVariable(cxx_writer.writer_code.Variable('supervisor', cxx_writer.writer_code.boolType))
+rett_imm_Instr.addBehavior(IncrementPC, 'fetch')
 isa.addInstruction(rett_imm_Instr)
 rett_reg_Instr = trap.Instruction('RETT_reg', True, frequency = 5)
-rett_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 0, 0, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, 'TODO')
+rett_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 0, 0, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('rett r', '%rs1', '+r', '%rs2'))
+rett_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+rett_reg_Instr.setCode(opCodeExec, 'execute')
+rett_reg_Instr.setCode(opCodeTrap, 'exception')
+rett_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
+rett_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
+rett_reg_Instr.addVariable(('targetAddr', 'BIT<32>'))
+rett_reg_Instr.addVariable(('newCwp', 'BIT<32>'))
+rett_reg_Instr.addVariable(cxx_writer.writer_code.Variable('exceptionEnabled', cxx_writer.writer_code.boolType))
+rett_reg_Instr.addVariable(cxx_writer.writer_code.Variable('supervisor', cxx_writer.writer_code.boolType))
+rett_reg_Instr.addBehavior(IncrementPC, 'fetch')
 isa.addInstruction(rett_reg_Instr)
 
 # Trap on Integer Condition Code; note this instruction also receives the forwarding
