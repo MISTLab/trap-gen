@@ -460,7 +460,7 @@ class Folder:
         #error Wrong version of the TRAP runtime: too old
         #endif
         int main(int argc, char * argv[]){return 0;}
-    ''', msg='Check for TRAP version', uselib='TRAP', mandatory=1)
+    ''', msg='Check for TRAP header and version', uselib='TRAP', mandatory=1)
 
     ##################################################
     # Is SystemC compiled? Check for SystemC library
