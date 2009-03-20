@@ -447,20 +447,35 @@ class Folder:
     if Options.options.trapdir:
         trapDirLib = os.path.abspath(os.path.expandvars(os.path.expanduser(os.path.join(Options.options.trapdir, 'lib'))))
         trapDirInc = os.path.abspath(os.path.expandvars(os.path.expanduser(os.path.join(Options.options.trapdir, 'include'))))
-    conf.check_cxx(lib='trap', uselib_store='TRAP', mandatory=1, libpath=trapDirLib)
-    conf.check_cxx(header_name='trap.hpp', uselib='TRAP', uselib_store='TRAP', mandatory=1, includes=trapDirInc)
-    conf.check_cxx(fragment='''
-        #include "trap.hpp"
+        conf.check_cxx(lib='trap', uselib_store='TRAP', mandatory=1, libpath=trapDirLib)
+        conf.check_cxx(header_name='trap.hpp', uselib='TRAP', uselib_store='TRAP', mandatory=1, includes=trapDirInc)
+        conf.check_cxx(fragment='''
+            #include "trap.hpp"
 
-        #ifndef TRAP_REVISION
-        #error TRAP_REVISION not defined in file trap.hpp
-        #endif
+            #ifndef TRAP_REVISION
+            #error TRAP_REVISION not defined in file trap.hpp
+            #endif
 
-        #if TRAP_REVISION < 63
-        #error Wrong version of the TRAP runtime: too old
-        #endif
-        int main(int argc, char * argv[]){return 0;}
-    ''', msg='Check for TRAP header and version', uselib='TRAP', mandatory=1)
+            #if TRAP_REVISION < 63
+            #error Wrong version of the TRAP runtime: too old
+            #endif
+            int main(int argc, char * argv[]){return 0;}
+        ''', msg='Check for TRAP version', uselib='TRAP', mandatory=1, includes=trapDirInc)
+    else:
+        conf.check_cxx(lib='trap', uselib_store='TRAP', mandatory=1)
+        conf.check_cxx(header_name='trap.hpp', uselib='TRAP', uselib_store='TRAP', mandatory=1)
+        conf.check_cxx(fragment='''
+            #include "trap.hpp"
+
+            #ifndef TRAP_REVISION
+            #error TRAP_REVISION not defined in file trap.hpp
+            #endif
+
+            #if TRAP_REVISION < 63
+            #error Wrong version of the TRAP runtime: too old
+            #endif
+            int main(int argc, char * argv[]){return 0;}
+        ''', msg='Check for TRAP version', uselib='TRAP', mandatory=1)
 
     ##################################################
     # Is SystemC compiled? Check for SystemC library
