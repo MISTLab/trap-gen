@@ -21,8 +21,8 @@ class Completer:
             import os
             import re
             text = os.path.expanduser(text)
-            if text == '':
-                text = './'
+            if not text.startswith(os.sep):
+                text = './' + text
             dirName = os.path.dirname(text)
             baseName = os.path.basename(text)
             if not os.path.exists(dirName):
@@ -69,6 +69,11 @@ prefix = (raw_input('Please specify the toolchain installation folder (must be a
 targetArch = (raw_input('Please specify the toolchain target architecture (e.g. arm-elf): ')).replace('\n', '')
 addFlags = (raw_input('Specify additional compilation flags (ENTER for none): ')).replace('\n', '')
 newlibPatch = (raw_input('Are you going to patch newlib?[N,y]: ')).replace('\n', '')
+numProc = (raw_input('Specify the number of processes used during compilation[1]: ')).replace('\n', '')
+try:
+    int(numProc)
+except:
+    numProc = 1
 
 binutilsName = ''
 if binutils.find('.tar.bz2') == len(binutils) - 8:
@@ -158,25 +163,25 @@ elif os.path.exists(gdb):
 
 #Ok, lets finally procede with the actual compilation
 print '\nCompiling binutils\n'
-if os.system('cd ' + os.path.abspath(binutils + '_build') + ' && ' + os.path.abspath(binutilsName + '/configure') + ' --target=' + targetArch + ' --prefix=' + os.path.abspath(prefix) + ' --enable-multilib ' + addFlags + ' && make -j2 && make install') != 0:
+if os.system('cd ' + os.path.abspath(binutils + '_build') + ' && ' + os.path.abspath(binutilsName + '/configure') + ' --target=' + targetArch + ' --prefix=' + os.path.abspath(prefix) + ' --enable-multilib ' + addFlags + ' && make -j' + str(numProc) + ' && make install') != 0:
     sys.exit()
 print '\nCompiling gcc step-1\n'
-if os.system('export PATH=' + os.path.abspath(prefix + '/bin') + ':$PATH && cd ' + os.path.abspath(gcc + '_build') + ' && ' + os.path.abspath(gccName + '/configure') + ' --target=' + targetArch + ' --prefix=' + os.path.abspath(prefix) + ' --enable-multilib --with-newlib --with-tls --with-__thread --enable-languages=\'c,c++\' --with-headers=' + os.path.abspath(newlibName + '/newlib/libc/include') + ' --disable-__cxa_atexit --disable-__dso_handle ' + addFlags + ' && make all-gcc -j2 && make install-gcc') != 0:
+if os.system('export PATH=' + os.path.abspath(prefix + '/bin') + ':$PATH && cd ' + os.path.abspath(gcc + '_build') + ' && ' + os.path.abspath(gccName + '/configure') + ' --target=' + targetArch + ' --prefix=' + os.path.abspath(prefix) + ' --enable-multilib --with-newlib --with-tls --with-__thread --enable-languages=\'c,c++\' --with-headers=' + os.path.abspath(newlibName + '/newlib/libc/include') + ' --disable-__cxa_atexit --disable-__dso_handle ' + addFlags + ' && make all-gcc -j' + str(numProc) + ' && make install-gcc') != 0:
     sys.exit()
 if newlibPatch.lower() == 'y':
     raw_input('Please perform all the necessary modifications to the newlib library and press a key when ready to continue')
 print '\nCompiling newlib\n'
-if os.system('export PATH=' + os.path.abspath(prefix + '/bin') + ':$PATH && cd ' + os.path.abspath(newlib + '_build') + ' && ' + os.path.abspath(newlibName + '/configure') + ' --target=' + targetArch + ' --prefix=' + os.path.abspath(prefix) + ' --enable-multilib ' + addFlags + ' && make -j2 && make install') != 0:
+if os.system('export PATH=' + os.path.abspath(prefix + '/bin') + ':$PATH && cd ' + os.path.abspath(newlib + '_build') + ' && ' + os.path.abspath(newlibName + '/configure') + ' --target=' + targetArch + ' --prefix=' + os.path.abspath(prefix) + ' --enable-multilib ' + addFlags + ' && make -j' + str(numProc) + ' && make install') != 0:
     sys.exit()
 print '\nCompiling gcc step-2\n'
-if os.system('export PATH=' + os.path.abspath(prefix + '/bin') + ':$PATH && cd ' + os.path.abspath(gcc + '_build') + ' && make -j2 && make install') != 0:
+if os.system('export PATH=' + os.path.abspath(prefix + '/bin') + ':$PATH && cd ' + os.path.abspath(gcc + '_build') + ' && make -j' + str(numProc) + ' && make install') != 0:
     sys.exit()
 #Now it is time to see if we need to cross-compiler GDB
 print '\nCompiling debugger\n'
 if os.path.exists(insight):
-    if os.system('export PATH=' + os.path.abspath(prefix + '/bin') + ':$PATH && cd ' + os.path.abspath(insight + '_build') + ' && ' + os.path.abspath(insightName + '/configure') + ' --target=' + targetArch + ' --prefix=' + os.path.abspath(prefix) + ' --enable-multilib ' + addFlags + ' && make -j2 && make install') != 0:
+    if os.system('export PATH=' + os.path.abspath(prefix + '/bin') + ':$PATH && cd ' + os.path.abspath(insight + '_build') + ' && ' + os.path.abspath(insightName + '/configure') + ' --target=' + targetArch + ' --prefix=' + os.path.abspath(prefix) + ' --enable-multilib ' + addFlags + ' && make -j' + str(numProc) + ' && make install') != 0:
         sys.exit()
 elif os.path.exists(gdb):
-    if os.system('export PATH=' + os.path.abspath(prefix + '/bin') + ':$PATH && cd ' + os.path.abspath(gdb + '_build') + ' && ' + os.path.abspath(gdbName + '/configure') + ' --target=' + targetArch + ' --prefix=' + os.path.abspath(prefix) + ' --enable-multilib ' + addFlags + ' && make -j2 && make install') != 0:
+    if os.system('export PATH=' + os.path.abspath(prefix + '/bin') + ':$PATH && cd ' + os.path.abspath(gdb + '_build') + ' && ' + os.path.abspath(gdbName + '/configure') + ' --target=' + targetArch + ' --prefix=' + os.path.abspath(prefix) + ' --enable-multilib ' + addFlags + ' && make -j' + str(numProc) + ' && make install') != 0:
         sys.exit()
 print '\n\n\nCross-Compiler correctly created in ' + os.path.abspath(prefix)

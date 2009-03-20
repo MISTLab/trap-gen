@@ -14,5 +14,5 @@ File configOptions.txt contains the additional configuration option that were gi
 It should in theory be possible to use the files in this folder with any recent version of the binutils, gcc and newlib. Anyway they have been tested with: binutils-2.19.tar.bz2 gcc-4.3.3.tar.bz2 gdb-6.8.tar.bz2 newlib-1.17.0.tar.gz
 
 TODO:
-Symbol exit has been defined in the linkwer script to equal __exit; this is an ugly hack and it has the problem that the destructors are not called. The corrected exit routine should be written (or we should find a way of including the correct one from newlib).
+Symbol exit has been defined in the linker script to equal __exit; this is an ugly hack and it has the problem that the destructors are not called. The corrected exit routine should be written (or we should find a way of including the correct one from newlib).
 
