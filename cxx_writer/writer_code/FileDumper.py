@@ -217,6 +217,7 @@ class Folder:
     def createWscript(self, configure, tests, projectName, version):
         wscriptFile = open('wscript', 'wt')
         printOnFile('#!/usr/bin/env python\n', wscriptFile)
+        printOnFile('# -*- coding: iso-8859-1 -*-\n', wscriptFile)
         if configure:
             printOnFile('import sys, Options\n', wscriptFile)
             printOnFile('# these variables are mandatory', wscriptFile)
@@ -304,6 +305,8 @@ class Folder:
         conf.env['LINKFLAGS'] = conf.env['LINKFLAGS'].split(' ')
     if type(conf.env['STLINKFLAGS']) == type(''):
         conf.env['STLINKFLAGS'] = conf.env['STLINKFLAGS'].split(' ')
+    if type(conf.env['RPATH']) == type(''):
+        conf.env['RPATH'] = conf.env['RPATH'].split(' ')
 
     ########################################
     # Check for special gcc flags
@@ -349,6 +352,8 @@ class Folder:
     ########################################
     conf.check_tool('boost')
     conf.check_boost(lib='thread regex date_time program_options filesystem unit_test_framework system', static='both', min_version='1.35.0', mandatory = 1, errmsg = 'Unable to find regex and/or thread boost libraries, please install them and specify their location with the --boost-includes and --boost-libs configuration options')
+    if not Options.options.static_build:
+        conf.env.append_unique('RPATH', conf.env['LIBPATH_BOOST_THREAD'])
 
     ###########################################################
     # Check for BFD library and header and for LIBERTY library
@@ -408,6 +413,8 @@ class Folder:
         if Options.options.static_build:
             conf.check_cc(lib='iberty', uselib_store='LIBERTY', mandatory=1, libpath=searchDirs)
         conf.check_cc(lib=bfd_lib_name, uselib_store='BFD', mandatory=1, libpath=searchDirs)
+        if Options.options.bfddir and foundShared:
+            conf.env.append_unique('RPATH', os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'lib')))))
         if Options.options.bfddir:
             conf.check_cc(header_name='bfd.h', uselib_store='BFD', mandatory=1, includes=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'include'))))])
         else:
