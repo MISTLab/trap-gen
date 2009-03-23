@@ -123,254 +123,587 @@ isa.addDefines("""
 #----------------------------------------------------------------------------------------------------
 #____________________________________________________________________________________________________
 
-opCode = cxx_writer.writer_code.Code("""
+opCodeRegsImm = cxx_writer.writer_code.Code("""
+address = rs1 + SignExtend(simm13, 13);
+""")
+opCodeRegsRegs = cxx_writer.writer_code.Code("""
+address = rs1 + rs2;
+""")
+opCodeMem = cxx_writer.writer_code.Code("""
+readValue = SignExtend(dataMem.read_byte(address), 8);
+""")
+opCodeWb = cxx_writer.writer_code.Code("""
+rd = readValue;
 """)
 # Load Integer Instruction Family
 ldsb_imm_Instr = trap.Instruction('LDSB_imm', True, frequency = 5)
-ldsb_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 0, 1, 0, 0, 1]}, 'TODO')
+ldsb_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 0, 1, 0, 0, 1]}, ('ldsb r', '%rs1', '+', '%simm13', ' r', '%rd'))
 ldsb_imm_Instr.setVarField('rd', ('REGS', 0), 'out')
-ldsb_imm_Instr.setCode(opCode, 'execute')
+ldsb_imm_Instr.setCode(opCodeRegsImm, 'regs')
+ldsb_imm_Instr.setCode(opCodeMem, 'memory')
+ldsb_imm_Instr.setCode(opCodeWb, 'wb')
+ldsb_imm_Instr.addVariable(('address', 'BIT<32>'))
+ldsb_imm_Instr.addVariable(('readValue', 'BIT<32>'))
 isa.addInstruction(ldsb_imm_Instr)
 ldsb_reg_Instr = trap.Instruction('LDSB_reg', True, frequency = 5)
-ldsb_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 0, 1, 0, 0, 1]}, 'TODO')
+ldsb_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 0, 1, 0, 0, 1]}, ('ldsb r', '%rs1', '+r', '%rs2', ' ', '%asi', ' r', '%rd'))
 ldsb_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
-ldsb_reg_Instr.setCode(opCode, 'execute')
+ldsb_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+ldsb_reg_Instr.setCode(opCodeMem, 'memory')
+ldsb_reg_Instr.setCode(opCodeWb, 'wb')
+ldsb_reg_Instr.addVariable(('address', 'BIT<32>'))
+ldsb_reg_Instr.addVariable(('readValue', 'BIT<32>'))
 isa.addInstruction(ldsb_reg_Instr)
+opCodeExec = cxx_writer.writer_code.Code("""
+notAligned = (address & 0x00000001) != 0;
+if(notAligned){
+    flush();
+}
+""")
+opCodeMem = cxx_writer.writer_code.Code("""
+if(!notAligned){
+    readValue = SignExtend(dataMem.read_half(address), 16);
+}
+""")
+opCodeException = cxx_writer.writer_code.Code("""
+if(notAligned){
+    RaiseException(MEM_ADDR_NOT_ALIGNED);
+}
+""")
 ldsh_imm_Instr = trap.Instruction('LDSH_imm', True, frequency = 5)
-ldsh_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 0, 1, 0, 1, 0]}, 'TODO')
+ldsh_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 0, 1, 0, 1, 0]}, ('ldsh r', '%rs1', '+', '%simm13', ' r', '%rd'))
 ldsh_imm_Instr.setVarField('rd', ('REGS', 0), 'out')
-ldsh_imm_Instr.setCode(opCode, 'execute')
+ldsh_imm_Instr.setCode(opCodeRegsImm, 'regs')
+ldsh_imm_Instr.setCode(opCodeExec, 'execute')
+ldsh_imm_Instr.setCode(opCodeMem, 'memory')
+ldsh_imm_Instr.setCode(opCodeException, 'exception')
+ldsh_imm_Instr.setCode(opCodeWb, 'wb')
+ldsh_imm_Instr.addVariable(('address', 'BIT<32>'))
+ldsh_imm_Instr.addVariable(('readValue', 'BIT<32>'))
+ldsh_imm_Instr.addVariable(('notAligned', 'BIT<1>'))
 isa.addInstruction(ldsh_imm_Instr)
 ldsh_reg_Instr = trap.Instruction('LDSH_reg', True, frequency = 5)
-ldsh_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 0, 1, 0, 1, 0]}, 'TODO')
+ldsh_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 0, 1, 0, 1, 0]}, ('ldsh r', '%rs1', '+r', '%rs2', ' ', '%asi', ' r', '%rd'))
 ldsh_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
-ldsh_reg_Instr.setCode(opCode, 'execute')
+ldsh_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+ldsh_reg_Instr.setCode(opCodeExec, 'execute')
+ldsh_reg_Instr.setCode(opCodeMem, 'memory')
+ldsh_reg_Instr.setCode(opCodeException, 'exception')
+ldsh_reg_Instr.setCode(opCodeWb, 'wb')
+ldsh_reg_Instr.addVariable(('address', 'BIT<32>'))
+ldsh_reg_Instr.addVariable(('readValue', 'BIT<32>'))
+ldsh_reg_Instr.addVariable(('notAligned', 'BIT<1>'))
 isa.addInstruction(ldsh_reg_Instr)
+opCodeMem = cxx_writer.writer_code.Code("""
+readValue = dataMem.read_byte(address);
+""")
 ldub_imm_Instr = trap.Instruction('LDUB_imm', True, frequency = 5)
-ldub_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 0, 0, 0, 0, 1]}, 'TODO')
+ldub_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 0, 0, 0, 0, 1]}, ('ldub r', '%rs1', '+', '%simm13', ' r', '%rd'))
 ldub_imm_Instr.setVarField('rd', ('REGS', 0), 'out')
-ldub_imm_Instr.setCode(opCode, 'execute')
+ldub_imm_Instr.setCode(opCodeRegsImm, 'regs')
+ldub_imm_Instr.setCode(opCodeMem, 'memory')
+ldub_imm_Instr.setCode(opCodeWb, 'wb')
+ldub_imm_Instr.addVariable(('address', 'BIT<32>'))
+ldub_imm_Instr.addVariable(('readValue', 'BIT<32>'))
 isa.addInstruction(ldub_imm_Instr)
 ldub_reg_Instr = trap.Instruction('LDUB_reg', True, frequency = 5)
-ldub_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 0, 0, 0, 0, 1]}, 'TODO')
+ldub_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 0, 0, 0, 0, 1]}, ('ldub r', '%rs1', '+r', '%rs2', ' ', '%asi', ' r', '%rd'))
 ldub_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
-ldub_reg_Instr.setCode(opCode, 'execute')
+ldub_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+ldub_reg_Instr.setCode(opCodeMem, 'memory')
+ldub_reg_Instr.setCode(opCodeWb, 'wb')
+ldub_reg_Instr.addVariable(('address', 'BIT<32>'))
+ldub_reg_Instr.addVariable(('readValue', 'BIT<32>'))
 isa.addInstruction(ldub_reg_Instr)
+opCodeMem = cxx_writer.writer_code.Code("""
+readValue = dataMem.read_half(address);
+""")
 lduh_imm_Instr = trap.Instruction('LDUH_imm', True, frequency = 5)
-lduh_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 0, 0, 0, 1, 0]}, 'TODO')
+lduh_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 0, 0, 0, 1, 0]}, ('lduh r', '%rs1', '+', '%simm13', ' r', '%rd'))
 lduh_imm_Instr.setVarField('rd', ('REGS', 0), 'out')
-lduh_imm_Instr.setCode(opCode, 'execute')
+lduh_imm_Instr.setCode(opCodeRegsImm, 'regs')
+lduh_imm_Instr.setCode(opCodeExec, 'execute')
+lduh_imm_Instr.setCode(opCodeMem, 'memory')
+lduh_imm_Instr.setCode(opCodeException, 'exception')
+lduh_imm_Instr.setCode(opCodeWb, 'wb')
+lduh_imm_Instr.addVariable(('address', 'BIT<32>'))
+lduh_imm_Instr.addVariable(('readValue', 'BIT<32>'))
+lduh_imm_Instr.addVariable(('notAligned', 'BIT<1>'))
 isa.addInstruction(lduh_imm_Instr)
 lduh_reg_Instr = trap.Instruction('LDUH_reg', True, frequency = 5)
-lduh_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 0, 0, 0, 1, 0]}, 'TODO')
+lduh_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 0, 0, 0, 1, 0]}, ('lduhr', '%rs1', '+r', '%rs2', ' ', '%asi', ' r', '%rd'))
 lduh_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
-lduh_reg_Instr.setCode(opCode, 'execute')
+lduh_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+lduh_reg_Instr.setCode(opCodeExec, 'execute')
+lduh_reg_Instr.setCode(opCodeMem, 'memory')
+lduh_reg_Instr.setCode(opCodeException, 'exception')
+lduh_reg_Instr.setCode(opCodeWb, 'wb')
+lduh_reg_Instr.addVariable(('address', 'BIT<32>'))
+lduh_reg_Instr.addVariable(('readValue', 'BIT<32>'))
+lduh_reg_Instr.addVariable(('notAligned', 'BIT<1>'))
 isa.addInstruction(lduh_reg_Instr)
+opCodeMem = cxx_writer.writer_code.Code("""
+readValue = dataMem.read_word(address);
+""")
+opCodeExec = cxx_writer.writer_code.Code("""
+notAligned = (address & 0x00000003) != 0;
+if(notAligned){
+    flush();
+}
+""")
 ld_imm_Instr = trap.Instruction('LD_imm', True, frequency = 5)
-ld_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 0, 0, 0, 0, 0]}, 'TODO')
+ld_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 0, 0, 0, 0, 0]}, ('ld r', '%rs1', '+', '%simm13', ' r', '%rd'))
 ld_imm_Instr.setVarField('rd', ('REGS', 0), 'out')
-ld_imm_Instr.setCode(opCode, 'execute')
+ld_imm_Instr.setCode(opCodeRegsImm, 'regs')
+ld_imm_Instr.setCode(opCodeExec, 'execute')
+ld_imm_Instr.setCode(opCodeMem, 'memory')
+ld_imm_Instr.setCode(opCodeException, 'exception')
+ld_imm_Instr.setCode(opCodeWb, 'wb')
+ld_imm_Instr.addVariable(('address', 'BIT<32>'))
+ld_imm_Instr.addVariable(('readValue', 'BIT<32>'))
+ld_imm_Instr.addVariable(('notAligned', 'BIT<1>'))
 isa.addInstruction(ld_imm_Instr)
 ld_reg_Instr = trap.Instruction('LD_reg', True, frequency = 5)
-ld_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 0, 0, 0, 0, 0]}, 'TODO')
+ld_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 0, 0, 0, 0, 0]}, ('ld r', '%rs1', '+r', '%rs2', ' ', '%asi', ' r', '%rd'))
 ld_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
-ld_reg_Instr.setCode(opCode, 'execute')
+ld_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+ld_reg_Instr.setCode(opCodeExec, 'execute')
+ld_reg_Instr.setCode(opCodeMem, 'memory')
+ld_reg_Instr.setCode(opCodeException, 'exception')
+ld_reg_Instr.setCode(opCodeWb, 'wb')
+ld_reg_Instr.addVariable(('address', 'BIT<32>'))
+ld_reg_Instr.addVariable(('readValue', 'BIT<32>'))
+ld_reg_Instr.addVariable(('notAligned', 'BIT<1>'))
 isa.addInstruction(ld_reg_Instr)
+opCodeDecode = cxx_writer.writer_code.Code("""
+#ifdef ACC_MODEL
+REGS[rd_bit | 0x1].lock();
+#endif
+""")
+opCodeExec = cxx_writer.writer_code.Code("""
+notAligned = (address & 0x00000007) != 0;
+if(notAligned){
+    #ifdef ACC_MODEL
+    REGS[rd_bit | 0x1].unlock();
+    #endif
+    flush();
+}
+""")
+opCodeMem = cxx_writer.writer_code.Code("""
+readValue = dataMem.read_dword(address);
+""")
+opCodeWb = cxx_writer.writer_code.Code("""
+if(rd_bit % 2 == 0){
+    rd = (unsigned int)(readValue & 0x00000000FFFFFFFFLL);
+    REGS[rd_bit + 1] = (unsigned int)((readValue >> 32) & 0x00000000FFFFFFFFLL);
+    #ifdef ACC_MODEL
+    REGS[rd_bit + 1].unlock();
+    #endif
+}
+else{
+    REGS[rd_bit - 1] = (unsigned int)(readValue & 0x00000000FFFFFFFFLL);
+    rd = (unsigned int)((readValue >> 32) & 0x00000000FFFFFFFFLL);
+    #ifdef ACC_MODEL
+    REGS[rd_bit - 1].unlock();
+    #endif
+}
+""")
 ldd_imm_Instr = trap.Instruction('LDD_imm', True, frequency = 5)
-ldd_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 0, 0, 0, 1, 1]}, 'TODO')
+ldd_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 0, 0, 0, 1, 1]}, ('ldd r', '%rs1', '+', '%simm13', ' r', '%rd'))
 ldd_imm_Instr.setVarField('rd', ('REGS', 0), 'out')
-ldd_imm_Instr.setCode(opCode, 'execute')
+ldd_imm_Instr.setCode(opCodeDecode, 'decode')
+ldd_imm_Instr.setCode(opCodeRegsImm, 'regs')
+ldd_imm_Instr.setCode(opCodeExec, 'execute')
+ldd_imm_Instr.setCode(opCodeMem, 'memory')
+ldd_imm_Instr.setCode(opCodeException, 'exception')
+ldd_imm_Instr.setCode(opCodeWb, 'wb')
+ldd_imm_Instr.addVariable(('address', 'BIT<32>'))
+ldd_imm_Instr.addVariable(('readValue', 'BIT<64>'))
+ldd_imm_Instr.addVariable(('notAligned', 'BIT<1>'))
 isa.addInstruction(ldd_imm_Instr)
 ldd_reg_Instr = trap.Instruction('LDD_reg', True, frequency = 5)
-ldd_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 0, 0, 0, 1, 1]}, 'TODO')
+ldd_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 0, 0, 0, 1, 1]}, ('ldd r', '%rs1', '+r', '%rs2', ' ', '%asi', ' r', '%rd'))
 ldd_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
-ldd_reg_Instr.setCode(opCode, 'execute')
+ldd_reg_Instr.setCode(opCodeDecode, 'decode')
+ldd_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+ldd_reg_Instr.setCode(opCodeExec, 'execute')
+ldd_reg_Instr.setCode(opCodeMem, 'memory')
+ldd_reg_Instr.setCode(opCodeException, 'exception')
+ldd_reg_Instr.setCode(opCodeWb, 'wb')
+ldd_reg_Instr.addVariable(('address', 'BIT<32>'))
+ldd_reg_Instr.addVariable(('readValue', 'BIT<64>'))
+ldd_reg_Instr.addVariable(('notAligned', 'BIT<1>'))
 isa.addInstruction(ldd_reg_Instr)
+# Here are the load operations accessing alternate space
+opCodeRegsImm = cxx_writer.writer_code.Code("""
+address = rs1 + SignExtend(simm13, 13);
+supervisor = PSR[key_S];
+""")
+opCodeRegsRegs = cxx_writer.writer_code.Code("""
+address = rs1 + rs2;
+supervisor = PSR[key_S];
+""")
+opCodeWb = cxx_writer.writer_code.Code("""
+rd = readValue;
+""")
+opCodeMem = cxx_writer.writer_code.Code("""
+readValue = SignExtend(dataMem.read_byte(address), 8);
+""")
+opCodeExec = cxx_writer.writer_code.Code("""
+if(!supervisor){
+    flush();
+}
+""")
+opCodeException = cxx_writer.writer_code.Code("""
+if(!supervisor){
+    RaiseException(PRIVILEDGE_INSTR);
+}
+""")
 ldsba_imm_Instr = trap.Instruction('LDSBA_imm', True, frequency = 5)
-ldsba_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 1, 1, 0, 0, 1]}, 'TODO')
+ldsba_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 1, 1, 0, 0, 1]}, ('ldba r', '%rs1', '+', '%simm13', ' r', '%rd'))
 ldsba_imm_Instr.setVarField('rd', ('REGS', 0), 'out')
-ldsba_imm_Instr.setCode(opCode, 'execute')
+ldsba_imm_Instr.setCode(opCodeRegsImm, 'regs')
+ldsba_imm_Instr.setCode(opCodeExec, 'execute')
+ldsba_imm_Instr.setCode(opCodeMem, 'memory')
+ldsba_imm_Instr.setCode(opCodeException, 'exception')
+ldsba_imm_Instr.setCode(opCodeWb, 'wb')
+ldsba_imm_Instr.addVariable(('address', 'BIT<32>'))
+ldsba_imm_Instr.addVariable(('readValue', 'BIT<32>'))
+ldsba_imm_Instr.addVariable(('supervisor', 'BIT<1>'))
 isa.addInstruction(ldsba_imm_Instr)
 ldsba_reg_Instr = trap.Instruction('LDSBA_reg', True, frequency = 5)
-ldsba_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 1, 1, 0, 0, 1]}, 'TODO')
+ldsba_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 1, 1, 0, 0, 1]}, ('ldba r', '%rs1', '+r', '%rs2', ' ', '%asi', ' r', '%rd'))
 ldsba_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
-ldsba_reg_Instr.setCode(opCode, 'execute')
+ldsba_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+ldsba_reg_Instr.setCode(opCodeExec, 'execute')
+ldsba_reg_Instr.setCode(opCodeMem, 'memory')
+ldsba_reg_Instr.setCode(opCodeException, 'exception')
+ldsba_reg_Instr.setCode(opCodeWb, 'wb')
+ldsba_reg_Instr.addVariable(('address', 'BIT<32>'))
+ldsba_reg_Instr.addVariable(('readValue', 'BIT<32>'))
+ldsba_reg_Instr.addVariable(('supervisor', 'BIT<1>'))
 isa.addInstruction(ldsba_reg_Instr)
+opCodeMem = cxx_writer.writer_code.Code("""
+readValue = SignExtend(dataMem.read_half(address), 16);
+""")
+opCodeExec = cxx_writer.writer_code.Code("""
+notAligned = (address & 0x00000001) != 0;
+if(notAligned || !supervisor){
+    flush();
+}
+""")
+opCodeException = cxx_writer.writer_code.Code("""
+if(!supervisor){
+    RaiseException(PRIVILEDGE_INSTR);
+}
+if(notAligned){
+    RaiseException(MEM_ADDR_NOT_ALIGNED);
+}
+""")
 ldsha_imm_Instr = trap.Instruction('LDSHA_imm', True, frequency = 5)
-ldsha_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 1, 1, 0, 1, 0]}, 'TODO')
+ldsha_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 1, 1, 0, 1, 0]}, ('ldsha r', '%rs1', '+', '%simm13', ' r', '%rd'))
 ldsha_imm_Instr.setVarField('rd', ('REGS', 0), 'out')
-ldsha_imm_Instr.setCode(opCode, 'execute')
+ldsha_imm_Instr.setCode(opCodeRegsImm, 'regs')
+ldsha_imm_Instr.setCode(opCodeExec, 'execute')
+ldsha_imm_Instr.setCode(opCodeMem, 'memory')
+ldsha_imm_Instr.setCode(opCodeException, 'exception')
+ldsha_imm_Instr.setCode(opCodeWb, 'wb')
+ldsha_imm_Instr.addVariable(('address', 'BIT<32>'))
+ldsha_imm_Instr.addVariable(('readValue', 'BIT<32>'))
+ldsha_imm_Instr.addVariable(('supervisor', 'BIT<1>'))
+ldsha_imm_Instr.addVariable(('notAligned', 'BIT<1>'))
 isa.addInstruction(ldsha_imm_Instr)
 ldsha_reg_Instr = trap.Instruction('LDSHA_reg', True, frequency = 5)
-ldsha_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 1, 1, 0, 1, 0]}, 'TODO')
+ldsha_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 1, 1, 0, 1, 0]}, ('ldsha r', '%rs1', '+r', '%rs2', ' ', '%asi', ' r', '%rd'))
 ldsha_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
-ldsha_reg_Instr.setCode(opCode, 'execute')
+ldsha_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+ldsha_reg_Instr.setCode(opCodeExec, 'execute')
+ldsha_reg_Instr.setCode(opCodeMem, 'memory')
+ldsha_reg_Instr.setCode(opCodeException, 'exception')
+ldsha_reg_Instr.setCode(opCodeWb, 'wb')
+ldsha_reg_Instr.addVariable(('address', 'BIT<32>'))
+ldsha_reg_Instr.addVariable(('readValue', 'BIT<32>'))
+ldsha_reg_Instr.addVariable(('supervisor', 'BIT<1>'))
+ldsha_reg_Instr.addVariable(('notAligned', 'BIT<1>'))
 isa.addInstruction(ldsha_reg_Instr)
+opCodeMem = cxx_writer.writer_code.Code("""
+readValue = dataMem.read_byte(address);
+""")
+opCodeExec = cxx_writer.writer_code.Code("""
+if(!supervisor){
+    flush();
+}
+""")
+opCodeException = cxx_writer.writer_code.Code("""
+if(!supervisor){
+    RaiseException(PRIVILEDGE_INSTR);
+}
+""")
 lduba_imm_Instr = trap.Instruction('LDUBA_imm', True, frequency = 5)
-lduba_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 1, 0, 0, 0, 1]}, 'TODO')
+lduba_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 1, 0, 0, 0, 1]}, ('lduba r', '%rs1', '+', '%simm13', ' r', '%rd'))
 lduba_imm_Instr.setVarField('rd', ('REGS', 0), 'out')
-lduba_imm_Instr.setCode(opCode, 'execute')
+lduba_imm_Instr.setCode(opCodeRegsImm, 'regs')
+lduba_imm_Instr.setCode(opCodeExec, 'execute')
+lduba_imm_Instr.setCode(opCodeMem, 'memory')
+lduba_imm_Instr.setCode(opCodeException, 'exception')
+lduba_imm_Instr.setCode(opCodeWb, 'wb')
+lduba_imm_Instr.addVariable(('address', 'BIT<32>'))
+lduba_imm_Instr.addVariable(('readValue', 'BIT<32>'))
+lduba_imm_Instr.addVariable(('supervisor', 'BIT<1>'))
 isa.addInstruction(lduba_imm_Instr)
 lduba_reg_Instr = trap.Instruction('LDUBA_reg', True, frequency = 5)
-lduba_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 1, 0, 0, 0, 1]}, 'TODO')
+lduba_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 1, 0, 0, 0, 1]}, ('lduba r', '%rs1', '+r', '%rs2', ' ', '%asi', ' r', '%rd'))
 lduba_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
-lduba_reg_Instr.setCode(opCode, 'execute')
+lduba_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+lduba_reg_Instr.setCode(opCodeExec, 'execute')
+lduba_reg_Instr.setCode(opCodeMem, 'memory')
+lduba_reg_Instr.setCode(opCodeException, 'exception')
+lduba_reg_Instr.setCode(opCodeWb, 'wb')
+lduba_reg_Instr.addVariable(('address', 'BIT<32>'))
+lduba_reg_Instr.addVariable(('readValue', 'BIT<32>'))
+lduba_reg_Instr.addVariable(('supervisor', 'BIT<1>'))
 isa.addInstruction(lduba_reg_Instr)
+opCodeMem = cxx_writer.writer_code.Code("""
+readValue = dataMem.read_half(address);
+""")
+opCodeExec = cxx_writer.writer_code.Code("""
+notAligned = (address & 0x00000001) != 0;
+if(notAligned || !supervisor){
+    flush();
+}
+""")
+opCodeException = cxx_writer.writer_code.Code("""
+if(!supervisor){
+    RaiseException(PRIVILEDGE_INSTR);
+}
+if(notAligned){
+    RaiseException(MEM_ADDR_NOT_ALIGNED);
+}
+""")
 lduha_imm_Instr = trap.Instruction('LDUHA_imm', True, frequency = 5)
-lduha_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 1, 0, 0, 1, 0]}, 'TODO')
+lduha_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 1, 0, 0, 1, 0]}, ('lduha r', '%rs1', '+', '%simm13', ' r', '%rd'))
 lduha_imm_Instr.setVarField('rd', ('REGS', 0), 'out')
-lduha_imm_Instr.setCode(opCode, 'execute')
+lduha_imm_Instr.setCode(opCodeRegsImm, 'regs')
+lduha_imm_Instr.setCode(opCodeExec, 'execute')
+lduha_imm_Instr.setCode(opCodeMem, 'memory')
+lduha_imm_Instr.setCode(opCodeException, 'exception')
+lduha_imm_Instr.setCode(opCodeWb, 'wb')
+lduha_imm_Instr.addVariable(('address', 'BIT<32>'))
+lduha_imm_Instr.addVariable(('readValue', 'BIT<32>'))
+lduha_imm_Instr.addVariable(('supervisor', 'BIT<1>'))
+lduha_imm_Instr.addVariable(('notAligned', 'BIT<1>'))
 isa.addInstruction(lduha_imm_Instr)
 lduha_reg_Instr = trap.Instruction('LDUHA_reg', True, frequency = 5)
-lduha_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 1, 0, 0, 1, 0]}, 'TODO')
+lduha_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 1, 0, 0, 1, 0]}, ('lduha r', '%rs1', '+r', '%rs2', ' ', '%asi', ' r', '%rd'))
 lduha_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
-lduha_reg_Instr.setCode(opCode, 'execute')
+lduha_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+lduha_reg_Instr.setCode(opCodeExec, 'execute')
+lduha_reg_Instr.setCode(opCodeMem, 'memory')
+lduha_reg_Instr.setCode(opCodeException, 'exception')
+lduha_reg_Instr.setCode(opCodeWb, 'wb')
+lduha_reg_Instr.addVariable(('address', 'BIT<32>'))
+lduha_reg_Instr.addVariable(('readValue', 'BIT<32>'))
+lduha_reg_Instr.addVariable(('supervisor', 'BIT<1>'))
+lduha_reg_Instr.addVariable(('notAligned', 'BIT<1>'))
 isa.addInstruction(lduha_reg_Instr)
+opCodeMem = cxx_writer.writer_code.Code("""
+readValue = dataMem.read_word(address);
+""")
+opCodeExec = cxx_writer.writer_code.Code("""
+notAligned = (address & 0x00000003) != 0;
+if(notAligned || !supervisor){
+    flush();
+}
+""")
 lda_imm_Instr = trap.Instruction('LDA_imm', True, frequency = 5)
-lda_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 1, 0, 0, 0, 0]}, 'TODO')
+lda_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 1, 0, 0, 0, 0]}, ('lda r', '%rs1', '+', '%simm13', ' r', '%rd'))
 lda_imm_Instr.setVarField('rd', ('REGS', 0), 'out')
-lda_imm_Instr.setCode(opCode, 'execute')
+lda_imm_Instr.setCode(opCodeRegsImm, 'regs')
+lda_imm_Instr.setCode(opCodeExec, 'execute')
+lda_imm_Instr.setCode(opCodeMem, 'memory')
+lda_imm_Instr.setCode(opCodeException, 'exception')
+lda_imm_Instr.setCode(opCodeWb, 'wb')
+lda_imm_Instr.addVariable(('address', 'BIT<32>'))
+lda_imm_Instr.addVariable(('readValue', 'BIT<32>'))
+lda_imm_Instr.addVariable(('supervisor', 'BIT<1>'))
+lda_imm_Instr.addVariable(('notAligned', 'BIT<1>'))
 isa.addInstruction(lda_imm_Instr)
 lda_reg_Instr = trap.Instruction('LDA_reg', True, frequency = 5)
-lda_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 1, 0, 0, 0, 0]}, 'TODO')
+lda_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 1, 0, 0, 0, 0]}, ('lda r', '%rs1', '+r', '%rs2', ' ', '%asi', ' r', '%rd'))
 lda_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
-lda_reg_Instr.setCode(opCode, 'execute')
+lda_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+lda_reg_Instr.setCode(opCodeExec, 'execute')
+lda_reg_Instr.setCode(opCodeMem, 'memory')
+lda_reg_Instr.setCode(opCodeException, 'exception')
+lda_reg_Instr.setCode(opCodeWb, 'wb')
+lda_reg_Instr.addVariable(('address', 'BIT<32>'))
+lda_reg_Instr.addVariable(('readValue', 'BIT<32>'))
+lda_reg_Instr.addVariable(('supervisor', 'BIT<1>'))
+lda_reg_Instr.addVariable(('notAligned', 'BIT<1>'))
 isa.addInstruction(lda_reg_Instr)
+opCodeDecode = cxx_writer.writer_code.Code("""
+#ifdef ACC_MODEL
+REGS[rd_bit | 0x1].lock();
+#endif
+""")
+opCodeExec = cxx_writer.writer_code.Code("""
+notAligned = (address & 0x00000007) != 0;
+if(notAligned || !supervisor){
+    #ifdef ACC_MODEL
+    REGS[rd_bit | 0x1].unlock();
+    #endif
+    flush();
+}
+""")
+opCodeMem = cxx_writer.writer_code.Code("""
+readValue = dataMem.read_dword(address);
+""")
+opCodeWb = cxx_writer.writer_code.Code("""
+if(rd_bit % 2 == 0){
+    rd = (unsigned int)(readValue & 0x00000000FFFFFFFFLL);
+    REGS[rd_bit + 1] = (unsigned int)((readValue >> 32) & 0x00000000FFFFFFFFLL);
+    #ifdef ACC_MODEL
+    REGS[rd_bit + 1].unlock();
+    #endif
+}
+else{
+    REGS[rd_bit - 1] = (unsigned int)(readValue & 0x00000000FFFFFFFFLL);
+    rd = (unsigned int)((readValue >> 32) & 0x00000000FFFFFFFFLL);
+    #ifdef ACC_MODEL
+    REGS[rd_bit - 1].unlock();
+    #endif
+}
+""")
 ldda_imm_Instr = trap.Instruction('LDDA_imm', True, frequency = 5)
-ldda_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 1, 0, 0, 1, 1]}, 'TODO')
+ldda_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 1, 0, 0, 1, 1]}, ('ldda r', '%rs1', '+', '%simm13', ' r', '%rd'))
 ldda_imm_Instr.setVarField('rd', ('REGS', 0), 'out')
-ldda_imm_Instr.setCode(opCode, 'execute')
+ldda_imm_Instr.setCode(opCodeDecode, 'decode')
+ldda_imm_Instr.setCode(opCodeRegsImm, 'regs')
+ldda_imm_Instr.setCode(opCodeExec, 'execute')
+ldda_imm_Instr.setCode(opCodeMem, 'memory')
+ldda_imm_Instr.setCode(opCodeException, 'exception')
+ldda_imm_Instr.setCode(opCodeWb, 'wb')
+ldda_imm_Instr.addVariable(('address', 'BIT<32>'))
+ldda_imm_Instr.addVariable(('readValue', 'BIT<64>'))
+ldda_imm_Instr.addVariable(('supervisor', 'BIT<1>'))
+ldda_imm_Instr.addVariable(('notAligned', 'BIT<1>'))
 isa.addInstruction(ldda_imm_Instr)
 ldda_reg_Instr = trap.Instruction('LDDA_reg', True, frequency = 5)
-ldda_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 1, 0, 0, 1, 1]}, 'TODO')
+ldda_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 1, 0, 0, 1, 1]}, ('ldda r', '%rs1', '+r', '%rs2', ' ', '%asi', ' r', '%rd'))
 ldda_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
-ldda_reg_Instr.setCode(opCode, 'execute')
+ldda_reg_Instr.setCode(opCodeDecode, 'decode')
+ldda_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+ldda_reg_Instr.setCode(opCodeExec, 'execute')
+ldda_reg_Instr.setCode(opCodeMem, 'memory')
+ldda_reg_Instr.setCode(opCodeException, 'exception')
+ldda_reg_Instr.setCode(opCodeWb, 'wb')
+ldda_reg_Instr.addVariable(('address', 'BIT<32>'))
+ldda_reg_Instr.addVariable(('readValue', 'BIT<64>'))
+ldda_reg_Instr.addVariable(('supervisor', 'BIT<1>'))
+ldda_reg_Instr.addVariable(('notAligned', 'BIT<1>'))
 isa.addInstruction(ldda_reg_Instr)
+
 
 # Store integer instructions
 stb_imm_Instr = trap.Instruction('STB_imm', True, frequency = 5)
 stb_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 0, 0, 1, 0, 1]}, 'TODO')
 stb_imm_Instr.setVarField('rd', ('REGS', 0), 'in')
-stb_imm_Instr.setCode(opCode, 'execute')
 isa.addInstruction(stb_imm_Instr)
 stb_reg_Instr = trap.Instruction('STB_reg', True, frequency = 5)
 stb_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 0, 0, 1, 0, 1]}, 'TODO')
 stb_reg_Instr.setVarField('rd', ('REGS', 0), 'in')
-stb_reg_Instr.setCode(opCode, 'execute')
 isa.addInstruction(stb_reg_Instr)
 sth_imm_Instr = trap.Instruction('STH_imm', True, frequency = 5)
 sth_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 0, 0, 1, 1, 0]}, 'TODO')
 sth_imm_Instr.setVarField('rd', ('REGS', 0), 'in')
-sth_imm_Instr.setCode(opCode, 'execute')
 isa.addInstruction(sth_imm_Instr)
 sth_reg_Instr = trap.Instruction('STH_reg', True, frequency = 5)
 sth_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 0, 0, 1, 1, 0]}, 'TODO')
 sth_reg_Instr.setVarField('rd', ('REGS', 0), 'in')
-sth_reg_Instr.setCode(opCode, 'execute')
 isa.addInstruction(sth_reg_Instr)
 st_imm_Instr = trap.Instruction('ST_imm', True, frequency = 5)
 st_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 0, 0, 1, 0, 0]}, 'TODO')
 st_imm_Instr.setVarField('rd', ('REGS', 0), 'in')
-st_imm_Instr.setCode(opCode, 'execute')
 isa.addInstruction(st_imm_Instr)
 st_reg_Instr = trap.Instruction('ST_reg', True, frequency = 5)
 st_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 0, 0, 1, 0, 0]}, 'TODO')
 st_reg_Instr.setVarField('rd', ('REGS', 0), 'in')
-st_reg_Instr.setCode(opCode, 'execute')
 isa.addInstruction(st_reg_Instr)
 std_imm_Instr = trap.Instruction('STD_imm', True, frequency = 5)
 std_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 0, 0, 1, 1, 1]}, 'TODO')
 std_imm_Instr.setVarField('rd', ('REGS', 0), 'in')
-std_imm_Instr.setCode(opCode, 'execute')
 isa.addInstruction(std_imm_Instr)
 std_reg_Instr = trap.Instruction('STD_reg', True, frequency = 5)
 std_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 0, 0, 1, 1, 1]}, 'TODO')
 std_reg_Instr.setVarField('rd', ('REGS', 0), 'in')
-std_reg_Instr.setCode(opCode, 'execute')
 isa.addInstruction(std_reg_Instr)
 stba_imm_Instr = trap.Instruction('STBA_imm', True, frequency = 5)
 stba_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 1, 0, 1, 0, 1]}, 'TODO')
 stba_imm_Instr.setVarField('rd', ('REGS', 0), 'in')
-stba_imm_Instr.setCode(opCode, 'execute')
 isa.addInstruction(stba_imm_Instr)
 stba_reg_Instr = trap.Instruction('STBA_reg', True, frequency = 5)
 stba_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 1, 0, 1, 0, 1]}, 'TODO')
 stba_reg_Instr.setVarField('rd', ('REGS', 0), 'in')
-stba_reg_Instr.setCode(opCode, 'execute')
 isa.addInstruction(stba_reg_Instr)
 stha_imm_Instr = trap.Instruction('STHA_imm', True, frequency = 5)
 stha_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 1, 0, 1, 1, 0]}, 'TODO')
 stha_imm_Instr.setVarField('rd', ('REGS', 0), 'in')
-stha_imm_Instr.setCode(opCode, 'execute')
 isa.addInstruction(stha_imm_Instr)
 stha_reg_Instr = trap.Instruction('STHA_reg', True, frequency = 5)
 stha_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 1, 0, 1, 1, 0]}, 'TODO')
 stha_reg_Instr.setVarField('rd', ('REGS', 0), 'in')
-stha_reg_Instr.setCode(opCode, 'execute')
 isa.addInstruction(stha_reg_Instr)
 sta_imm_Instr = trap.Instruction('STA_imm', True, frequency = 5)
 sta_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 1, 0, 1, 0, 0]}, 'TODO')
 sta_imm_Instr.setVarField('rd', ('REGS', 0), 'in')
-sta_imm_Instr.setCode(opCode, 'execute')
 isa.addInstruction(sta_imm_Instr)
 sta_reg_Instr = trap.Instruction('STA_reg', True, frequency = 5)
 sta_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 1, 0, 1, 0, 0]}, 'TODO')
 sta_reg_Instr.setVarField('rd', ('REGS', 0), 'in')
-sta_reg_Instr.setCode(opCode, 'execute')
 isa.addInstruction(sta_reg_Instr)
 stda_imm_Instr = trap.Instruction('STDA_imm', True, frequency = 5)
 stda_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 1, 0, 1, 1, 1]}, 'TODO')
 stda_imm_Instr.setVarField('rd', ('REGS', 0), 'in')
-stda_imm_Instr.setCode(opCode, 'execute')
 isa.addInstruction(stda_imm_Instr)
 stda_reg_Instr = trap.Instruction('STDA_reg', True, frequency = 5)
 stda_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 1, 0, 1, 1, 1]}, 'TODO')
 stda_reg_Instr.setVarField('rd', ('REGS', 0), 'in')
-stda_reg_Instr.setCode(opCode, 'execute')
 isa.addInstruction(stda_reg_Instr)
 
 # Atomic Load/Store
 ldstub_imm_Instr = trap.Instruction('LDSTUB_imm', True, frequency = 5)
 ldstub_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 0, 1, 1, 0, 1]}, 'TODO')
 ldstub_imm_Instr.setVarField('rd', ('REGS', 0), 'out')
-ldstub_imm_Instr.setCode(opCode, 'execute')
 isa.addInstruction(ldstub_imm_Instr)
 ldstub_reg_Instr = trap.Instruction('LDSTUB_reg', True, frequency = 5)
 ldstub_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 0, 1, 1, 0, 1]}, 'TODO')
 ldstub_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
-ldstub_reg_Instr.setCode(opCode, 'execute')
 isa.addInstruction(ldstub_reg_Instr)
 ldstuba_imm_Instr = trap.Instruction('LDSTUBA_imm', True, frequency = 5)
 ldstuba_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 1, 1, 1, 0, 1]}, 'TODO')
 ldstuba_imm_Instr.setVarField('rd', ('REGS', 0), 'out')
-ldstuba_imm_Instr.setCode(opCode, 'execute')
 isa.addInstruction(ldstuba_imm_Instr)
 ldstuba_reg_Instr = trap.Instruction('LDSTUBA_reg', True, frequency = 5)
 ldstuba_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 1, 1, 1, 0, 1]}, 'TODO')
 ldstuba_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
-ldstuba_reg_Instr.setCode(opCode, 'execute')
 isa.addInstruction(ldstuba_reg_Instr)
 
 # Swap
 swap_imm_Instr = trap.Instruction('SWAP_imm', True, frequency = 5)
 swap_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 0, 1, 1, 1, 1]}, 'TODO')
 swap_imm_Instr.setVarField('rd', ('REGS', 0), 'inout')
-swap_imm_Instr.setCode(opCode, 'execute')
 isa.addInstruction(swap_imm_Instr)
 swap_reg_Instr = trap.Instruction('SWAP_reg', True, frequency = 5)
 swap_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 0, 1, 1, 1, 1]}, 'TODO')
 swap_reg_Instr.setVarField('rd', ('REGS', 0), 'inout')
-swap_reg_Instr.setCode(opCode, 'execute')
 isa.addInstruction(swap_reg_Instr)
 swapa_imm_Instr = trap.Instruction('SWAPA_imm', True, frequency = 5)
 swapa_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 1, 1, 1, 1, 1]}, 'TODO')
 swapa_imm_Instr.setVarField('rd', ('REGS', 0), 'inout')
-swapa_imm_Instr.setCode(opCode, 'execute')
 isa.addInstruction(swapa_imm_Instr)
 swapa_reg_Instr = trap.Instruction('SWAPA_reg', True, frequency = 5)
 swapa_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 1, 1, 1, 1, 1]}, 'TODO')
 swapa_reg_Instr.setVarField('rd', ('REGS', 0), 'inout')
-swapa_reg_Instr.setCode(opCode, 'execute')
 isa.addInstruction(swapa_reg_Instr)
 
 # sethi

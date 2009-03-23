@@ -17,10 +17,25 @@ acknowledge the interrupt (how?? is there a separate line?) CHECK in the VHDL co
 -- The 8 bit ASI is appended to the 32 bits when memory is accessed (do we need to
 send them on the output TLM port? and what if internal memory is used?)I think
 they are dealt with inside the processor itself and never sent out...CHECK on VHDL model...
-otherwise, if they are sent out, we need to accordingly modify the bus
+otherwise, if they are sent out, we need to accordingly modify the bus ... ACTUALLY,
+SINCE WE DO NOT KNOW THE ACTUAL DETAILS OF THE BUS, ASI IS NOT CONSIDERED
 
 -- Accurately check the result of the multiplication signed operations with respect to
 tsim implementation
+
+-- Atomic operation (but also double load and stores) need a way of locking the bus!!
+Since this depends on the actual memory and bus, we might need to simply give instructions
+on how to do it, and, depending on the actual bus used, the developer will customize the
+lock operation.
+
+-- Memory access operations: so far no errors are considered in memory accesses, they are
+all supposed to be successful; we should modify the memory interface to also take this into
+consideration.
+
+-- For byte and half memory accesses check endianess: there might be problems ...
+
+-- Pipeline: we have to manually lock and unlock the second registers accessed
+in the processor for double load/stores
 
 ALREADY CONSIDERED NOTES:
 

@@ -89,7 +89,7 @@ if((bitSeq & (1 << (bitSeq_length - 1))) != 0)
 return bitSeq;
 """)
 SignExtend_method = trap.HelperMethod('SignExtend', opCode, 'execute')
-SignExtend_method.setSignature(('BIT<32>'), [('bitSeq', 'BIT<32>'), cxx_writer.writer_code.Parameter('bitSeq_length', cxx_writer.writer_code.uintType)])
+SignExtend_method.setSignature(cxx_writer.writer_code.intType, [('bitSeq', 'BIT<32>'), cxx_writer.writer_code.Parameter('bitSeq_length', cxx_writer.writer_code.uintType)])
 
 # Normal PC increment, used when not in a branch instruction; in a branch instruction
 # I will directly modify both PC and nPC in case we are in a the cycle accurate model,
