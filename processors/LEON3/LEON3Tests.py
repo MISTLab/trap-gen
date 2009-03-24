@@ -61,27 +61,15 @@ ldd_imm_Instr.addTest({}, {}, {})
 
 ldd_reg_Instr.addTest({}, {}, {})
 
-ldsba_imm_Instr.addTest({}, {}, {})
-
 ldsba_reg_Instr.addTest({}, {}, {})
-
-ldsha_imm_Instr.addTest({}, {}, {})
 
 ldsha_reg_Instr.addTest({}, {}, {})
 
-lduba_imm_Instr.addTest({}, {}, {})
-
 lduba_reg_Instr.addTest({}, {}, {})
-
-lduha_imm_Instr.addTest({}, {}, {})
 
 lduha_reg_Instr.addTest({}, {}, {})
 
-lda_imm_Instr.addTest({}, {}, {})
-
 lda_reg_Instr.addTest({}, {}, {})
-
-ldda_imm_Instr.addTest({}, {}, {})
 
 ldda_reg_Instr.addTest({}, {}, {})
 
@@ -102,19 +90,11 @@ std_imm_Instr.addTest({}, {}, {})
 
 std_reg_Instr.addTest({}, {}, {})
 
-stba_imm_Instr.addTest({}, {}, {})
-
 stba_reg_Instr.addTest({}, {}, {})
-
-stha_imm_Instr.addTest({}, {}, {})
 
 stha_reg_Instr.addTest({}, {}, {})
 
-sta_imm_Instr.addTest({}, {}, {})
-
 sta_reg_Instr.addTest({}, {}, {})
-
-stda_imm_Instr.addTest({}, {}, {})
 
 stda_reg_Instr.addTest({}, {}, {})
 
@@ -123,16 +103,12 @@ ldstub_imm_Instr.addTest({}, {}, {})
 
 ldstub_reg_Instr.addTest({}, {}, {})
 
-ldstuba_imm_Instr.addTest({}, {}, {})
-
 ldstuba_reg_Instr.addTest({}, {}, {})
 
 # Swap
 swap_imm_Instr.addTest({}, {}, {})
 
 swap_reg_Instr.addTest({}, {}, {})
-
-swapa_imm_Instr.addTest({}, {}, {})
 
 swapa_reg_Instr.addTest({}, {}, {})
 
@@ -868,7 +844,9 @@ trap_imm_Instr.addTest({}, {}, {})
 trap_reg_Instr.addTest({}, {}, {})
 
 # Read State Register
-readReg_Instr.addTest({}, {}, {})
+readY_Instr.addTest({}, {}, {})
+
+readASR_Instr.addTest({}, {}, {})
 
 readPsr_Instr.addTest({}, {}, {})
 
@@ -877,9 +855,13 @@ readWim_Instr.addTest({}, {}, {})
 readTbr_Instr.addTest({}, {}, {})
 
 # Write State Register
-writeReg_reg_Instr.addTest({}, {}, {})
+writeY_reg_Instr.addTest({}, {}, {})
 
-writeReg_imm_Instr.addTest({}, {}, {})
+writeY_imm_Instr.addTest({}, {}, {})
+
+writeASR_reg_Instr.addTest({}, {}, {})
+
+writeASR_imm_Instr.addTest({}, {}, {})
 
 writePsr_reg_Instr.addTest({}, {}, {})
 
@@ -894,9 +876,9 @@ writeTbr_reg_Instr.addTest({}, {}, {})
 writeTbr_imm_Instr.addTest({}, {}, {})
 
 ## Store Barrier
-stbar_Instr.addTest({}, {}, {})
+#stbar_Instr.addTest({}, {}, {})
 
 # Flush Memory
-flush_reg_Instr.addTest({}, {}, {})
+#flush_reg_Instr.addTest({}, {}, {})
 
-flush_imm_Instr.addTest({}, {}, {})
+#flush_imm_Instr.addTest({}, {}, {})
