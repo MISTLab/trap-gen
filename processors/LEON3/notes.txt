@@ -18,7 +18,8 @@ acknowledge the interrupt (how?? is there a separate line?) CHECK in the VHDL co
 send them on the output TLM port? and what if internal memory is used?)I think
 they are dealt with inside the processor itself and never sent out...CHECK on VHDL model...
 otherwise, if they are sent out, we need to accordingly modify the bus ... ACTUALLY,
-SINCE WE DO NOT KNOW THE ACTUAL DETAILS OF THE BUS, ASI IS NOT CONSIDERED
+SINCE WE DO NOT KNOW THE ACTUAL DETAILS OF THE BUS, ASI IS NOT CONSIDERED. Note that, in
+addition to ASI, the address space also depends on the supervisor bit of the processor
 
 -- Accurately check the result of the multiplication signed operations with respect to
 tsim implementation
@@ -32,7 +33,8 @@ lock operation.
 all supposed to be successful; we should modify the memory interface to also take this into
 consideration.
 
--- For byte and half memory accesses check endianess: there might be problems ...
+-- For byte and half memory accesses check endianess: there might be problems ... check also
+this for double word accesses
 
 -- Pipeline: we have to manually lock and unlock the second registers accessed
 in the processor for double load/stores
