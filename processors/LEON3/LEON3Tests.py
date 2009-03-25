@@ -37,80 +37,82 @@
 
 
 from LEON3Isa import *
-ldsb_imm_Instr.addTest({}, {}, {})
 
-ldsb_reg_Instr.addTest({}, {}, {})
 
-ldsh_imm_Instr.addTest({}, {}, {})
+#ldsb_imm_Instr.addTest({}, {}, {})
 
-ldsh_reg_Instr.addTest({}, {}, {})
+#ldsb_reg_Instr.addTest({}, {}, {})
 
-ldub_imm_Instr.addTest({}, {}, {})
+#ldsh_imm_Instr.addTest({}, {}, {})
 
-ldub_reg_Instr.addTest({}, {}, {})
+#ldsh_reg_Instr.addTest({}, {}, {})
 
-lduh_imm_Instr.addTest({}, {}, {})
+#ldub_imm_Instr.addTest({}, {}, {})
 
-lduh_reg_Instr.addTest({}, {}, {})
+#ldub_reg_Instr.addTest({}, {}, {})
 
-ld_imm_Instr.addTest({}, {}, {})
+#lduh_imm_Instr.addTest({}, {}, {})
 
-ld_reg_Instr.addTest({}, {}, {})
+#lduh_reg_Instr.addTest({}, {}, {})
 
-ldd_imm_Instr.addTest({}, {}, {})
+#ld_imm_Instr.addTest({}, {}, {})
 
-ldd_reg_Instr.addTest({}, {}, {})
+#ld_reg_Instr.addTest({}, {}, {})
 
-ldsba_reg_Instr.addTest({}, {}, {})
+#ldd_imm_Instr.addTest({}, {}, {})
 
-ldsha_reg_Instr.addTest({}, {}, {})
+#ldd_reg_Instr.addTest({}, {}, {})
 
-lduba_reg_Instr.addTest({}, {}, {})
+#ldsba_reg_Instr.addTest({}, {}, {})
 
-lduha_reg_Instr.addTest({}, {}, {})
+#ldsha_reg_Instr.addTest({}, {}, {})
 
-lda_reg_Instr.addTest({}, {}, {})
+#lduba_reg_Instr.addTest({}, {}, {})
 
-ldda_reg_Instr.addTest({}, {}, {})
+#lduha_reg_Instr.addTest({}, {}, {})
+
+#lda_reg_Instr.addTest({}, {}, {})
+
+#ldda_reg_Instr.addTest({}, {}, {})
 
 # Store integer instructions
-stb_imm_Instr.addTest({}, {}, {})
+#stb_imm_Instr.addTest({}, {}, {})
 
-stb_reg_Instr.addTest({}, {}, {})
+#stb_reg_Instr.addTest({}, {}, {})
 
-sth_imm_Instr.addTest({}, {}, {})
+#sth_imm_Instr.addTest({}, {}, {})
 
-sth_reg_Instr.addTest({}, {}, {})
+#sth_reg_Instr.addTest({}, {}, {})
 
-st_imm_Instr.addTest({}, {}, {})
+#st_imm_Instr.addTest({}, {}, {})
 
-st_reg_Instr.addTest({}, {}, {})
+#st_reg_Instr.addTest({}, {}, {})
 
-std_imm_Instr.addTest({}, {}, {})
+#std_imm_Instr.addTest({}, {}, {})
 
-std_reg_Instr.addTest({}, {}, {})
+#std_reg_Instr.addTest({}, {}, {})
 
-stba_reg_Instr.addTest({}, {}, {})
+#stba_reg_Instr.addTest({}, {}, {})
 
-stha_reg_Instr.addTest({}, {}, {})
+#stha_reg_Instr.addTest({}, {}, {})
 
-sta_reg_Instr.addTest({}, {}, {})
+#sta_reg_Instr.addTest({}, {}, {})
 
-stda_reg_Instr.addTest({}, {}, {})
+#stda_reg_Instr.addTest({}, {}, {})
 
 # Atomic Load/Store
-ldstub_imm_Instr.addTest({}, {}, {})
+#ldstub_imm_Instr.addTest({}, {}, {})
 
-ldstub_reg_Instr.addTest({}, {}, {})
+#ldstub_reg_Instr.addTest({}, {}, {})
 
-ldstuba_reg_Instr.addTest({}, {}, {})
+#ldstuba_reg_Instr.addTest({}, {}, {})
 
 # Swap
-swap_imm_Instr.addTest({}, {}, {})
+#swap_imm_Instr.addTest({}, {}, {})
 
-swap_reg_Instr.addTest({}, {}, {})
+#swap_reg_Instr.addTest({}, {}, {})
 
-swapa_reg_Instr.addTest({}, {}, {})
+#swapa_reg_Instr.addTest({}, {}, {})
 
 # sethi
 sethi_Instr.addTest({'rd': 0, 'imm22': 0xfff}, {'PC' : 0x0, 'NPC' : 0x4}, {'REGS[0]' : 0, 'PC' : 0x8, 'NPC' : 0x8})
@@ -701,30 +703,78 @@ smac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0xffffffff, '
 smac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x00000fff, 'ASR18bp': 0x04, 'ASR[18]': 0x04, 'Ybp': 0x0f, 'Y': 0x0f, 'REGS[10]': 0xffffffff}, {'ASR[18]': 0xFFFFF005, 'Y': 0x0e, 'REGS[1]': 0xFFFFF005})
 
 # Divide
-udiv_imm_Instr.addTest({}, {}, {})
+udiv_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {'Ybp': 0x0, 'Y': 0x0, 'REGS[10]': 0x02}, {'REGS[0]': 0})
+udiv_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'Ybp': 0x0, 'Y': 0x0, 'REGS[10]': 0x02}, {'REGS[1]': 1})
+udiv_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'Ybp': 0x0, 'Y': 0x0, 'REGS[10]': 0x0}, {'REGS[1]': 0})
+udiv_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'Ybp': 0x2, 'Y': 0x2, 'REGS[10]': 0x0}, {'REGS[1]': 0xFFFFFFFF})
+udiv_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'Ybp': 0x1, 'Y': 0x1, 'REGS[10]': 0xFFFFFFFE}, {'REGS[1]': 0xFFFFFFFF})
+udiv_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'Ybp': 0x1, 'Y': 0x1, 'REGS[10]': 0x0}, {'REGS[1]': 0x80000000})
+udiv_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0}, {'Ybp': 0x1, 'Y': 0x1, 'REGS[10]': 0x0, 'REGS[1]': 0xabc, 'PSR': 0x20, 'TBR': 0x0}, {'REGS[1]': 0xabc, 'TBR': 0x2a0, 'PSR': 0x087, 'PC': 0x2a4, 'NPC': 0x2a4})
+udiv_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'Ybp': 0xFFFFFFFF, 'Y': 0xFFFFFFFF, 'REGS[10]': 0xFFFFFFFF}, {'REGS[1]': 0xFFFFFFFF})
+udiv_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x01FFF}, {'Ybp': 0xFFFFFFFF, 'Y': 0xFFFFFFFF, 'REGS[10]': 0xFFFFFFFF}, {'REGS[1]': 0xFFFFFFFF})
+udiv_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x01FFF}, {'Ybp': 0x7FFFFFFF, 'Y': 0x7FFFFFFF, 'REGS[10]': 0xFFFFFFFF}, {'REGS[1]': 0x80000000})
+udiv_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x01FFF}, {'Ybp': 0x0, 'Y': 0x0, 'REGS[10]': 0xFFFFFFFF}, {'REGS[1]': 0x1})
+udiv_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x00FFF}, {'Ybp': 0x0, 'Y': 0x0, 'REGS[10]': 0xFFFFFFFF}, {'REGS[1]': 0x100100})
 
-udiv_reg_Instr.addTest({}, {}, {})
+udiv_reg_Instr.addTest({'rd': 0, 'rs1': 10, 'rs2': 15}, {'REGS[15]': 2, 'Ybp': 0x0, 'Y': 0x0, 'REGS[10]': 0x02}, {'REGS[0]': 0})
+udiv_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 15}, {'REGS[15]': 2, 'Ybp': 0x0, 'Y': 0x0, 'REGS[10]': 0x02}, {'REGS[1]': 1})
+udiv_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 15}, {'REGS[15]': 2, 'Ybp': 0x0, 'Y': 0x0, 'REGS[10]': 0x0}, {'REGS[1]': 0})
+udiv_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 15}, {'REGS[15]': 2, 'Ybp': 0x2, 'Y': 0x2, 'REGS[10]': 0x0}, {'REGS[1]': 0xFFFFFFFF})
+udiv_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 15}, {'REGS[15]': 2, 'Ybp': 0x1, 'Y': 0x1, 'REGS[10]': 0xFFFFFFFE}, {'REGS[1]': 0xFFFFFFFF})
+udiv_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 15}, {'REGS[15]': 2, 'Ybp': 0x1, 'Y': 0x1, 'REGS[10]': 0x0}, {'REGS[1]': 0x80000000})
+udiv_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 15}, {'REGS[15]': 0, 'Ybp': 0x1, 'Y': 0x1, 'REGS[10]': 0x0, 'REGS[1]': 0xabc, 'PSR': 0x20, 'TBR': 0x0}, {'REGS[1]': 0xabc, 'TBR': 0x2a0, 'PSR': 0x087, 'PC': 0x2a4, 'NPC': 0x2a4})
+udiv_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 15}, {'REGS[15]': 2, 'Ybp': 0xFFFFFFFF, 'Y': 0xFFFFFFFF, 'REGS[10]': 0xFFFFFFFF}, {'REGS[1]': 0xFFFFFFFF})
+udiv_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 15}, {'REGS[15]': 0xFFFFFFFF, 'Ybp': 0xFFFFFFFF, 'Y': 0xFFFFFFFF, 'REGS[10]': 0xFFFFFFFF}, {'REGS[1]': 0xFFFFFFFF})
+udiv_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 15}, {'REGS[15]': 0xFFFFFFFF, 'Ybp': 0x7FFFFFFF, 'Y': 0x7FFFFFFF, 'REGS[10]': 0xFFFFFFFF}, {'REGS[1]': 0x80000000})
+udiv_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 15}, {'REGS[15]': 0xFFFFFFFF, 'Ybp': 0x0, 'Y': 0x0, 'REGS[10]': 0xFFFFFFFF}, {'REGS[1]': 0x1})
+udiv_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 15}, {'REGS[15]': 0x0FFF, 'Ybp': 0x0, 'Y': 0x0, 'REGS[10]': 0xFFFFFFFF}, {'REGS[1]': 0x100100})
 
-sdiv_imm_Instr.addTest({}, {}, {})
+sdiv_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {'Ybp': 0x0, 'Y': 0x0, 'REGS[10]': 0x02}, {'REGS[0]': 0})
+sdiv_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'Ybp': 0x0, 'Y': 0x0, 'REGS[10]': 0x02}, {'REGS[1]': 1})
+sdiv_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'Ybp': 0x0, 'Y': 0x0, 'REGS[10]': 0x0}, {'REGS[1]': 0})
+sdiv_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'Ybp': 0x2, 'Y': 0x2, 'REGS[10]': 0x0}, {'REGS[1]': 0x7FFFFFFF})
+sdiv_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'Ybp': 0xFFFFFFFF, 'Y': 0xFFFFFFFF, 'REGS[10]': 0x6}, {'REGS[1]': 0x80000003})
+sdiv_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'Ybp': 0x1, 'Y': 0x1, 'REGS[10]': 0xFFFFFFFE}, {'REGS[1]': 0x7FFFFFFF})
+sdiv_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'Ybp': 0x1, 'Y': 0x1, 'REGS[10]': 0x0}, {'REGS[1]': 0x7FFFFFFF})
+sdiv_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0}, {'Ybp': 0x1, 'Y': 0x1, 'REGS[10]': 0x0, 'REGS[1]': 0xabc, 'PSR': 0x20, 'TBR': 0x0}, {'REGS[1]': 0xabc, 'TBR': 0x2a0, 'PSR': 0x087, 'PC': 0x2a4, 'NPC': 0x2a4})
+sdiv_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'Ybp': 0xFFFFFFFF, 'Y': 0xFFFFFFFF, 'REGS[10]': 0xFFFFFFFF}, {'REGS[1]': 0x0})
+sdiv_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'Ybp': 0xFFFFFFFF, 'Y': 0xFFFFFFFF, 'REGS[10]': 0xFFFFFFFE}, {'REGS[1]': 0xFFFFFFFF})
+sdiv_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x01FFF}, {'Ybp': 0xFFFFFFFF, 'Y': 0xFFFFFFFF, 'REGS[10]': 0xFFFFFFFF}, {'REGS[1]': 0x1})
+sdiv_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x01FFF}, {'Ybp': 0x7FFFFFFF, 'Y': 0x7FFFFFFF, 'REGS[10]': 0xFFFFFFFF}, {'REGS[1]': 0x80000000})
+sdiv_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x01FFF}, {'Ybp': 0x0, 'Y': 0x0, 'REGS[10]': 0xFFFFFFFF}, {'REGS[1]': 0x80000000})
+sdiv_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x00FFF}, {'Ybp': 0x0, 'Y': 0x0, 'REGS[10]': 0xFFFFFFFF}, {'REGS[1]': 0x100100})
 
-sdiv_reg_Instr.addTest({}, {}, {})
+sdiv_reg_Instr.addTest({'rd': 0, 'rs1': 10, 'rs2': 15}, {'REGS[15]': 2, 'Ybp': 0x0, 'Y': 0x0, 'REGS[10]': 0x02}, {'REGS[0]': 0})
+sdiv_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 15}, {'REGS[15]': 2, 'Ybp': 0x0, 'Y': 0x0, 'REGS[10]': 0x02}, {'REGS[1]': 1})
+sdiv_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 15}, {'REGS[15]': 2, 'Ybp': 0x0, 'Y': 0x0, 'REGS[10]': 0x0}, {'REGS[1]': 0})
+sdiv_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 15}, {'REGS[15]': 2, 'Ybp': 0x2, 'Y': 0x2, 'REGS[10]': 0x0}, {'REGS[1]': 0x7FFFFFFF})
+sdiv_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 15}, {'REGS[15]': 2, 'Ybp': 0xFFFFFFFF, 'Y': 0xFFFFFFFF, 'REGS[10]': 0x6}, {'REGS[1]': 0x80000003})
+sdiv_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 15}, {'REGS[15]': 2, 'Ybp': 0x1, 'Y': 0x1, 'REGS[10]': 0xFFFFFFFE}, {'REGS[1]': 0x7FFFFFFF})
+sdiv_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 15}, {'REGS[15]': 2, 'Ybp': 0x1, 'Y': 0x1, 'REGS[10]': 0x0}, {'REGS[1]': 0x7FFFFFFF})
+sdiv_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 15}, {'REGS[15]': 0, 'Ybp': 0x1, 'Y': 0x1, 'REGS[10]': 0x0, 'REGS[1]': 0xabc, 'PSR': 0x20, 'TBR': 0x0}, {'REGS[1]': 0xabc, 'TBR': 0x2a0, 'PSR': 0x087, 'PC': 0x2a4, 'NPC': 0x2a4})
+sdiv_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 15}, {'REGS[15]': 2, 'Ybp': 0xFFFFFFFF, 'Y': 0xFFFFFFFF, 'REGS[10]': 0xFFFFFFFF}, {'REGS[1]': 0x0})
+sdiv_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 15}, {'REGS[15]': 2, 'Ybp': 0xFFFFFFFF, 'Y': 0xFFFFFFFF, 'REGS[10]': 0xFFFFFFFE}, {'REGS[1]': 0xFFFFFFFF})
+sdiv_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 15}, {'REGS[15]': 0xFFFFFFFF, 'Ybp': 0xFFFFFFFF, 'Y': 0xFFFFFFFF, 'REGS[10]': 0xFFFFFFFF}, {'REGS[1]': 0x1})
+sdiv_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 15}, {'REGS[15]': 0xFFFFFFFF, 'Ybp': 0x7FFFFFFF, 'Y': 0x7FFFFFFF, 'REGS[10]': 0xFFFFFFFF}, {'REGS[1]': 0x80000000})
+sdiv_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 15}, {'REGS[15]': 0xFFFFFFFF, 'Ybp': 0x0, 'Y': 0x0, 'REGS[10]': 0xFFFFFFFF}, {'REGS[1]': 0x80000000})
+sdiv_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 15}, {'REGS[15]': 0x0FFF, 'Ybp': 0x0, 'Y': 0x0, 'REGS[10]': 0xFFFFFFFF}, {'REGS[1]': 0x100100})
 
-udivcc_imm_Instr.addTest({}, {}, {})
+#udivcc_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {}, {})
 
-udivcc_reg_Instr.addTest({}, {}, {})
+#udivcc_reg_Instr.addTest({'rd': 0, 'rs1': 10, 'rs2': 2}, {}, {})
 
-sdivcc_imm_Instr.addTest({}, {}, {})
+#sdivcc_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {}, {})
 
-sdivcc_reg_Instr.addTest({}, {}, {})
+#sdivcc_reg_Instr.addTest({'rd': 0, 'rs1': 10, 'rs2': 2}, {}, {})
 
 # Save and Restore
-save_imm_Instr.addTest({}, {}, {})
+#save_imm_Instr.addTest({}, {}, {})
 
-save_reg_Instr.addTest({}, {}, {})
+#save_reg_Instr.addTest({}, {}, {})
 
-restore_imm_Instr.addTest({}, {}, {})
+#restore_imm_Instr.addTest({}, {}, {})
 
-restore_reg_Instr.addTest({}, {}, {})
+#restore_reg_Instr.addTest({}, {}, {})
 
 # Branch on Integer Condition Codes
 branch_Instr.addTest({'cond': int('1000', 2), 'a': 0, 'disp22': 0x200}, {'PC' : 0x0, 'NPC' : 0x4, 'PSR': 0x0, 'PSRbp': 0x0}, {'PC' : 0x8, 'NPC' : 0x800})
@@ -826,54 +876,54 @@ call_Instr.addTest({'disp30': 0xff}, {'PC' : 0x0, 'NPC' : 0x4}, {'REGS[15]': 0, 
 call_Instr.addTest({'disp30': 0xff0}, {'PC' : 0x4, 'NPC' : 0x8}, {'REGS[15]': 4, 'PC' : 0xc, 'NPC' : 0x3fc8})
 
 # Jump and Link
-jump_imm_Instr.addTest({}, {}, {})
+#jump_imm_Instr.addTest({}, {}, {})
 
-jump_reg_Instr.addTest({}, {}, {})
+#jump_reg_Instr.addTest({}, {}, {})
 
 # Return from Trap
 # N.B. In the reg read stage it writes the values of the SU and ET PSR
 # fields???????
-rett_imm_Instr.addTest({}, {}, {})
+#rett_imm_Instr.addTest({}, {}, {})
 
-rett_reg_Instr.addTest({}, {}, {})
+#rett_reg_Instr.addTest({}, {}, {})
 
 # Trap on Integer Condition Code; note this instruction also receives the forwarding
 # of the PSR
-trap_imm_Instr.addTest({}, {}, {})
+#trap_imm_Instr.addTest({}, {}, {})
 
-trap_reg_Instr.addTest({}, {}, {})
+#trap_reg_Instr.addTest({}, {}, {})
 
 # Read State Register
-readY_Instr.addTest({}, {}, {})
+#readY_Instr.addTest({}, {}, {})
 
-readASR_Instr.addTest({}, {}, {})
+#readASR_Instr.addTest({}, {}, {})
 
-readPsr_Instr.addTest({}, {}, {})
+#readPsr_Instr.addTest({}, {}, {})
 
-readWim_Instr.addTest({}, {}, {})
+#readWim_Instr.addTest({}, {}, {})
 
-readTbr_Instr.addTest({}, {}, {})
+#readTbr_Instr.addTest({}, {}, {})
 
 # Write State Register
-writeY_reg_Instr.addTest({}, {}, {})
+#writeY_reg_Instr.addTest({}, {}, {})
 
-writeY_imm_Instr.addTest({}, {}, {})
+#writeY_imm_Instr.addTest({}, {}, {})
 
-writeASR_reg_Instr.addTest({}, {}, {})
+#writeASR_reg_Instr.addTest({}, {}, {})
 
-writeASR_imm_Instr.addTest({}, {}, {})
+#writeASR_imm_Instr.addTest({}, {}, {})
 
-writePsr_reg_Instr.addTest({}, {}, {})
+#writePsr_reg_Instr.addTest({}, {}, {})
 
-writePsr_imm_Instr.addTest({}, {}, {})
+#writePsr_imm_Instr.addTest({}, {}, {})
 
-writeWim_reg_Instr.addTest({}, {}, {})
+#writeWim_reg_Instr.addTest({}, {}, {})
 
-writeWim_imm_Instr.addTest({}, {}, {})
+#writeWim_imm_Instr.addTest({}, {}, {})
 
-writeTbr_reg_Instr.addTest({}, {}, {})
+#writeTbr_reg_Instr.addTest({}, {}, {})
 
-writeTbr_imm_Instr.addTest({}, {}, {})
+#writeTbr_imm_Instr.addTest({}, {}, {})
 
 ## Store Barrier
 #stbar_Instr.addTest({}, {}, {})

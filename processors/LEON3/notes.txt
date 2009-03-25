@@ -24,6 +24,8 @@ addition to ASI, the address space also depends on the supervisor bit of the pro
 -- Accurately check the result of the multiplication signed operations with respect to
 tsim implementation
 
+-- Check signed division with result such that (res64 & 0xFFFFFFFF80000000LL) == 0xFFFFFFFF80000000LL
+
 -- Atomic operation (but also double load and stores) need a way of locking the bus!!
 Since this depends on the actual memory and bus, we might need to simply give instructions
 on how to do it, and, depending on the actual bus used, the developer will customize the

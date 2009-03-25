@@ -2088,8 +2088,8 @@ if(!exception){
 opCodeExecS = cxx_writer.writer_code.Code("""
 exception = rs2_op == 0;
 if(!exception){
-    long long res64 = ((long long)((((long long)((int)Ybp)) << 32) | (long long)((int)rs1_op)))/((long long)((int)rs2_op));
-    temp_V = (res64 & 0xFFFFFFFF80000000LL) != 0 && (res64 & 0xFFFFFFFF80000000LL) != 0x1FFFFFFFF0000000LL;
+    long long res64 = ((long long)((((unsigned long long)Ybp) << 32) | (unsigned long long)rs1_op))/((long long)((int)rs2_op));
+    temp_V = (res64 & 0xFFFFFFFF80000000LL) != 0 && (res64 & 0xFFFFFFFF80000000LL) != 0xFFFFFFFF80000000LL;
     if(temp_V){
         if(res64 > 0){
             result = 0x7FFFFFFF;
