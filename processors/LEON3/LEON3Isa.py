@@ -2088,7 +2088,7 @@ if(!exception){
 opCodeExecS = cxx_writer.writer_code.Code("""
 exception = rs2_op == 0;
 if(!exception){
-    long long res64 = ((long long)((((unsigned long long)Ybp) << 32) | (unsigned long long)rs1_op))/((long long)((int)rs2_op));
+    long long res64 = ((long long)((((unsigned long long, False)Ybp) << 32) | (unsigned long long)rs1_op))/((long long)((int)rs2_op));
     temp_V = (res64 & 0xFFFFFFFF80000000LL) != 0 && (res64 & 0xFFFFFFFF80000000LL) != 0xFFFFFFFF80000000LL;
     if(temp_V){
         if(res64 > 0){
@@ -2169,7 +2169,7 @@ udivcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 1, 1, 1, 0]}, ('udiv
 udivcc_imm_Instr.setCode(opCodeRegsImm, 'regs')
 udivcc_imm_Instr.setCode(opCodeExecU, 'execute')
 udivcc_imm_Instr.setCode(opCodeTrap, 'exception')
-udivcc_imm_Instr.addBehavior(ICC_writeDiv, 'execute')
+udivcc_imm_Instr.addBehavior(ICC_writeDiv, 'execute', False)
 udivcc_imm_Instr.addBehavior(IncrementPC, 'fetch')
 udivcc_imm_Instr.addBehavior(WB_icc, 'wb')
 udivcc_imm_Instr.addVariable(('exception', 'BIT<1>'))
@@ -2185,7 +2185,7 @@ udivcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 1, 1, 1, 0], 'asi' :
 udivcc_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 udivcc_reg_Instr.setCode(opCodeExecU, 'execute')
 udivcc_reg_Instr.setCode(opCodeTrap, 'exception')
-udivcc_reg_Instr.addBehavior(ICC_writeDiv, 'execute')
+udivcc_reg_Instr.addBehavior(ICC_writeDiv, 'execute', False)
 udivcc_reg_Instr.addBehavior(IncrementPC, 'fetch')
 udivcc_reg_Instr.addBehavior(WB_icc, 'wb')
 udivcc_reg_Instr.addVariable(('exception', 'BIT<1>'))
@@ -2201,7 +2201,7 @@ sdivcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 1, 1, 1, 1]}, ('sdiv
 sdivcc_imm_Instr.setCode(opCodeRegsImm, 'regs')
 sdivcc_imm_Instr.setCode(opCodeExecS, 'execute')
 sdivcc_imm_Instr.setCode(opCodeTrap, 'exception')
-sdivcc_imm_Instr.addBehavior(ICC_writeDiv, 'execute')
+sdivcc_imm_Instr.addBehavior(ICC_writeDiv, 'execute', False)
 sdivcc_imm_Instr.addBehavior(IncrementPC, 'fetch')
 sdivcc_imm_Instr.addBehavior(WB_icc, 'wb')
 sdivcc_imm_Instr.addVariable(('exception', 'BIT<1>'))
@@ -2217,7 +2217,7 @@ sdivcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 1, 1, 1, 1], 'asi' :
 sdivcc_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 sdivcc_reg_Instr.setCode(opCodeExecS, 'execute')
 sdivcc_reg_Instr.setCode(opCodeTrap, 'exception')
-sdivcc_reg_Instr.addBehavior(ICC_writeDiv, 'execute')
+sdivcc_reg_Instr.addBehavior(ICC_writeDiv, 'execute', False)
 sdivcc_reg_Instr.addBehavior(IncrementPC, 'fetch')
 sdivcc_reg_Instr.addBehavior(WB_icc, 'wb')
 sdivcc_reg_Instr.addVariable(('exception', 'BIT<1>'))
