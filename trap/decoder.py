@@ -432,7 +432,7 @@ class decoderCreator:
                     revInstrPattern = instr.bitstring
                     revInstrPattern.reverse()
                     for i in range(0, len(pattern)):
-                        if revInstrPattern[i] != None and pattern[i] != revInstrPattern[i]:
+                        if revInstrPattern[i] != None and int(pattern[i]) != revInstrPattern[i]:
                             found = False
                     if found:
                         expectedId = instr.id
