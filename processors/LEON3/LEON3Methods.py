@@ -47,6 +47,12 @@ import cxx_writer
 # instructions, but which can be called by the instruction body
 # *******
 
+def updateAliasCode():
+    code = ''
+    for i in range(8, 32):
+        code += 'REGS[' + str(i) + '].updateAlias(WINREGS[(newCwp*16 + ' + str(i - 8) + ') % (16*NUM_REG_WIN)]);\n'
+    return code
+
 # Method used to move to the next register window; this simply consists in
 # the check that there is an empty valid window and in the update of
 # the window aliases
@@ -57,8 +63,7 @@ if(((0x01 << (newCwp)) & WIM) != 0){
 }
 PSR[key_CWP] = newCwp;
 """
-for i in range(8, 32):
-    IncrementRegWindow_code += 'REGS[' + str(i) + '].updateAlias(WINREGS[(newCwp*16 + ' + str(i) + ') % (16*NUM_REG_WIN)]);\n'
+IncrementRegWindow_code += updateAliasCode()
 IncrementRegWindow_code += 'return true;'
 opCode = cxx_writer.writer_code.Code(IncrementRegWindow_code)
 IncrementRegWindow_method = trap.HelperMethod('IncrementRegWindow', opCode, 'execute')
@@ -74,8 +79,7 @@ if(((0x01 << (newCwp)) & WIM) != 0){
 }
 PSR[key_CWP] = newCwp;
 """
-for i in range(8, 32):
-    DecrementRegWindow_code += 'REGS[' + str(i) + '].updateAlias(WINREGS[(newCwp*16 + ' + str(i) + ') % (16*NUM_REG_WIN)]);\n'
+DecrementRegWindow_code += updateAliasCode()
 DecrementRegWindow_code += 'return true;'
 opCode = cxx_writer.writer_code.Code(DecrementRegWindow_code)
 DecrementRegWindow_method = trap.HelperMethod('DecrementRegWindow', opCode, 'execute')
@@ -111,8 +115,7 @@ else{
     curPSR &= 0xffffffdf;
     unsigned int newCwp = ((unsigned int)(PSR[key_CWP] - 1)) % NUM_REG_WIN;
 """
-for i in range(8, 32):
-    raiseExcCode += 'REGS[' + str(i) + '].updateAlias(WINREGS[(newCwp*16 + ' + str(i) + ') % (16*NUM_REG_WIN)]);\n'
+raiseExcCode += updateAliasCode()
 raiseExcCode +=  """
     curPSR = (curPSR & 0xffffffe0) + newCwp;
     PSR = curPSR;

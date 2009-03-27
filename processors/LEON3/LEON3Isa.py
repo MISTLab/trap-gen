@@ -2240,7 +2240,7 @@ rs2_op = rs2;
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
 result = rs1_op + rs2_op;
-okNewWin = IncrementRegWindow();
+okNewWin = DecrementRegWindow();
 """)
 opCodeTrap = cxx_writer.writer_code.Code("""
 if(!okNewWin){
@@ -2276,6 +2276,10 @@ save_reg_Instr.addVariable(('result', 'BIT<32>'))
 save_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 save_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
 isa.addInstruction(save_reg_Instr)
+opCodeExec = cxx_writer.writer_code.Code("""
+result = rs1_op + rs2_op;
+okNewWin = IncrementRegWindow();
+""")
 opCodeTrap = cxx_writer.writer_code.Code("""
 if(!okNewWin){
     RaiseException(WINDOW_UNDERFLOW);
