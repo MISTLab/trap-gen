@@ -21,7 +21,7 @@ class Completer:
             import os
             import re
             text = os.path.expanduser(text)
-            if not text.startswith(os.sep):
+            if not text.startswith(os.sep) and not text.startswith('.'):
                 text = './' + text
             dirName = os.path.dirname(text)
             baseName = os.path.basename(text)
