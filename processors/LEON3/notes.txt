@@ -41,6 +41,8 @@ this for double word accesses
 -- Pipeline: we have to manually lock and unlock the second registers accessed
 in the processor for double load/stores
 
+-- Check: in all operations (e.g. jump) are sum among registers done signed or unisgned??
+
 ALREADY CONSIDERED NOTES:
 
 -- After examining the VHDL code the determined register bypasses are:

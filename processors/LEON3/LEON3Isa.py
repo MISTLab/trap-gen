@@ -2444,6 +2444,7 @@ if((jumpAddr & 0x00000003) != 0){
     trapNotAligned = true;
 }
 else{
+    trapNotAligned = false;
     oldPC = PC - 4;
     #ifdef ACC_MODEL
     PC = jumpAddr;
@@ -2460,6 +2461,7 @@ if((jumpAddr & 0x00000003) != 0){
     trapNotAligned = true;
 }
 else{
+    trapNotAligned = false;
     oldPC = PC - 4;
     #ifdef ACC_MODEL
     PC = jumpAddr;
@@ -2478,6 +2480,7 @@ if(trapNotAligned){
 jump_imm_Instr = trap.Instruction('JUMP_imm', True, frequency = 5)
 jump_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 0, 0, 0]}, ('jmpl', ' r', '%rs1', '+', '%simm13', ' r', '%rd'))
 jump_imm_Instr.setCode(opCodeRegsImm, 'decode')
+jump_imm_Instr.setCode(opCodeTrap, 'exception')
 jump_imm_Instr.setCode(opCodeWb, 'wb')
 jump_imm_Instr.addBehavior(IncrementPC, 'fetch', functionalModel = False)
 jump_imm_Instr.addVariable(cxx_writer.writer_code.Variable('trapNotAligned', cxx_writer.writer_code.boolType))
@@ -2486,6 +2489,7 @@ isa.addInstruction(jump_imm_Instr)
 jump_reg_Instr = trap.Instruction('JUMP_reg', True, frequency = 5)
 jump_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 0, 0, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('jmpl', ' r', '%rs1', '+r', '%rs2', ' r', '%rd'))
 jump_reg_Instr.setCode(opCodeRegsRegs, 'decode')
+jump_reg_Instr.setCode(opCodeTrap, 'exception')
 jump_reg_Instr.setCode(opCodeWb, 'wb')
 jump_reg_Instr.addBehavior(IncrementPC, 'fetch', functionalModel = False)
 jump_reg_Instr.addVariable(cxx_writer.writer_code.Variable('trapNotAligned', cxx_writer.writer_code.boolType))

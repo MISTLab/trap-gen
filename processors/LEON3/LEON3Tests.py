@@ -938,9 +938,14 @@ call_Instr.addTest({'disp30': 0xff}, {'PC' : 0x0, 'NPC' : 0x4}, {'REGS[15]': 0, 
 call_Instr.addTest({'disp30': 0xff0}, {'PC' : 0x4, 'NPC' : 0x8}, {'REGS[15]': 4, 'PC' : 0xc, 'NPC' : 0x3fc8})
 
 # Jump and Link
-#jump_imm_Instr.addTest({}, {}, {})
+################## TODO: check with TSIM what is the value of the PC saved
+jump_imm_Instr.addTest({'rd': 11, 'rs1': 10, 'simm13': 2}, {'REGS[10]': 2, 'PC': 0x10, 'NPC': 0x14}, {'PC': 0x18, 'NPC': 0x4, 'REGS[11]': 0x10})
+jump_imm_Instr.addTest({'rd': 11, 'rs1': 10, 'simm13': 0x01FFE}, {'REGS[10]': 6, 'PC': 0x10, 'NPC': 0x14}, {'PC': 0x18, 'NPC': 0x4, 'REGS[11]': 0x10})
+jump_imm_Instr.addTest({'rd': 11, 'rs1': 10, 'simm13': 0}, {'REGS[10]': 6, 'PSR': 0x21, 'TBR': 0x0, 'PC': 0x10, 'NPC': 0x14}, {'PSR': 0x80, 'TBR': 0x070})
 
-#jump_reg_Instr.addTest({}, {}, {})
+jump_reg_Instr.addTest({'rd': 11, 'rs1': 10, 'rs2': 4}, {'REGS[4]': 2, 'REGS[10]': 2, 'PC': 0x10, 'NPC': 0x14}, {'PC': 0x18, 'NPC': 0x4, 'REGS[11]': 0x10})
+jump_reg_Instr.addTest({'rd': 11, 'rs1': 10, 'rs2': 4}, {'REGS[4]': 2, 'REGS[10]': 6, 'PC': 0x10, 'NPC': 0x14}, {'PC': 0x18, 'NPC': 0x8, 'REGS[11]': 0x10})
+jump_reg_Instr.addTest({'rd': 11, 'rs1': 10, 'rs2': 4}, {'REGS[4]': 0, 'REGS[10]': 6, 'PSR': 0x21, 'TBR': 0x0, 'PC': 0x10, 'NPC': 0x14}, {'PSR': 0x80, 'TBR': 0x070})
 
 # Return from Trap
 # N.B. In the reg read stage it writes the values of the SU and ET PSR
