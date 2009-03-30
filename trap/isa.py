@@ -230,6 +230,21 @@ class ISA:
     def getCPPTests(self, processor, model):
         return isaWriter.getCPPTests(self, processor, model)
 
+    def getInstructionSig(self):
+        # Returns the signature (in the form of a string) uniquely identifying the
+        # encoding of the instructions
+        try:
+            import hashlib
+            hashCreator = hashlib.md5()
+        except ImportError:
+            import md5 as hashImport
+            hashCreator = md5.new()
+        for name, instr in self.instructions.items():
+            hashCreator.update(name + '_' + str(instr.id) + ':' + str(instr.bitstring) + ';')
+        for name in self.subInstructions.keys():
+            hashCreator.update('sub' + name + ':')
+        return hashCreator.hexdigest()
+
 class Instruction:
     """Represents an instruction of the processor. The instruction
     is characterized by (a) machine code (b) behavior (both in terms

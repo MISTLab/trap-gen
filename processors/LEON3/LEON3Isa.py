@@ -2509,12 +2509,14 @@ supervisor = PSR[key_S];
 opCodeRegsRegs = cxx_writer.writer_code.Code("""
 rs1_op = rs1;
 rs2_op = rs2;
+exceptionEnabled = PSR[key_ET];
+supervisor = PSR[key_S];
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
 targetAddr = rs1_op + rs2_op;
 newCwp = ((unsigned int)(PSR[key_CWP] + 1)) % NUM_REG_WIN;
 """)
-opCodeTrap = cxx_writer.writer_code.Code("""
+TrapCode = """
 if(exceptionEnabled){
     if(supervisor){
         RaiseException(ILLEGAL_INSTR);
@@ -2526,11 +2528,11 @@ if(exceptionEnabled){
 else if(supervisor || ((0x01 << (newCwp)) & WIM) != 0 || (targetAddr & 0x00000003) != 0){
     THROW_EXCEPTION("Invalid processor mode during execution of the RETT instruction");
 }
-IncrementRegWindow();
-""")
+"""
+TrapCode += updateAliasCode()
+opCodeTrap = cxx_writer.writer_code.Code(TrapCode)
 opCodeWb = cxx_writer.writer_code.Code("""
-PSR[key_ET] = 1;
-PSR[key_S] = PSR[key_PS];
+PSR = (PSR & 0xFFFFFF40) | (newCwp | 0x20 | (PSR[key_PS] << 7));
 PC = NPC;
 NPC = targetAddr;
 """)
@@ -2539,6 +2541,7 @@ rett_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 0, 0, 1]}, ('rett r
 rett_imm_Instr.setCode(opCodeRegsImm, 'regs')
 rett_imm_Instr.setCode(opCodeExec, 'execute')
 rett_imm_Instr.setCode(opCodeTrap, 'exception')
+rett_imm_Instr.setCode(opCodeWb, 'wb')
 rett_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 rett_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
 rett_imm_Instr.addVariable(('targetAddr', 'BIT<32>'))
@@ -2552,6 +2555,7 @@ rett_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 0, 0, 1], 'asi' : [
 rett_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 rett_reg_Instr.setCode(opCodeExec, 'execute')
 rett_reg_Instr.setCode(opCodeTrap, 'exception')
+rett_reg_Instr.setCode(opCodeWb, 'wb')
 rett_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 rett_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
 rett_reg_Instr.addVariable(('targetAddr', 'BIT<32>'))
@@ -2585,11 +2589,23 @@ opCodeTrapImm = cxx_writer.writer_code.Code("""
 if(raiseException){
     RaiseException(TRAP_INSTRUCTION, (rs1 + SignExtend(imm7, 7)) & 0x0000007F);
 }
+#ifndef ACC_MODEL
+else{
+    PC = NPC;
+    NPC += 4;
+}
+#endif
 """)
 opCodeTrapReg = cxx_writer.writer_code.Code("""
 if(raiseException){
     RaiseException(TRAP_INSTRUCTION, (rs1 + rs2) & 0x0000007F);
 }
+#ifndef ACC_MODEL
+else{
+    PC = NPC;
+    NPC += 4;
+}
+#endif
 """)
 trap_imm_Instr = trap.Instruction('TRAP_imm', True, frequency = 5)
 trap_imm_Instr.setMachineCode(ticc_format2, {'op3': [1, 1, 1, 0, 1, 0]},
@@ -2600,7 +2616,7 @@ int('01010', 2) : 'cs', int('1110', 2) : 'pos', int('0110', 2) : 'neg', int('111
 ' r', '%rs1', '+', '%imm7'))
 trap_imm_Instr.setCode(opCode, 'decode')
 trap_imm_Instr.setCode(opCodeTrapImm, 'exception')
-trap_imm_Instr.addBehavior(IncrementPC, 'fetch')
+trap_imm_Instr.addBehavior(IncrementPC, 'fetch', functionalModel = False)
 trap_imm_Instr.addSpecialRegister('PSRbp', 'in')
 trap_imm_Instr.addVariable(cxx_writer.writer_code.Variable('raiseException', cxx_writer.writer_code.boolType))
 isa.addInstruction(trap_imm_Instr)
@@ -2613,7 +2629,7 @@ int('01010', 2) : 'cs', int('1110', 2) : 'pos', int('0110', 2) : 'neg', int('111
 ' r', '%rs1', '+r', '%rs2'))
 trap_reg_Instr.setCode(opCode, 'decode')
 trap_reg_Instr.setCode(opCodeTrapReg, 'exception')
-trap_reg_Instr.addBehavior(IncrementPC, 'fetch')
+trap_reg_Instr.addBehavior(IncrementPC, 'fetch', functionalModel = False)
 trap_reg_Instr.addSpecialRegister('PSRbp', 'in')
 trap_reg_Instr.addVariable(cxx_writer.writer_code.Variable('raiseException', cxx_writer.writer_code.boolType))
 isa.addInstruction(trap_reg_Instr)
@@ -2640,7 +2656,7 @@ opCodeWb = cxx_writer.writer_code.Code("""
 rd = asr_temp;
 """)
 readASR_Instr = trap.Instruction('READasr', True, frequency = 5)
-readASR_Instr.setMachineCode(read_special_format, {'op3': [1, 0, 1, 0, 0, 0]}, ('rd asr ', 'asr', ' r', '%rd'))
+readASR_Instr.setMachineCode(read_special_format, {'op3': [1, 0, 1, 0, 0, 0]}, ('rd asr ', '%asr', ' r', '%rd'))
 readASR_Instr.setCode(opCodeRegs, 'regs')
 readASR_Instr.setCode(opCodeWb, 'wb')
 readASR_Instr.addBehavior(IncrementPC, 'fetch')

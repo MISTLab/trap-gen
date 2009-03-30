@@ -708,7 +708,7 @@ class Processor:
         # Returns the code implementing the pipeline stages
         return procWriter.getGetPipelineStages(self, trace)
 
-    def write(self, folder = '', models = validModels, dumpDecoderName = '', trace = False):
+    def write(self, folder = '', models = validModels, dumpDecoderName = '', trace = False, forceDecoderCreation = False):
         # Ok: this method does two things: first of all it performs all
         # the possible checks to ensure that the processor description is
         # coherent. Second it actually calls the write method of the
@@ -727,11 +727,46 @@ class Processor:
         # OK, checks done. Now I can start calling the write methods to
         # actually create the ISS code
         # First of all we have to create the decoder
-        print ('\t\tCreating the decoder')
         from isa import resolveBitType
         import decoder, os
         import cxx_writer
-        dec = decoder.decoderCreator(self.isa.instructions, self.isa.subInstructions)
+        # Here we check if the decoder signature changed; in case it hasn't we create the decoder,
+        # otherwise we load it from file
+        instructionSignature = self.isa.getInstructionSig()
+        if not forceDecoderCreation:
+            if os.path.exists(os.path.join(os.path.expanduser(os.path.expandvars(folder)), '.decoderSig')) and os.path.exists(os.path.join(os.path.expanduser(os.path.expandvars(folder)), '.decoderDump.pickle')):
+                # Now I have to compare the saved signature with the signature of the current
+                # instructions
+                try:
+                    decSigFile = open(os.path.join(os.path.expanduser(os.path.expandvars(folder)), '.decoderSig'), 'r')
+                    savedSig = decSigFile.read()
+                    decSigFile.close()
+                    if savedSig != instructionSignature:
+                        forceDecoderCreation = True
+                except:
+                    forceDecoderCreation = True
+            else:
+                forceDecoderCreation = True
+        if forceDecoderCreation:
+            print ('\t\tCreating the decoder')
+            dec = decoder.decoderCreator(self.isa.instructions, self.isa.subInstructions)
+            try:
+                import pickle
+                decDumpFile = open(os.path.join(os.path.expanduser(os.path.expandvars(folder)), '.decoderDump.pickle'), 'w')
+                pickle.dump(dec, decDumpFile, pickle.HIGHEST_PROTOCOL)
+                decDumpFile.close()
+                # Now I have to save the instruction signature
+                decSigFile = open(os.path.join(os.path.expanduser(os.path.expandvars(folder)), '.decoderSig'), 'w')
+                decSigFile.write(instructionSignature)
+                decSigFile.close()
+            except:
+                pass
+        else:
+            print ('\t\tLoading the decoder')
+            import pickle
+            decDumpFile = open(os.path.join(os.path.expanduser(os.path.expandvars(folder)), '.decoderDump.pickle'), 'r')
+            dec = pickle.load(decDumpFile)
+            decDumpFile.close()
         if dumpDecoderName:
             dec.printDecoder(dumpDecoderName)
         decClass = dec.getCPPClass(resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>'))
