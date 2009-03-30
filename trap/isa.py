@@ -449,6 +449,8 @@ class Instruction:
             if variable.name == instrVar.name:
                 if variable.type.name != instrVar.type.name:
                     raise Exception('Trying to add variable ' + variable.name + ' of type ' + variable.type.name + ' to instruction ' + self.name + ' which already has a variable with such a name of type ' + instrVar.type.name)
+                else:
+                    return
         self.variables.append(variable)
 
     def setVarField(self, name, correspondence, bitDir = 'inout'):
@@ -496,14 +498,14 @@ class Instruction:
         if not direction in ['inout', 'out', 'in']:
             raise Exception(str(direction) + ' is  not valid; valid values are: \'inout\', \'in\', and \'out\'')
 
-    def addTest(self, variables, input, expOut):
+    def addTest(self, variables, inputState, expOut):
         # input and expected output are two maps, each one containing the
         # register name and its value. if the name of the resource corresponds
         # to one one of the memories, then the value in brackets is the
         # address
         # TODO: think about the possbility of also changing what the aliases
         # point to
-        self.tests.append((variables, input, expOut))
+        self.tests.append((variables, inputState, expOut))
 
     def __repr__(self):
         return self.name + ' coding: ' + str(self.bitstring)

@@ -595,6 +595,8 @@ def getCPPInstrTest(self, processor, model):
                     raise Exception('Value ' + hex(elemValue) + ' set for field ' + name + ' in test of instruction ' + self.name + ' cannot be represented in ' + str(self.machineCode.bitLen[name]) + ' bits')
                 for i in range(0, len(curBitCode)):
                     instrCode[self.machineCode.bitLen[name] + self.machineCode.bitPos[name] - i -1] = curBitCode[i]
+            else:
+                raise Exception('Field ' + name + ' in test of instruction ' + self.name + ' is not present in the machine code of the instruction')
         for resource, value in test[1].items():
             # I set the initial value of the global resources
             brackIndex = resource.find('[')

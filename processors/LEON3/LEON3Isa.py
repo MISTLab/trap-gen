@@ -2785,25 +2785,28 @@ isa.addInstruction(writeASR_imm_Instr)
 # this means that exceptions has to see the new value of the program counter ####################################
 opCodeXorR = cxx_writer.writer_code.Code("""
 result = rs1 ^ rs2;
-raiseException = (PSR[key_S] == 0) || (((0x01 << (result & 0x0000001f)) & WIM) != 0);
+supervisorException = (PSR[key_S] == 0);
+illegalCWP = (result & 0x0000001f) >= NUM_REG_WIN;
 """)
 opCodeXorI = cxx_writer.writer_code.Code("""
 result = rs1 ^ SignExtend(simm13, 13);
-raiseException = (PSR[key_S] == 0) || (((0x01 << (result & 0x0000001f)) & WIM) != 0);
+supervisorException = (PSR[key_S] == 0);
+illegalCWP = (result & 0x0000001f) >= NUM_REG_WIN;
 """)
 opCodeWb = cxx_writer.writer_code.Code("""
-if(!raiseException){
-    PSR = result;
-}
+PSR = result;
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
-if(!raiseException){
+if(!(supervisorException || illegalCWP)){
     PSRbp = result;
 }
 """)
 opCodeTrap = cxx_writer.writer_code.Code("""
-if(raiseException){
+if(supervisorException){
     RaiseException(PRIVILEDGE_INSTR);
+}
+if(illegalCWP){
+    RaiseException(ILLEGAL_INSTR);
 }
 """)
 writePsr_reg_Instr = trap.Instruction('WRITEpsr_reg', True, frequency = 5)
@@ -2814,7 +2817,8 @@ writePsr_reg_Instr.setCode(opCodeTrap, 'exception')
 writePsr_reg_Instr.setCode(opCodeWb, 'wb')
 writePsr_reg_Instr.addBehavior(IncrementPC, 'fetch')
 writePsr_reg_Instr.addSpecialRegister('PSRbp', 'out')
-writePsr_reg_Instr.addVariable(cxx_writer.writer_code.Variable('raiseException', cxx_writer.writer_code.boolType))
+writePsr_reg_Instr.addVariable(cxx_writer.writer_code.Variable('supervisorException', cxx_writer.writer_code.boolType))
+writePsr_reg_Instr.addVariable(cxx_writer.writer_code.Variable('illegalCWP', cxx_writer.writer_code.boolType))
 writePsr_reg_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(writePsr_reg_Instr)
 writePsr_imm_Instr = trap.Instruction('WRITEpsr_imm', True, frequency = 5)
@@ -2825,7 +2829,8 @@ writePsr_imm_Instr.setCode(opCodeTrap, 'exception')
 writePsr_imm_Instr.setCode(opCodeWb, 'wb')
 writePsr_imm_Instr.addBehavior(IncrementPC, 'fetch')
 writePsr_imm_Instr.addSpecialRegister('PSRbp', 'out')
-writePsr_imm_Instr.addVariable(cxx_writer.writer_code.Variable('raiseException', cxx_writer.writer_code.boolType))
+writePsr_imm_Instr.addVariable(cxx_writer.writer_code.Variable('supervisorException', cxx_writer.writer_code.boolType))
+writePsr_imm_Instr.addVariable(cxx_writer.writer_code.Variable('illegalCWP', cxx_writer.writer_code.boolType))
 writePsr_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(writePsr_imm_Instr)
 opCodeXorR = cxx_writer.writer_code.Code("""
@@ -2866,7 +2871,7 @@ writeWim_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(writeWim_imm_Instr)
 opCodeWb = cxx_writer.writer_code.Code("""
 if(!raiseException){
-    TBR[key_TBA] = ((result & 0xFFFFF000) >> 11);
+    TBR |= (result & 0xFFFFF000);
 }
 """)
 writeTbr_reg_Instr = trap.Instruction('WRITEtbr_reg', True, frequency = 5)

@@ -762,7 +762,7 @@ class Processor:
             except:
                 pass
         else:
-            print ('\t\tLoading the decoder')
+            print ('\t\tLoading the decoder from cache')
             import pickle
             decDumpFile = open(os.path.join(os.path.expanduser(os.path.expandvars(folder)), '.decoderDump.pickle'), 'r')
             dec = pickle.load(decDumpFile)
