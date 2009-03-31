@@ -857,23 +857,37 @@ class Processor:
             if (model == 'funcLT') and (not self.systemc):
                 testFolder = cxx_writer.writer_code.Folder('tests')
                 curFolder.addSubFolder(testFolder)
+                mainTestFile = cxx_writer.writer_code.FileDumper('main.cpp', False)
                 decTestsFile = cxx_writer.writer_code.FileDumper('decoderTests.cpp', False)
                 decTestsFile.addInclude('decoderTests.hpp')
+                mainTestFile.addInclude('decoderTests.hpp')
                 hdecTestsFile = cxx_writer.writer_code.FileDumper('decoderTests.hpp', True)
                 decTests = dec.getCPPTests()
                 decTestsFile.addMember(decTests)
                 hdecTestsFile.addMember(decTests)
                 testFolder.addCode(decTestsFile)
                 testFolder.addHeader(hdecTestsFile)
-                ISATestsFile = cxx_writer.writer_code.FileDumper('isaTests.cpp', False)
-                ISATestsFile.addInclude('isaTests.hpp')
-                hISATestsFile = cxx_writer.writer_code.FileDumper('isaTests.hpp', True)
                 ISATests = self.isa.getCPPTests(self, model)
-                ISATestsFile.addMember(ISATests)
-                hISATestsFile.addMember(ISATests)
+                testPerFile = 200
+                numTestFiles = len(ISATests)/testPerFile
+                for i in range(0, numTestFiles):
+                    ISATestsFile = cxx_writer.writer_code.FileDumper('isaTests' + str(i) + '.cpp', False)
+                    ISATestsFile.addInclude('isaTests' + str(i) + '.hpp')
+                    mainTestFile.addInclude('isaTests' + str(i) + '.hpp')
+                    hISATestsFile = cxx_writer.writer_code.FileDumper('isaTests' + str(i) + '.hpp', True)
+                    ISATestsFile.addMember(ISATests[testPerFile*i:testPerFile*(i+1)])
+                    hISATestsFile.addMember(ISATests[testPerFile*i:testPerFile*(i+1)])
+                    testFolder.addCode(ISATestsFile)
+                    testFolder.addHeader(hISATestsFile)
+                ISATestsFile = cxx_writer.writer_code.FileDumper('isaTests' + str(numTestFiles) + '.cpp', False)
+                ISATestsFile.addInclude('isaTests' + str(numTestFiles) + '.hpp')
+                mainTestFile.addInclude('isaTests' + str(numTestFiles) + '.hpp')
+                hISATestsFile = cxx_writer.writer_code.FileDumper('isaTests' + str(numTestFiles) + '.hpp', True)
+                ISATestsFile.addMember(ISATests[testPerFile*numTestFiles:])
+                hISATestsFile.addMember(ISATests[testPerFile*numTestFiles:])
                 testFolder.addCode(ISATestsFile)
                 testFolder.addHeader(hISATestsFile)
-                mainTestFile = cxx_writer.writer_code.FileDumper('main.cpp', False)
+
                 mainTestFile.addMember(self.getTestMainCode())
                 testFolder.addCode(mainTestFile)
                 testFolder.addUseLib(os.path.split(curFolder.path)[-1])
@@ -1140,4 +1154,3 @@ class ABI:
                 if (savedAddr[0] <= addr[0] and savedAddr[1] >= addr[0]) or (savedAddr[0] <= addr[1] and savedAddr[1] >= addr[1]):
                     raise Exception('Clash between address ranges of memory ' + name + ' and ' + memory)
         self.memories[memory] = addr
-

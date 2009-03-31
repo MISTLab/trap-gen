@@ -1,3 +1,7 @@
+-- Memory: check read/write of bytes and half words: is it correct to do nothing or, in cross-endianess
+environments we have to swap everything? if all is done in the same endianess there shouldn't be any problems...
+but ... lets check to be sure!!!
+
 -- TODO: there are problems when releasing the lock on the registers in the CA model. I could release the
 lock simply when the register is written. But this means that if an instruction does not write to a register
 (e.g. for an exception) the lock is never released. ???? think well about it

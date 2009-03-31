@@ -623,14 +623,19 @@ def getCPPInstrTest(self, processor, model):
             if processor.memory:
                 memories.append(processor.memory[0])
             if brackIndex > 0 and resource[:brackIndex] in memories:
-                code += resource[:brackIndex] + '.read_word(' + hex(value) + ', ' + hex(resource[brackIndex + 1:-1]) + ')'
+                try:
+                    code += resource[:brackIndex] + '.read_word(' + hex(value) + ', ' + hex(int(resource[brackIndex + 1:-1])) + ')'
+                except ValueError:
+                    code += resource[:brackIndex] + '.read_word(' + hex(value) + ', ' + hex(int(resource[brackIndex + 1:-1], 16)) + ')'
             else:
                 code += resource + '.readNewValue()'
             global archWordType
             code += ', (' + str(archWordType) + ')' + hex(value) + ');\n\n'
         code += destrDecls
         curTest = cxx_writer.writer_code.Code(code)
-        curTest.addInclude(['boost/test/test_tools.hpp', 'customExceptions.hpp'])
+        wariningDisableCode = '#ifdef _WIN32\n#pragma warning( disable : 4101 )\n#endif\n'
+        includeUnprotectedCode = '#define private public\n#define protected public\n#include \"instructions.hpp\"\n#include \"registers.hpp\"\n#include \"memory.hpp\"\n#undef private\n#undef protected\n'
+        curTest.addInclude(['boost/test/test_tools.hpp', 'customExceptions.hpp', wariningDisableCode, includeUnprotectedCode])
         curTestFunction = cxx_writer.writer_code.Function(self.name + '_' + str(len(tests)), curTest, cxx_writer.writer_code.voidType)
         from procWriter import testNames
         testNames.append(self.name + '_' + str(len(tests)))
@@ -999,10 +1004,6 @@ def getCPPTests(self, processor, modelType):
     # code at the beginning in order to being able to access the private
     # part of the instructions
     tests = []
-    wariningDisableCode = cxx_writer.writer_code.Code('#ifdef _WIN32\n#pragma warning( disable : 4101 )\n#endif\n')
-    tests.append(wariningDisableCode)
-    includeCode = cxx_writer.writer_code.Code('#define private public\n#define protected public\n#include \"instructions.hpp\"\n#include \"registers.hpp\"\n#include \"memory.hpp\"\n#undef private\n#undef protected\n')
-    tests.append(includeCode)
     for instr in self.instructions.values():
         tests += instr.getCPPTest(processor, modelType)
     return tests
