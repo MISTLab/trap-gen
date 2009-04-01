@@ -139,8 +139,8 @@ lduba_reg_Instr.addTest({'rd': 2, 'rs1': 3, 'rs2': 1}, {'REGS[1]': 0x4, 'REGS[2]
 lduba_reg_Instr.addTest({'rd': 2, 'rs1': 3, 'rs2': 1}, {'REGS[1]': 0x4, 'REGS[2]': 0xaaaaaaaa, 'REGS[3]': 3, 'dataMem[0x4]': 0x11223355, 'PSR': 0x80}, {'REGS[2]': 0x00000011})
 lduba_reg_Instr.addTest({'rd': 2, 'rs1': 3, 'rs2': 1}, {'REGS[1]': 0x4, 'REGS[2]': 0xaaaaaaaa, 'REGS[3]': 0, 'dataMem[0x4]': 0x11223385, 'PSR': 0x80}, {'REGS[2]': 0x00000085})
 lduba_reg_Instr.addTest({'rd': 2, 'rs1': 3, 'rs2': 1}, {'REGS[1]': 0x4, 'REGS[2]': 0xaaaaaaaa, 'REGS[3]': 1, 'dataMem[0x4]': 0x11228355, 'PSR': 0x80}, {'REGS[2]': 0x00000083})
-lduba_reg_Instr.addTest({'rd': 2, 'rs1': 3, 'rs2': 1}, {'REGS[1]': 0x4, 'REGS[2]': 0xaaaaaaaa, 'REGS[3]': 2, 'dataMem[0x4]': 0x11228355, 'PSR': 0x80}, {'REGS[2]': 0x00000082})
-lduba_reg_Instr.addTest({'rd': 2, 'rs1': 3, 'rs2': 1}, {'REGS[1]': 0x4, 'REGS[2]': 0xaaaaaaaa, 'REGS[3]': 3, 'dataMem[0x4]': 0x11823355, 'PSR': 0x80}, {'REGS[2]': 0x00000081})
+lduba_reg_Instr.addTest({'rd': 2, 'rs1': 3, 'rs2': 1}, {'REGS[1]': 0x4, 'REGS[2]': 0xaaaaaaaa, 'REGS[3]': 2, 'dataMem[0x4]': 0x11823355, 'PSR': 0x80}, {'REGS[2]': 0x00000082})
+lduba_reg_Instr.addTest({'rd': 2, 'rs1': 3, 'rs2': 1}, {'REGS[1]': 0x4, 'REGS[2]': 0xaaaaaaaa, 'REGS[3]': 3, 'dataMem[0x4]': 0x81223355, 'PSR': 0x80}, {'REGS[2]': 0x00000081})
 lduba_reg_Instr.addTest({'rd': 2, 'rs1': 3, 'rs2': 1}, {'REGS[1]': 0x4, 'REGS[2]': 0xaaaaaaaa, 'REGS[3]': 3, 'dataMem[0x4]': 0x81223355, 'TBR': 0, 'PSR': 0x20}, {'REGS[2]': 0xaaaaaaaa, 'TBR': 0x030, 'PSR': 0x87})
 
 lduha_reg_Instr.addTest({'rd': 2, 'rs1': 3, 'rs2': 1}, {'REGS[1]': 0x4, 'REGS[2]': 0xaaaaaaaa, 'REGS[3]': 0, 'dataMem[0x4]': 0x11223355, 'PSR': 0x80}, {'REGS[2]': 0x00003355})
@@ -167,15 +167,30 @@ stb_imm_Instr.addTest({'rd': 2, 'rs1': 3, 'simm13': 4}, {'REGS[2]': 0x11223355, 
 stb_imm_Instr.addTest({'rd': 2, 'rs1': 3, 'simm13': 4}, {'REGS[2]': 0x11223355, 'REGS[3]': 2, 'dataMem[0x4]': 0x00000000}, {'dataMem[0x4]': 0x00220000})
 stb_imm_Instr.addTest({'rd': 2, 'rs1': 3, 'simm13': 4}, {'REGS[2]': 0x11223355, 'REGS[3]': 3, 'dataMem[0x4]': 0x00000000}, {'dataMem[0x4]': 0x11000000})
 
-#stb_reg_Instr.addTest({}, {}, {})
+stb_reg_Instr.addTest({'rd': 2, 'rs1': 3, 'rs2': 1}, {'REGS[1]': 4, 'REGS[2]': 0x11223355, 'REGS[3]': 0, 'dataMem[0x4]': 0x00000000}, {'dataMem[0x4]': 0x00000055})
+stb_reg_Instr.addTest({'rd': 2, 'rs1': 3, 'rs2': 1}, {'REGS[1]': 4, 'REGS[2]': 0x11223355, 'REGS[3]': 1, 'dataMem[0x4]': 0x00000000}, {'dataMem[0x4]': 0x00003300})
+stb_reg_Instr.addTest({'rd': 2, 'rs1': 3, 'rs2': 1}, {'REGS[1]': 4, 'REGS[2]': 0x11223355, 'REGS[3]': 2, 'dataMem[0x4]': 0x00000000}, {'dataMem[0x4]': 0x00220000})
+stb_reg_Instr.addTest({'rd': 2, 'rs1': 3, 'rs2': 1}, {'REGS[1]': 4, 'REGS[2]': 0x11223355, 'REGS[3]': 3, 'dataMem[0x4]': 0x00000000}, {'dataMem[0x4]': 0x11000000})
 
-#sth_imm_Instr.addTest({}, {}, {})
+sth_imm_Instr.addTest({'rd': 2, 'rs1': 3, 'simm13': 4}, {'REGS[2]': 0x11223355, 'REGS[3]': 0, 'dataMem[0x4]': 0x00000000}, {'dataMem[0x4]': 0x00003355})
+sth_imm_Instr.addTest({'rd': 2, 'rs1': 3, 'simm13': 4}, {'REGS[2]': 0x11223355, 'REGS[3]': 2, 'dataMem[0x4]': 0x00000000}, {'dataMem[0x4]': 0x11220000})
+sth_imm_Instr.addTest({'rd': 2, 'rs1': 3, 'simm13': 4}, {'REGS[2]': 0x11223355, 'REGS[3]': 1, 'dataMem[0x4]': 0x00000000, 'PSR': 0x20, 'TBR': 0x0}, {'dataMem[0x4]': 0x0000000, 'TBR': 0x070, 'PSR': 0x87})
+sth_imm_Instr.addTest({'rd': 2, 'rs1': 3, 'simm13': 4}, {'REGS[2]': 0x11223355, 'REGS[3]': 3, 'dataMem[0x4]': 0x00000000, 'PSR': 0x20, 'TBR': 0x0}, {'dataMem[0x4]': 0x0000000, 'TBR': 0x070, 'PSR': 0x87})
 
-#sth_reg_Instr.addTest({}, {}, {})
+sth_reg_Instr.addTest({'rd': 2, 'rs1': 3, 'rs2': 1}, {'REGS[1]': 4, 'REGS[2]': 0x11223355, 'REGS[3]': 0, 'dataMem[0x4]': 0x00000000}, {'dataMem[0x4]': 0x00003355})
+sth_reg_Instr.addTest({'rd': 2, 'rs1': 3, 'rs2': 1}, {'REGS[1]': 4, 'REGS[2]': 0x11223355, 'REGS[3]': 2, 'dataMem[0x4]': 0x00000000}, {'dataMem[0x4]': 0x11220000})
+sth_reg_Instr.addTest({'rd': 2, 'rs1': 3, 'rs2': 1}, {'REGS[1]': 4, 'REGS[2]': 0x11223355, 'REGS[3]': 1, 'dataMem[0x4]': 0x00000000, 'PSR': 0x20, 'TBR': 0x0}, {'dataMem[0x4]': 0x00000000, 'TBR': 0x070, 'PSR': 0x87})
+sth_reg_Instr.addTest({'rd': 2, 'rs1': 3, 'rs2': 1}, {'REGS[1]': 4, 'REGS[2]': 0x11223355, 'REGS[3]': 3, 'dataMem[0x4]': 0x00000000, 'PSR': 0x20, 'TBR': 0x0}, {'dataMem[0x4]': 0x00000000, 'TBR': 0x070, 'PSR': 0x87})
 
-#st_imm_Instr.addTest({}, {}, {})
+st_imm_Instr.addTest({'rd': 2, 'rs1': 3, 'simm13': 4}, {'REGS[2]': 0x11223355, 'REGS[3]': 0, 'dataMem[0x4]': 0x00000000}, {'dataMem[0x4]': 0x11223355})
+st_imm_Instr.addTest({'rd': 2, 'rs1': 3, 'simm13': 4}, {'REGS[2]': 0x11223355, 'REGS[3]': 2, 'dataMem[0x4]': 0x00000000, 'PSR': 0x20, 'TBR': 0x0}, {'dataMem[0x4]': 0x00000000, 'TBR': 0x070, 'PSR': 0x87})
+st_imm_Instr.addTest({'rd': 2, 'rs1': 3, 'simm13': 4}, {'REGS[2]': 0x11223355, 'REGS[3]': 1, 'dataMem[0x4]': 0x00000000, 'PSR': 0x20, 'TBR': 0x0}, {'dataMem[0x4]': 0x0000000, 'TBR': 0x070, 'PSR': 0x87})
+st_imm_Instr.addTest({'rd': 2, 'rs1': 3, 'simm13': 4}, {'REGS[2]': 0x11223355, 'REGS[3]': 3, 'dataMem[0x4]': 0x00000000, 'PSR': 0x20, 'TBR': 0x0}, {'dataMem[0x4]': 0x0000000, 'TBR': 0x070, 'PSR': 0x87})
 
-#st_reg_Instr.addTest({}, {}, {})
+st_reg_Instr.addTest({'rd': 2, 'rs1': 3, 'rs2': 1}, {'REGS[1]': 4, 'REGS[2]': 0x11223355, 'REGS[3]': 0, 'dataMem[0x4]': 0x00000000}, {'dataMem[0x4]': 0x11223355})
+st_reg_Instr.addTest({'rd': 2, 'rs1': 3, 'rs2': 1}, {'REGS[1]': 4, 'REGS[2]': 0x11223355, 'REGS[3]': 2, 'dataMem[0x4]': 0x00000000, 'PSR': 0x20, 'TBR': 0x0}, {'dataMem[0x4]': 0x00000000, 'TBR': 0x070, 'PSR': 0x87})
+st_reg_Instr.addTest({'rd': 2, 'rs1': 3, 'rs2': 1}, {'REGS[1]': 4, 'REGS[2]': 0x11223355, 'REGS[3]': 1, 'dataMem[0x4]': 0x00000000, 'PSR': 0x20, 'TBR': 0x0}, {'dataMem[0x4]': 0x00000000, 'TBR': 0x070, 'PSR': 0x87})
+st_reg_Instr.addTest({'rd': 2, 'rs1': 3, 'rs2': 1}, {'REGS[1]': 4, 'REGS[2]': 0x11223355, 'REGS[3]': 3, 'dataMem[0x4]': 0x00000000, 'PSR': 0x20, 'TBR': 0x0}, {'dataMem[0x4]': 0x00000000, 'TBR': 0x070, 'PSR': 0x87})
 
 #std_imm_Instr.addTest({}, {}, {})
 

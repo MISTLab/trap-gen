@@ -159,35 +159,34 @@ class ISA:
 
     def checkCoding(self):
         checked = []
-        for i in self.instructions.values():
-            for j in self.instructions.values():
-                if i != j:
-                    if not sorted((i.id,j.id)) in checked:
-                        checked.append(sorted((i.id,j.id)))
-                        minLen = min(len(i.bitstring), len(j.bitstring))
-                        equal = True
+        for numInstri in range(0, len(self.instructions)):
+            i = self.instructions.values()[numInstri]
+            for numInstrj in range(numInstri + 1, len(self.instructions)):
+                j = self.instructions.values()[numInstrj]
+                minLen = min(len(i.bitstring), len(j.bitstring))
+                equal = True
+                for bit in range(0, minLen):
+                    if i.bitstring[bit] != None and j.bitstring[bit] != None:
+                        if i.bitstring[bit] != j.bitstring[bit]:
+                            equal = False
+                            break
+                if equal:
+                    if i.subInstr and j.subInstr:
+                        raise Exception('Instructions ' + i.name + ' and ' + j.name + ' have an ambiguous coding and both of them are classified as sub-instructions: hierarchical sub-instructions are not allowed')
+                    if i.subInstr:
                         for bit in range(0, minLen):
-                            if i.bitstring[bit] != None and j.bitstring[bit] != None:
-                                if i.bitstring[bit] != j.bitstring[bit]:
-                                    equal = False
-                                    break
-                        if equal:
-                            if i.subInstr and j.subInstr:
-                                raise Exception('Instructions ' + i.name + ' and ' + j.name + ' have an ambiguous coding and both of them are classified as sub-instructions: hierarchical sub-instructions are not allowed')
-                            if i.subInstr:
-                                for bit in range(0, minLen):
-                                    if j.bitstring[bit] != None and j.bitstring[bit] != i.bitstring[bit]:
-                                        raise Exception('Instruction ' + str(i) + ' has a coding clash with ' + str(j) + ' but it is not a sub-instruction of it')
-                                self.subInstructions[i.name] = i
-                                j.subInstructions.append(i)
-                            elif j.subInstr:
-                                for bit in range(0, minLen):
-                                    if i.bitstring[bit] != None and i.bitstring[bit] != j.bitstring[bit]:
-                                        raise Exception('Instruction ' + str(j) + ' has a coding clash with ' + str(i) + ' but it is not a sub-instruction of it')
-                                self.subInstructions[j.name] = j
-                                i.subInstructions.append(j)
-                            else:
-                                raise Exception('Coding of instructions ' + str(i) + ' and ' + str(j) + ' is ambiguous')
+                            if j.bitstring[bit] != None and j.bitstring[bit] != i.bitstring[bit]:
+                                raise Exception('Instruction ' + str(i) + ' has a coding clash with ' + str(j) + ' but it is not a sub-instruction of it')
+                        self.subInstructions[i.name] = i
+                        j.subInstructions.append(i)
+                    elif j.subInstr:
+                        for bit in range(0, minLen):
+                            if i.bitstring[bit] != None and i.bitstring[bit] != j.bitstring[bit]:
+                                raise Exception('Instruction ' + str(j) + ' has a coding clash with ' + str(i) + ' but it is not a sub-instruction of it')
+                        self.subInstructions[j.name] = j
+                        i.subInstructions.append(j)
+                    else:
+                        raise Exception('Coding of instructions ' + str(i) + ' and ' + str(j) + ' is ambiguous')
 
     def checkRegisters(self, indexExtractor, checkerMethod):
         # Checks that all the registers used in the instruction encoding are

@@ -104,15 +104,17 @@ class CodeWriter:
     def go_new_line(self, toModify):
         """Given a string the function introduces newline characters to
         respect the line width constraint"""
+        # Check if there is nothing to do
+        if len(toModify) < self.lineWidth:
+            return toModify
+        # Computing the current intenting
         singleIndent = ''
         for i in range(0, self.indentSize):
             singleIndent += ' '
         totalIndent = ''
         for i in range(0, self.curIndent):
             totalIndent += ' '
-        # first of all I have to get the nearest white space character
-        if len(toModify) < self.lineWidth:
-            return toModify
+        # Now I have to get the nearest white space character
         endToCheck = toModify.find('\n')
         if endToCheck < 0:
             endToCheck = len(toModify)

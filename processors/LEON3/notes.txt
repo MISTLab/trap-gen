@@ -1,3 +1,5 @@
+--  PROGRAM COUNTER: IS IT THE CASE OF EXPLORING THE POSSIBILITY OF MAKING IT A NORMAL non-offset REGISTER???
+
 -- Memory: check read/write of bytes and half words: is it correct to do nothing or, in cross-endianess
 environments we have to swap everything? if all is done in the same endianess there shouldn't be any problems...
 but ... lets check to be sure!!!

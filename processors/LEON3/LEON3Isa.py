@@ -558,37 +558,11 @@ isa.addInstruction(ldda_reg_Instr)
 # Store integer instructions
 opCodeRegsImm = cxx_writer.writer_code.Code("""
 address = rs1 + SignExtend(simm13, 13);
-switch(address & 0x00000003){
-    case 0x0:
-    toWrite = (unsigned char)((rd >> 24) & 0x000000FF);
-    break;
-    case 0x1:
-    toWrite = (unsigned char)((rd >> 16) & 0x000000FF);
-    break;
-    case 0x2:
-    toWrite = (unsigned char)((rd >> 8) & 0x000000FF);
-    break;
-    case 0x3:
-    toWrite = (unsigned char)(rd & 0x000000FF);
-    break;
-}
+toWrite = (unsigned char)((rd >> ((address & 0x00000003) << 3)) & 0x000000FF);
 """)
 opCodeRegsRegs = cxx_writer.writer_code.Code("""
 address = rs1 + rs2;
-switch(address & 0x00000003){
-    case 0x0:
-    toWrite = (unsigned char)((rd >> 24) & 0x000000FF);
-    break;
-    case 0x1:
-    toWrite = (unsigned char)((rd >> 16) & 0x000000FF);
-    break;
-    case 0x2:
-    toWrite = (unsigned char)((rd >> 8) & 0x000000FF);
-    break;
-    case 0x3:
-    toWrite = (unsigned char)(rd & 0x000000FF);
-    break;
-}
+toWrite = (unsigned char)((rd >> ((address & 0x00000003) << 3)) & 0x000000FF);
 """)
 opCodeMem = cxx_writer.writer_code.Code("""
 dataMem.write_byte(address, toWrite);
@@ -611,21 +585,11 @@ stb_reg_Instr.addVariable(('toWrite', 'BIT<8>'))
 isa.addInstruction(stb_reg_Instr)
 opCodeRegsImm = cxx_writer.writer_code.Code("""
 address = rs1 + SignExtend(simm13, 13);
-if((address & 0x00000002) == 0){
-    toWrite = (unsigned short int)((rd >> 16) & 0x0000FFFF);
-}
-else{
-    toWrite = (unsigned short int)(rd & 0x0000FFFF);
-}
+toWrite = (unsigned short int)((rd >> ((address & 0x00000002) << 3)) & 0x0000FFFF);
 """)
 opCodeRegsRegs = cxx_writer.writer_code.Code("""
 address = rs1 + rs2;
-if((address & 0x00000002) == 0){
-    toWrite = (unsigned short int)((rd >> 16) & 0x0000FFFF);
-}
-else{
-    toWrite = (unsigned short int)(rd & 0x0000FFFF);
-}
+toWrite = (unsigned short int)((rd >> ((address & 0x00000002) << 3)) & 0x0000FFFF);
 """)
 opCodeMem = cxx_writer.writer_code.Code("""
 if(!notAligned){

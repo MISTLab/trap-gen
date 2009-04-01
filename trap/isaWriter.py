@@ -624,9 +624,9 @@ def getCPPInstrTest(self, processor, model):
                 memories.append(processor.memory[0])
             if brackIndex > 0 and resource[:brackIndex] in memories:
                 try:
-                    code += resource[:brackIndex] + '.read_word(' + hex(value) + ', ' + hex(int(resource[brackIndex + 1:-1])) + ')'
+                    code += resource[:brackIndex] + '.read_word(' + hex(int(resource[brackIndex + 1:-1])) + ')'
                 except ValueError:
-                    code += resource[:brackIndex] + '.read_word(' + hex(value) + ', ' + hex(int(resource[brackIndex + 1:-1], 16)) + ')'
+                    code += resource[:brackIndex] + '.read_word(' + hex(int(resource[brackIndex + 1:-1], 16)) + ')'
             else:
                 code += resource + '.readNewValue()'
             global archWordType

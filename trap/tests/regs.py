@@ -53,7 +53,7 @@ class TestRegs(unittest.TestCase):
         # are valid and there are no references to unknown registers
 
         # First of all I build a fake processor description
-        proc = processor.Processor('test')
+        proc = processor.Processor('test', '0')
         regBank = processor.RegisterBank('RB', 30, 32)
         proc.addRegBank(regBank)
         cpsrBitMask = {'N': (31, 31), 'Z': (30, 30), 'C': (29, 29), 'V': (28, 28), 'I': (7, 7), 'F': (6, 6), 'mode': (0, 4)}
@@ -71,7 +71,7 @@ class TestRegs(unittest.TestCase):
         dataProc_imm_shift.setVarField('rm', ('REGS', 0))
         isaVar = isa.ISA()
         proc.setISA(isaVar)
-        opCode = cxx_writer.Code('')
+        opCode = cxx_writer.writer_code.Code('')
         adc_shift_imm_Instr = isa.Instruction('ADC_si', True)
         adc_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [0, 1, 0, 1]}, 'TODO')
         isaVar.addInstruction(adc_shift_imm_Instr)
@@ -87,7 +87,7 @@ class TestRegs(unittest.TestCase):
         # a non existing register
         # First of all I build a fake processor description
 
-        proc = processor.Processor('test')
+        proc = processor.Processor('test', '0')
         regBank = processor.RegisterBank('RB', 30, 32)
         proc.addRegBank(regBank)
         cpsrBitMask = {'N': (31, 31), 'Z': (30, 30), 'C': (29, 29), 'V': (28, 28), 'I': (7, 7), 'F': (6, 6), 'mode': (0, 4)}
@@ -107,7 +107,7 @@ class TestRegs(unittest.TestCase):
         dataProc_imm_shift.setVarField('rm', ('REGS', 0))
         isaVar = isa.ISA()
         proc.setISA(isaVar)
-        opCode = cxx_writer.Code('')
+        opCode = cxx_writer.writer_code.Code('')
         adc_shift_imm_Instr = isa.Instruction('ADC_si', True)
         adc_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [0, 1, 0, 1]}, 'TODO')
         isaVar.addInstruction(adc_shift_imm_Instr)
@@ -126,7 +126,7 @@ class TestRegs(unittest.TestCase):
     def testAliasRegBank(self):
         # Tests that an exception is raised in case the alias refers to
         # a non existing register bank
-        proc = processor.Processor('test')
+        proc = processor.Processor('test', '0')
         regBank = processor.RegisterBank('RB', 30, 32)
         proc.addRegBank(regBank)
         cpsrBitMask = {'N': (31, 31), 'Z': (30, 30), 'C': (29, 29), 'V': (28, 28), 'I': (7, 7), 'F': (6, 6), 'mode': (0, 4)}
@@ -146,7 +146,7 @@ class TestRegs(unittest.TestCase):
         dataProc_imm_shift.setVarField('rm', ('REGS', 0))
         isaVar = isa.ISA()
         proc.setISA(isaVar)
-        opCode = cxx_writer.Code('')
+        opCode = cxx_writer.writer_code.Code('')
         adc_shift_imm_Instr = isa.Instruction('ADC_si', True)
         adc_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [0, 1, 0, 1]}, 'TODO')
         isaVar.addInstruction(adc_shift_imm_Instr)
@@ -165,7 +165,7 @@ class TestRegs(unittest.TestCase):
     def testAliasBankRegBank(self):
         # Tests that an exception is raised in case the alias bank refers to
         # a non existing register bank
-        proc = processor.Processor('test')
+        proc = processor.Processor('test', '0')
         regBank = processor.RegisterBank('RB', 30, 32)
         proc.addRegBank(regBank)
         cpsrBitMask = {'N': (31, 31), 'Z': (30, 30), 'C': (29, 29), 'V': (28, 28), 'I': (7, 7), 'F': (6, 6), 'mode': (0, 4)}
@@ -185,7 +185,7 @@ class TestRegs(unittest.TestCase):
         dataProc_imm_shift.setVarField('rm', ('REGS', 0))
         isaVar = isa.ISA()
         proc.setISA(isaVar)
-        opCode = cxx_writer.Code('')
+        opCode = cxx_writer.writer_code.Code('')
         adc_shift_imm_Instr = isa.Instruction('ADC_si', True)
         adc_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [0, 1, 0, 1]}, 'TODO')
         isaVar.addInstruction(adc_shift_imm_Instr)
@@ -204,7 +204,7 @@ class TestRegs(unittest.TestCase):
     def testAliasBankMixed(self):
         # Tests that an exception is raised in case the alias bank refers to
         # a mixture of non existing registers and register banks
-        proc = processor.Processor('test')
+        proc = processor.Processor('test', '0')
         regBank = processor.RegisterBank('RB', 30, 32)
         proc.addRegBank(regBank)
         cpsrBitMask = {'N': (31, 31), 'Z': (30, 30), 'C': (29, 29), 'V': (28, 28), 'I': (7, 7), 'F': (6, 6), 'mode': (0, 4)}
@@ -224,7 +224,7 @@ class TestRegs(unittest.TestCase):
         dataProc_imm_shift.setVarField('rm', ('REGS', 0))
         isaVar = isa.ISA()
         proc.setISA(isaVar)
-        opCode = cxx_writer.Code('')
+        opCode = cxx_writer.writer_code.Code('')
         adc_shift_imm_Instr = isa.Instruction('ADC_si', True)
         adc_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [0, 1, 0, 1]}, 'TODO')
         isaVar.addInstruction(adc_shift_imm_Instr)
@@ -243,7 +243,7 @@ class TestRegs(unittest.TestCase):
     def testABIReg(self):
         # Tests that an exception is raised in case the ABI refers to
         # a non existing register
-        proc = processor.Processor('test')
+        proc = processor.Processor('test', '0')
         regBank = processor.RegisterBank('RB', 30, 32)
         proc.addRegBank(regBank)
         cpsrBitMask = {'N': (31, 31), 'Z': (30, 30), 'C': (29, 29), 'V': (28, 28), 'I': (7, 7), 'F': (6, 6), 'mode': (0, 4)}
@@ -263,7 +263,7 @@ class TestRegs(unittest.TestCase):
         dataProc_imm_shift.setVarField('rm', ('REGS', 0))
         isaVar = isa.ISA()
         proc.setISA(isaVar)
-        opCode = cxx_writer.Code('')
+        opCode = cxx_writer.writer_code.Code('')
         adc_shift_imm_Instr = isa.Instruction('ADC_si', True)
         adc_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [0, 1, 0, 1]}, 'TODO')
         isaVar.addInstruction(adc_shift_imm_Instr)
@@ -282,7 +282,7 @@ class TestRegs(unittest.TestCase):
     def testABIArgsReg(self):
         # Tests that an exception is raised in case the ABI arguments refers to
         # a non existing register
-        proc = processor.Processor('test')
+        proc = processor.Processor('test', '0')
         regBank = processor.RegisterBank('RB', 30, 32)
         proc.addRegBank(regBank)
         cpsrBitMask = {'N': (31, 31), 'Z': (30, 30), 'C': (29, 29), 'V': (28, 28), 'I': (7, 7), 'F': (6, 6), 'mode': (0, 4)}
@@ -302,7 +302,7 @@ class TestRegs(unittest.TestCase):
         dataProc_imm_shift.setVarField('rm', ('REGS', 0))
         isaVar = isa.ISA()
         proc.setISA(isaVar)
-        opCode = cxx_writer.Code('')
+        opCode = cxx_writer.writer_code.Code('')
         adc_shift_imm_Instr = isa.Instruction('ADC_si', True)
         adc_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [0, 1, 0, 1]}, 'TODO')
         isaVar.addInstruction(adc_shift_imm_Instr)
@@ -321,7 +321,7 @@ class TestRegs(unittest.TestCase):
     def testABIArgsRegBank(self):
         # Tests that an exception is raised in case the ABI arguments refers to
         # a non existing register bank
-        proc = processor.Processor('test')
+        proc = processor.Processor('test', '0')
         regBank = processor.RegisterBank('RB', 30, 32)
         proc.addRegBank(regBank)
         cpsrBitMask = {'N': (31, 31), 'Z': (30, 30), 'C': (29, 29), 'V': (28, 28), 'I': (7, 7), 'F': (6, 6), 'mode': (0, 4)}
@@ -341,7 +341,7 @@ class TestRegs(unittest.TestCase):
         dataProc_imm_shift.setVarField('rm', ('REGS', 0))
         isaVar = isa.ISA()
         proc.setISA(isaVar)
-        opCode = cxx_writer.Code('')
+        opCode = cxx_writer.writer_code.Code('')
         adc_shift_imm_Instr = isa.Instruction('ADC_si', True)
         adc_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [0, 1, 0, 1]}, 'TODO')
         isaVar.addInstruction(adc_shift_imm_Instr)
@@ -360,7 +360,7 @@ class TestRegs(unittest.TestCase):
     def testABIArgsMixed(self):
         # Tests that an exception is raised in case the ABI arguemnts refers to
         # a mixture of non existing registers and register banks
-        proc = processor.Processor('test')
+        proc = processor.Processor('test', '0')
         regBank = processor.RegisterBank('RB', 30, 32)
         proc.addRegBank(regBank)
         cpsrBitMask = {'N': (31, 31), 'Z': (30, 30), 'C': (29, 29), 'V': (28, 28), 'I': (7, 7), 'F': (6, 6), 'mode': (0, 4)}
@@ -380,7 +380,7 @@ class TestRegs(unittest.TestCase):
         dataProc_imm_shift.setVarField('rm', ('REGS', 0))
         isaVar = isa.ISA()
         proc.setISA(isaVar)
-        opCode = cxx_writer.Code('')
+        opCode = cxx_writer.writer_code.Code('')
         adc_shift_imm_Instr = isa.Instruction('ADC_si', True)
         adc_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [0, 1, 0, 1]}, 'TODO')
         isaVar.addInstruction(adc_shift_imm_Instr)
@@ -399,7 +399,7 @@ class TestRegs(unittest.TestCase):
     def testRegsVariables(self):
         # Tests that an exception is raised in case the variables of
         # the instructions have the same name of registers
-        proc = processor.Processor('test')
+        proc = processor.Processor('test', '0')
         regBank = processor.RegisterBank('RB', 30, 32)
         proc.addRegBank(regBank)
         cpsrBitMask = {'N': (31, 31), 'Z': (30, 30), 'C': (29, 29), 'V': (28, 28), 'I': (7, 7), 'F': (6, 6), 'mode': (0, 4)}
@@ -419,7 +419,7 @@ class TestRegs(unittest.TestCase):
         dataProc_imm_shift.setVarField('rm', ('REGS', 0))
         isaVar = isa.ISA()
         proc.setISA(isaVar)
-        opCode = cxx_writer.Code('')
+        opCode = cxx_writer.writer_code.Code('')
         adc_shift_imm_Instr = isa.Instruction('ADC_si', True)
         adc_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [0, 1, 0, 1]}, 'TODO')
         adc_shift_imm_Instr.addVariable(('REGS', 'BIT<64>'))
