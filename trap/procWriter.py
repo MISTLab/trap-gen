@@ -1250,19 +1250,31 @@ def getCPPProc(self, model, trace):
                         # ok, the element is iterable, so it is an initialization
                         # with a constant and an offset
                         initString += elem.name + '[' + str(curId) + ']'
-                        initString += ' = '
+                        if model.startswith('acc'):
+                            initString += ' = '
+                        else:
+                            initString += '.immediateWrite('
                         initString += str(defValue[0]) + ' + ' + str(defValue[1])
-                        initString += ';\n'
+                        if model.startswith('acc'):
+                            initString += ';\n'
+                        else:
+                            initString += ');\n'
                         continue
                 except TypeError:
                     pass
                 initString += elem.name + '[' + str(curId) + ']'
-                initString += ' = '
+                if model.startswith('acc'):
+                    initString += ' = '
+                else:
+                    initString += '.immediateWrite('
                 try:
                     initString += hex(defValue)
                 except TypeError:
                     initString += str(defValue)
-                initString += ';\n'
+                if model.startswith('acc'):
+                    initString += ';\n'
+                else:
+                    initString += ');\n'
             curId += 1
     for elem in self.regs + self.aliasRegs:
         try:
@@ -1277,19 +1289,31 @@ def getCPPProc(self, model, trace):
                     # ok, the element is iterable, so it is an initialization
                     # with a constant and an offset
                     initString += elem.name
-                    initString += ' = '
+                    if model.startswith('acc'):
+                        initString += ' = '
+                    else:
+                        initString += '.immediateWrite('
                     initString += str(elem.defValue[0]) + ' + ' + str(elem.defValue[1])
-                    initString += ';\n'
+                    if model.startswith('acc'):
+                        initString += ';\n'
+                    else:
+                        initString += ');\n'
                     continue
             except TypeError:
                 pass
             initString += elem.name
-            initString += ' = '
+            if model.startswith('acc'):
+                initString += ' = '
+            else:
+                initString += '.immediateWrite('
             try:
                 initString += hex(elem.defValue)
             except TypeError:
                 initString += str(elem.defValue)
-            initString += ';\n'
+            if model.startswith('acc'):
+                initString += ';\n'
+            else:
+                initString += ');\n'
     if model.startswith('acc'):
         for reg in self.regs:
             for pipeStage in self.pipes:
@@ -1828,7 +1852,7 @@ def getCPPIf(self, model):
         readElemCode.addInclude(includes)
         readElemMethod = cxx_writer.writer_code.Method('read' + self.abi.name[elem], readElemCode, wordType, 'pu', noException = True, const = True)
         ifClassElements.append(readElemMethod)
-        setElemBody = 'this->' + elem + ' = newValue;'
+        setElemBody = 'this->' + elem + '.immediateWrite(newValue);'
         setElemCode = cxx_writer.writer_code.Code(setElemBody)
         setElemCode.addInclude(includes)
         setElemParam = cxx_writer.writer_code.Parameter('newValue', wordType.makeRef().makeConst())
@@ -1840,7 +1864,7 @@ def getCPPIf(self, model):
         readArgsBody += 'args.push_back(this->' + arg
         if self.abi.offset.has_key(arg) and not model.startswith('acc'):
             readArgsBody += ' + ' + str(self.abi.offset[arg])
-        readArgsBody += ');'
+        readArgsBody += ');\n'
     readArgsBody += 'return args;\n'
     readArgsCode = cxx_writer.writer_code.Code(readArgsBody)
     readArgsCode.addInclude(includes)
@@ -1849,10 +1873,10 @@ def getCPPIf(self, model):
     setArgsBody = 'if(args.size() > ' + str(len(self.abi.args)) + '){\nTHROW_EXCEPTION(\"ABI of processor supports up to ' + str(len(self.abi.args)) + ' arguments: \" << args.size() << \" given\");\n}\n'
     setArgsBody += str(vectorType) + '::const_iterator argIter = args.begin();\n'
     for arg in self.abi.args:
-        setArgsBody += 'this->' + arg + ' = *argIter'
+        setArgsBody += 'this->' + arg + '.immediateWrite(*argIter'
         if self.abi.offset.has_key(arg) and not model.startswith('acc'):
             setArgsBody += ' - ' + str(self.abi.offset[arg])
-        setArgsBody += ';\nargIter++;\n'
+        setArgsBody += ');\nargIter++;\n'
     setArgsCode = cxx_writer.writer_code.Code(setArgsBody)
     setArgsParam = cxx_writer.writer_code.Parameter('args', vectorType.makeRef().makeConst())
     setArgsMethod = cxx_writer.writer_code.Method('setArgs', setArgsCode, cxx_writer.writer_code.voidType, 'pu', [setArgsParam], noException = True)
@@ -1879,8 +1903,8 @@ def getCPPIf(self, model):
     setGDBRegBody = 'switch(gdbId){\n'
     for reg, gdbId in self.abi.regCorrespondence.items():
         setGDBRegBody += 'case ' + str(gdbId) + ':{\n'
-        setGDBRegBody += reg + ' = newValue'
-        setGDBRegBody += ';\nbreak;}\n'
+        setGDBRegBody += reg + '.immediateWrite(newValue'
+        setGDBRegBody += ');\nbreak;}\n'
     setGDBRegBody += 'default:{\nTHROW_EXCEPTION(\"No register corresponding to GDB id \" << gdbId);\n}\n}\n'
     setGDBRegCode = cxx_writer.writer_code.Code(setGDBRegBody)
     setGDBRegCode.addInclude(includes)
@@ -3167,7 +3191,7 @@ def getMainCode(self, model):
     //Lets copy the binary code into memory
     unsigned char * programData = loader.getProgData();
     for(unsigned int i = 0; i < loader.getProgDim(); i++){
-        """ + instrMemName + """.write_byte(loader.getDataStart() + i, programData[i]);
+        """ + instrMemName + """.write_byte_dbg(loader.getDataStart() + i, programData[i]);
     }
     //Finally I can set the processor variables
     procInst.ENTRY_POINT = loader.getProgStart();
