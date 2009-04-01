@@ -3122,7 +3122,8 @@ def getMainCode(self, model):
         Processor procInst(\"""" + self.name + """\", sc_time(latency*10e9, SC_NS));
         """
     else:
-        code += """//Now we can procede with the actual instantiation of the processor
+        code += """
+        //Now we can procede with the actual instantiation of the processor
         Processor procInst(\"""" + self.name + """\");
         """
     if self.externalClock:
@@ -3157,6 +3158,11 @@ def getMainCode(self, model):
         execOffset += 1
     code += """
     //And with the loading of the executable code
+    boost::filesystem::path fullPluginPath = boost::filesystem::system_complete(boost::filesystem::path(vm["application"].as<std::string>(), boost::filesystem::native));
+    if ( !boost::filesystem::exists( fullPluginPath ) ){
+        std::cerr << "ERROR: specified application " << vm["application"].as<std::string>() << " does not exist" << std::endl;
+        return -1;
+    }
     ExecLoader loader(vm["application"].as<std::string>(), false);
     //Lets copy the binary code into memory
     unsigned char * programData = loader.getProgData();
@@ -3218,6 +3224,10 @@ def getMainCode(self, model):
         mainCode.addInclude('osEmulator.hpp')
     mainCode.addInclude('boost/program_options.hpp')
     mainCode.addInclude('boost/timer.hpp')
+    mainCode.addInclude('boost/filesystem/operations.hpp')
+    mainCode.addInclude('boost/filesystem/fstream.hpp')
+    mainCode.addInclude('boost/filesystem/convenience.hpp')
+    mainCode.addInclude('boost/filesystem/path.hpp')
     parameters = [cxx_writer.writer_code.Parameter('argc', cxx_writer.writer_code.intType), cxx_writer.writer_code.Parameter('argv', cxx_writer.writer_code.charPtrType.makePointer())]
     function = cxx_writer.writer_code.Function('sc_main', mainCode, cxx_writer.writer_code.intType, parameters)
     return function
