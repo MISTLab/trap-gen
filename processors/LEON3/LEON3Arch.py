@@ -84,7 +84,7 @@ processor.addRegBank(windowRegs)
 # Program status register
 psrBitMask = {'IMPL': (28, 31), 'VER': (24, 27), 'ICC_n': (23, 23), 'ICC_z': (22, 22), 'ICC_v': (21, 21), 'ICC_c': (20, 20), 'EC': (13, 13), 'EF': (12, 12), 'PIL': (8, 11), 'S': (7, 7), 'PS': (6, 6), 'ET': (5, 5), 'CWP': (0, 4)}
 psrReg = trap.Register('PSR', 32, psrBitMask)
-psrReg.setDefaultValue(0xF30000C0)
+psrReg.setDefaultValue(0xF3000080)
 psrReg.setDelay(3)
 processor.addRegister(psrReg)
 # Window Invalid Mask Register
