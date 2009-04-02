@@ -987,17 +987,7 @@ def getCPPMemoryIf(self, model):
     memoryElements = []
     emptyBody = cxx_writer.writer_code.Code('')
     addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
-    if self.isBigEndian:
-        readCode = '#ifdef LITTLE_ENDIAN_BO\n'
-    else:
-        readCode = '#ifdef BIG_ENDIAN_BO\n'
-    readCode += str(archDWordType) + """ readDWord = *(""" + str(archDWordType.makePointer()) + """)(this->memory + (unsigned long)address + (unsigned long)""" + str(self.wordSize) + """);
-readDWord |= (*(""" + str(archDWordType.makePointer()) + """)(this->memory + (unsigned long)address)) << """ + str(self.wordSize*self.byteSize) + """;
-return readDWord;
-#else
-return *(""" + str(archDWordType.makePointer()) + """)(this->memory + (unsigned long)address);
-#endif"""
-    readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + '\n' + readCode)
+    readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + '\nreturn *(""" + str(archDWordType.makePointer()) + """)(this->memory + (unsigned long)address)')
     readBody.addInclude('utils.hpp')
     readDecl = cxx_writer.writer_code.Method('read_dword', readBody, archDWordType, 'pu', [addressParam], const = len(self.tlmPorts) == 0, inline = True, noException = True)
     memoryElements.append(readDecl)
