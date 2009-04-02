@@ -2408,7 +2408,7 @@ PC = target;
 NPC = target + 4;
 #else
 PC = NPC;
-NPC = target;
+NPC = target - 4;
 #endif
 """)
 call_Instr = trap.Instruction('CALL', True, frequency = 5)

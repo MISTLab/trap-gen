@@ -1144,6 +1144,7 @@ def getCPPProc(self, model, trace):
             """
             if trace:
                 codeString += """
+                        cachedInstr->second->printTrace();
                         std::cerr << "Skipped Instruction " << cachedInstr->second->getInstructionName() << std::endl << std::endl;
                 """
             codeString += """
@@ -1179,6 +1180,7 @@ def getCPPProc(self, model, trace):
         """
         if trace:
             codeString += """
+                    cachedInstr->second->printTrace();
                     std::cerr << "Skipped Instruction " << instr->getInstructionName() << std::endl << std::endl;
             """
         codeString += """
