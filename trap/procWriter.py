@@ -1410,10 +1410,23 @@ def getCPPProc(self, model, trace):
                 processorElements.append(attribute)
     for alias in self.aliasRegs:
         attribute = cxx_writer.writer_code.Attribute(alias.name, resourceType[alias.name], 'pu')
-        aliasInitStr = alias.name + '(&' + alias.initAlias
-        if not model.startswith('acc'):
-            aliasInitStr += ', ' + str(alias.offset)
-        aliasInit[alias.name] = (aliasInitStr + ')')
+        # first of all I have to make sure that the alias does not refer to a delayed or constant
+        # register bank, otherwise I have to initialize it in the constructor body and not
+        # inline in the constuctor
+        hasToDeclareInit = True
+        if alias.initAlias.find('[') > -1:
+            referredName = alias.initAlias[:alias.initAlias.find('[')]
+            for regB in self.regBanks:
+                if regB.name == referredName:
+                    if regB.constValue or (not model.startswith('acc') and regB.delay):
+                        hasToDeclareInit = False
+                        break
+        if hasToDeclareInit:
+            aliasInitStr = alias.name + '(&' + alias.initAlias
+            if not model.startswith('acc'):
+                aliasInitStr += ', ' + str(alias.offset)
+            aliasInit[alias.name] = (aliasInitStr + ')')
+
         index = extractRegInterval(alias.initAlias)
         if index:
             # we are dealing with a member of a register bank
@@ -1561,7 +1574,10 @@ def getCPPProc(self, model, trace):
             edgeType = aliasGraphRev.edges(alias, data = True)[0][0]
         if edgeType == 'stop':
             break
-        initElements.append(aliasInit[alias.name])
+        if aliasInit.has_key(alias.name):
+            initElements.append(aliasInit[alias.name])
+        else:
+            break
         orderedNodesTemp.append(alias)
     for alias in orderedNodesTemp:
         orderedNodes.remove(alias)

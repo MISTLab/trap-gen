@@ -157,6 +157,14 @@ PCR = trap.AliasRegister('PCR', 'ASR[17]')
 PCR.setDefaultValue(0x00000300 + numRegWindows - 1)
 processor.addAliasReg(PCR)
 
+# Now I add the registers which I want to see printed in the instruction trace
+LEON3Isa.isa.addTraceRegister(pcReg)
+LEON3Isa.isa.addTraceRegister(npcReg)
+LEON3Isa.isa.addTraceRegister(psrReg)
+LEON3Isa.isa.addTraceRegister(regs)
+LEON3Isa.isa.addTraceRegister(tbrReg)
+LEON3Isa.isa.addTraceRegister(wimReg)
+
 # Memory alias: registers which are memory mapped; we
 # loose a lot of performance, should we really use them?? CHECK
 #for j in range(0, 8):

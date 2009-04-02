@@ -726,11 +726,21 @@ def getCPPClasses(self, processor, model, trace):
             printTraceCode += '\n'
 
         printTraceCode += 'std::cerr << \"Instruction: \" << this->getInstructionName() << std::endl;\n'
-        for reg in processor.regs:
-            printTraceCode += 'std::cerr << \"' + reg.name + ' = \" << std::hex << std::showbase << this->' + reg.name + ' << std::endl;\n'
-        for regB in processor.regBanks:
-            printTraceCode += 'for(int regNum = 0; regNum < ' + str(regB.numRegs) + '; regNum++){\n'
-            printTraceCode += 'std::cerr << \"' + regB.name + '[\" << std::dec << regNum << \"] = \" << std::hex << std::showbase << this->' + regB.name + '[regNum] << std::endl;\n}\n'
+        printTraceCode += 'std::cerr << \"Mnemonic: \" << this->getMnemonic() << std::endl;\n'
+        if self.traceRegs:
+            bankNames = [i.name for i in processor.regBanks + processor.aliasRegBanks]
+            for reg in self.traceRegs:
+                if reg.name in bankNames:
+                    printTraceCode += 'for(int regNum = 0; regNum < ' + str(reg.numRegs) + '; regNum++){\n'
+                    printTraceCode += 'std::cerr << \"' + reg.name + '[\" << std::dec << regNum << \"] = \" << std::hex << std::showbase << this->' + reg.name + '[regNum] << std::endl;\n}\n'
+                else:
+                    printTraceCode += 'std::cerr << \"' + reg.name + ' = \" << std::hex << std::showbase << this->' + reg.name + ' << std::endl;\n'
+        else:
+            for reg in processor.regs:
+                printTraceCode += 'std::cerr << \"' + reg.name + ' = \" << std::hex << std::showbase << this->' + reg.name + ' << std::endl;\n'
+            for regB in processor.regBanks:
+                printTraceCode += 'for(int regNum = 0; regNum < ' + str(regB.numRegs) + '; regNum++){\n'
+                printTraceCode += 'std::cerr << \"' + regB.name + '[\" << std::dec << regNum << \"] = \" << std::hex << std::showbase << this->' + regB.name + '[regNum] << std::endl;\n}\n'
         printTraceCode += 'std::cerr << std::endl;\n'
         if model.startswith('acc'):
             # now I have to take all the resources and create a define which

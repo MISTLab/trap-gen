@@ -89,9 +89,16 @@ class ISA:
         self.beginOp = None
         self.endOp = None
         self.subInstructions = {}
+        # Definition of constant variables which can be accessed from the instructions
         self.constants = []
         # Definitions used inside the ISA to ease the description
         self.defines = []
+        # Registers which we wish to print in the instruction trace
+        self.traceRegs = []
+
+    def addTraceRegister(self, register):
+        if register.name not in self.traceRegs:
+            self.traceRegs.append(register)
 
     def addDefines(self, defineCode):
         self.defines.append(defineCode)
