@@ -111,7 +111,7 @@ init:
         or      %g1,%lo(SYM(software_init_hook)),%g1
     cmp %g0,%g1
     nop
-    
+
     /* Initialize the program status register */
     mov %psr, %l0
     or  %l0, 0x020, %l0
@@ -150,6 +150,8 @@ SYM(win_ovf_trap):
  	mov  5, %l3
     nop
 
+    .align 8
+
 SYM(win_unf_trap):
     /*sethi %hi(SYM(win_unf)), %l3
     jmpl %lo(SYM(win_unf))+%l3, %g0
@@ -158,8 +160,10 @@ SYM(win_unf_trap):
  	rd  %psr, %l0
  	sethi  %hi(0), %l4//sethi  %hi(SYM(win_unf)), %l4
  	jmp  %l4 + SYM(win_unf)	! 4000157c <window_underflow_trap_handler>
- 	mov  6, %l3	
+ 	mov  6, %l3
     nop
+
+    .align 8
 
 SYM(no_fpu_trap):           ! Come here when no fpu exists.
     jmpl %l2, %g0           ! This just skips the

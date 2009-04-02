@@ -3,10 +3,13 @@
 
     .text
 
+    .align 8
 /*Function for the initialization of the processor: they get called if different
 from NULL: you can define your own here if you need*/
 .globl hardware_init_hook
 hardware_init_hook = 0
+
+    .align 8
 .globl SYM(software_init_hook)
 SYM(software_init_hook):
     save  %sp, -104, %sp
@@ -17,6 +20,7 @@ SYM(software_init_hook):
     retl
     nop
 
+    .align 8
 .globl SYM(win_ovf)
         /* a SAVE instruction caused a trap */
 SYM(win_ovf):
@@ -25,11 +29,11 @@ SYM(win_ovf):
  	srl  %l3, 1, %g1
 	sll  %l3, 7, %l4
  	or  %l4, %g1, %g1
- 	save 
+ 	save
 	mov  %g1, %wim
-	nop 
-	nop 
-	nop 
+	nop
+	nop
+	nop
 	std  %l0, [ %sp ]
  	std  %l2, [ %sp + 8 ]
  	std  %l4, [ %sp + 0x10 ]
@@ -38,7 +42,7 @@ SYM(win_ovf):
  	std  %i2, [ %sp + 0x28 ]
 	std  %i4, [ %sp + 0x30 ]
 	std  %fp, [ %sp + 0x38 ]
-	restore 
+	restore
 	mov  %l7, %g1
  	jmp  %l1
  	rett  %l2
@@ -68,6 +72,8 @@ SYM(win_ovf):
     rett    %l2*/
 /*        .end win_ovf*/
 
+    .align 8
+
 .globl SYM(win_unf)
         /* a RESTORE instruction caused a trap */
 SYM(win_unf):
@@ -76,11 +82,11 @@ SYM(win_unf):
  	srl  %l3, 7, %l5
 	or  %l5, %l4, %l5
  	mov  %l5, %wim
- 	nop 
- 	nop 
- 	nop 
- 	restore 
- 	restore 
+ 	nop
+ 	nop
+ 	nop
+ 	restore
+ 	restore
  	ldd  [ %sp ], %l0
  	ldd  [ %sp + 8 ], %l2
  	ldd  [ %sp + 0x10 ], %l4
@@ -89,15 +95,15 @@ SYM(win_unf):
  	ldd  [ %sp + 0x28 ], %i2
  	ldd  [ %sp + 0x30 ], %i4
  	ldd  [ %sp + 0x38 ], %fp
- 	save 
- 	save 
+ 	save
+ 	save
  	jmp  %l1
  	rett  %l2
     /*sll %l0, 1, %l3     ! Rotate wim left
     srl %l0, __WINSIZE-1, %l0
     or  %l0, %l3, %l0
 
-    mov %l0, %l3        
+    mov %l0, %l3
     mov %g0, %wim       ! disable wim
 
     restore             ! User's window
