@@ -1105,6 +1105,18 @@ class ABI:
         # we have to associate the address range to each of them
         self.memories = {}
         self.emulOffset = 0
+        self.preCallCode = None
+        self.postCallCode = None
+        self.returnCallReg = ()
+
+    def returnCall(self, reg, offset = 0):
+        self.returnCallReg = (reg, offset)
+
+    def setECallPreCode(self, code):
+        self.preCallCode = code
+
+    def setECallPostCode(self, code):
+        self.postCallCode = code
 
     def setEmulatorOffset(self, offset):
         self.emulOffset = offset

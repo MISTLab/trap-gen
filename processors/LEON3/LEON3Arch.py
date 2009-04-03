@@ -251,8 +251,26 @@ processor.setWBOrder('Ybp', ('execute', 'wb'))
 # eventually, retarget GCC
 abi = trap.ABI('REGS[23]', 'REGS[23-28]', 'PC', 'LR', 'SP', 'FP')
 abi.addVarRegsCorrespondence({'REGS[0-31]': (0, 31), 'Y': 64, 'PSR': 65, 'WIM': 66, 'TBR': 67, 'PC': 68, 'NPC': 69})
+updateWinCode = ''
+for i in range(8, 32):
+    updateWinCode += 'REGS[' + str(i) + '].updateAlias(WINREGS[(newCwp*16 + ' + str(i - 8) + ') % (16*' + str(numRegWindows) + ')]);\n'
+pre_code = """
+unsigned int newCwp = ((unsigned int)(PSR[key_CWP] - 1)) % """ + str(numRegWindows) + """;
+PSRbp = (PSR & 0xFFFFFFE0) | newCwp;
+PSR.immediateWrite(PSRbp);
+"""
+pre_code += updateWinCode
+post_code = """
+unsigned int newCwp = ((unsigned int)(PSR[key_CWP] + 1)) % """ + str(numRegWindows) + """;
+PSRbp = (PSR & 0xFFFFFFE0) | newCwp;
+PSR.immediateWrite(PSRbp);
+"""
+post_code += updateWinCode
+abi.setECallPreCode(pre_code)
+abi.setECallPostCode(post_code)
 abi.setOffset('PC', -4)
 abi.setOffset('NPC', -4)
+abi.returnCall('LR', 8)
 abi.addMemory('dataMem')
 processor.setABI(abi)
 

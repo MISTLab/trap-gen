@@ -1858,6 +1858,15 @@ def getCPPIf(self, model):
     endianessCode.addInclude(includes)
     endianessMethod = cxx_writer.writer_code.Method('isLittleEndian', endianessCode, cxx_writer.writer_code.boolType, 'pu', noException = True, const = True)
     ifClassElements.append(endianessMethod)
+
+    if self.abi.preCallCode:
+        ifClassElements.append(cxx_writer.writer_code.Method('preCall', cxx_writer.writer_code.Code(self.abi.preCallCode), cxx_writer.writer_code.voidType, 'pu', noException = True))
+    if self.abi.postCallCode:
+        ifClassElements.append(cxx_writer.writer_code.Method('postCall', cxx_writer.writer_code.Code(self.abi.preCallCode), cxx_writer.writer_code.voidType, 'pu', noException = True))
+    if self.abi.returnCallReg:
+        returnCallCode = cxx_writer.writer_code.Code(self.abi.PC + '.immediateWrite(' + self.abi.returnCallReg[0] + ' + ' + str(self.abi.returnCallReg[1]) + ');')
+        ifClassElements.append(cxx_writer.writer_code.Method('returnFromCall', returnCallCode, cxx_writer.writer_code.voidType, 'pu', noException = True))
+
     codeLimitCode = cxx_writer.writer_code.Code('return this->PROGRAM_LIMIT;')
     codeLimitMethod = cxx_writer.writer_code.Method('getCodeLimit', codeLimitCode, wordType, 'pu')
     ifClassElements.append(codeLimitMethod)
