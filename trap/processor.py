@@ -638,6 +638,10 @@ class Processor:
                 toCheck.append(i)
         for i in self.abi.regCorrespondence.keys():
             toCheck.append(i)
+        if self.abi.returnCallReg:
+            for returnReg in self.abi.returnCallReg:
+                toCheck.append(returnReg[0])
+                toCheck.append(returnReg[1])
         # ok, now I finally perform the check
         for i in toCheck:
             index = extractRegInterval(i)
@@ -1107,10 +1111,10 @@ class ABI:
         self.emulOffset = 0
         self.preCallCode = None
         self.postCallCode = None
-        self.returnCallReg = ()
+        self.returnCallReg = None
 
-    def returnCall(self, reg, offset = 0):
-        self.returnCallReg = (reg, offset)
+    def returnCall(self, regList):
+        self.returnCallReg = regList
 
     def setECallPreCode(self, code):
         self.preCallCode = code

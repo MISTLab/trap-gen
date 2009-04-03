@@ -1864,8 +1864,10 @@ def getCPPIf(self, model):
     if self.abi.postCallCode:
         ifClassElements.append(cxx_writer.writer_code.Method('postCall', cxx_writer.writer_code.Code(self.abi.preCallCode), cxx_writer.writer_code.voidType, 'pu', noException = True))
     if self.abi.returnCallReg:
-        returnCallCode = cxx_writer.writer_code.Code(self.abi.PC + '.immediateWrite(' + self.abi.returnCallReg[0] + ' + ' + str(self.abi.returnCallReg[1]) + ');')
-        ifClassElements.append(cxx_writer.writer_code.Method('returnFromCall', returnCallCode, cxx_writer.writer_code.voidType, 'pu', noException = True))
+        returnCallCode = ''
+        for returnReg in self.abi.returnCallReg:
+            returnCallCode += returnReg[0] + '.immediateWrite(' + returnReg[1] + ' + ' + str(returnReg[2]) + ');\n'
+        ifClassElements.append(cxx_writer.writer_code.Method('returnFromCall', cxx_writer.writer_code.Code(returnCallCode), cxx_writer.writer_code.voidType, 'pu', noException = True))
 
     codeLimitCode = cxx_writer.writer_code.Code('return this->PROGRAM_LIMIT;')
     codeLimitMethod = cxx_writer.writer_code.Method('getCodeLimit', codeLimitCode, wordType, 'pu')

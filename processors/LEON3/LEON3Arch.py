@@ -270,7 +270,7 @@ abi.setECallPreCode(pre_code)
 abi.setECallPostCode(post_code)
 abi.setOffset('PC', -4)
 abi.setOffset('NPC', -4)
-abi.returnCall('LR', 8)
+abi.returnCall([('PC', 'LR', 8), ('NPC', 'LR', 12)])
 abi.addMemory('dataMem')
 processor.setABI(abi)
 
