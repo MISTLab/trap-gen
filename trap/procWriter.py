@@ -987,7 +987,7 @@ def getCPPMemoryIf(self, model):
     memoryElements = []
     emptyBody = cxx_writer.writer_code.Code('')
     addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
-    readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + '\nreturn *(""" + str(archDWordType.makePointer()) + """)(this->memory + (unsigned long)address)')
+    readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + '\nreturn *(' + str(archDWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
     readBody.addInclude('utils.hpp')
     readDecl = cxx_writer.writer_code.Method('read_dword', readBody, archDWordType, 'pu', [addressParam], const = len(self.tlmPorts) == 0, inline = True, noException = True)
     memoryElements.append(readDecl)
@@ -1128,6 +1128,12 @@ def getCPPProc(self, model, trace):
             codeString += """
                     #ifndef DISABLE_TOOLS
                     }
+                """
+            if trace:
+                codeString += """else{
+                    std::cerr << "Not executed Instruction because Tools anulled it" << std::endl << std::endl;
+                }"""
+            codeString += """
                     #endif
                 }
                 catch(annull_exception &etc){
@@ -1164,13 +1170,19 @@ def getCPPProc(self, model, trace):
         codeString += """
                 #ifndef DISABLE_TOOLS
                 }
+            """
+        if trace:
+            codeString += """else{
+                std::cerr << "Not executed Instruction because Tools anulled it" << std::endl << std::endl;
+            }"""
+        codeString += """
                 #endif
             }
             catch(annull_exception &etc){
         """
         if trace:
             codeString += """
-                    cachedInstr->second->printTrace();
+                    instr->printTrace();
                     std::cerr << "Skipped Instruction " << instr->getInstructionName() << std::endl << std::endl;
             """
         codeString += """
@@ -3208,9 +3220,9 @@ def getMainCode(self, model):
     //Now I initialize the tools (i.e. debugger, os emulator, ...)
     """
     if model.startswith('acc'):
-        code += 'OSEmulatorCA< ' + str(wordType) + ', -' + str(execOffset*self.wordSize) + ' > osEmu(*(procInst.abiIf), Processor::NOPInstrInstance);\n'
+        code += 'OSEmulatorCA< ' + str(wordType) + ', -' + str(execOffset*self.wordSize) + ' > osEmu(*(procInst.abiIf), Processor::NOPInstrInstance, ' + str(self.abi.emulOffset) + ');\n'
     else:
-        code += 'OSEmulator< ' + str(wordType) + ', 0 > osEmu(*(procInst.abiIf));\n'
+        code += 'OSEmulator< ' + str(wordType) + ', 0 > osEmu(*(procInst.abiIf), ' + str(self.abi.emulOffset) + ');\n'
     code += """GDBStub< """ + str(wordType) + """ > gdbStub(*(procInst.abiIf));
     osEmu.initSysCalls(vm["application"].as<std::string>());
     procInst.toolManager.addTool(osEmu);

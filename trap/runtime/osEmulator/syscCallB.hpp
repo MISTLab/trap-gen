@@ -173,7 +173,7 @@ template<class wordSize> class closeSysCall : public SyscallCB<wordSize>{
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
         int fd = callArgs[0];
         if(fd < 0){
-            THROW_EXCEPTION("File descriptor not valid");
+            THROW_EXCEPTION("File descriptor " << fd << " not valid");
         }
         #ifdef __GNUC__
         if( fd == fileno(stdin) || fd == fileno(stdout) || fd == fileno(stderr) ){
@@ -204,7 +204,7 @@ template<class wordSize> class readSysCall : public SyscallCB<wordSize>{
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
         int fd = callArgs[0];
         if(fd < 0){
-            THROW_EXCEPTION("File descriptor not valid");
+            THROW_EXCEPTION("File descriptor " << fd << " not valid");
         }
         unsigned count = callArgs[2];
         unsigned char *buf = new unsigned char[count];
@@ -233,7 +233,7 @@ template<class wordSize> class writeSysCall : public SyscallCB<wordSize>{
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
         int fd = callArgs[0];
         if(fd < 0){
-            THROW_EXCEPTION("File descriptor not valid");
+            THROW_EXCEPTION("File descriptor " << fd << " not valid");
         }
         unsigned count = callArgs[2];
         wordSize destAddress = callArgs[1];
@@ -311,7 +311,7 @@ template<class wordSize> class lseekSysCall : public SyscallCB<wordSize>{
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
         int fd = callArgs[0];
         if(fd < 0){
-            THROW_EXCEPTION("File descriptor not valid");
+            THROW_EXCEPTION("File descriptor " << fd << " not valid");
         }
         int offset = callArgs[1];
         int whence = callArgs[2];
@@ -339,7 +339,7 @@ template<class wordSize> class fstatSysCall : public SyscallCB<wordSize>{
 		#endif
         int fd = callArgs[0];
         if(fd < 0){
-            THROW_EXCEPTION("File descriptor not valid");
+            THROW_EXCEPTION("File descriptor " << fd << " not valid");
         }
         int retAddr = callArgs[1];
         #ifdef __GNUC__

@@ -1104,6 +1104,10 @@ class ABI:
         # Specifies the memories which can be accessed; if more than one memory is specified,
         # we have to associate the address range to each of them
         self.memories = {}
+        self.emulOffset = 0
+
+    def setEmulatorOffset(self, offset):
+        self.emulOffset = offset
 
     def addVarRegsCorrespondence(self, correspondence):
         for key, value in correspondence.items():

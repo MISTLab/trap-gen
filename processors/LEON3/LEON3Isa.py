@@ -703,19 +703,19 @@ isa.addInstruction(st_reg_Instr)
 opCodeRegsImm = cxx_writer.writer_code.Code("""
 address = rs1 + SignExtend(simm13, 13);
 if(rd_bit % 2 == 0){
-    toWrite = rd || (((unsigned long long)REGS[rd_bit + 1]) << 32);
+    toWrite = rd | (((unsigned long long)REGS[rd_bit + 1]) << 32);
 }
 else{
-    toWrite = REGS[rd_bit + 1] || (((unsigned long long)rd) << 32);
+    toWrite = REGS[rd_bit - 1] | (((unsigned long long)rd) << 32);
 }
 """)
 opCodeRegsRegs = cxx_writer.writer_code.Code("""
 address = rs1 + rs2;
 if(rd_bit % 2 == 0){
-    toWrite = rd || (((unsigned long long)REGS[rd_bit + 1]) << 32);
+    toWrite = rd | (((unsigned long long)REGS[rd_bit + 1]) << 32);
 }
 else{
-    toWrite = REGS[rd_bit + 1] || (((unsigned long long)rd) << 32);
+    toWrite = REGS[rd_bit - 1] | (((unsigned long long)rd) << 32);
 }
 """)
 opCodeMem = cxx_writer.writer_code.Code("""
@@ -1084,7 +1084,7 @@ opCodeExec = cxx_writer.writer_code.Code("""
 result = 0xfffffc00 & (imm22 << 10);
 """)
 sethi_Instr = trap.Instruction('SETHI', True, frequency = 5)
-sethi_Instr.setMachineCode(b_sethi_format1, {'op2': [1, 0, 0]}, ('sethi ', '%imm22', 'r ', '%rd'))
+sethi_Instr.setMachineCode(b_sethi_format1, {'op2': [1, 0, 0]}, ('sethi ', '%imm22', ' r', '%rd'))
 sethi_Instr.setCode(opCodeExec, 'execute')
 sethi_Instr.addBehavior(WB_plain, 'wb')
 sethi_Instr.addBehavior(IncrementPC, 'fetch')
@@ -2513,14 +2513,15 @@ if(exceptionEnabled){
         RaiseException(PRIVILEDGE_INSTR);
     }
 }
-else if(supervisor || ((0x01 << (newCwp)) & WIM) != 0 || (targetAddr & 0x00000003) != 0){
-    THROW_EXCEPTION("Invalid processor mode during execution of the RETT instruction");
+else if(!supervisor || ((0x01 << (newCwp)) & WIM) != 0 || (targetAddr & 0x00000003) != 0){
+    THROW_EXCEPTION("Invalid processor mode during execution of the RETT instruction - supervisor: " << supervisor << " newCwp: " << std::hex << std::showbase << newCwp << " targetAddr: " << std::hex << std::showbase << targetAddr);
 }
 """
 TrapCode += updateAliasCode()
 opCodeTrap = cxx_writer.writer_code.Code(TrapCode)
 opCodeWb = cxx_writer.writer_code.Code("""
-PSR = (PSR & 0xFFFFFF40) | (newCwp | 0x20 | (PSR[key_PS] << 7));
+PSRbp = (PSR & 0xFFFFFF40) | (newCwp | 0x20 | (PSR[key_PS] << 7));
+PSR.immediateWrite(PSRbp);
 PC = NPC;
 NPC = targetAddr;
 """)
@@ -2652,7 +2653,7 @@ readASR_Instr.addVariable(('asr_temp', 'BIT<32>'))
 isa.addInstruction(readASR_Instr)
 opCodeRegs = cxx_writer.writer_code.Code("""
 psr_temp = PSR;
-supervisor = PSR[key_S];
+supervisor = (psr_temp & 0x00000080) != 0;
 """)
 opCodeTrap = cxx_writer.writer_code.Code("""
 if(!supervisor){

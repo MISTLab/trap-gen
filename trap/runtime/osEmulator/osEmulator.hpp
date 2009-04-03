@@ -77,6 +77,7 @@
 
 template<class issueWidth, int stageOffset> class OSEmulator : public ToolsIf<issueWidth>, OSEmulatorBase{
   private:
+    int routineOffset;
     template_map<issueWidth, SyscallCB<issueWidth>* > syscCallbacks;
     ABIIf<issueWidth> &processorInstance;
     typename template_map<issueWidth, SyscallCB<issueWidth>* >::const_iterator syscCallbacksEnd;
@@ -93,7 +94,7 @@ template<class issueWidth, int stageOffset> class OSEmulator : public ToolsIf<is
     bool register_syscall(std::string funName, SyscallCB<issueWidth> &callBack){
         BFDFrontend &bfdFE = BFDFrontend::getInstance();
         bool valid = false;
-        unsigned int symAddr = bfdFE.getSymAddr(funName, valid);
+        unsigned int symAddr = bfdFE.getSymAddr(funName, valid) + this->routineOffset;
         if(!valid){
             return false;
         }
@@ -118,8 +119,8 @@ template<class issueWidth, int stageOffset> class OSEmulator : public ToolsIf<is
     }
 
   public:
-    OSEmulator(ABIIf<issueWidth> &processorInstance) : processorInstance(processorInstance){
-        OSEmulatorBase::heapPointer = (unsigned int)this->processorInstance.getCodeLimit();
+    OSEmulator(ABIIf<issueWidth> &processorInstance, int routineOffset) : processorInstance(processorInstance), routineOffset(routineOffset){
+        OSEmulatorBase::heapPointer = (unsigned int)this->processorInstance.getCodeLimit() + sizeof(issueWidth);
         this->syscCallbacksEnd = this->syscCallbacks.end();
     }
     void initSysCalls(std::string execName){

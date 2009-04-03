@@ -202,15 +202,15 @@ st_reg_Instr.addTest({'rd': 2, 'rs1': 3, 'rs2': 1}, {'REGS[1]': 4, 'REGS[2]': 0x
 st_reg_Instr.addTest({'rd': 2, 'rs1': 3, 'rs2': 1}, {'REGS[1]': 4, 'REGS[2]': 0x11223355, 'REGS[3]': 1, 'dataMem[0x4]': 0x00000000, 'PSR': 0x20, 'TBR': 0x0}, {'dataMem[0x4]': 0x00000000, 'TBR': 0x070, 'PSR': 0x87})
 st_reg_Instr.addTest({'rd': 2, 'rs1': 3, 'rs2': 1}, {'REGS[1]': 4, 'REGS[2]': 0x11223355, 'REGS[3]': 3, 'dataMem[0x4]': 0x00000000, 'PSR': 0x20, 'TBR': 0x0}, {'dataMem[0x4]': 0x00000000, 'TBR': 0x070, 'PSR': 0x87})
 
-std_imm_Instr.addTest({'rd': 3, 'rs1': 5, 'simm13': 8}, {'REGS[2]': 0x11223355, 'REGS[3]': 0x66778899, 'REGS[5]': 0}, {'dataMem[0x8]': 0x11223355, 'dataMem[0xc]': 0x66778899})
-std_imm_Instr.addTest({'rd': 2, 'rs1': 5, 'simm13': 8}, {'REGS[2]': 0x11223355, 'REGS[3]': 0x66778899, 'REGS[5]': 0}, {'dataMem[0x8]': 0x11223355, 'dataMem[0xc]': 0x66778899})
+std_imm_Instr.addTest({'rd': 3, 'rs1': 5, 'simm13': 8}, {'REGS[2]': 0x11223355, 'REGS[3]': 0x66778899, 'REGS[5]': 0, 'dataMem[0x8]': 0x00000000, 'dataMem[0xc]': 0x00000000}, {'dataMem[0x8]': 0x11223355, 'dataMem[0xc]': 0x66778899})
+std_imm_Instr.addTest({'rd': 2, 'rs1': 5, 'simm13': 8}, {'REGS[2]': 0x11223355, 'REGS[3]': 0x66778899, 'REGS[5]': 0, 'dataMem[0x8]': 0x00000000, 'dataMem[0xc]': 0x00000000}, {'dataMem[0x8]': 0x11223355, 'dataMem[0xc]': 0x66778899})
 std_imm_Instr.addTest({'rd': 2, 'rs1': 5, 'simm13': 8}, {'REGS[2]': 0xaaaaaaaa, 'REGS[5]': 1, 'dataMem[0x4]': 0x11223355, 'TBR': 0, 'PSR': 0x20}, {'REGS[2]': 0xaaaaaaaa, 'TBR': 0x070, 'PSR': 0x87})
 std_imm_Instr.addTest({'rd': 2, 'rs1': 5, 'simm13': 8}, {'REGS[2]': 0xaaaaaaaa, 'REGS[5]': 2, 'dataMem[0x4]': 0x11223355, 'TBR': 0, 'PSR': 0x20}, {'REGS[2]': 0xaaaaaaaa, 'TBR': 0x070, 'PSR': 0x87})
 std_imm_Instr.addTest({'rd': 2, 'rs1': 5, 'simm13': 8}, {'REGS[2]': 0xaaaaaaaa, 'REGS[5]': 3, 'dataMem[0x4]': 0x11223355, 'TBR': 0, 'PSR': 0x20}, {'REGS[2]': 0xaaaaaaaa, 'TBR': 0x070, 'PSR': 0x87})
 std_imm_Instr.addTest({'rd': 2, 'rs1': 5, 'simm13': 8}, {'REGS[2]': 0xaaaaaaaa, 'REGS[5]': 4, 'dataMem[0x4]': 0x11223355, 'TBR': 0, 'PSR': 0x20}, {'REGS[2]': 0xaaaaaaaa, 'TBR': 0x070, 'PSR': 0x87})
 
-std_reg_Instr.addTest({'rd': 3, 'rs1': 5, 'rs2': 1}, {'REGS[1]': 0x8, 'REGS[2]': 0x11223355, 'REGS[3]': 0x66778899, 'REGS[5]': 0}, {'dataMem[0x8]': 0x11223355, 'dataMem[0xc]': 0x66778899})
-std_reg_Instr.addTest({'rd': 2, 'rs1': 5, 'rs2': 1}, {'REGS[1]': 0x8, 'REGS[2]': 0x11223355, 'REGS[3]': 0x66778899, 'REGS[5]': 0}, {'dataMem[0x8]': 0x11223355, 'dataMem[0xc]': 0x66778899})
+std_reg_Instr.addTest({'rd': 3, 'rs1': 5, 'rs2': 1}, {'REGS[1]': 0x8, 'REGS[2]': 0x11223355, 'REGS[3]': 0x66778899, 'REGS[5]': 0, 'dataMem[0x8]': 0x00000000, 'dataMem[0xc]': 0x00000000}, {'dataMem[0x8]': 0x11223355, 'dataMem[0xc]': 0x66778899})
+std_reg_Instr.addTest({'rd': 2, 'rs1': 5, 'rs2': 1}, {'REGS[1]': 0x8, 'REGS[2]': 0x11223355, 'REGS[3]': 0x66778899, 'REGS[5]': 0, 'dataMem[0x8]': 0x00000000, 'dataMem[0xc]': 0x00000000}, {'dataMem[0x8]': 0x11223355, 'dataMem[0xc]': 0x66778899})
 std_reg_Instr.addTest({'rd': 2, 'rs1': 5, 'rs2': 1}, {'REGS[1]': 0x8, 'REGS[2]': 0xaaaaaaaa, 'REGS[5]': 1, 'dataMem[0x4]': 0x11223355, 'TBR': 0, 'PSR': 0x20}, {'REGS[2]': 0xaaaaaaaa, 'TBR': 0x070, 'PSR': 0x87})
 std_reg_Instr.addTest({'rd': 2, 'rs1': 5, 'rs2': 1}, {'REGS[1]': 0x8, 'REGS[2]': 0xaaaaaaaa, 'REGS[5]': 2, 'dataMem[0x4]': 0x11223355, 'TBR': 0, 'PSR': 0x20}, {'REGS[2]': 0xaaaaaaaa, 'TBR': 0x070, 'PSR': 0x87})
 std_reg_Instr.addTest({'rd': 2, 'rs1': 5, 'rs2': 1}, {'REGS[1]': 0x8, 'REGS[2]': 0xaaaaaaaa, 'REGS[5]': 3, 'dataMem[0x4]': 0x11223355, 'TBR': 0, 'PSR': 0x20}, {'REGS[2]': 0xaaaaaaaa, 'TBR': 0x070, 'PSR': 0x87})
@@ -1057,9 +1057,9 @@ branch_Instr.addTest({'cond': int('0111', 2), 'a': 1, 'disp22': 0x200}, {'PC' : 
 branch_Instr.addTest({'cond': int('0111', 2), 'a': 0, 'disp22': 0x200}, {'PC' : 0x0, 'NPC' : 0x4, 'PSR': 0x0, 'PSRbp': 0x0}, {'PC' : 0x8, 'NPC' : 0x8})
 
 # Call and Link
-call_Instr.addTest({'disp30': 0x0}, {'PC' : 0x0, 'NPC' : 0x4}, {'REGS[15]': 0, 'PC' : 0x8, 'NPC' : 0x4})
-call_Instr.addTest({'disp30': 0xff}, {'PC' : 0x0, 'NPC' : 0x4}, {'REGS[15]': 0, 'PC' : 0x8, 'NPC' : 0x400})
-call_Instr.addTest({'disp30': 0xff0}, {'PC' : 0x4, 'NPC' : 0x8}, {'REGS[15]': 4, 'PC' : 0xc, 'NPC' : 0x3fc8})
+call_Instr.addTest({'disp30': 0x0}, {'PC' : 0x0, 'NPC' : 0x4}, {'REGS[15]': 0, 'PC' : 0x8, 'NPC' : 0x0})
+call_Instr.addTest({'disp30': 0xff}, {'PC' : 0x0, 'NPC' : 0x4}, {'REGS[15]': 0, 'PC' : 0x8, 'NPC' : 0x3FC})
+call_Instr.addTest({'disp30': 0xff0}, {'PC' : 0x4, 'NPC' : 0x8}, {'REGS[15]': 4, 'PC' : 0xc, 'NPC' : 0x3fc4})
 
 # Jump and Link
 ################## TODO: check with TSIM what is the value of the PC saved

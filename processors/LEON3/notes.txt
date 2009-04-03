@@ -1,3 +1,5 @@
+-- Check the how the WIM register is managed in the real OS (LEON bsp??): how is it initialized?
+
 --  PROGRAM COUNTER: IS IT THE CASE OF EXPLORING THE POSSIBILITY OF MAKING IT A NORMAL non-offset REGISTER???
 
 -- Memory: check read/write of bytes and half words: is it correct to do nothing or, in cross-endianess

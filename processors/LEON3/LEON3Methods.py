@@ -61,7 +61,8 @@ newCwp = ((unsigned int)(PSR[key_CWP] + 1)) % NUM_REG_WIN;
 if(((0x01 << (newCwp)) & WIM) != 0){
     return false;
 }
-PSR[key_CWP] = newCwp;
+PSRbp = (PSR & 0xFFFFFFE0) | newCwp;
+PSR.immediateWrite(PSRbp);
 """
 IncrementRegWindow_code += updateAliasCode()
 IncrementRegWindow_code += 'return true;'
@@ -77,7 +78,8 @@ newCwp = ((unsigned int)(PSR[key_CWP] - 1)) % NUM_REG_WIN;
 if(((0x01 << (newCwp)) & WIM) != 0){
     return false;
 }
-PSR[key_CWP] = newCwp;
+PSRbp = (PSR & 0xFFFFFFE0) | newCwp;
+PSR.immediateWrite(PSRbp);
 """
 DecrementRegWindow_code += updateAliasCode()
 DecrementRegWindow_code += 'return true;'
@@ -119,8 +121,14 @@ raiseExcCode += updateAliasCode()
 raiseExcCode +=  """
     curPSR = (curPSR & 0xffffffe0) + newCwp;
     PSR = curPSR;
+    PSRbp = curPSR;
+    #ifdef ACC_MODEL
     REGS[17] = PC;
     REGS[18] = NPC;
+    #else
+    REGS[17] = PC - 12;
+    REGS[18] = NPC - 4;
+    #endif
     switch(exceptionId){
         case RESET:{
         }break;
