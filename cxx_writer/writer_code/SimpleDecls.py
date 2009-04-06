@@ -34,7 +34,7 @@
 #
 ####################################################################################
 
-
+import copy
 import CustomCode, Writer
 
 class DumpElement:
@@ -77,9 +77,12 @@ class Define:
 class Type(DumpElement):
     """Represents a type; this is use for variable declaration, function parameter declaration ..."""
 
-    def __init__(self, name, include = None, const = False):
+    def __init__(self, name, includes = [], const = False):
         DumpElement.__init__(self, name)
-        self.include = include
+        if type(includes) == type(''):
+            self.includes = [includes]
+        else:
+            self.includes = includes
         self.modifiers = []
         self.const = const
 
@@ -119,10 +122,7 @@ class Type(DumpElement):
             writer.write(' ' + i)
 
     def getIncludes(self):
-        if self.include:
-            return [self.include]
-        else:
-            return []
+        return copy.copy(self.includes)
 
     def __str__(self):
         typeStr = ''
@@ -136,8 +136,8 @@ class Type(DumpElement):
 class TemplateType(Type):
     """Represents a templated type; this is use for variable declaration, function parameter declaration ..."""
 
-    def __init__(self, name, template = [], include = None):
-        Type.__init__(self, name, include)
+    def __init__(self, name, template = [], includes = []):
+        Type.__init__(self, name, includes)
         if type(template) != type([]):
             self.template = [template]
         else:
@@ -162,7 +162,7 @@ class TemplateType(Type):
         self.modifiers = currentModifiers
 
     def getIncludes(self):
-        includes = Type.getIncludes(self)
+        includes = copy.copy(Type.getIncludes(self))
         for i in self.template:
             try:
                 for j in i.getIncludes():
@@ -173,7 +173,7 @@ class TemplateType(Type):
         return includes
 
     def __str__(self):
-        currentModifiers = self.modifiers
+        currentModifiers = copy.copy(self.modifiers)
         self.modifiers = []
         typeStr = Type.__str__(self)
         if self.template:
@@ -204,6 +204,7 @@ sc_moduleType = Type('sc_module', 'systemc.h')
 sc_module_nameType = Type('sc_module_name', 'systemc.h')
 sc_timeType = Type('sc_time', 'systemc.h')
 stringType = Type('std::string', 'string')
+ofstreamType = Type('std::ofstream', ['iostream', 'fstream'])
 voidType = Type('void')
 intRefType = intType.makeRef()
 longlongRefType = longlongType.makeRef()
@@ -268,7 +269,7 @@ class Parameter(DumpElement):
                 writer.write(' = ' + self.initValue)
 
     def getIncludes(self):
-        return self.type.getIncludes()
+        return copy.copy(self.type.getIncludes())
 
     def __str__(self):
         outStr = str(self.type)
@@ -309,7 +310,7 @@ class Variable(DumpElement):
         self.writeDeclaration(writer)
 
     def getIncludes(self):
-        return self.type.getIncludes()
+        return copy.copy(self.type.getIncludes())
 
     def __str__(self):
         varStr = ''
@@ -421,7 +422,7 @@ class Function(DumpElement):
         writer.write('}\n')
 
     def getIncludes(self):
-        includes = self.retType.getIncludes()
+        includes = copy.copy(self.retType.getIncludes())
         for i in self.parameters:
             for j in i.getIncludes():
                 if not j in includes:
@@ -533,7 +534,7 @@ class Typedef(DumpElement):
         writer.write(';\n')
 
     def getIncludes(self):
-        return self.oldType.getIncludes()
+        return copy.copy(self.oldType.getIncludes())
 
     def getType(self):
         return Type(self.name)

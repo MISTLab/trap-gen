@@ -19,6 +19,7 @@ SYM(software_init_hook):
     restore
     retl
     nop
+    nop
 
     .align 8
 .globl SYM(win_ovf)
@@ -81,6 +82,8 @@ SYM(win_ovf):
     nop
     jmpl    %l1,  %g0
     rett    %l2
+    nop
+    nop
 /*        .end win_ovf*/
 
     .align 8
@@ -159,4 +162,6 @@ SYM(win_unf):
     nop
     jmpl    %l1,  %g0
     rett    %l2
+    nop
+    nop
 /*        .end win_unf*/

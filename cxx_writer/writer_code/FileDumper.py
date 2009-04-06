@@ -592,4 +592,3 @@ class Folder:
     opt.add_option('-T', '--disable-tools', default=True, action="store_false", help='Disables support for support tools (debuger, os-emulator, etc.) (switch)', dest='enable_tools')
 """, wscriptFile)
         wscriptFile.close()
-

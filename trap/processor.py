@@ -324,11 +324,11 @@ class Processor:
     def setISA(self, isa):
         self.isa = isa
 
-    def setMemory(self, name, memSize):
-        for name,isFetch  in self.tlmPorts.items():
+    def setMemory(self, name, memSize, debug = False, programCounter = ''):
+        for name, isFetch  in self.tlmPorts.items():
             if isFetch:
                 raise Exception('Cannot add internal memory since instructions will be fetched from port ' + name)
-        self.memory = (name, memSize)
+        self.memory = (name, memSize, debug, programCounter)
 
     def addTLMPort(self, portName, fetch = False):
         # Note that for the TLM port, if only one is specified and the it is the
@@ -546,6 +546,34 @@ class Processor:
         for method in self.isa.methods:
             if not method.stage in [i.name for i in self.pipes]:
                 raise Exception('Pipeline stage ' + stage + ' declared for method ' + method.name + ' does not exist')
+
+    def checkMemRegisters(self):
+        for memAliasReg in self.memAlias:
+            index = extractRegInterval(memAliasReg.alias)
+            if index:
+                # I'm aliasing part of a register bank or another alias:
+                # I check that it exists and that I am still within
+                # boundaries
+                regName = memAliasReg.alias[:memAliasReg.alias.find('[')]
+                if not self.isRegExisting(regName, index):
+                    raise Exception('Register ' + memAliasReg.alias + ' indicated in memory alias for address ' + memAliasReg.address)
+            else:
+                # Single register or alias: I check that it exists
+                if not self.isRegExisting(memAliasReg.alias):
+                    raise Exception('Register ' + memAliasReg.alias + ' indicated in memory alias for address ' + memAliasReg.address)
+        if self.memory[3]:
+            index = extractRegInterval(self.memory[3])
+            if index:
+                # I'm aliasing part of a register bank or another alias:
+                # I check that it exists and that I am still within
+                # boundaries
+                regName = self.memory[3][:self.memory[3].find('[')]
+                if not self.isRegExisting(regName, index):
+                    raise Exception('Register ' + self.memory[3] + ' indicated for program counter of local memory does not exists')
+            else:
+                # Single register or alias: I check that it exists
+                if not self.isRegExisting(self.memory[3]):
+                    raise Exception('Register ' + self.memory[3] + ' indicated for program counter of local memory does not exists')
 
     def checkAliases(self):
         # checks that the declared aliases actually refer to
@@ -922,7 +950,7 @@ class Processor:
             curFolder.create()
             if (model == 'funcLT') and (not self.systemc):
                 testFolder.create(configure = False, tests = True)
-            print ('\t\tCreated')
+            print ('\t\tCreated in folder ' + os.path.expanduser(os.path.expandvars(folder)))
         # We create and print the main folder and also add a configuration
         # part to the wscript
         mainFolder.create(configure = True, projectName = self.name, version = self.version)

@@ -198,7 +198,8 @@ processor.setFetchRegister('PC', -4)
 # interrupt ports, pins, etc.)
 #processor.addTLMPort('instrMem', True)
 #processor.addTLMPort('dataMem')
-processor.setMemory('dataMem', 10*1024*1024)
+#processor.setMemory('dataMem', 10*1024*1024)
+processor.setMemory('dataMem', 10*1024*1024, True, 'PC')
 
 # Now lets add the interrupt ports: TODO
 # It PSR[ET] == 0 I do not do anything; else

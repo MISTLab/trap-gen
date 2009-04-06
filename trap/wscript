@@ -4,7 +4,7 @@
 import os, Options
 
 def build(bld):
-    bld.add_subdirs('runtime')
+    bld.add_subdirs('runtime memAnalyzer')
 
     obj = bld.new_task_gen('cxx', 'staticlib', 'objects')
     obj.add_objects = 'loader syscall bfdFrontend tools debugger utils'

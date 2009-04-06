@@ -538,7 +538,13 @@ def getCPPInstrTest(self, processor, model):
     for alias in processor.memAlias:
         memAliasInit += ', ' + alias.alias
     if processor.memory:
-        archElemsDeclStr += 'LocalMemory ' + processor.memory[0] + '(' + str(processor.memory[1]) + memAliasInit + ');\n'
+        memDebugInit = ''
+        if processor.memory[2]:
+            archElemsDeclStr += 'unsigned int totalCycles;\n'
+            memDebugInit += ', totalCycles'
+        if processor.memory[3]:
+            memDebugInit += ', ' + processor.memory[3]
+        archElemsDeclStr += 'LocalMemory ' + processor.memory[0] + '(' + str(processor.memory[1]) + memDebugInit + memAliasInit + ');\n'
         baseInitElement += processor.memory[0] + ', '
     # Note how I declare local memories even for TLM ports. I use 1MB as default dimension
     for tlmPorts in processor.tlmPorts.keys():
