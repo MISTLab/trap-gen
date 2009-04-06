@@ -44,14 +44,25 @@ import trap
 # mnemonic and their behavior. Note the zero* field: it is a special identifier and it
 # means that all those bits have value 0; the same applies for one*
 
-# In MICROBLAZE there are only two types of instruction: typeA and typeB.
+# In MICROBLAZE there are two types of instructions: typeA and typeB.
+# Obviously, there are many variants for each type.
 
-#typeA: opcode(6),rd,ra,rb
-
-one_dest_two_src = trap.MachineCode([('opcode0', 6), ('rd', 5), ('ra', 5),('rb',5),('opcode1',11)])
+#typeA: opcode0(6),rd,ra,rb,opcode1(11)
+one_dest_two_src = trap.MachineCode([('opcode0', 6), ('rd', 5), ('ra', 5), ('rb',5), ('opcode1',11)])
 one_dest_two_src.setVarField('rd', ('GPR', 0), 'out')
 one_dest_two_src.setVarField('ra', ('GPR', 0), 'in')
 one_dest_two_src.setVarField('rb', ('GPR', 0), 'in')
+
+#typeA: opcode0(6),opcode1(5),ra,rb,opcode2(11)
+branch_two_reg = trap.MachineCode([('opcode0', 6), ('opcode1', 5), ('ra', 5), ('rb',5), ('opcode2',11)])
+branch_two_reg.setVarField('ra', ('GPR', 0), 'in')
+branch_two_reg.setVarField('rb', ('GPR', 0), 'in')
+
+#typeB: opcode(6),rd,da,imm
+one_dest_one_src_one_imm = trap.MachineCode([('opcode', 6), ('rd', 5), ('ra', 5),('imm',16)])
+one_dest_one_src_one_imm.setVarField('rd', ('GPR', 0), 'out')
+one_dest_one_src_one_imm.setVarField('ra', ('GPR', 0), 'in')
+one_dest_one_src_one_imm.setVarField('imm', ('GPR', 0), 'in')
 
 
 #~ dataProc_imm_shift = trap.MachineCode([('cond', 4), ('zero', 3), ('opcode', 4), ('s', 1), ('rn', 4), ('rd', 4), ('shift_amm', 5), ('shift_op', 2), ('zero', 1), ('rm', 4)])
