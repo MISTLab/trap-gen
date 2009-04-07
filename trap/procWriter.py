@@ -984,58 +984,197 @@ def getCPPMemoryIf(self, model):
         readMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\nreturn this->' + alias.alias + ';\n}\n'
         writeMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n this->' + alias.alias + ' = datum;\nreturn;\n}\n'
     checkAddressCode = 'if(address >= this->size){\nTHROW_ERROR("Address " << std::hex << std::showbase << address << " out of memory");\n}\n'
-    memoryElements = []
-    emptyBody = cxx_writer.writer_code.Code('')
-    addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
-    readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + 'return *(' + str(archDWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
-    readBody.addInclude('utils.hpp')
-    readDecl = cxx_writer.writer_code.Method('read_dword', readBody, archDWordType, 'pu', [addressParam], const = len(self.tlmPorts) == 0, inline = True, noException = True)
-    memoryElements.append(readDecl)
-    readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + 'return *(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
-    readBody.addInclude('utils.hpp')
-    readDecl = cxx_writer.writer_code.Method('read_word', readBody, archWordType, 'pu', [addressParam], const = len(self.tlmPorts) == 0, inline = True, noException = True)
-    memoryElements.append(readDecl)
-    readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + 'return *(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
-    readDecl = cxx_writer.writer_code.Method('read_half', readBody, archHWordType, 'pu', [addressParam], const = len(self.tlmPorts) == 0, noException = True)
-    memoryElements.append(readDecl)
-    readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + 'return *(' + str(archByteType.makePointer()) + ')(this->memory + (unsigned long)address);')
-    readDecl = cxx_writer.writer_code.Method('read_byte', readBody, archByteType, 'pu', [addressParam], const = len(self.tlmPorts) == 0, noException = True)
-    memoryElements.append(readDecl)
-    addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
-    writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '*(' + str(archDWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
-    datumParam = cxx_writer.writer_code.Parameter('datum', archDWordType)
-    writeDecl = cxx_writer.writer_code.Method('write_dword', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], inline = True, noException = True)
-    memoryElements.append(writeDecl)
-    writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '*(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
-    datumParam = cxx_writer.writer_code.Parameter('datum', archWordType)
-    writeDecl = cxx_writer.writer_code.Method('write_word', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], inline = True, noException = True)
-    memoryElements.append(writeDecl)
-    writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '*(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
-    datumParam = cxx_writer.writer_code.Parameter('datum', archHWordType)
-    writeDecl = cxx_writer.writer_code.Method('write_half', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
-    memoryElements.append(writeDecl)
-    writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '*(' + str(archByteType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
-    datumParam = cxx_writer.writer_code.Parameter('datum', archByteType)
-    writeDecl = cxx_writer.writer_code.Method('write_byte', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
-    memoryElements.append(writeDecl)
-    lockDecl = cxx_writer.writer_code.Method('lock', emptyBody, cxx_writer.writer_code.voidType, 'pu')
-    memoryElements.append(lockDecl)
-    unlockDecl = cxx_writer.writer_code.Method('unlock', emptyBody, cxx_writer.writer_code.voidType, 'pu')
-    memoryElements.append(unlockDecl)
-    arrayAttribute = cxx_writer.writer_code.Attribute('memory', cxx_writer.writer_code.charPtrType, 'pri')
-    memoryElements.append(arrayAttribute)
-    sizeAttribute = cxx_writer.writer_code.Attribute('size', cxx_writer.writer_code.uintType, 'pri')
-    memoryElements.append(sizeAttribute)
-    memoryElements += aliasAttrs
-    localMemDecl = cxx_writer.writer_code.ClassDeclaration('LocalMemory', memoryElements, [memoryIfDecl.getType()])
-    constructorBody = cxx_writer.writer_code.Code('this->memory = new char[size];')
-    constructorParams = [cxx_writer.writer_code.Parameter('size', cxx_writer.writer_code.uintType)]
-    publicMemConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams + aliasParams, ['size(size)'] + aliasInit)
-    localMemDecl.addConstructor(publicMemConstr)
-    destructorBody = cxx_writer.writer_code.Code('delete [] this->memory;')
-    publicMemDestr = cxx_writer.writer_code.Destructor(destructorBody, 'pu', True)
-    localMemDecl.addDestructor(publicMemDestr)
-    classes.append(localMemDecl)
+    if not self.memory or not self.memory[2]:
+        memoryElements = []
+        emptyBody = cxx_writer.writer_code.Code('')
+        addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
+        readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + '\nreturn *(' + str(archDWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
+        readBody.addInclude('utils.hpp')
+        readDecl = cxx_writer.writer_code.Method('read_dword', readBody, archDWordType, 'pu', [addressParam], const = len(self.tlmPorts) == 0, inline = True, noException = True)
+        memoryElements.append(readDecl)
+        readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + 'return *(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
+        readBody.addInclude('utils.hpp')
+        readDecl = cxx_writer.writer_code.Method('read_word', readBody, archWordType, 'pu', [addressParam], const = len(self.tlmPorts) == 0, inline = True, noException = True)
+        memoryElements.append(readDecl)
+        readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + 'return *(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
+        readDecl = cxx_writer.writer_code.Method('read_half', readBody, archHWordType, 'pu', [addressParam], const = len(self.tlmPorts) == 0, noException = True)
+        memoryElements.append(readDecl)
+        readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + 'return *(' + str(archByteType.makePointer()) + ')(this->memory + (unsigned long)address);')
+        readDecl = cxx_writer.writer_code.Method('read_byte', readBody, archByteType, 'pu', [addressParam], const = len(self.tlmPorts) == 0, noException = True)
+        memoryElements.append(readDecl)
+        addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
+        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '*(' + str(archDWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
+        datumParam = cxx_writer.writer_code.Parameter('datum', archDWordType)
+        writeDecl = cxx_writer.writer_code.Method('write_dword', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], inline = True, noException = True)
+        memoryElements.append(writeDecl)
+        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '*(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
+        datumParam = cxx_writer.writer_code.Parameter('datum', archWordType)
+        writeDecl = cxx_writer.writer_code.Method('write_word', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], inline = True, noException = True)
+        memoryElements.append(writeDecl)
+        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '*(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
+        datumParam = cxx_writer.writer_code.Parameter('datum', archHWordType)
+        writeDecl = cxx_writer.writer_code.Method('write_half', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
+        memoryElements.append(writeDecl)
+        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '*(' + str(archByteType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
+        datumParam = cxx_writer.writer_code.Parameter('datum', archByteType)
+        writeDecl = cxx_writer.writer_code.Method('write_byte', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
+        memoryElements.append(writeDecl)
+        lockDecl = cxx_writer.writer_code.Method('lock', emptyBody, cxx_writer.writer_code.voidType, 'pu')
+        memoryElements.append(lockDecl)
+        unlockDecl = cxx_writer.writer_code.Method('unlock', emptyBody, cxx_writer.writer_code.voidType, 'pu')
+        memoryElements.append(unlockDecl)
+        arrayAttribute = cxx_writer.writer_code.Attribute('memory', cxx_writer.writer_code.charPtrType, 'pri')
+        memoryElements.append(arrayAttribute)
+        sizeAttribute = cxx_writer.writer_code.Attribute('size', cxx_writer.writer_code.uintType, 'pri')
+        memoryElements.append(sizeAttribute)
+        memoryElements += aliasAttrs
+        localMemDecl = cxx_writer.writer_code.ClassDeclaration('LocalMemory', memoryElements, [memoryIfDecl.getType()])
+        constructorBody = cxx_writer.writer_code.Code('this->memory = new char[size];')
+        constructorParams = [cxx_writer.writer_code.Parameter('size', cxx_writer.writer_code.uintType)]
+        publicMemConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams + aliasParams, ['size(size)'] + aliasInit)
+        localMemDecl.addConstructor(publicMemConstr)
+        destructorBody = cxx_writer.writer_code.Code('delete [] this->memory;')
+        publicMemDestr = cxx_writer.writer_code.Destructor(destructorBody, 'pu', True)
+        localMemDecl.addDestructor(publicMemDestr)
+        classes.append(localMemDecl)
+    else:
+        memoryElements = []
+        emptyBody = cxx_writer.writer_code.Code('')
+        addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
+        readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + '\nreturn *(' + str(archDWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
+        readBody.addInclude('utils.hpp')
+        readDecl = cxx_writer.writer_code.Method('read_dword', readBody, archDWordType, 'pu', [addressParam], const = len(self.tlmPorts) == 0, inline = True, noException = True)
+        memoryElements.append(readDecl)
+        readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + 'return *(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
+        readBody.addInclude('utils.hpp')
+        readDecl = cxx_writer.writer_code.Method('read_word', readBody, archWordType, 'pu', [addressParam], const = len(self.tlmPorts) == 0, inline = True, noException = True)
+        memoryElements.append(readDecl)
+        readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + 'return *(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
+        readDecl = cxx_writer.writer_code.Method('read_half', readBody, archHWordType, 'pu', [addressParam], const = len(self.tlmPorts) == 0, noException = True)
+        memoryElements.append(readDecl)
+        readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + 'return *(' + str(archByteType.makePointer()) + ')(this->memory + (unsigned long)address);')
+        readDecl = cxx_writer.writer_code.Method('read_byte', readBody, archByteType, 'pu', [addressParam], const = len(self.tlmPorts) == 0, noException = True)
+        memoryElements.append(readDecl)
+        addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
+        dumpCode = 'MemAccessType dumpInfo;\n'
+        if not self.systemc and not model.startswith('acc'):
+            dumpCode += 'dumpInfo.simulationTime = curCycle;'
+        else:
+            dumpCode += 'dumpInfo.simulationTime = sc_time_stamp().to_double();'
+        dumpCode += """
+dumpInfo.programCounter = this->""" + self.memory[3] + """;
+for(int i = 0; i < """ + str(self.wordSize*2) + """; i++){
+    dumpInfo.address = address + i;
+    dumpInfo.val = (char)((datum & (0xFF << i*8)) >> i*8);
+    this->dumpFile.write((char *)&dumpInfo, sizeof(MemAccessType));
+}
+"""
+        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '*(' + str(archDWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;' + dumpCode)
+        writeBody.addInclude('memAccessType.hpp')
+        datumParam = cxx_writer.writer_code.Parameter('datum', archDWordType)
+        writeDecl = cxx_writer.writer_code.Method('write_dword', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], inline = True, noException = True)
+        memoryElements.append(writeDecl)
+        dumpCode = 'MemAccessType dumpInfo;\n'
+        if not self.systemc and not model.startswith('acc'):
+            dumpCode += 'dumpInfo.simulationTime = curCycle;'
+        else:
+            dumpCode += 'dumpInfo.simulationTime = sc_time_stamp().to_double();'
+        dumpCode += """
+dumpInfo.programCounter = this->""" + self.memory[3] + """;
+for(int i = 0; i < """ + str(self.wordSize) + """; i++){
+    dumpInfo.address = address + i;
+    dumpInfo.val = (char)((datum & (0xFF << i*8)) >> i*8);
+    this->dumpFile.write((char *)&dumpInfo, sizeof(MemAccessType));
+}
+"""
+        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '*(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;\n' + dumpCode)
+        datumParam = cxx_writer.writer_code.Parameter('datum', archWordType)
+        writeDecl = cxx_writer.writer_code.Method('write_word', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], inline = True, noException = True)
+        memoryElements.append(writeDecl)
+        dumpCode = 'MemAccessType dumpInfo;\n'
+        if not self.systemc and not model.startswith('acc'):
+            dumpCode += 'dumpInfo.simulationTime = curCycle;'
+        else:
+            dumpCode += 'dumpInfo.simulationTime = sc_time_stamp().to_double();'
+        dumpCode += """
+dumpInfo.programCounter = this->""" + self.memory[3] + """;
+for(int i = 0; i < """ + str(self.wordSize/2) + """; i++){
+    dumpInfo.address = address + i;
+    dumpInfo.val = (char)((datum & (0xFF << i*8)) >> i*8);
+    this->dumpFile.write((char *)&dumpInfo, sizeof(MemAccessType));
+}
+"""
+        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '*(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;\n' + dumpCode)
+        writeBody.addInclude('memAccessType.hpp')
+        datumParam = cxx_writer.writer_code.Parameter('datum', archHWordType)
+        writeDecl = cxx_writer.writer_code.Method('write_half', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
+        memoryElements.append(writeDecl)
+        dumpCode = 'MemAccessType dumpInfo;\n'
+        if not self.systemc and not model.startswith('acc'):
+            dumpCode += 'dumpInfo.simulationTime = curCycle;'
+        else:
+            dumpCode += 'dumpInfo.simulationTime = sc_time_stamp().to_double();'
+        dumpCode += """
+dumpInfo.programCounter = this->""" + self.memory[3] + """;
+dumpInfo.address = address;
+dumpInfo.val = (char)datum;
+this->dumpFile.write((char *)&dumpInfo, sizeof(MemAccessType));
+"""
+        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '*(' + str(archByteType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;\n' + dumpCode)
+        writeBody.addInclude('memAccessType.hpp')
+        datumParam = cxx_writer.writer_code.Parameter('datum', archByteType)
+        writeDecl = cxx_writer.writer_code.Method('write_byte', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
+        memoryElements.append(writeDecl)
+        lockDecl = cxx_writer.writer_code.Method('lock', emptyBody, cxx_writer.writer_code.voidType, 'pu')
+        memoryElements.append(lockDecl)
+        unlockDecl = cxx_writer.writer_code.Method('unlock', emptyBody, cxx_writer.writer_code.voidType, 'pu')
+        memoryElements.append(unlockDecl)
+        endOfSimBody = cxx_writer.writer_code.Code("""if(this->dumpFile){
+           this->dumpFile.flush();
+           this->dumpFile.close();
+        }
+        """)
+        endOfSimDecl = cxx_writer.writer_code.Method('end_of_simulation', endOfSimBody, cxx_writer.writer_code.voidType, 'pu')
+        memoryElements.append(endOfSimDecl)
+
+        constructorParams = [cxx_writer.writer_code.Parameter('size', cxx_writer.writer_code.uintType)]
+        constructorInit = ['size(size)']
+
+        arrayAttribute = cxx_writer.writer_code.Attribute('memory', cxx_writer.writer_code.charPtrType, 'pri')
+        memoryElements.append(arrayAttribute)
+
+        if not self.systemc and not model.startswith('acc'):
+            cycleAttribute = cxx_writer.writer_code.Attribute('curCycle', cxx_writer.writer_code.uintType.makeRef(), 'pri')
+            constructorParams.append(cxx_writer.writer_code.Parameter('curCycle', cxx_writer.writer_code.uintType.makeRef()))
+            constructorInit.append('curCycle(curCycle)')
+            memoryElements.append(cycleAttribute)
+
+        sizeAttribute = cxx_writer.writer_code.Attribute('size', cxx_writer.writer_code.uintType, 'pri')
+        memoryElements.append(sizeAttribute)
+        dumpFileAttribute = cxx_writer.writer_code.Attribute('dumpFile', cxx_writer.writer_code.ofstreamType, 'pri')
+        memoryElements.append(dumpFileAttribute)
+        memoryElements += aliasAttrs
+        memoryElements.append(cxx_writer.writer_code.Attribute(self.memory[3], resourceType[self.memory[3]].makeRef(), 'pri'))
+        pcRegParam = [cxx_writer.writer_code.Parameter(self.memory[3], resourceType[self.memory[3]].makeRef())]
+        pcRegInit = [self.memory[3] + '(' + self.memory[3] + ')']
+        localMemDecl = cxx_writer.writer_code.ClassDeclaration('LocalMemory', memoryElements, [memoryIfDecl.getType()])
+        constructorBody = cxx_writer.writer_code.Code("""this->memory = new char[size];
+            this->dumpFile.open("memoryDump.dmp", ios::out | ios::binary | ios::ate);
+            if(!this->dumpFile){
+                THROW_EXCEPTION("Error in opening file memoryDump.dmp for writing");
+            }
+        """)
+        publicMemConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams + aliasParams + pcRegParam, constructorInit + aliasInit + pcRegInit)
+        localMemDecl.addConstructor(publicMemConstr)
+        destructorBody = cxx_writer.writer_code.Code("""delete [] this->memory;
+        if(this->dumpFile){
+           this->dumpFile.flush();
+           this->dumpFile.close();
+        }
+        """)
+        publicMemDestr = cxx_writer.writer_code.Destructor(destructorBody, 'pu', True)
+        localMemDecl.addDestructor(publicMemDestr)
+        classes.append(localMemDecl)
 
     return classes
 
@@ -1128,12 +1267,19 @@ def getCPPProc(self, model, trace):
             codeString += """
                     #ifndef DISABLE_TOOLS
                     }
+                """
+            if trace:
+                codeString += """else{
+                    std::cerr << "Not executed Instruction because Tools anulled it" << std::endl << std::endl;
+                }"""
+            codeString += """
                     #endif
                 }
                 catch(annull_exception &etc){
             """
             if trace:
                 codeString += """
+                        cachedInstr->second->printTrace();
                         std::cerr << "Skipped Instruction " << cachedInstr->second->getInstructionName() << std::endl << std::endl;
                 """
             codeString += """
@@ -1163,12 +1309,19 @@ def getCPPProc(self, model, trace):
         codeString += """
                 #ifndef DISABLE_TOOLS
                 }
+            """
+        if trace:
+            codeString += """else{
+                std::cerr << "Not executed Instruction because Tools anulled it" << std::endl << std::endl;
+            }"""
+        codeString += """
                 #endif
             }
             catch(annull_exception &etc){
         """
         if trace:
             codeString += """
+                    instr->printTrace();
                     std::cerr << "Skipped Instruction " << instr->getInstructionName() << std::endl << std::endl;
             """
         codeString += """
@@ -1240,19 +1393,31 @@ def getCPPProc(self, model, trace):
                         # ok, the element is iterable, so it is an initialization
                         # with a constant and an offset
                         initString += elem.name + '[' + str(curId) + ']'
-                        initString += ' = '
+                        if model.startswith('acc'):
+                            initString += ' = '
+                        else:
+                            initString += '.immediateWrite('
                         initString += str(defValue[0]) + ' + ' + str(defValue[1])
-                        initString += ';\n'
+                        if model.startswith('acc'):
+                            initString += ';\n'
+                        else:
+                            initString += ');\n'
                         continue
                 except TypeError:
                     pass
                 initString += elem.name + '[' + str(curId) + ']'
-                initString += ' = '
+                if model.startswith('acc'):
+                    initString += ' = '
+                else:
+                    initString += '.immediateWrite('
                 try:
                     initString += hex(defValue)
                 except TypeError:
                     initString += str(defValue)
-                initString += ';\n'
+                if model.startswith('acc'):
+                    initString += ';\n'
+                else:
+                    initString += ');\n'
             curId += 1
     for elem in self.regs + self.aliasRegs:
         try:
@@ -1267,19 +1432,31 @@ def getCPPProc(self, model, trace):
                     # ok, the element is iterable, so it is an initialization
                     # with a constant and an offset
                     initString += elem.name
-                    initString += ' = '
+                    if model.startswith('acc'):
+                        initString += ' = '
+                    else:
+                        initString += '.immediateWrite('
                     initString += str(elem.defValue[0]) + ' + ' + str(elem.defValue[1])
-                    initString += ';\n'
+                    if model.startswith('acc'):
+                        initString += ';\n'
+                    else:
+                        initString += ');\n'
                     continue
             except TypeError:
                 pass
             initString += elem.name
-            initString += ' = '
+            if model.startswith('acc'):
+                initString += ' = '
+            else:
+                initString += '.immediateWrite('
             try:
                 initString += hex(elem.defValue)
             except TypeError:
                 initString += str(elem.defValue)
-            initString += ';\n'
+            if model.startswith('acc'):
+                initString += ';\n'
+            else:
+                initString += ');\n'
     if model.startswith('acc'):
         for reg in self.regs:
             for pipeStage in self.pipes:
@@ -1376,10 +1553,23 @@ def getCPPProc(self, model, trace):
                 processorElements.append(attribute)
     for alias in self.aliasRegs:
         attribute = cxx_writer.writer_code.Attribute(alias.name, resourceType[alias.name], 'pu')
-        aliasInitStr = alias.name + '(&' + alias.initAlias
-        if not model.startswith('acc'):
-            aliasInitStr += ', ' + str(alias.offset)
-        aliasInit[alias.name] = (aliasInitStr + ')')
+        # first of all I have to make sure that the alias does not refer to a delayed or constant
+        # register bank, otherwise I have to initialize it in the constructor body and not
+        # inline in the constuctor
+        hasToDeclareInit = True
+        if alias.initAlias.find('[') > -1:
+            referredName = alias.initAlias[:alias.initAlias.find('[')]
+            for regB in self.regBanks:
+                if regB.name == referredName:
+                    if regB.constValue or (not model.startswith('acc') and regB.delay):
+                        hasToDeclareInit = False
+                        break
+        if hasToDeclareInit:
+            aliasInitStr = alias.name + '(&' + alias.initAlias
+            if not model.startswith('acc'):
+                aliasInitStr += ', ' + str(alias.offset)
+            aliasInit[alias.name] = (aliasInitStr + ')')
+
         index = extractRegInterval(alias.initAlias)
         if index:
             # we are dealing with a member of a register bank
@@ -1527,7 +1717,10 @@ def getCPPProc(self, model, trace):
             edgeType = aliasGraphRev.edges(alias, data = True)[0][0]
         if edgeType == 'stop':
             break
-        initElements.append(aliasInit[alias.name])
+        if aliasInit.has_key(alias.name):
+            initElements.append(aliasInit[alias.name])
+        else:
+            break
         orderedNodesTemp.append(alias)
     for alias in orderedNodesTemp:
         orderedNodes.remove(alias)
@@ -1540,8 +1733,12 @@ def getCPPProc(self, model, trace):
     if self.memory:
         attribute = cxx_writer.writer_code.Attribute(self.memory[0], cxx_writer.writer_code.Type('LocalMemory', 'memory.hpp'), 'pu')
         initMemCode = self.memory[0] + '(' + str(self.memory[1])
+        if self.memory[2] and not self.systemc and not model.startswith('acc'):
+            initMemCode += ', totalCycles'
         for memAl in self.memAlias:
             initMemCode += ', ' + memAl.alias
+        if self.memory[2] and self.memory[3]:
+            initMemCode += ', ' + self.memory[3]
         initMemCode += ')'
         if self.memory[0] in self.abi.memories.keys():
             abiIfInit = 'this->' + self.memory[0] + ', ' + abiIfInit
@@ -1598,7 +1795,7 @@ def getCPPProc(self, model, trace):
     bodyInits += 'this->PROGRAM_START = 0;\n'
     bodyInits += 'this->abiIf = new ' + str(interfaceType) + '(' + abiIfInit + ');\n'
 
-    IntructionType = cxx_writer.writer_code.Type('Instruction', include = 'instructions.hpp')
+    IntructionType = cxx_writer.writer_code.Type('Instruction', 'instructions.hpp')
     IntructionTypePtr = IntructionType.makePointer()
     instructionsAttribute = cxx_writer.writer_code.Attribute('INSTRUCTIONS',
                             IntructionTypePtr.makePointer(), 'pri', True, 'NULL')
@@ -1700,6 +1897,8 @@ def getCPPProc(self, model, trace):
         baseInstrInitElement += self.memory[0] + ', '
     for tlmPorts in self.tlmPorts.keys():
         baseInstrInitElement += tlmPorts + ', '
+    if trace and not self.systemc and not model.startswith('acc'):
+        baseInstrInitElement += 'totalCycles, '
     baseInstrInitElement = baseInstrInitElement[:-2]
 
     constrCode = 'Processor::numInstances++;\nif(Processor::INSTRUCTIONS == NULL){\n'
@@ -1804,6 +2003,17 @@ def getCPPIf(self, model):
     endianessCode.addInclude(includes)
     endianessMethod = cxx_writer.writer_code.Method('isLittleEndian', endianessCode, cxx_writer.writer_code.boolType, 'pu', noException = True, const = True)
     ifClassElements.append(endianessMethod)
+
+    if self.abi.preCallCode:
+        ifClassElements.append(cxx_writer.writer_code.Method('preCall', cxx_writer.writer_code.Code(self.abi.preCallCode), cxx_writer.writer_code.voidType, 'pu', noException = True))
+    if self.abi.postCallCode:
+        ifClassElements.append(cxx_writer.writer_code.Method('postCall', cxx_writer.writer_code.Code(self.abi.postCallCode), cxx_writer.writer_code.voidType, 'pu', noException = True))
+    if self.abi.returnCallReg:
+        returnCallCode = ''
+        for returnReg in self.abi.returnCallReg:
+            returnCallCode += returnReg[0] + '.immediateWrite(' + returnReg[1] + ' + ' + str(returnReg[2]) + ');\n'
+        ifClassElements.append(cxx_writer.writer_code.Method('returnFromCall', cxx_writer.writer_code.Code(returnCallCode), cxx_writer.writer_code.voidType, 'pu', noException = True))
+
     codeLimitCode = cxx_writer.writer_code.Code('return this->PROGRAM_LIMIT;')
     codeLimitMethod = cxx_writer.writer_code.Method('getCodeLimit', codeLimitCode, wordType, 'pu')
     ifClassElements.append(codeLimitMethod)
@@ -1818,7 +2028,7 @@ def getCPPIf(self, model):
         readElemCode.addInclude(includes)
         readElemMethod = cxx_writer.writer_code.Method('read' + self.abi.name[elem], readElemCode, wordType, 'pu', noException = True, const = True)
         ifClassElements.append(readElemMethod)
-        setElemBody = 'this->' + elem + ' = newValue;'
+        setElemBody = 'this->' + elem + '.immediateWrite(newValue);'
         setElemCode = cxx_writer.writer_code.Code(setElemBody)
         setElemCode.addInclude(includes)
         setElemParam = cxx_writer.writer_code.Parameter('newValue', wordType.makeRef().makeConst())
@@ -1830,7 +2040,7 @@ def getCPPIf(self, model):
         readArgsBody += 'args.push_back(this->' + arg
         if self.abi.offset.has_key(arg) and not model.startswith('acc'):
             readArgsBody += ' + ' + str(self.abi.offset[arg])
-        readArgsBody += ');'
+        readArgsBody += ');\n'
     readArgsBody += 'return args;\n'
     readArgsCode = cxx_writer.writer_code.Code(readArgsBody)
     readArgsCode.addInclude(includes)
@@ -1839,10 +2049,10 @@ def getCPPIf(self, model):
     setArgsBody = 'if(args.size() > ' + str(len(self.abi.args)) + '){\nTHROW_EXCEPTION(\"ABI of processor supports up to ' + str(len(self.abi.args)) + ' arguments: \" << args.size() << \" given\");\n}\n'
     setArgsBody += str(vectorType) + '::const_iterator argIter = args.begin();\n'
     for arg in self.abi.args:
-        setArgsBody += 'this->' + arg + ' = *argIter'
+        setArgsBody += 'this->' + arg + '.immediateWrite(*argIter'
         if self.abi.offset.has_key(arg) and not model.startswith('acc'):
             setArgsBody += ' - ' + str(self.abi.offset[arg])
-        setArgsBody += ';\nargIter++;\n'
+        setArgsBody += ');\nargIter++;\n'
     setArgsCode = cxx_writer.writer_code.Code(setArgsBody)
     setArgsParam = cxx_writer.writer_code.Parameter('args', vectorType.makeRef().makeConst())
     setArgsMethod = cxx_writer.writer_code.Method('setArgs', setArgsCode, cxx_writer.writer_code.voidType, 'pu', [setArgsParam], noException = True)
@@ -1869,8 +2079,8 @@ def getCPPIf(self, model):
     setGDBRegBody = 'switch(gdbId){\n'
     for reg, gdbId in self.abi.regCorrespondence.items():
         setGDBRegBody += 'case ' + str(gdbId) + ':{\n'
-        setGDBRegBody += reg + ' = newValue'
-        setGDBRegBody += ';\nbreak;}\n'
+        setGDBRegBody += reg + '.immediateWrite(newValue'
+        setGDBRegBody += ');\nbreak;}\n'
     setGDBRegBody += 'default:{\nTHROW_EXCEPTION(\"No register corresponding to GDB id \" << gdbId);\n}\n}\n'
     setGDBRegCode = cxx_writer.writer_code.Code(setGDBRegBody)
     setGDBRegCode.addInclude(includes)
@@ -3061,8 +3271,6 @@ def getTestMainCode(self):
     code += '\nreturn 0;'
     initCode = cxx_writer.writer_code.Code(code)
     initCode.addInclude('boost/test/included/unit_test.hpp')
-    initCode.addInclude('isaTests.hpp')
-    initCode.addInclude('decoderTests.hpp')
     parameters = [cxx_writer.writer_code.Parameter('argc', cxx_writer.writer_code.intType), cxx_writer.writer_code.Parameter('argv[]', cxx_writer.writer_code.charPtrType)]
     initFunction = cxx_writer.writer_code.Function('init_unit_test_suite', initCode, cxx_writer.writer_code.Type('boost::unit_test::test_suite').makePointer(), parameters)
 
@@ -3114,7 +3322,8 @@ def getMainCode(self, model):
         Processor procInst(\"""" + self.name + """\", sc_time(latency*10e9, SC_NS));
         """
     else:
-        code += """//Now we can procede with the actual instantiation of the processor
+        code += """
+        //Now we can procede with the actual instantiation of the processor
         Processor procInst(\"""" + self.name + """\");
         """
     if self.externalClock:
@@ -3149,11 +3358,16 @@ def getMainCode(self, model):
         execOffset += 1
     code += """
     //And with the loading of the executable code
+    boost::filesystem::path applicationPath = boost::filesystem::system_complete(boost::filesystem::path(vm["application"].as<std::string>(), boost::filesystem::native));
+    if ( !boost::filesystem::exists( applicationPath ) ){
+        std::cerr << "ERROR: specified application " << vm["application"].as<std::string>() << " does not exist" << std::endl;
+        return -1;
+    }
     ExecLoader loader(vm["application"].as<std::string>(), false);
     //Lets copy the binary code into memory
     unsigned char * programData = loader.getProgData();
     for(unsigned int i = 0; i < loader.getProgDim(); i++){
-        """ + instrMemName + """.write_byte(loader.getDataStart() + i, programData[i]);
+        """ + instrMemName + """.write_byte_dbg(loader.getDataStart() + i, programData[i]);
     }
     //Finally I can set the processor variables
     procInst.ENTRY_POINT = loader.getProgStart();
@@ -3162,9 +3376,9 @@ def getMainCode(self, model):
     //Now I initialize the tools (i.e. debugger, os emulator, ...)
     """
     if model.startswith('acc'):
-        code += 'OSEmulatorCA< ' + str(wordType) + ', -' + str(execOffset*self.wordSize) + ' > osEmu(*(procInst.abiIf), Processor::NOPInstrInstance);\n'
+        code += 'OSEmulatorCA< ' + str(wordType) + ', -' + str(execOffset*self.wordSize) + ' > osEmu(*(procInst.abiIf), Processor::NOPInstrInstance, ' + str(self.abi.emulOffset) + ');\n'
     else:
-        code += 'OSEmulator< ' + str(wordType) + ', 0 > osEmu(*(procInst.abiIf));\n'
+        code += 'OSEmulator< ' + str(wordType) + ', 0 > osEmu(*(procInst.abiIf), ' + str(self.abi.emulOffset) + ');\n'
     code += """GDBStub< """ + str(wordType) + """ > gdbStub(*(procInst.abiIf));
     osEmu.initSysCalls(vm["application"].as<std::string>());
     procInst.toolManager.addTool(osEmu);
@@ -3210,6 +3424,10 @@ def getMainCode(self, model):
         mainCode.addInclude('osEmulator.hpp')
     mainCode.addInclude('boost/program_options.hpp')
     mainCode.addInclude('boost/timer.hpp')
+    mainCode.addInclude('boost/filesystem/operations.hpp')
+    mainCode.addInclude('boost/filesystem/fstream.hpp')
+    mainCode.addInclude('boost/filesystem/convenience.hpp')
+    mainCode.addInclude('boost/filesystem/path.hpp')
     parameters = [cxx_writer.writer_code.Parameter('argc', cxx_writer.writer_code.intType), cxx_writer.writer_code.Parameter('argv', cxx_writer.writer_code.charPtrType.makePointer())]
     function = cxx_writer.writer_code.Function('sc_main', mainCode, cxx_writer.writer_code.intType, parameters)
     return function

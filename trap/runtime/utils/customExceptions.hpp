@@ -43,8 +43,12 @@
 #ifndef CUSTOMEXCEPTION_HPP
 #define CUSTOMEXCEPTION_HPP
 
+#include <cstdlib>
+#include <string>
 #include <exception>
 #include <stdexcept>
+#include <iostream>
+#include <execinfo.h>
 
 class annull_exception: public std::runtime_error{
     public:

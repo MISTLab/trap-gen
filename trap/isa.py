@@ -89,9 +89,16 @@ class ISA:
         self.beginOp = None
         self.endOp = None
         self.subInstructions = {}
+        # Definition of constant variables which can be accessed from the instructions
         self.constants = []
         # Definitions used inside the ISA to ease the description
         self.defines = []
+        # Registers which we wish to print in the instruction trace
+        self.traceRegs = []
+
+    def addTraceRegister(self, register):
+        if register.name not in self.traceRegs:
+            self.traceRegs.append(register)
 
     def addDefines(self, defineCode):
         self.defines.append(defineCode)
@@ -159,35 +166,34 @@ class ISA:
 
     def checkCoding(self):
         checked = []
-        for i in self.instructions.values():
-            for j in self.instructions.values():
-                if i != j:
-                    if not sorted((i.id,j.id)) in checked:
-                        checked.append(sorted((i.id,j.id)))
-                        minLen = min(len(i.bitstring), len(j.bitstring))
-                        equal = True
+        for numInstri in range(0, len(self.instructions)):
+            i = self.instructions.values()[numInstri]
+            for numInstrj in range(numInstri + 1, len(self.instructions)):
+                j = self.instructions.values()[numInstrj]
+                minLen = min(len(i.bitstring), len(j.bitstring))
+                equal = True
+                for bit in range(0, minLen):
+                    if i.bitstring[bit] != None and j.bitstring[bit] != None:
+                        if i.bitstring[bit] != j.bitstring[bit]:
+                            equal = False
+                            break
+                if equal:
+                    if i.subInstr and j.subInstr:
+                        raise Exception('Instructions ' + i.name + ' and ' + j.name + ' have an ambiguous coding and both of them are classified as sub-instructions: hierarchical sub-instructions are not allowed')
+                    if i.subInstr:
                         for bit in range(0, minLen):
-                            if i.bitstring[bit] != None and j.bitstring[bit] != None:
-                                if i.bitstring[bit] != j.bitstring[bit]:
-                                    equal = False
-                                    break
-                        if equal:
-                            if i.subInstr and j.subInstr:
-                                raise Exception('Instructions ' + i.name + ' and ' + j.name + ' have an ambiguous coding and both of them are classified as sub-instructions: hierarchical sub-instructions are not allowed')
-                            if i.subInstr:
-                                for bit in range(0, minLen):
-                                    if j.bitstring[bit] != None and j.bitstring[bit] != i.bitstring[bit]:
-                                        raise Exception('Instruction ' + str(i) + ' has a coding clash with ' + str(j) + ' but it is not a sub-instruction of it')
-                                self.subInstructions[i.name] = i
-                                j.subInstructions.append(i)
-                            elif j.subInstr:
-                                for bit in range(0, minLen):
-                                    if i.bitstring[bit] != None and i.bitstring[bit] != j.bitstring[bit]:
-                                        raise Exception('Instruction ' + str(j) + ' has a coding clash with ' + str(i) + ' but it is not a sub-instruction of it')
-                                self.subInstructions[j.name] = j
-                                i.subInstructions.append(j)
-                            else:
-                                raise Exception('Coding of instructions ' + str(i) + ' and ' + str(j) + ' is ambiguous')
+                            if j.bitstring[bit] != None and j.bitstring[bit] != i.bitstring[bit]:
+                                raise Exception('Instruction ' + str(i) + ' has a coding clash with ' + str(j) + ' but it is not a sub-instruction of it')
+                        self.subInstructions[i.name] = i
+                        j.subInstructions.append(i)
+                    elif j.subInstr:
+                        for bit in range(0, minLen):
+                            if i.bitstring[bit] != None and i.bitstring[bit] != j.bitstring[bit]:
+                                raise Exception('Instruction ' + str(j) + ' has a coding clash with ' + str(i) + ' but it is not a sub-instruction of it')
+                        self.subInstructions[j.name] = j
+                        i.subInstructions.append(j)
+                    else:
+                        raise Exception('Coding of instructions ' + str(i) + ' and ' + str(j) + ' is ambiguous')
 
     def checkRegisters(self, indexExtractor, checkerMethod):
         # Checks that all the registers used in the instruction encoding are
@@ -227,8 +233,23 @@ class ISA:
     def getCPPClasses(self, processor, model, trace):
         return isaWriter.getCPPClasses(self, processor, model, trace)
 
-    def getCPPTests(self, processor, model):
-        return isaWriter.getCPPTests(self, processor, model)
+    def getCPPTests(self, processor, model, trace):
+        return isaWriter.getCPPTests(self, processor, model, trace)
+
+    def getInstructionSig(self):
+        # Returns the signature (in the form of a string) uniquely identifying the
+        # encoding of the instructions
+        try:
+            import hashlib
+            hashCreator = hashlib.md5()
+        except ImportError:
+            import md5 as hashImport
+            hashCreator = md5.new()
+        for name, instr in self.instructions.items():
+            hashCreator.update(name + '_' + str(instr.id) + ':' + str(instr.bitstring) + ';')
+        for name in self.subInstructions.keys():
+            hashCreator.update('sub' + name + ':')
+        return hashCreator.hexdigest()
 
 class Instruction:
     """Represents an instruction of the processor. The instruction
@@ -434,6 +455,8 @@ class Instruction:
             if variable.name == instrVar.name:
                 if variable.type.name != instrVar.type.name:
                     raise Exception('Trying to add variable ' + variable.name + ' of type ' + variable.type.name + ' to instruction ' + self.name + ' which already has a variable with such a name of type ' + instrVar.type.name)
+                else:
+                    return
         self.variables.append(variable)
 
     def setVarField(self, name, correspondence, bitDir = 'inout'):
@@ -481,14 +504,14 @@ class Instruction:
         if not direction in ['inout', 'out', 'in']:
             raise Exception(str(direction) + ' is  not valid; valid values are: \'inout\', \'in\', and \'out\'')
 
-    def addTest(self, variables, input, expOut):
+    def addTest(self, variables, inputState, expOut):
         # input and expected output are two maps, each one containing the
         # register name and its value. if the name of the resource corresponds
         # to one one of the memories, then the value in brackets is the
         # address
         # TODO: think about the possbility of also changing what the aliases
         # point to
-        self.tests.append((variables, input, expOut))
+        self.tests.append((variables, inputState, expOut))
 
     def __repr__(self):
         return self.name + ' coding: ' + str(self.bitstring)
@@ -499,8 +522,8 @@ class Instruction:
     def getCPPClass(self, model, processor, trace):
         return isaWriter.getCPPInstr(self, model, processor, trace)
 
-    def getCPPTest(self, processor, model):
-        return isaWriter.getCPPInstrTest(self, processor, model)
+    def getCPPTest(self, processor, model, trace):
+        return isaWriter.getCPPInstrTest(self, processor, model, trace)
 
 class HelperOperation:
     """Represents some code; this code can be shared among the

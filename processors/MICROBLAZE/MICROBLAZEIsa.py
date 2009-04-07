@@ -88,14 +88,28 @@ isa.addMethod(UpdatePSRSub_method)
 
 #ADD instruction family
 opCode = cxx_writer.writer_code.Code("""
-rd = (int)rb + (int)ra;
-MSR[C] = (int)rd >> 32;  #get the CarryOut
+unsigned long long result = (int)rb + (int)ra;
+MSR[C] = ((unsigned long long)result) >> 32;  #get the CarryOut
+rd = (unsigned int)result;
 """)
 add_Instr = trap.Instruction('ADD', True) #?? what does 'true' mean?
 add_Instr.setMachineCode(one_dest_two_src, {'opcode0': [0,0,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 add_Instr.setCode(opCode,'execute')
 add_Instr.addBehavior(IncrementPC, 'execute')
 isa.addInstruction(add_Instr)
+
+opCode = cxx_writer.writer_code.Code("""
+result = (int)rb + (int)ra;
+MSR[C] = ((unsigned long long)result) >> 32;  #get the CarryOut
+rd = (unsigned int)result;
+""")
+add_Instr = trap.Instruction('ADD', True) #?? what does 'true' mean?
+add_Instr.setMachineCode(one_dest_two_src, {'opcode0': [0,0,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
+add_Instr.setCode(opCode,'execute')
+add_Instr.addBehavior(IncrementPC, 'execute')
+add_Instr.addVariable(('result', 'BIT<64>'))
+isa.addInstruction(add_Instr)
+
 ##TODO TEST!
 
 opCode = cxx_writer.writer_code.Code("""
@@ -271,7 +285,7 @@ isa.addInstruction(beq_Instr)
 #~ and_imm_Instr.addBehavior(UpdatePC, 'execute', False)
 #~ and_imm_Instr.addVariable(('result', 'BIT<32>'))
 #~ isa.addInstruction(and_imm_Instr)
-#~ 
+#~
 #~ # BRANCH instruction family
 #~ opCode = cxx_writer.writer_code.Code("""
 #~ if(l == 1) {
@@ -304,7 +318,7 @@ isa.addInstruction(beq_Instr)
 #~ branch_thumb_Instr.addTest({'cond': 0xe, 'rm': 0}, {'REGS[0]': 0x00445560}, {'PC': 0x00445560})
 #~ branch_thumb_Instr.addTest({'cond': 0xe, 'rm': 0}, {'REGS[0]': 0x00445563}, {'PC': 0x00445560})
 #~ isa.addInstruction(branch_thumb_Instr)
-#~ 
+#~
 #~ # BIC instruction family
 #~ opCode = cxx_writer.writer_code.Code("""
 #~ result = rn & ~operand;
@@ -352,7 +366,7 @@ isa.addInstruction(beq_Instr)
 #~ bic_imm_Instr.addBehavior(UpdatePC, 'execute', False)
 #~ bic_imm_Instr.addVariable(('result', 'BIT<32>'))
 #~ isa.addInstruction(bic_imm_Instr)
-#~ 
+#~
 #~ # CMN instruction family
 #~ opCode = cxx_writer.writer_code.Code("""
 #~ UpdatePSRAddInner(rn, operand);
@@ -394,7 +408,7 @@ isa.addInstruction(beq_Instr)
 #~ cmn_imm_Instr.addBehavior(condCheckOp, 'execute')
 #~ cmn_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
 #~ isa.addInstruction(cmn_imm_Instr)
-#~ 
+#~
 #~ # CMP instruction family
 #~ opCode = cxx_writer.writer_code.Code("""
 #~ UpdatePSRSubInner(rn, operand);
@@ -434,7 +448,7 @@ isa.addInstruction(beq_Instr)
 #~ cmp_imm_Instr.addBehavior(condCheckOp, 'execute')
 #~ cmp_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
 #~ isa.addInstruction(cmp_imm_Instr)
-#~ 
+#~
 #~ # EOR instruction family
 #~ opCode = cxx_writer.writer_code.Code("""
 #~ result = rn ^ operand;
@@ -482,7 +496,7 @@ isa.addInstruction(beq_Instr)
 #~ eor_imm_Instr.addBehavior(UpdatePC, 'execute', False)
 #~ eor_imm_Instr.addVariable(('result', 'BIT<32>'))
 #~ isa.addInstruction(eor_imm_Instr)
-#~ 
+#~
 #~ # LDM instruction family
 #~ opCode = cxx_writer.writer_code.Code("""
 #~ unsigned int numRegsToLoad = 0;
@@ -498,7 +512,7 @@ isa.addInstruction(beq_Instr)
         #~ }
     #~ }
     #~ loadLatency = numRegsToLoad + 1;
-#~ 
+#~
     #~ //I tread in a special way the PC, since loading a value
     #~ //in the PC is like performing a branch.
     #~ if((reg_list & 0x00008000) != 0){
@@ -525,7 +539,7 @@ isa.addInstruction(beq_Instr)
         #~ }
     #~ }
     #~ loadLatency = numRegsToLoad + 1;
-#~ 
+#~
     #~ //I tread in a special way the PC, since loading a value
     #~ //in the PC is like performing a branch.
     #~ //I have to load also the PC: it is like a branch; since I don't bother with
@@ -590,7 +604,7 @@ isa.addInstruction(beq_Instr)
 #~ ldm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 's': 1, 'w': 0, 'rn': 0, 'reg_list': 0xa000}, {'SPSR[1]' : 0x4444441f, 'CPSR' : 0x12, 'RB[0]': 0x10, 'RB[13]': 0x777, 'RB[21]': 0x888, 'dataMem[0x0c]': 0xaaa0, 'dataMem[0x08]': 456}, {'RB[15]': 0xaaa0, 'RB[13]': 456, 'RB[21]': 0x888, 'CPSR' : 0x4444441f})
 #~ ldm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 's': 1, 'w': 0, 'rn': 0, 'reg_list': 0xe000}, {'SPSR[1]' : 0x4444441f, 'CPSR' : 0x12, 'RB[0]': 0x10, 'RB[13]': 0x777, 'RB[21]': 0x888, 'dataMem[0x0c]': 0xaaa0, 'dataMem[0x08]': 2, 'dataMem[0x04]': 456}, {'RB[15]': 0xaaa0, 'RB[13]': 456, 'RB[14]': 2, 'RB[21]': 0x888, 'CPSR' : 0x4444441f})
 #~ isa.addInstruction(ldm_Instr)
-#~ 
+#~
 #~ # LDR instruction family
 #~ # Normal load instruction
 #~ opCode = cxx_writer.writer_code.Code("""
@@ -602,7 +616,7 @@ isa.addInstruction(beq_Instr)
 #~ else{
     #~ value = RotateRight(8*memLastBits, dataMem.read_word(address));
 #~ }
-#~ 
+#~
 #~ //Perform the writeback; as usual I have to behave differently
 #~ //if a load a value to the PC
 #~ if(rd_bit == 15){
@@ -658,7 +672,7 @@ isa.addInstruction(beq_Instr)
 #~ ldr_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'dataMem[0x08]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x10})
 #~ ldr_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'dataMem[0x18]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x18})
 #~ ldr_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'dataMem[0x08]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x08})
-#~ 
+#~
 #~ ldr_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x10})
 #~ ldr_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x10})
 #~ ldr_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x10})
@@ -672,7 +686,7 @@ isa.addInstruction(beq_Instr)
 #~ ldr_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'dataMem[0x18]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x18})
 #~ ldr_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'dataMem[0x08]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x08})
 #~ isa.addInstruction(ldr_off_Instr)
-#~ 
+#~
 #~ # LDRB instruction family
 #~ # Normal load instruction
 #~ opCode = cxx_writer.writer_code.Code("""
@@ -728,11 +742,11 @@ isa.addInstruction(beq_Instr)
 #~ ldrsb_off_Instr.addBehavior(condCheckOp, 'execute')
 #~ ldrsb_off_Instr.addBehavior(ls_sh_Op, 'execute')
 #~ isa.addInstruction(ldrsb_off_Instr)
-#~ 
+#~
 #~ # Mutiply instruction family
 #~ opCode = cxx_writer.writer_code.Code("""
 #~ rd = ((int)rm * (int)rs) + (int)REGS[rn];
-#~ 
+#~
 #~ if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
     #~ stall(2);
 #~ }
@@ -753,10 +767,10 @@ isa.addInstruction(beq_Instr)
 #~ mla_Instr.addBehavior(condCheckOp, 'execute')
 #~ mla_Instr.addBehavior(UpdatePSRmul, 'execute', False)
 #~ isa.addInstruction(mla_Instr)
-#~ 
+#~
 #~ opCode = cxx_writer.writer_code.Code("""
 #~ rd = (int)rm * (int)rs;
-#~ 
+#~
 #~ if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
     #~ stall(1);
 #~ }
@@ -777,14 +791,14 @@ isa.addInstruction(beq_Instr)
 #~ mul_Instr.addBehavior(condCheckOp, 'execute')
 #~ mul_Instr.addBehavior(UpdatePSRmul, 'execute', False)
 #~ isa.addInstruction(mul_Instr)
-#~ 
+#~
 #~ opCode = cxx_writer.writer_code.Code("""
 #~ //Perform the operation
 #~ long long result = (long long)((((long long)(((long long)((int)rm)) * ((long long)((int)rs)))) + (((long long)rd) << 32)) + (int)REGS[rn]);
 #~ //Check if I have to update the processor flags
 #~ rd = (int)((result >> 32) & 0x00000000FFFFFFFF);
 #~ REGS[rn] = (int)(result & 0x00000000FFFFFFFF);
-#~ 
+#~
 #~ if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
     #~ stall(3);
 #~ }
@@ -805,14 +819,14 @@ isa.addInstruction(beq_Instr)
 #~ smlal_Instr.addBehavior(condCheckOp, 'execute')
 #~ smlal_Instr.addBehavior(UpdatePSRmul, 'execute', False)
 #~ isa.addInstruction(smlal_Instr)
-#~ 
+#~
 #~ opCode = cxx_writer.writer_code.Code("""
 #~ //Perform the operation
 #~ long long result = (long long)(((long long)((int)rm)) * ((long long)((int)rs)));
 #~ //Check if I have to update the processor flags
 #~ rd = (int)((result >> 32) & 0x00000000FFFFFFFF);
 #~ REGS[rn] = (int)(result & 0x00000000FFFFFFFF);
-#~ 
+#~
 #~ if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
     #~ stall(3);
 #~ }
@@ -833,14 +847,14 @@ isa.addInstruction(beq_Instr)
 #~ smull_Instr.addBehavior(condCheckOp, 'execute')
 #~ smull_Instr.addBehavior(UpdatePSRmul, 'execute', False)
 #~ isa.addInstruction(smull_Instr)
-#~ 
+#~
 #~ opCode = cxx_writer.writer_code.Code("""
 #~ //Perform the operation
 #~ unsigned long long result = (unsigned long long)(((unsigned long long)(((unsigned long long)((unsigned int)rm)) * ((unsigned long long)((unsigned int)rs)))) + (((unsigned long long)rd) << 32) + (unsigned int)REGS[rn]);
 #~ //Check if I have to update the processor flags
 #~ rd = (unsigned int)((result >> 32) & 0x00000000FFFFFFFF);
 #~ REGS[rn] = (unsigned int)(result & 0x00000000FFFFFFFFLL);
-#~ 
+#~
 #~ if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
     #~ stall(3);
 #~ }
@@ -861,14 +875,14 @@ isa.addInstruction(beq_Instr)
 #~ umlal_Instr.addBehavior(condCheckOp, 'execute')
 #~ umlal_Instr.addBehavior(UpdatePSRmul, 'execute', False)
 #~ isa.addInstruction(umlal_Instr)
-#~ 
+#~
 #~ opCode = cxx_writer.writer_code.Code("""
 #~ //Perform the operation
 #~ unsigned long long result = (unsigned long long)(((unsigned long long)((unsigned int)rm)) * ((unsigned long long)((unsigned int)rs)));
 #~ //Check if I have to update the processor flags
 #~ rd = (unsigned int)((result >> 32) & 0x00000000FFFFFFFF);
 #~ REGS[rn] = (unsigned int)(result & 0x00000000FFFFFFFFLL);
-#~ 
+#~
 #~ if((rs & 0xFFFFFF00) == 0x0 || (rs & 0xFFFFFF00) == 0xFFFFFF00){
     #~ stall(3);
 #~ }
@@ -889,7 +903,7 @@ isa.addInstruction(beq_Instr)
 #~ umull_Instr.addBehavior(condCheckOp, 'execute')
 #~ umull_Instr.addBehavior(UpdatePSRmul, 'execute', False)
 #~ isa.addInstruction(umull_Instr)
-#~ 
+#~
 #~ # MOV instruction family
 #~ opCode = cxx_writer.writer_code.Code("""
 #~ rd = operand;
@@ -925,7 +939,7 @@ isa.addInstruction(beq_Instr)
 #~ mov_imm_Instr.addBehavior(UpdatePC, 'execute', False)
 #~ mov_imm_Instr.addVariable(('result', 'BIT<32>'))
 #~ isa.addInstruction(mov_imm_Instr)
-#~ 
+#~
 #~ # MRS instruction
 #~ opCode = cxx_writer.writer_code.Code("""
 #~ if(r == 1){ // I have to save the SPSR
@@ -966,7 +980,7 @@ isa.addInstruction(beq_Instr)
 #~ mrs_Instr.addBehavior(condCheckOp, 'execute')
 #~ mrs_Instr.setVarField('rd', ('REGS', 0), 'out')
 #~ isa.addInstruction(mrs_Instr)
-#~ 
+#~
 #~ # MSR instruction family
 #~ opCode = cxx_writer.writer_code.Code("""
 #~ value = RotateRight(rotate*2, immediate);
@@ -1110,7 +1124,7 @@ isa.addInstruction(beq_Instr)
 #~ msr_imm_Instr.addBehavior(condCheckOp, 'execute')
 #~ msr_imm_Instr.addVariable(('value', 'BIT<32>'))
 #~ isa.addInstruction(msr_imm_Instr)
-#~ 
+#~
 #~ opCode = cxx_writer.writer_code.Code("""
 #~ //Checking for unvalid bits
 #~ if((rm & 0x00000010) == 0){
@@ -1251,7 +1265,7 @@ isa.addInstruction(beq_Instr)
 #~ msr_reg_Instr.addBehavior(IncrementPC, 'fetch')
 #~ msr_reg_Instr.addBehavior(condCheckOp, 'execute')
 #~ isa.addInstruction(msr_reg_Instr)
-#~ 
+#~
 #~ # MVN instruction family
 #~ opCode = cxx_writer.writer_code.Code("""
 #~ result = ~operand;
@@ -1287,7 +1301,7 @@ isa.addInstruction(beq_Instr)
 #~ mvn_imm_Instr.addBehavior(UpdatePC, 'execute', False)
 #~ mvn_imm_Instr.addVariable(('result', 'BIT<32>'))
 #~ isa.addInstruction(mvn_imm_Instr)
-#~ 
+#~
 #~ # ORR instruction family
 #~ opCode = cxx_writer.writer_code.Code("""
 #~ result = rn | operand;
@@ -1323,7 +1337,7 @@ isa.addInstruction(beq_Instr)
 #~ orr_imm_Instr.addBehavior(UpdatePC, 'execute', False)
 #~ orr_imm_Instr.addVariable(('result', 'BIT<32>'))
 #~ isa.addInstruction(orr_imm_Instr)
-#~ 
+#~
 #~ # RSB instruction family
 #~ opCode = cxx_writer.writer_code.Code("""
 #~ rd = (int)operand - (int)rn;
@@ -1355,7 +1369,7 @@ isa.addInstruction(beq_Instr)
 #~ rsb_imm_Instr.addBehavior(UpdatePSRSub, 'execute', False)
 #~ rsb_imm_Instr.addBehavior(UpdatePC, 'execute', False)
 #~ isa.addInstruction(rsb_imm_Instr)
-#~ 
+#~
 #~ # RSC instruction family
 #~ opCode = cxx_writer.writer_code.Code("""
 #~ rd = (int)operand - (int)rn;
@@ -1390,7 +1404,7 @@ isa.addInstruction(beq_Instr)
 #~ rsc_imm_Instr.addBehavior(UpdatePSRSub, 'execute', False)
 #~ rsc_imm_Instr.addBehavior(UpdatePC, 'execute', False)
 #~ isa.addInstruction(rsc_imm_Instr)
-#~ 
+#~
 #~ # SBC instruction family
 #~ opCode = cxx_writer.writer_code.Code("""
 #~ rd = (int)rn - (int)operand;
@@ -1425,7 +1439,7 @@ isa.addInstruction(beq_Instr)
 #~ sbc_imm_Instr.addBehavior(UpdatePSRSub, 'execute', False)
 #~ sbc_imm_Instr.addBehavior(UpdatePC, 'execute', False)
 #~ isa.addInstruction(sbc_imm_Instr)
-#~ 
+#~
 #~ # SUB instruction family
 #~ opCode = cxx_writer.writer_code.Code("""
 #~ rd = (int)rn - (int)operand;
@@ -1457,7 +1471,7 @@ isa.addInstruction(beq_Instr)
 #~ sub_imm_Instr.addBehavior(UpdatePSRSub, 'execute', False)
 #~ sub_imm_Instr.addBehavior(UpdatePC, 'execute', False)
 #~ isa.addInstruction(sub_imm_Instr)
-#~ 
+#~
 #~ # TEQ instruction family
 #~ opCode = cxx_writer.writer_code.Code("""
 #~ result = rn ^ operand;
@@ -1487,7 +1501,7 @@ isa.addInstruction(beq_Instr)
 #~ teq_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
 #~ teq_imm_Instr.addVariable(('result', 'BIT<32>'))
 #~ isa.addInstruction(teq_imm_Instr)
-#~ 
+#~
 #~ # TST instruction family
 #~ opCode = cxx_writer.writer_code.Code("""
 #~ result = rn & operand;
@@ -1517,7 +1531,7 @@ isa.addInstruction(beq_Instr)
 #~ tst_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
 #~ tst_imm_Instr.addVariable(('result', 'BIT<32>'))
 #~ isa.addInstruction(tst_imm_Instr)
-#~ 
+#~
 #~ # STM instruction family
 #~ opCode = cxx_writer.writer_code.Code("""
 #~ int numRegsToStore = 0;
@@ -1583,7 +1597,7 @@ isa.addInstruction(beq_Instr)
 #~ stm_Instr.addBehavior(condCheckOp, 'execute')
 #~ stm_Instr.addBehavior(LSM_reglist_Op, 'execute')
 #~ isa.addInstruction(stm_Instr)
-#~ 
+#~
 #~ # STR instruction family
 #~ # Normal load instruction
 #~ opCode = cxx_writer.writer_code.Code("""
@@ -1640,7 +1654,7 @@ isa.addInstruction(beq_Instr)
 #~ strh_off_Instr.addBehavior(condCheckOp, 'execute')
 #~ strh_off_Instr.addBehavior(ls_sh_Op, 'execute')
 #~ isa.addInstruction(strh_off_Instr)
-#~ 
+#~
 #~ # SWP instruction family
 #~ opCode = cxx_writer.writer_code.Code("""
 #~ memLastBits = rn & 0x00000003;

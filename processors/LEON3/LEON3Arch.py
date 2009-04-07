@@ -84,7 +84,7 @@ processor.addRegBank(windowRegs)
 # Program status register
 psrBitMask = {'IMPL': (28, 31), 'VER': (24, 27), 'ICC_n': (23, 23), 'ICC_z': (22, 22), 'ICC_v': (21, 21), 'ICC_c': (20, 20), 'EC': (13, 13), 'EF': (12, 12), 'PIL': (8, 11), 'S': (7, 7), 'PS': (6, 6), 'ET': (5, 5), 'CWP': (0, 4)}
 psrReg = trap.Register('PSR', 32, psrBitMask)
-psrReg.setDefaultValue(0xF30000C0)
+psrReg.setDefaultValue(0xF3000080)
 psrReg.setDelay(3)
 processor.addRegister(psrReg)
 # Window Invalid Mask Register
@@ -157,6 +157,14 @@ PCR = trap.AliasRegister('PCR', 'ASR[17]')
 PCR.setDefaultValue(0x00000300 + numRegWindows - 1)
 processor.addAliasReg(PCR)
 
+# Now I add the registers which I want to see printed in the instruction trace
+LEON3Isa.isa.addTraceRegister(pcReg)
+LEON3Isa.isa.addTraceRegister(npcReg)
+LEON3Isa.isa.addTraceRegister(psrReg)
+LEON3Isa.isa.addTraceRegister(regs)
+LEON3Isa.isa.addTraceRegister(tbrReg)
+LEON3Isa.isa.addTraceRegister(wimReg)
+
 # Memory alias: registers which are memory mapped; we
 # loose a lot of performance, should we really use them?? CHECK
 #for j in range(0, 8):
@@ -190,7 +198,8 @@ processor.setFetchRegister('PC', -4)
 # interrupt ports, pins, etc.)
 #processor.addTLMPort('instrMem', True)
 #processor.addTLMPort('dataMem')
-processor.setMemory('dataMem', 10*1024*1024)
+#processor.setMemory('dataMem', 10*1024*1024)
+processor.setMemory('dataMem', 10*1024*1024, True, 'PC')
 
 # Now lets add the interrupt ports: TODO
 # It PSR[ET] == 0 I do not do anything; else
@@ -241,10 +250,28 @@ processor.setWBOrder('Ybp', ('execute', 'wb'))
 
 # The ABI is necessary to emulate system calls, personalize the GDB stub and,
 # eventually, retarget GCC
-abi = trap.ABI('REGS[24]', 'REGS[24-29]', 'PC', 'LR', 'SP', 'FP')
+abi = trap.ABI('REGS[23]', 'REGS[23-28]', 'PC', 'LR', 'SP', 'FP')
 abi.addVarRegsCorrespondence({'REGS[0-31]': (0, 31), 'Y': 64, 'PSR': 65, 'WIM': 66, 'TBR': 67, 'PC': 68, 'NPC': 69})
+updateWinCode = ''
+for i in range(8, 32):
+    updateWinCode += 'REGS[' + str(i) + '].updateAlias(WINREGS[(newCwp*16 + ' + str(i - 8) + ') % (16*' + str(numRegWindows) + ')]);\n'
+pre_code = """
+unsigned int newCwp = ((unsigned int)(PSR[key_CWP] - 1)) % """ + str(numRegWindows) + """;
+PSRbp = (PSR & 0xFFFFFFE0) | newCwp;
+PSR.immediateWrite(PSRbp);
+"""
+pre_code += updateWinCode
+post_code = """
+unsigned int newCwp = ((unsigned int)(PSR[key_CWP] + 1)) % """ + str(numRegWindows) + """;
+PSRbp = (PSR & 0xFFFFFFE0) | newCwp;
+PSR.immediateWrite(PSRbp);
+"""
+post_code += updateWinCode
+abi.setECallPreCode(pre_code)
+abi.setECallPostCode(post_code)
 abi.setOffset('PC', -4)
 abi.setOffset('NPC', -4)
+abi.returnCall([('PC', 'LR', 8), ('NPC', 'LR', 12)])
 abi.addMemory('dataMem')
 processor.setABI(abi)
 

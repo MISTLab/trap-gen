@@ -44,10 +44,45 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <exception>
+#include <stdexcept>
+#ifdef __GNUC__
+extern "C" {
+#include <execinfo.h>
+}
+#endif
 
 #include "utils.hpp"
 
 void throw_error_helper(std::string message){
-    std::cerr << message;
+    std::cerr << message << std::endl;
     ::exit(0);
 }
+
+void throw_exception_helper(std::string message){
+    throw std::runtime_error(message);
+}
+
+// #ifdef __GNUC__
+// void throw_exception_helper(std::string message){
+//     void * array[25];
+//     int nSize = backtrace(array, 25);
+//     char ** symbols = backtrace_symbols(array, nSize);
+//     std::ostringstream traceMex;
+//
+//     if (symbols != NULL){
+//         for (int i = 0; i < nSize; i++){
+//             traceMex << symbols[i] << std::endl;
+//         }
+//         traceMex << std::endl;
+//         free(symbols);
+//     }
+//     traceMex << message;
+//
+//     throw std::runtime_error(traceMex.str());
+// }
+// #else
+// void throw_exception_helper(std::string message){
+//     throw std::runtime_error(message);
+// }
+// #endif

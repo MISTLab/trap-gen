@@ -324,11 +324,11 @@ class Processor:
     def setISA(self, isa):
         self.isa = isa
 
-    def setMemory(self, name, memSize):
-        for name,isFetch  in self.tlmPorts.items():
+    def setMemory(self, name, memSize, debug = False, programCounter = ''):
+        for name, isFetch  in self.tlmPorts.items():
             if isFetch:
                 raise Exception('Cannot add internal memory since instructions will be fetched from port ' + name)
-        self.memory = (name, memSize)
+        self.memory = (name, memSize, debug, programCounter)
 
     def addTLMPort(self, portName, fetch = False):
         # Note that for the TLM port, if only one is specified and the it is the
@@ -541,11 +541,39 @@ class Processor:
                 wbStage = True
             if pipeStage.checkHazard:
                 checkHazardStage = True
-        if not (wbStage and checkHazardStage):
+        if (wbStage and not checkHazardStage) or (not wbStage and checkHazardStage):
             raise Exception('Error, both the writeback and the check hazards stages must be specified')
         for method in self.isa.methods:
             if not method.stage in [i.name for i in self.pipes]:
                 raise Exception('Pipeline stage ' + stage + ' declared for method ' + method.name + ' does not exist')
+
+    def checkMemRegisters(self):
+        for memAliasReg in self.memAlias:
+            index = extractRegInterval(memAliasReg.alias)
+            if index:
+                # I'm aliasing part of a register bank or another alias:
+                # I check that it exists and that I am still within
+                # boundaries
+                regName = memAliasReg.alias[:memAliasReg.alias.find('[')]
+                if not self.isRegExisting(regName, index):
+                    raise Exception('Register ' + memAliasReg.alias + ' indicated in memory alias for address ' + memAliasReg.address)
+            else:
+                # Single register or alias: I check that it exists
+                if not self.isRegExisting(memAliasReg.alias):
+                    raise Exception('Register ' + memAliasReg.alias + ' indicated in memory alias for address ' + memAliasReg.address)
+        if self.memory[3]:
+            index = extractRegInterval(self.memory[3])
+            if index:
+                # I'm aliasing part of a register bank or another alias:
+                # I check that it exists and that I am still within
+                # boundaries
+                regName = self.memory[3][:self.memory[3].find('[')]
+                if not self.isRegExisting(regName, index):
+                    raise Exception('Register ' + self.memory[3] + ' indicated for program counter of local memory does not exists')
+            else:
+                # Single register or alias: I check that it exists
+                if not self.isRegExisting(self.memory[3]):
+                    raise Exception('Register ' + self.memory[3] + ' indicated for program counter of local memory does not exists')
 
     def checkAliases(self):
         # checks that the declared aliases actually refer to
@@ -638,6 +666,10 @@ class Processor:
                 toCheck.append(i)
         for i in self.abi.regCorrespondence.keys():
             toCheck.append(i)
+        if self.abi.returnCallReg:
+            for returnReg in self.abi.returnCallReg:
+                toCheck.append(returnReg[0])
+                toCheck.append(returnReg[1])
         # ok, now I finally perform the check
         for i in toCheck:
             index = extractRegInterval(i)
@@ -708,7 +740,7 @@ class Processor:
         # Returns the code implementing the pipeline stages
         return procWriter.getGetPipelineStages(self, trace)
 
-    def write(self, folder = '', models = validModels, dumpDecoderName = '', trace = False):
+    def write(self, folder = '', models = validModels, dumpDecoderName = '', trace = False, forceDecoderCreation = False):
         # Ok: this method does two things: first of all it performs all
         # the possible checks to ensure that the processor description is
         # coherent. Second it actually calls the write method of the
@@ -727,11 +759,46 @@ class Processor:
         # OK, checks done. Now I can start calling the write methods to
         # actually create the ISS code
         # First of all we have to create the decoder
-        print ('\t\tCreating the decoder')
         from isa import resolveBitType
         import decoder, os
         import cxx_writer
-        dec = decoder.decoderCreator(self.isa.instructions, self.isa.subInstructions)
+        # Here we check if the decoder signature changed; in case it hasn't we create the decoder,
+        # otherwise we load it from file
+        instructionSignature = self.isa.getInstructionSig()
+        if not forceDecoderCreation:
+            if os.path.exists(os.path.join(os.path.expanduser(os.path.expandvars(folder)), '.decoderSig')) and os.path.exists(os.path.join(os.path.expanduser(os.path.expandvars(folder)), '.decoderDump.pickle')):
+                # Now I have to compare the saved signature with the signature of the current
+                # instructions
+                try:
+                    decSigFile = open(os.path.join(os.path.expanduser(os.path.expandvars(folder)), '.decoderSig'), 'r')
+                    savedSig = decSigFile.read()
+                    decSigFile.close()
+                    if savedSig != instructionSignature:
+                        forceDecoderCreation = True
+                except:
+                    forceDecoderCreation = True
+            else:
+                forceDecoderCreation = True
+        if forceDecoderCreation:
+            print ('\t\tCreating the decoder')
+            dec = decoder.decoderCreator(self.isa.instructions, self.isa.subInstructions)
+            try:
+                import pickle
+                decDumpFile = open(os.path.join(os.path.expanduser(os.path.expandvars(folder)), '.decoderDump.pickle'), 'w')
+                pickle.dump(dec, decDumpFile, pickle.HIGHEST_PROTOCOL)
+                decDumpFile.close()
+                # Now I have to save the instruction signature
+                decSigFile = open(os.path.join(os.path.expanduser(os.path.expandvars(folder)), '.decoderSig'), 'w')
+                decSigFile.write(instructionSignature)
+                decSigFile.close()
+            except:
+                pass
+        else:
+            print ('\t\tLoading the decoder from cache')
+            import pickle
+            decDumpFile = open(os.path.join(os.path.expanduser(os.path.expandvars(folder)), '.decoderDump.pickle'), 'r')
+            dec = pickle.load(decDumpFile)
+            decDumpFile.close()
         if dumpDecoderName:
             dec.printDecoder(dumpDecoderName)
         decClass = dec.getCPPClass(resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>'))
@@ -740,7 +807,7 @@ class Processor:
         implFileDec.addMember(decClass)
         headFileDec.addMember(decClass)
         implFileDec.addInclude('decoder.hpp')
-        mainFolder = cxx_writer.writer_code.Folder(os.path.join(folder))
+        mainFolder = cxx_writer.writer_code.Folder(os.path.expanduser(os.path.expandvars(folder)))
         for model in models:
             if model.endswith('AT') and self.externalClock:
                 print ('ERROR: creating models with and external clock and the Approximate-Timed interface is not yet supported')
@@ -822,23 +889,37 @@ class Processor:
             if (model == 'funcLT') and (not self.systemc):
                 testFolder = cxx_writer.writer_code.Folder('tests')
                 curFolder.addSubFolder(testFolder)
+                mainTestFile = cxx_writer.writer_code.FileDumper('main.cpp', False)
                 decTestsFile = cxx_writer.writer_code.FileDumper('decoderTests.cpp', False)
                 decTestsFile.addInclude('decoderTests.hpp')
+                mainTestFile.addInclude('decoderTests.hpp')
                 hdecTestsFile = cxx_writer.writer_code.FileDumper('decoderTests.hpp', True)
                 decTests = dec.getCPPTests()
                 decTestsFile.addMember(decTests)
                 hdecTestsFile.addMember(decTests)
                 testFolder.addCode(decTestsFile)
                 testFolder.addHeader(hdecTestsFile)
-                ISATestsFile = cxx_writer.writer_code.FileDumper('isaTests.cpp', False)
-                ISATestsFile.addInclude('isaTests.hpp')
-                hISATestsFile = cxx_writer.writer_code.FileDumper('isaTests.hpp', True)
-                ISATests = self.isa.getCPPTests(self, model)
-                ISATestsFile.addMember(ISATests)
-                hISATestsFile.addMember(ISATests)
+                ISATests = self.isa.getCPPTests(self, model, trace)
+                testPerFile = 200
+                numTestFiles = len(ISATests)/testPerFile
+                for i in range(0, numTestFiles):
+                    ISATestsFile = cxx_writer.writer_code.FileDumper('isaTests' + str(i) + '.cpp', False)
+                    ISATestsFile.addInclude('isaTests' + str(i) + '.hpp')
+                    mainTestFile.addInclude('isaTests' + str(i) + '.hpp')
+                    hISATestsFile = cxx_writer.writer_code.FileDumper('isaTests' + str(i) + '.hpp', True)
+                    ISATestsFile.addMember(ISATests[testPerFile*i:testPerFile*(i+1)])
+                    hISATestsFile.addMember(ISATests[testPerFile*i:testPerFile*(i+1)])
+                    testFolder.addCode(ISATestsFile)
+                    testFolder.addHeader(hISATestsFile)
+                ISATestsFile = cxx_writer.writer_code.FileDumper('isaTests' + str(numTestFiles) + '.cpp', False)
+                ISATestsFile.addInclude('isaTests' + str(numTestFiles) + '.hpp')
+                mainTestFile.addInclude('isaTests' + str(numTestFiles) + '.hpp')
+                hISATestsFile = cxx_writer.writer_code.FileDumper('isaTests' + str(numTestFiles) + '.hpp', True)
+                ISATestsFile.addMember(ISATests[testPerFile*numTestFiles:])
+                hISATestsFile.addMember(ISATests[testPerFile*numTestFiles:])
                 testFolder.addCode(ISATestsFile)
                 testFolder.addHeader(hISATestsFile)
-                mainTestFile = cxx_writer.writer_code.FileDumper('main.cpp', False)
+
                 mainTestFile.addMember(self.getTestMainCode())
                 testFolder.addCode(mainTestFile)
                 testFolder.addUseLib(os.path.split(curFolder.path)[-1])
@@ -869,7 +950,7 @@ class Processor:
             curFolder.create()
             if (model == 'funcLT') and (not self.systemc):
                 testFolder.create(configure = False, tests = True)
-            print ('\t\tCreated')
+            print ('\t\tCreated in folder ' + os.path.expanduser(os.path.expandvars(folder)))
         # We create and print the main folder and also add a configuration
         # part to the wscript
         mainFolder.create(configure = True, projectName = self.name, version = self.version)
@@ -1055,6 +1136,22 @@ class ABI:
         # Specifies the memories which can be accessed; if more than one memory is specified,
         # we have to associate the address range to each of them
         self.memories = {}
+        self.emulOffset = 0
+        self.preCallCode = None
+        self.postCallCode = None
+        self.returnCallReg = None
+
+    def returnCall(self, regList):
+        self.returnCallReg = regList
+
+    def setECallPreCode(self, code):
+        self.preCallCode = code
+
+    def setECallPostCode(self, code):
+        self.postCallCode = code
+
+    def setEmulatorOffset(self, offset):
+        self.emulOffset = offset
 
     def addVarRegsCorrespondence(self, correspondence):
         for key, value in correspondence.items():
@@ -1105,4 +1202,3 @@ class ABI:
                 if (savedAddr[0] <= addr[0] and savedAddr[1] >= addr[0]) or (savedAddr[0] <= addr[1] and savedAddr[1] >= addr[1]):
                     raise Exception('Clash between address ranges of memory ' + name + ' and ' + memory)
         self.memories[memory] = addr
-

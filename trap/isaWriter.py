@@ -504,7 +504,7 @@ def getCPPInstr(self, model, processor, trace):
     instructionDecl.addDestructor(publicDestr)
     return instructionDecl
 
-def getCPPInstrTest(self, processor, model):
+def getCPPInstrTest(self, processor, model, trace):
     # Returns the code testing the current instruction: note that a test
     # consists in setting the instruction variables, performing the instruction
     # behavior and then comparing the registers with what we expect.
@@ -538,12 +538,20 @@ def getCPPInstrTest(self, processor, model):
     for alias in processor.memAlias:
         memAliasInit += ', ' + alias.alias
     if processor.memory:
-        archElemsDeclStr += 'LocalMemory ' + processor.memory[0] + '(' + str(processor.memory[1]) + memAliasInit + ');\n'
+        memDebugInit = ''
+        if processor.memory[2]:
+            archElemsDeclStr += 'unsigned int totalCycles;\n'
+            memDebugInit += ', totalCycles'
+        if processor.memory[3]:
+            memDebugInit += ', ' + processor.memory[3]
+        archElemsDeclStr += 'LocalMemory ' + processor.memory[0] + '(' + str(processor.memory[1]) + memDebugInit + memAliasInit + ');\n'
         baseInitElement += processor.memory[0] + ', '
     # Note how I declare local memories even for TLM ports. I use 1MB as default dimension
     for tlmPorts in processor.tlmPorts.keys():
         archElemsDeclStr += 'LocalMemory ' + tlmPorts + '(' + str(1024*1024) + memAliasInit + ');\n'
         baseInitElement += tlmPorts + ', '
+    if trace and not processor.systemc:
+        baseInitElement += 'totalCycles, '
     baseInitElement = baseInitElement[:-2] + ')'
     # Now we perform the alias initialization; note that they need to be initialized according to the initialization graph
     # (there might be dependences among the aliases)
@@ -595,6 +603,8 @@ def getCPPInstrTest(self, processor, model):
                     raise Exception('Value ' + hex(elemValue) + ' set for field ' + name + ' in test of instruction ' + self.name + ' cannot be represented in ' + str(self.machineCode.bitLen[name]) + ' bits')
                 for i in range(0, len(curBitCode)):
                     instrCode[self.machineCode.bitLen[name] + self.machineCode.bitPos[name] - i -1] = curBitCode[i]
+            else:
+                raise Exception('Field ' + name + ' in test of instruction ' + self.name + ' is not present in the machine code of the instruction')
         for resource, value in test[1].items():
             # I set the initial value of the global resources
             brackIndex = resource.find('[')
@@ -621,14 +631,19 @@ def getCPPInstrTest(self, processor, model):
             if processor.memory:
                 memories.append(processor.memory[0])
             if brackIndex > 0 and resource[:brackIndex] in memories:
-                code += resource[:brackIndex] + '.read_word(' + hex(value) + ', ' + hex(resource[brackIndex + 1:-1]) + ')'
+                try:
+                    code += resource[:brackIndex] + '.read_word(' + hex(int(resource[brackIndex + 1:-1])) + ')'
+                except ValueError:
+                    code += resource[:brackIndex] + '.read_word(' + hex(int(resource[brackIndex + 1:-1], 16)) + ')'
             else:
                 code += resource + '.readNewValue()'
             global archWordType
             code += ', (' + str(archWordType) + ')' + hex(value) + ');\n\n'
         code += destrDecls
         curTest = cxx_writer.writer_code.Code(code)
-        curTest.addInclude(['boost/test/test_tools.hpp', 'customExceptions.hpp'])
+        wariningDisableCode = '#ifdef _WIN32\n#pragma warning( disable : 4101 )\n#endif\n'
+        includeUnprotectedCode = '#define private public\n#define protected public\n#include \"instructions.hpp\"\n#include \"registers.hpp\"\n#include \"memory.hpp\"\n#undef private\n#undef protected\n'
+        curTest.addInclude(['boost/test/test_tools.hpp', 'customExceptions.hpp', wariningDisableCode, includeUnprotectedCode])
         curTestFunction = cxx_writer.writer_code.Function(self.name + '_' + str(len(tests)), curTest, cxx_writer.writer_code.voidType)
         from procWriter import testNames
         testNames.append(self.name + '_' + str(len(tests)))
@@ -718,12 +733,26 @@ def getCPPClasses(self, processor, model, trace):
                 printTraceCode += '#define ' + aliasB.name + ' ' + aliasB.name + '_' + processor.pipes[-1].name + '\n'
             printTraceCode += '\n'
 
+        if not processor.systemc and not model.startswith('acc'):
+            printTraceCode += 'std::cerr << \"Simulated time \" << std::dec << this->totalCycles << std::endl;\n'
+        else:
+            printTraceCode += 'std::cerr << \"Simulated time \" << sc_time_stamp().to_double();\n'
         printTraceCode += 'std::cerr << \"Instruction: \" << this->getInstructionName() << std::endl;\n'
-        for reg in processor.regs:
-            printTraceCode += 'std::cerr << \"' + reg.name + ' = \" << std::hex << std::showbase << this->' + reg.name + ' << std::endl;\n'
-        for regB in processor.regBanks:
-            printTraceCode += 'for(int regNum = 0; regNum < ' + str(regB.numRegs) + '; regNum++){\n'
-            printTraceCode += 'std::cerr << \"' + regB.name + '[\" << std::dec << regNum << \"] = \" << std::hex << std::showbase << this->' + regB.name + '[regNum] << std::endl;\n}\n'
+        printTraceCode += 'std::cerr << \"Mnemonic: \" << this->getMnemonic() << std::endl;\n'
+        if self.traceRegs:
+            bankNames = [i.name for i in processor.regBanks + processor.aliasRegBanks]
+            for reg in self.traceRegs:
+                if reg.name in bankNames:
+                    printTraceCode += 'for(int regNum = 0; regNum < ' + str(reg.numRegs) + '; regNum++){\n'
+                    printTraceCode += 'std::cerr << \"' + reg.name + '[\" << std::dec << regNum << \"] = \" << std::hex << std::showbase << this->' + reg.name + '[regNum] << std::endl;\n}\n'
+                else:
+                    printTraceCode += 'std::cerr << \"' + reg.name + ' = \" << std::hex << std::showbase << this->' + reg.name + ' << std::endl;\n'
+        else:
+            for reg in processor.regs:
+                printTraceCode += 'std::cerr << \"' + reg.name + ' = \" << std::hex << std::showbase << this->' + reg.name + ' << std::endl;\n'
+            for regB in processor.regBanks:
+                printTraceCode += 'for(int regNum = 0; regNum < ' + str(regB.numRegs) + '; regNum++){\n'
+                printTraceCode += 'std::cerr << \"' + regB.name + '[\" << std::dec << regNum << \"] = \" << std::hex << std::showbase << this->' + regB.name + '[regNum] << std::endl;\n}\n'
         printTraceCode += 'std::cerr << std::endl;\n'
         if model.startswith('acc'):
             # now I have to take all the resources and create a define which
@@ -855,6 +884,12 @@ def getCPPClasses(self, processor, model, trace):
         baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(tlmPorts, cxx_writer.writer_code.Type('TLMMemory', 'externalPorts.hpp').makeRef()))
         initElements.append(tlmPorts + '(' + tlmPorts + ')')
         baseInitElement += tlmPorts + ', '
+        instructionElements.append(attribute)
+    if trace and not processor.systemc and not model.startswith('acc'):
+        attribute = cxx_writer.writer_code.Attribute('totalCycles', cxx_writer.writer_code.uintType.makeRef(), 'pro')
+        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter('totalCycles', cxx_writer.writer_code.uintType.makeRef()))
+        initElements.append('totalCycles(totalCycles)')
+        baseInitElement += 'totalCycles, '
         instructionElements.append(attribute)
     baseInitElement = baseInitElement[:-2]
     baseInitElement += ')'
@@ -990,17 +1025,13 @@ def getCPPClasses(self, processor, model, trace):
         classes.append(instr.getCPPClass(model, processor, trace))
     return classes
 
-def getCPPTests(self, processor, modelType):
+def getCPPTests(self, processor, modelType, trace):
     if not processor.memory:
         return None
     # for each instruction I print the test: I do have to add some custom
     # code at the beginning in order to being able to access the private
     # part of the instructions
     tests = []
-    wariningDisableCode = cxx_writer.writer_code.Code('#ifdef _WIN32\n#pragma warning( disable : 4101 )\n#endif\n')
-    tests.append(wariningDisableCode)
-    includeCode = cxx_writer.writer_code.Code('#define private public\n#define protected public\n#include \"instructions.hpp\"\n#include \"registers.hpp\"\n#include \"memory.hpp\"\n#undef private\n#undef protected\n')
-    tests.append(includeCode)
     for instr in self.instructions.values():
-        tests += instr.getCPPTest(processor, modelType)
+        tests += instr.getCPPTest(processor, modelType, trace)
     return tests

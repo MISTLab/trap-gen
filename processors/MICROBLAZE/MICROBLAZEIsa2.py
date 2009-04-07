@@ -94,6 +94,6 @@ add_Instr = trap.Instruction('ADD', True) #?? what does 'true' mean?
 add_Instr.setMachineCode(one_dest_two_src, {'opcode0': [0,0,0,0,0,0]}, 'TODO')
 add_Instr.setCode(opCode,'execute')
 add_Instr.addBehavior(IncrementPC, 'execute')
-add_Instr.addTest({'rd': 5, 'ra': 3, 'rb': 2},{'PC':0x0},{'PC':0x8})
+add_Instr.addTest({'rd': 5, 'ra': 3, 'rb': 2}, {'GPR[3]': 4, 'GPR[2]': 6, 'GPR[5]': 0xfffff, 'PC':0x0}, {'GPR[5]': 10, 'PC':0x8})
 isa.addInstruction(add_Instr)
 

@@ -103,7 +103,8 @@ class Code:
         self.writeDeclaration(writer)
 
     def getIncludes(self):
-        VarIncludes = self.includes
+        import copy
+        VarIncludes = copy.copy(self.includes)
         for i in self.variables:
             for j in i.getIncludes():
                 if not j in VarIncludes:
