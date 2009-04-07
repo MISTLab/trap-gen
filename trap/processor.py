@@ -541,7 +541,7 @@ class Processor:
                 wbStage = True
             if pipeStage.checkHazard:
                 checkHazardStage = True
-        if not (wbStage and checkHazardStage):
+        if (wbStage and not checkHazardStage) or (not wbStage and checkHazardStage):
             raise Exception('Error, both the writeback and the check hazards stages must be specified')
         for method in self.isa.methods:
             if not method.stage in [i.name for i in self.pipes]:
