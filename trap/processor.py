@@ -899,7 +899,7 @@ class Processor:
                 hdecTestsFile.addMember(decTests)
                 testFolder.addCode(decTestsFile)
                 testFolder.addHeader(hdecTestsFile)
-                ISATests = self.isa.getCPPTests(self, model)
+                ISATests = self.isa.getCPPTests(self, model, trace)
                 testPerFile = 200
                 numTestFiles = len(ISATests)/testPerFile
                 for i in range(0, numTestFiles):

@@ -29,7 +29,7 @@ class MemAnalyzer{
     ///Returns the last memory access that modified addr
     MemAccessType getLastMod(unsigned int addr);
     ///Prints all the modifications done to address addr
-    void getAllModifications(unsigned int addr, double initSimTime, double endSimTime, boost::filesystem::path &outFile);
+    void getAllModifications(unsigned int addr, boost::filesystem::path &outFile, double initSimTime = 0, double endSimTime = -1);
 };
 
 #endif

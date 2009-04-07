@@ -233,8 +233,8 @@ class ISA:
     def getCPPClasses(self, processor, model, trace):
         return isaWriter.getCPPClasses(self, processor, model, trace)
 
-    def getCPPTests(self, processor, model):
-        return isaWriter.getCPPTests(self, processor, model)
+    def getCPPTests(self, processor, model, trace):
+        return isaWriter.getCPPTests(self, processor, model, trace)
 
     def getInstructionSig(self):
         # Returns the signature (in the form of a string) uniquely identifying the
@@ -522,8 +522,8 @@ class Instruction:
     def getCPPClass(self, model, processor, trace):
         return isaWriter.getCPPInstr(self, model, processor, trace)
 
-    def getCPPTest(self, processor, model):
-        return isaWriter.getCPPInstrTest(self, processor, model)
+    def getCPPTest(self, processor, model, trace):
+        return isaWriter.getCPPInstrTest(self, processor, model, trace)
 
 class HelperOperation:
     """Represents some code; this code can be shared among the

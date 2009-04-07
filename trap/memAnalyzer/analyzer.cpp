@@ -70,11 +70,11 @@ MemAnalyzer::~MemAnalyzer(){
 
 ///Creates the image of the memory as it was at cycle procCycle
 void MemAnalyzer::createMemImage(boost::filesystem::path &outFile, double simTime){
-    char * tempMemImage = (char *)malloc(sizeof(char)*this->memSize);
+    char * tempMemImage = new char[this->memSize];
     MemAccessType readVal;
     int maxAddress = 0;
 
-    ::bzero(tempMemImage, sizeof(tempMemImage));
+    ::bzero(tempMemImage, this->memSize);
 
     while(this->dumpFile.good()){
         this->dumpFile.read((char *)&readVal, sizeof(MemAccessType));
@@ -92,11 +92,11 @@ void MemAnalyzer::createMemImage(boost::filesystem::path &outFile, double simTim
 
     //Now I print on the output file the memory image
     std::ofstream memImageFile(outFile.native_file_string().c_str());
-    for(int i = 0; i < maxAddress + 1; i+=4){
-        memImageFile << "MEM[" << std::hex << std::showbase << i << "] = " << ((int *)tempMemImage)[i] << std::endl;
+    for(int i = 0; i < maxAddress; i+=sizeof(int)){
+        memImageFile << "MEM[" << std::hex << std::showbase << i << "] = " << ((int *)tempMemImage)[i/sizeof(int)] << std::endl;
     }
     memImageFile.close();
-    free(tempMemImage);
+    delete [] tempMemImage;
 }
 
 ///Returns the first memory access that modifies the address addr after
@@ -143,14 +143,14 @@ MemAccessType MemAnalyzer::getLastMod(unsigned int addr){
 }
 
 ///Prints all the modifications done to address addr
-void MemAnalyzer::getAllModifications(unsigned int addr, double initSimTime, double endSimTime, boost::filesystem::path &outFile){
+void MemAnalyzer::getAllModifications(unsigned int addr, boost::filesystem::path &outFile, double initSimTime, double endSimTime){
     MemAccessType readVal;
     std::ofstream memImageFile(outFile.native_file_string().c_str());
 
     while(this->dumpFile.good()){
         this->dumpFile.read((char *)&readVal, sizeof(MemAccessType));
         if(this->dumpFile.good()){
-            if(readVal.address == addr && readVal.simulationTime >= initSimTime && readVal.simulationTime >= endSimTime){
+            if(readVal.address == addr && readVal.simulationTime >= initSimTime && (endSimTime < 0 || readVal.simulationTime <= endSimTime)){
                 memImageFile << "MEM[" << std::hex << std::showbase << readVal.address << "] = " << readVal.val << " time " << std::dec << readVal.simulationTime << " program counter " << std::hex << std::showbase << readVal.programCounter << std::endl;
             }
         }

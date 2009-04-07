@@ -8,6 +8,7 @@
 
 #include "utils.hpp"
 
+#include "memAccessType.hpp"
 #include "analyzer.hpp"
 
 int main(int argc, char *argv[]){
@@ -20,7 +21,7 @@ int main(int argc, char *argv[]){
     ("address,a", boost::program_options::value<unsigned int>(), "the address of which we want to get the modifications")
     ("startTime,s", boost::program_options::value<double>(), "the time at which we want to analyze the modifications (start time if needed by the chosen option)")
     ("endTime,e", boost::program_options::value<double>(), "the end time until which we want to get the modification")
-    ("memSize,m", boost::program_options::value<double>(), "the maximum memory size")
+    ("memSize,m", boost::program_options::value<unsigned int>(), "the maximum memory size")
     ;
 
     boost::program_options::variables_map vm;
@@ -64,10 +65,50 @@ int main(int argc, char *argv[]){
             }
         break;}
         case 2:{
+            if(vm.count("address") == 0){
+                std::cerr << "Error, it is necessary to specify the address with the (2) operation" << std::endl;
+                std::cerr << desc << std::endl;
+                return -1;
+            }
+            if(vm.count("outFile") == 0){
+                std::cerr << "Error, it is necessary to specify the output file with the (2) operation" << std::endl;
+                std::cerr << desc << std::endl;
+                return -1;
+            }
+            double startTime = 0;
+            if(vm.count("startTime") > 0){
+                startTime = vm["startTime"].as<double>();
+            }
+            double endTime = -1;
+            if(vm.count("endTime") > 0){
+                endTime = vm["endTime"].as<double>();
+            }
+            boost::filesystem::path outFilePath = boost::filesystem::system_complete(boost::filesystem::path(vm["outFile"].as<std::string>(), boost::filesystem::native));
+            analyzer.getAllModifications(vm["address"].as<unsigned int>(), outFilePath, startTime, endTime);
         break;}
         case 3:{
+            if(vm.count("address") == 0){
+                std::cerr << "Error, it is necessary to specify the address with the (3) operation" << std::endl;
+                std::cerr << desc << std::endl;
+                return -1;
+            }
+            MemAccessType modification;
+            if(vm.count("startTime") == 0){
+                modification = analyzer.getFirstModAfter(vm["address"].as<unsigned int>());
+            }
+            else{
+                modification = analyzer.getFirstModAfter(vm["address"].as<unsigned int>(), vm["startTime"].as<double>());
+            }
+            std::cout << "Address " << std::hex << std::showbase << modification.address << " - Value " << std::hex << std::showbase << modification.val << " - PC " << std::hex << std::showbase << modification.programCounter << " - Time " << std::dec << modification.simulationTime << std::endl;
         break;}
         case 4:{
+            if(vm.count("address") == 0){
+                std::cerr << "Error, it is necessary to specify the address with the (4) operation" << std::endl;
+                std::cerr << desc << std::endl;
+                return -1;
+            }
+            MemAccessType modification = analyzer.getFirstModAfter(vm["address"].as<unsigned int>());
+            std::cout << "Address " << std::hex << std::showbase << modification.address << " - Value " << std::hex << std::showbase << modification.val << " - PC " << std::hex << std::showbase << modification.programCounter << " - Time " << std::dec << modification.simulationTime << std::endl;
         break;}
         default:
             THROW_EXCEPTION("Error, unrecognized option " << vm["operation"].as<int>());
