@@ -469,7 +469,12 @@ def getCPPInstr(self, model, processor, trace):
                 if i[1:] in self.machineCode.bitCorrespondence.keys() + self.bitCorrespondence.keys():
                     getMnemonicCode += '_bit'
                 getMnemonicCode += ';\n'
-            else:
+            else:    if self.traceRegs and not processor.systemc and not model.startswith('acc'):
+        attribute = cxx_writer.writer_code.Attribute('totCycles', cxx_writer.writer_code.uintType.makeRef(), 'pro')
+        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter('totCycles', cxx_writer.writer_code.uintType.makeRef()))
+        initElements.append('totCycles(totCycles)')
+        baseInitElement += 'totCycles, '
+
                 getMnemonicCode += 'oss << "' + i + '";\n'
         else:
             # I have a switch
@@ -731,6 +736,10 @@ def getCPPClasses(self, processor, model, trace):
                 printTraceCode += '#define ' + aliasB.name + ' ' + aliasB.name + '_' + processor.pipes[-1].name + '\n'
             printTraceCode += '\n'
 
+        if not processor.systemc and not model.startswith('acc'):
+            printTraceCode += 'std::cerr << \"Simulated time \" << this->totCycles << std::endl;\n'
+        else:
+            printTraceCode += 'std::cerr << \"Simulated time \" << sc_time_stamp().to_double();\n'
         printTraceCode += 'std::cerr << \"Instruction: \" << this->getInstructionName() << std::endl;\n'
         printTraceCode += 'std::cerr << \"Mnemonic: \" << this->getMnemonic() << std::endl;\n'
         if self.traceRegs:
@@ -742,7 +751,7 @@ def getCPPClasses(self, processor, model, trace):
                 else:
                     printTraceCode += 'std::cerr << \"' + reg.name + ' = \" << std::hex << std::showbase << this->' + reg.name + ' << std::endl;\n'
         else:
-            for reg in processor.regs:
+            for reg in processor.regs:self.traceRegs:
                 printTraceCode += 'std::cerr << \"' + reg.name + ' = \" << std::hex << std::showbase << this->' + reg.name + ' << std::endl;\n'
             for regB in processor.regBanks:
                 printTraceCode += 'for(int regNum = 0; regNum < ' + str(regB.numRegs) + '; regNum++){\n'
@@ -879,6 +888,11 @@ def getCPPClasses(self, processor, model, trace):
         initElements.append(tlmPorts + '(' + tlmPorts + ')')
         baseInitElement += tlmPorts + ', '
         instructionElements.append(attribute)
+    if trace and not processor.systemc and not model.startswith('acc'):
+        attribute = cxx_writer.writer_code.Attribute('totCycles', trace, cxx_writer.writer_code.uintType.makeRef(), 'pro')
+        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter('totCycles', cxx_writer.writer_code.uintType.makeRef()))
+        initElements.append('totCycles(totCycles)')
+        baseInitElement += 'totCycles, '
     baseInitElement = baseInitElement[:-2]
     baseInitElement += ')'
     if not model.startswith('acc'):
@@ -891,7 +905,7 @@ def getCPPClasses(self, processor, model, trace):
 
     for constant in self.constants:
         instructionElements.append(cxx_writer.writer_code.Attribute(constant[1], constant[0].makeConst(), 'pro'))
-        initElements.append(constant[1] + '(' + str(constant[2]) + ')')
+        initElements.append(constant[1] + '(' + str(constant[2]), trace + ')')
 
     publicConstr = cxx_writer.writer_code.Constructor(cxx_writer.writer_code.Code(constrBody), 'pu', baseInstrConstrParams, initElements)
     instructionDecl = cxx_writer.writer_code.ClassDeclaration('Instruction', instructionElements)

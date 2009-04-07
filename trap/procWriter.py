@@ -1897,6 +1897,8 @@ def getCPPProc(self, model, trace):
         baseInstrInitElement += self.memory[0] + ', '
     for tlmPorts in self.tlmPorts.keys():
         baseInstrInitElement += tlmPorts + ', '
+    if trace and not processor.systemc and not model.startswith('acc'):
+        baseInstrInitElement += 'this->totalCycles, '
     baseInstrInitElement = baseInstrInitElement[:-2]
 
     constrCode = 'Processor::numInstances++;\nif(Processor::INSTRUCTIONS == NULL){\n'
