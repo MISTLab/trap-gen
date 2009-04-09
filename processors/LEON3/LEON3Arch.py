@@ -250,7 +250,7 @@ processor.setWBOrder('Ybp', ('execute', 'wb'))
 
 # The ABI is necessary to emulate system calls, personalize the GDB stub and,
 # eventually, retarget GCC
-abi = trap.ABI('REGS[23]', 'REGS[23-28]', 'PC', 'LR', 'SP', 'FP')
+abi = trap.ABI('REGS[24]', 'REGS[24-29]', 'PC', 'LR', 'SP', 'FP')
 abi.addVarRegsCorrespondence({'REGS[0-31]': (0, 31), 'Y': 64, 'PSR': 65, 'WIM': 66, 'TBR': 67, 'PC': 68, 'NPC': 69})
 updateWinCode = ''
 for i in range(8, 32):
