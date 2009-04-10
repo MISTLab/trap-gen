@@ -141,9 +141,9 @@ void ExecLoader::loadProgramData(){
             bfd_vma vma = bfd_get_section_vma(this->execImage, p);
             std::map<unsigned long, unsigned char>::iterator curMapPos = memMap.begin();
             if((flags & SEC_HAS_CONTENTS) != 0){
-/*                #ifndef NDEBUG
-                std::cerr << "Loading data fom section " << p->name << " Start Address " << std::showbase << std::hex << vma << " Size " << std::hex << datasize << " End Address " << std::hex << datasize + vma << std::dec << std::endl;
-                #endif*/
+                #ifndef NDEBUG
+                std::cerr << "Loading data fom section " << p->name << " Start Address " << std::showbase << std::hex << vma << " Size " << std::hex << datasize << " End Address " << std::hex << datasize + vma << std::dec << " Swap Endianess " << swapEndianess << std::endl;
+                #endif
                 bfd_byte *data = new bfd_byte[datasize];
                 bfd_get_section_contents (this->execImage, p, data, 0, datasize);
                 for(unsigned int i = 0; i < datasize; i += 4){
