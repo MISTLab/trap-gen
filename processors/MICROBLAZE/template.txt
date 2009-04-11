@@ -3,7 +3,7 @@ opCode = cxx_writer.writer_code.Code("""
 
 """)­
 _Instr = trap.Instruction('', True)
-_Instr.setMachineCode(one_dest_two_src, {'opcode0': [0,0,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
+_Instr.setMachineCode(oper_reg, {'opcode0': [0,0,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 _Instr.setCode(opCode,'execute')
 isa.addInstruction(_Instr)
 
@@ -12,7 +12,7 @@ opCode = cxx_writer.writer_code.Code("""
 
 """)­
 _Instr = trap.Instruction('', True)
-_Instr.setMachineCode(one_dest_one_src_one_imm, {'opcode': [0,0,0,0,0,0]}, 'TODO')
+_Instr.setMachineCode(oper_imm, {'opcode': [0,0,0,0,0,0]}, 'TODO')
 _Instr.setCode(opCode,'execute')
 isa.addInstruction(_Instr)
 
@@ -69,3 +69,22 @@ _Instr = trap.Instruction('', True)
 _Instr.setMachineCode(barrel_imm, {'opcode0': [0,1,1,0,0,1], 'opcode1': [0,0,0,0,0], 'opcode2': [0,0,0,0,0,0]}, 'TODO')
 _Instr.setCode(opCode,'execute')
 isa.addInstruction(_Instr)
+
+#float compare
+opCode = cxx_writer.writer_code.Code("""
+
+""")­
+_Instr = trap.Instruction('', True)
+_Instr.setMachineCode(float_cmp, {'opcode0': [0,1,0,1,1,0], 'opcode1': [0,1,0,0], 'opcode2': [0,0,0,0]}, 'TODO')
+_Instr.setCode(opCode,'execute')
+isa.addInstruction(_Instr)
+
+#float uanry oper
+opCode = cxx_writer.writer_code.Code("""
+
+""")­
+_Instr = trap.Instruction('', True)
+_Instr.setMachineCode(float_unary, {'opcode0': [0,1,0,1,1,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
+_Instr.setCode(opCode,'execute')
+isa.addInstruction(_Instr)
+
