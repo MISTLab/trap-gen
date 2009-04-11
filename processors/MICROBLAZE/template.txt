@@ -1,0 +1,71 @@
+#oper with reg
+opCode = cxx_writer.writer_code.Code("""
+
+""")­
+_Instr = trap.Instruction('', True)
+_Instr.setMachineCode(one_dest_two_src, {'opcode0': [0,0,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
+_Instr.setCode(opCode,'execute')
+isa.addInstruction(_Instr)
+
+#oper with imm
+opCode = cxx_writer.writer_code.Code("""
+
+""")­
+_Instr = trap.Instruction('', True)
+_Instr.setMachineCode(one_dest_one_src_one_imm, {'opcode': [0,0,0,0,0,0]}, 'TODO')
+_Instr.setCode(opCode,'execute')
+isa.addInstruction(_Instr)
+
+#branch cond reg
+opCode = cxx_writer.writer_code.Code("""
+
+""")
+_Instr = trap.Instruction('','True')
+_Instr.setMachineCode(branch_cond_reg, {'opcode0': [1,0,0,1,1,1], 'opcode1': [0,0,0,0,0], 'opcode2': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
+_Instr.setCode(opCode,'execute')
+isa.addInstruction(_Instr)
+
+#branch cond imm
+opCode = cxx_writer.writer_code.Code("""
+
+""")
+_Instr = trap.Instruction('','True')
+_Instr.setMachineCode(branch_cond_imm, {'opcode0': [1,0,0,1,1,1], 'opcode1': [0,0,0,0,0]}, 'TODO')
+_Instr.setCode(opCode,'execute')
+isa.addInstruction(_Instr)
+
+#branch uncond reg
+opCode = cxx_writer.writer_code.Code("""
+
+""")
+_Instr = trap.Instruction('','True')
+_Instr.setMachineCode(branch_uncond_reg, {'opcode0': [1,0,0,1,1,1], 'opcode1': [0,0,0,0,0], 'opcode2': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
+_Instr.setCode(opCode,'execute')
+isa.addInstruction(_Instr)
+
+#branch uncond imm
+opCode = cxx_writer.writer_code.Code("""
+
+""")
+_Instr = trap.Instruction('','True')
+_Instr.setMachineCode(branch_uncond_imm, {'opcode0': [1,0,0,1,1,1], 'opcode1': [0,0,0,0,0]}, 'TODO')
+_Instr.setCode(opCode,'execute')
+isa.addInstruction(_Instr)
+
+#barrel with reg
+opCode = cxx_writer.writer_code.Code("""
+
+""")­
+_Instr = trap.Instruction('', True)
+_Instr.setMachineCode(barrel_reg, {'opcode0': [0,1,0,0,0,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
+_Instr.setCode(opCode,'execute')
+isa.addInstruction(_Instr)
+
+#barrel with imm
+opCode = cxx_writer.writer_code.Code("""
+
+""")­
+_Instr = trap.Instruction('', True)
+_Instr.setMachineCode(barrel_imm, {'opcode0': [0,1,1,0,0,1], 'opcode1': [0,0,0,0,0], 'opcode2': [0,0,0,0,0,0]}, 'TODO')
+_Instr.setCode(opCode,'execute')
+isa.addInstruction(_Instr)

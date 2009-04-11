@@ -58,7 +58,7 @@ import MICROBLAZEIsa
 #~ processor.setLittleEndian() #little endian
 #~ processor.setWordsize(4, 8) #4 bytes per word, 8 bits per byte
 #~ processor.setISA(ARMIsa.isa) #lets set the instruction set
-processor = trap.Processor('MICROBLAZE', version = '0.1', systemc = True, instructionCache = True, fastFetch = True)
+processor = trap.Processor('MICROBLAZE', version = '0.1', systemc = False, instructionCache = True, fastFetch = True)
 processor.setBigEndian() #big endian
 processor.setWordsize(4, 8) #4 bytes per word, 8 bits per byte
 processor.setISA(MICROBLAZEIsa.isa) #lets set the instruction set
@@ -77,31 +77,54 @@ processor.addRegBank(regBank)
 # A registry bank of 18 special purpouse registers each one 32 bits wide
 #maybe we don't have to use a bit mask for this register bank
 #spsrBitMask = {'N': (31, 31), 'Z': (30, 30), 'C': (29, 29), 'V': (28, 28), 'I': (7, 7), 'F': (6, 6), 'mode': (0, 3)}
-sprBank = trap.RegisterBank('SPR', 18, 32)
-processor.addRegBank(sprBank)
+#~ sprBank = trap.RegisterBank('SPR', 18, 32)
+#~ processor.addRegBank(sprBank)
 
-#?? how do we use this?
-#~ processor.setFetchRegister('PC', -4)
+#~ msrBitMask = {'BE': (31,31), 'IE': (30,30), 'C': (29,29), 'BIP': (28,28), 'FSL': (27,27), 'ICE': (26,26), 'DZ': (25,25), 'DCE': (24,24), 'EE': (23,23), 'EIP': (22,22), 'PVR': (21,21), 'UM': (20,20), 'UMS': (19,19), 'VM': (18,18), 'VMS': (17,17), 'CC': (0,0)}
+#~ MSR = trap.AliasRegister('MSR', 'SPR[1]',msrBitMask)
+#~ processor.addAliasReg(MSR)
 
-msrBitMask = {'BE': (31,31), 'IE': (30,30), 'C': (29,29), 'BIP': (28,28), 'FSL': (27,27), 'ICE': (26,26), 'DZ': (25,25), 'DCE': (24,24), 'EE': (23,23), 'EIP': (22,22), 'PVR': (21,21), 'UM': (20,20), 'UMS': (19,19), 'VM': (18,18), 'VMS': (17,17), 'CC': (0,0)}
-MSR = trap.AliasRegister('MSR', 'SPR[1]',msrBitMask)
-processor.addAliasReg(MSR)
-
-ESR = trap.AliasRegister('ESR', 'SPR[5]')
-processor.addAliasReg(ESR)
-EAR = trap.AliasRegister('EAR', 'SPR[3]')
-processor.addAliasReg(EAR)
-FSR = trap.AliasRegister('FSR', 'SPR[7]')
-processor.addAliasReg(FSR)
+#~ ESR = trap.AliasRegister('ESR', 'SPR[5]')
+#~ processor.addAliasReg(ESR)
+#~ EAR = trap.AliasRegister('EAR', 'SPR[3]')
+#~ processor.addAliasReg(EAR)
+#~ FSR = trap.AliasRegister('FSR', 'SPR[7]')
+#~ processor.addAliasReg(FSR)
 # very strange register :)
 #~ PVRx = trap.AliasRegister('PVR', 'SPR[8192+x]')
 #~ processor.addAliasReg(PVRx)
-BTR = trap.AliasRegister('BTR', 'SPR[11]')
-processor.addAliasReg(BTR)
-PC = trap.AliasRegister('PC', 'SPR[0]')
-PC.setDefaultValue(('ENTRY_POINT',8))
-processor.addAliasReg(PC)
+#~ BTR = trap.AliasRegister('BTR', 'SPR[11]')
+#~ processor.addAliasReg(BTR)
+#~ PC = trap.AliasRegister('PC', 'SPR[0]')
+#~ PC.setDefaultValue(('ENTRY_POINT',8))
+#~ processor.addAliasReg(PC)
 
+# We define each special register as a single isolated register
+# PC = SPR[0]
+pc = trap.Register('PC',32)
+pc.setDefaultValue(('ENTRY_POINT',8))
+processor.addRegister(pc)
+
+# MSR = SPR[1]
+msrBitMask = {'BE': (31,31), 'IE': (30,30), 'C': (29,29), 'BIP': (28,28), 'FSL': (27,27), 'ICE': (26,26), 'DZ': (25,25), 'DCE': (24,24), 'EE': (23,23), 'EIP': (22,22), 'PVR': (21,21), 'UM': (20,20), 'UMS': (19,19), 'VM': (18,18), 'VMS': (17,17), 'CC': (0,0)}
+msr = trap.Register('MSR', 32, msrBitMask)
+processor.addRegister(msr)
+
+# ESR = SPR[5]
+esr = trap.Register('ESR', 32)
+processor.addRegister(esr)
+
+# EAR = SPR[3]
+ear = trap.Register('EAR', 32)
+processor.addRegister(ear)
+
+# FSR = SPR[7]
+fsr = trap.Register('FSR', 32)
+processor.addRegister(fsr)
+
+# BTR = SPR[11]
+btr = trap.Register('BTR', 32)
+processor.addRegister(btr)
 
 # At first, we simply define a pipeline with a single stage.
 # All the operations of the instruction will be executed in this stage.
@@ -112,8 +135,8 @@ processor.addPipeStage(executeStage)
 # Finally we can dump the processor on file
 #processor.write(folder = 'processor', models = ['funcLT'], dumpDecoderName = 'decoder.dot')
 #processor.write(folder = 'processor', models = ['funcLT'], trace = True)
-#processor.write(folder = 'processor', models = ['funcLT'])
+processor.write(folder = 'processor', models = ['funcLT'])
 #processor.write(folder = 'processor', models = ['funcAT'], trace = True)
-processor.write(folder = 'processor', models = ['accAT', 'funcLT'])
+#processor.write(folder = 'processor', models = ['accAT', 'funcLT'])
 #processor.write(folder = 'processor', models = ['accAT'])
 #processor.write(folder = 'processor', models = ['accAT','funcLT'], trace = True)
