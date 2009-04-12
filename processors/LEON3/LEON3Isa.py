@@ -130,7 +130,20 @@ opCodeRegsRegs = cxx_writer.writer_code.Code("""
 address = rs1 + rs2;
 """)
 opCodeMem = cxx_writer.writer_code.Code("""
-readValue = SignExtend(dataMem.read_byte(address), 8);
+switch(address & 0x00000003){
+    case 0:
+        readValue = SignExtend(dataMem.read_byte(address + 3), 8);
+    break;
+    case 1:
+        readValue = SignExtend(dataMem.read_byte(address + 1), 8);
+    break;
+    case 2:
+        readValue = SignExtend(dataMem.read_byte(address - 1), 8);
+    break;
+    case 3:
+        readValue = SignExtend(dataMem.read_byte(address - 3), 8);
+    break;
+}
 """)
 opCodeWb = cxx_writer.writer_code.Code("""
 rd = readValue;
@@ -164,7 +177,14 @@ if(notAligned){
 """)
 opCodeMem = cxx_writer.writer_code.Code("""
 if(!notAligned){
-    readValue = SignExtend(dataMem.read_half(address), 16);
+    switch(address & 0x00000003){
+        case 0:
+            readValue = SignExtend(dataMem.read_half(address + 2), 16);
+        break;
+        case 2:
+            readValue = SignExtend(dataMem.read_half(address - 2), 16);
+        break;
+    }
 }
 else{
     flush();
@@ -202,7 +222,20 @@ ldsh_reg_Instr.addVariable(('readValue', 'BIT<32>'))
 ldsh_reg_Instr.addVariable(('notAligned', 'BIT<1>'))
 isa.addInstruction(ldsh_reg_Instr)
 opCodeMem = cxx_writer.writer_code.Code("""
-readValue = dataMem.read_byte(address);
+switch(address & 0x00000003){
+    case 0:
+        readValue = dataMem.read_byte(address + 3);
+    break;
+    case 1:
+        readValue = dataMem.read_byte(address + 1);
+    break;
+    case 2:
+        readValue = dataMem.read_byte(address - 1);
+    break;
+    case 3:
+        readValue = dataMem.read_byte(address - 3);
+    break;
+}
 """)
 ldub_imm_Instr = trap.Instruction('LDUB_imm', True, frequency = 5)
 ldub_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 0, 0, 0, 0, 1]}, ('ldub r', '%rs1', '+', '%simm13', ' r', '%rd'))
@@ -225,7 +258,14 @@ ldub_reg_Instr.addVariable(('address', 'BIT<32>'))
 ldub_reg_Instr.addVariable(('readValue', 'BIT<32>'))
 isa.addInstruction(ldub_reg_Instr)
 opCodeMem = cxx_writer.writer_code.Code("""
-readValue = dataMem.read_half(address);
+switch(address & 0x00000003){
+    case 0:
+        readValue = dataMem.read_half(address + 2);
+    break;
+    case 2:
+        readValue = dataMem.read_half(address - 2);
+    break;
+}
 """)
 lduh_imm_Instr = trap.Instruction('LDUH_imm', True, frequency = 5)
 lduh_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 0, 0, 0, 1, 0]}, ('lduh r', '%rs1', '+', '%simm13', ' r', '%rd'))
@@ -362,7 +402,20 @@ if(!supervisor){
     flush();
 }
 else{
-    readValue = SignExtend(dataMem.read_byte(address), 8);
+    switch(address & 0x00000003){
+        case 0:
+            readValue = SignExtend(dataMem.read_byte(address + 3), 8);
+        break;
+        case 1:
+            readValue = SignExtend(dataMem.read_byte(address + 1), 8);
+        break;
+        case 2:
+            readValue = SignExtend(dataMem.read_byte(address - 1), 8);
+        break;
+        case 3:
+            readValue = SignExtend(dataMem.read_byte(address - 3), 8);
+        break;
+    }
 }
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
@@ -393,7 +446,14 @@ if(notAligned || !supervisor){
     flush();
 }
 else{
-    readValue = SignExtend(dataMem.read_half(address), 16);
+    switch(address & 0x00000003){
+        case 0:
+            readValue = SignExtend(dataMem.read_half(address + 2), 16);
+        break;
+        case 2:
+            readValue = SignExtend(dataMem.read_half(address - 2), 16);
+        break;
+    }
 }
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
@@ -429,7 +489,20 @@ if(!supervisor){
     flush();
 }
 else{
-    readValue = dataMem.read_byte(address);
+    switch(address & 0x00000003){
+        case 0:
+            readValue = dataMem.read_byte(address + 3);
+        break;
+        case 1:
+            readValue = dataMem.read_byte(address + 1);
+        break;
+        case 2:
+            readValue = dataMem.read_byte(address - 1);
+        break;
+        case 3:
+            readValue = dataMem.read_byte(address - 3);
+        break;
+    }
 }
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
@@ -460,7 +533,14 @@ if(notAligned || !supervisor){
     flush();
 }
 else{
-    readValue = dataMem.read_half(address);
+    switch(address & 0x00000003){
+        case 0:
+            readValue = dataMem.read_half(address + 2);
+        break;
+        case 2:
+            readValue = dataMem.read_half(address - 2);
+        break;
+    }
 }
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
@@ -576,11 +656,37 @@ isa.addInstruction(ldda_reg_Instr)
 # Store integer instructions
 opCodeRegsImm = cxx_writer.writer_code.Code("""
 address = rs1 + SignExtend(simm13, 13);
-toWrite = (unsigned char)((rd >> ((address & 0x00000003) << 3)) & 0x000000FF);
+switch(address & 0x00000003){
+    case 0:
+        toWrite = (unsigned char)((rd >> 24) & 0x000000FF);
+    break;
+    case 1:
+        toWrite = (unsigned char)((rd >> 16) & 0x000000FF);
+    break;
+    case 2:
+        toWrite = (unsigned char)((rd >> 8) & 0x000000FF);
+    break;
+    case 3:
+        toWrite = (unsigned char)(rd & 0x000000FF);
+    break;
+}
 """)
 opCodeRegsRegs = cxx_writer.writer_code.Code("""
 address = rs1 + rs2;
-toWrite = (unsigned char)((rd >> ((address & 0x00000003) << 3)) & 0x000000FF);
+switch(address & 0x00000003){
+    case 0:
+        toWrite = (unsigned char)((rd >> 24) & 0x000000FF);
+    break;
+    case 1:
+        toWrite = (unsigned char)((rd >> 16) & 0x000000FF);
+    break;
+    case 2:
+        toWrite = (unsigned char)((rd >> 8) & 0x000000FF);
+    break;
+    case 3:
+        toWrite = (unsigned char)(rd & 0x000000FF);
+    break;
+}
 """)
 opCodeMem = cxx_writer.writer_code.Code("""
 dataMem.write_byte(address, toWrite);
@@ -605,11 +711,25 @@ stb_reg_Instr.addVariable(('toWrite', 'BIT<8>'))
 isa.addInstruction(stb_reg_Instr)
 opCodeRegsImm = cxx_writer.writer_code.Code("""
 address = rs1 + SignExtend(simm13, 13);
-toWrite = (unsigned short int)((rd >> ((address & 0x00000002) << 3)) & 0x0000FFFF);
+switch(address & 0x00000003){
+    case 0:
+        toWrite = (unsigned short int)((rd >> 16) & 0x0000FFFF);
+    break;
+    case 2:
+        toWrite = (unsigned short int)(rd & 0x0000FFFF);
+    break;
+}
 """)
 opCodeRegsRegs = cxx_writer.writer_code.Code("""
 address = rs1 + rs2;
-toWrite = (unsigned short int)((rd >> ((address & 0x00000002) << 3)) & 0x0000FFFF);
+switch(address & 0x00000003){
+    case 0:
+        toWrite = (unsigned short int)((rd >> 16) & 0x0000FFFF);
+    break;
+    case 2:
+        toWrite = (unsigned short int)(rd & 0x0000FFFF);
+    break;
+}
 """)
 opCodeMem = cxx_writer.writer_code.Code("""
 if(!notAligned){
@@ -758,7 +878,20 @@ std_reg_Instr.addVariable(('toWrite', 'BIT<64>'))
 isa.addInstruction(std_reg_Instr)
 opCodeRegsRegs = cxx_writer.writer_code.Code("""
 address = rs1 + rs2;
-toWrite = (unsigned char)((rd >> ((address & 0x00000003) << 3)) & 0x000000FF);
+switch(address & 0x00000003){
+    case 0:
+        toWrite = (unsigned char)((rd >> 24) & 0x000000FF);
+    break;
+    case 1:
+        toWrite = (unsigned char)((rd >> 16) & 0x000000FF);
+    break;
+    case 2:
+        toWrite = (unsigned char)((rd >> 8) & 0x000000FF);
+    break;
+    case 3:
+        toWrite = (unsigned char)(rd & 0x000000FF);
+    break;
+}
 supervisor = PSR[key_S];
 """)
 opCodeMem = cxx_writer.writer_code.Code("""
@@ -793,7 +926,14 @@ stba_reg_Instr.addVariable(('toWrite', 'BIT<8>'))
 isa.addInstruction(stba_reg_Instr)
 opCodeRegsRegs = cxx_writer.writer_code.Code("""
 address = rs1 + rs2;
-toWrite = (unsigned short int)((rd >> ((address & 0x00000002) << 3)) & 0x0000FFFF);
+switch(address & 0x00000003){
+    case 0:
+        toWrite = (unsigned short int)((rd >> 16) & 0x0000FFFF);
+    break;
+    case 2:
+        toWrite = (unsigned short int)(rd & 0x0000FFFF);
+    break;
+}
 supervisor = PSR[key_S];
 """)
 opCodeMem = cxx_writer.writer_code.Code("""

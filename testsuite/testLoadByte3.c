@@ -2,10 +2,11 @@
 
 #include "endianess.h"
 
+const unsigned int a = 0x12fe34dc;
+
 extern void _exit(int);
 
 int main(){
-    unsigned int a = 0x12fe34dc;
     #ifndef BIG_TARGET
     if(((unsigned char *)&a)[0] != 0xdc){
         _exit(-1);

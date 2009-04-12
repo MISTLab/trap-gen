@@ -12,6 +12,6 @@ foo (int x, int y, int i, int j)
 int main ()
 {
   if (foo (2, 24, 3, 4) == 0)
-    _exit(1);
+    _exit(-1);
   _exit(0);
 }

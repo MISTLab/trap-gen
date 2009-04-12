@@ -53,7 +53,7 @@ extern "C" {
 #include "execLoader.hpp"
 
 
-ExecLoader::ExecLoader(std::string fileName, bool keepEndianess) : keepEndianess(keepEndianess){
+ExecLoader::ExecLoader(std::string fileName){
     this->programData = NULL;
     this->execImage = NULL;
     this->progDim = 0;
@@ -120,17 +120,6 @@ unsigned int ExecLoader::getDataStart(){
 void ExecLoader::loadProgramData(){
     bfd_section *p = NULL;
     std::map<unsigned long, unsigned char> memMap;
-    #ifdef LITTLE_ENDIAN_BO
-    bool swapEndianess = bfd_header_big_endian(this->execImage);
-    #else
-    #ifdef BIG_ENDIAN_BO
-    bool swapEndianess = bfd_header_little_endian(this->execImage);
-    #else
-    bool swapEndianess = false;
-    #endif
-    #endif
-    if(this->keepEndianess)
-        swapEndianess = false;
     for (p = this->execImage->sections; p != NULL; p = p->next){
         flagword flags = bfd_get_section_flags(this->execImage, p);
         if((flags & SEC_ALLOC) != 0 && (flags & SEC_DEBUGGING) == 0 && (flags & SEC_THREAD_LOCAL) == 0){
@@ -141,24 +130,13 @@ void ExecLoader::loadProgramData(){
             bfd_vma vma = bfd_get_section_vma(this->execImage, p);
             std::map<unsigned long, unsigned char>::iterator curMapPos = memMap.begin();
             if((flags & SEC_HAS_CONTENTS) != 0){
-                #ifndef NDEBUG
-                std::cerr << "Loading data fom section " << p->name << " Start Address " << std::showbase << std::hex << vma << " Size " << std::hex << datasize << " End Address " << std::hex << datasize + vma << std::dec << " Swap Endianess " << swapEndianess << std::endl;
-                #endif
+//                #ifndef NDEBUG
+//                std::cerr << "Loading data fom section " << p->name << " Start Address " << std::showbase << std::hex << vma << " Size " << std::hex << datasize << " End Address " << std::hex << datasize + vma << std::dec << " Swap Endianess " << swapEndianess << " flags " << std::hex << std::showbase << flags << std::dec << std::endl;
+//                #endif
                 bfd_byte *data = new bfd_byte[datasize];
                 bfd_get_section_contents (this->execImage, p, data, 0, datasize);
-                for(unsigned int i = 0; i < datasize; i += 4){
-                    if(swapEndianess){
-                         curMapPos = memMap.insert(curMapPos, std::pair<unsigned long, unsigned char>(vma + i, data[i + 3]));
-                         curMapPos = memMap.insert(curMapPos, std::pair<unsigned long, unsigned char>(vma + i + 1, data[i + 2]));
-                         curMapPos = memMap.insert(curMapPos, std::pair<unsigned long, unsigned char>(vma + i + 2, data[i + 1]));
-                         curMapPos = memMap.insert(curMapPos, std::pair<unsigned long, unsigned char>(vma + i + 3, data[i ]));
-                    }
-                    else{
-                         curMapPos = memMap.insert(curMapPos, std::pair<unsigned long, unsigned char>(vma + i, data[i]));
-                         curMapPos = memMap.insert(curMapPos, std::pair<unsigned long, unsigned char>(vma + i + 1, data[i + 1]));
-                         curMapPos = memMap.insert(curMapPos, std::pair<unsigned long, unsigned char>(vma + i + 2, data[i + 2]));
-                         curMapPos = memMap.insert(curMapPos, std::pair<unsigned long, unsigned char>(vma + i + 3, data[i  + 3]));
-                    }
+                for(unsigned int i = 0; i < datasize; i++){
+                     curMapPos = memMap.insert(curMapPos, std::pair<unsigned long, unsigned char>(vma + i, data[i]));
                 }
                 delete [] data;
             }
