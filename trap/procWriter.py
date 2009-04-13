@@ -965,9 +965,9 @@ def getCPPMemoryIf(self, model):
     for curType in [archDWordType, archWordType, archHWordType]:
         swapEndianessCode = str(archByteType) + """ helperByte = 0;
         for(int i = 0; i < sizeof(""" + str(curType) + """)/2; i++){
-            helperByte = ((""" + str(archByteType) + """ *)datum)[i];
-            ((""" + str(archByteType) + """ *)datum)[i] = ((""" + str(archByteType) + """ *)datum)[sizeof(""" + str(curType) + """) -1 -i];
-            ((""" + str(archByteType) + """ *)datum)[sizeof(""" + str(curType) + """) -1 -i] = helperByte;
+            helperByte = ((""" + str(archByteType) + """ *)&datum)[i];
+            ((""" + str(archByteType) + """ *)&datum)[i] = ((""" + str(archByteType) + """ *)&datum)[sizeof(""" + str(curType) + """) -1 -i];
+            ((""" + str(archByteType) + """ *)&datum)[sizeof(""" + str(curType) + """) -1 -i] = helperByte;
         }
         """
         swapEndianessBody = cxx_writer.writer_code.Code(swapEndianessCode)
