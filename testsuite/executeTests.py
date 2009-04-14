@@ -19,6 +19,8 @@ if __name__ == "__main__":
                 retVal = int(line.split(' ')[-1])
                 if retVal != 0:
                     failedBenchs[test] = retVal
+                    if os.path.exists('memoryDump.dmp'):
+                        os.rename('memoryDump.dmp', test + '.dmp')
                 else:
                     os.remove(test + '.trace')
                 break
