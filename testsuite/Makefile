@@ -8,5 +8,5 @@ $(TARGETS): $(addsuffix .c, $@)
 clean:
 	rm $(TARGETS) -rf
 
-exec: $(TARGETS)
-	for i in $(TARGETS); do echo "Executing Application" "$$i"; $(SIMULATOR) -a "$$i"; done
+test: $(TARGETS)
+	python executeTests.py $(SIMULATOR) $(TARGETS)
