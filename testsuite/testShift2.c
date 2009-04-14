@@ -193,7 +193,7 @@ constant_shift(unsigned long long x, int i)
 #endif
 
     default:
-      abort ();
+      _exit (-3);
     }
   return x;
 }

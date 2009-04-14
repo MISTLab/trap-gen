@@ -2,5 +2,8 @@ TARGETS = deepCalls testAdd1 testChar1 testConv1 testConv2 testDiv1 testDiv2 tes
 
 all: $(TARGETS)
 
-$(TARGETS): $(@).c
-	$(GCC) -o $(@) $(CFLAGS) $(@).c
+$(TARGETS): $(addsuffix .c, $@)
+	$(CC) -o $@ $(CFLAGS) $(addsuffix .c, $@)
+
+clean:
+	rm $(TARGETS) -rf
