@@ -1,7 +1,5 @@
 #include <stdlib.h>
 
-#include "endianess.h"
-
 extern void _exit(int);
 
 int main(){

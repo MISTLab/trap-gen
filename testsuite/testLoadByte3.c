@@ -1,7 +1,5 @@
 #include <stdlib.h>
 
-#include "endianess.h"
-
 const unsigned int a = 0x12fe34dc;
 
 extern void _exit(int);
