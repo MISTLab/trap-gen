@@ -1,22 +1,17 @@
 extern void _exit(int);
 
-int
-f()
-{
+int f(){
   int j = 1;
   long i;
   i = 0x60000000L;
-  do
-    {
+  do{
       j <<= 1;
       i += 0x10000000L;
     } while (i < -0x60000000L);
   return j;
 }
 
-int
-main ()
-{
+int main (){
   if (f () != 2)
     _exit (-1);
   _exit (0);

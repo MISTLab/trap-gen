@@ -12,10 +12,10 @@ int main(){
         _exit(-2);
     }
     #else
-    if(((unsigned short *)&a)[1] != 0xdc34){
+    if(((unsigned short *)&a)[1] != 0x34dc){
         _exit(-1);
     }
-    if(((unsigned short *)&a)[0] != 0xfe12){
+    if(((unsigned short *)&a)[0] != 0x12fe){
         _exit(-2);
     }
     #endif
