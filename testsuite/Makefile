@@ -6,7 +6,7 @@ $(TARGETS): $(addsuffix .c, $@)
 	$(CC) -o $@ $(CFLAGS) $(addsuffix .c, $@)
 
 clean:
-	rm $(TARGETS) -rf
+	rm $(TARGETS) $(addsuffix .trace, $(TARGETS)) $(addsuffix .dmp, $(TARGETS)) -rf
 
 test: $(TARGETS)
 	python executeTests.py $(SIMULATOR) $(TARGETS)

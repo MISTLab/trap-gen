@@ -27,3 +27,4 @@ if __name__ == "__main__":
     print '\nFailed ' + str(len(failedBenchs)) + ' tests'
     for test, retVal in failedBenchs.items():
         print 'Test ' + test + ' failed with return value ' + str(retVal)
+    print '\n'

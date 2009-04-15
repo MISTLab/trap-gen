@@ -54,7 +54,7 @@ except ImportError:
 import ARMIsa
 
 # Lets now start building the processor
-processor = trap.Processor('ARM7TDMI', version = '0.1', systemc = True, instructionCache = True, fastFetch = True)
+processor = trap.Processor('ARM7TDMI', version = '0.1', systemc = False, instructionCache = True, fastFetch = True)
 processor.setLittleEndian() #little endian
 processor.setWordsize(4, 8) #4 bytes per word, 8 bits per byte
 processor.setISA(ARMIsa.isa) #lets set the instruction set
@@ -128,9 +128,11 @@ processor.setFetchRegister('PC', -4)
 
 # Lets now add details about the processor interconnection (i.e. memory ports,
 # interrupt ports, pins, etc.)
-processor.addTLMPort('instrMem', True)
-processor.addTLMPort('dataMem')
-#processor.setMemory('dataMem', 10*1024*1024)
+if processor.systemc:
+    processor.addTLMPort('instrMem', True)
+    processor.addTLMPort('dataMem')
+else:
+    processor.setMemory('dataMem', 10*1024*1024)
 # Now lets add the interrupt ports
 irq = trap.Interrupt('IRQ', priority = 0)
 irq.setOperation('CPSR[key_I] == 0', """
@@ -194,9 +196,9 @@ processor.setABI(abi)
 
 # Finally we can dump the processor on file
 #processor.write(folder = 'processor', models = ['funcLT'], dumpDecoderName = 'decoder.dot')
-#processor.write(folder = 'processor', models = ['funcLT'], trace = True)
+processor.write(folder = 'processor', models = ['funcLT'], trace = True)
 #processor.write(folder = 'processor', models = ['funcLT'])
 #processor.write(folder = 'processor', models = ['funcAT'], trace = True)
-processor.write(folder = 'processor', models = ['accAT', 'funcLT'])
+#processor.write(folder = 'processor', models = ['accAT', 'funcLT'])
 #processor.write(folder = 'processor', models = ['accAT'])
 #processor.write(folder = 'processor', models = ['accAT','funcLT'], trace = True)

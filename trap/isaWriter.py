@@ -537,10 +537,12 @@ def getCPPInstrTest(self, processor, model, trace):
     memAliasInit = ''
     for alias in processor.memAlias:
         memAliasInit += ', ' + alias.alias
+
+    if (trace or (processor.memory and processor.memory[2])) and not processor.systemc:
+        archElemsDeclStr += 'unsigned int totalCycles;\n'
     if processor.memory:
         memDebugInit = ''
         if processor.memory[2]:
-            archElemsDeclStr += 'unsigned int totalCycles;\n'
             memDebugInit += ', totalCycles'
         if processor.memory[3]:
             memDebugInit += ', ' + processor.memory[3]
