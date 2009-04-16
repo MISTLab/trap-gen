@@ -55,8 +55,7 @@ class ExecLoader{
     unsigned char * programData;
     unsigned int progDim;
     unsigned int dataStart;
-    bool keepEndianess;
-    
+
     ///examines the bfd in order to find the sections containing data
     ///to be loaded; at the same time it fills the programData
     ///array
@@ -65,7 +64,7 @@ class ExecLoader{
     ///Initializes the loader of executable files by creating
     ///the corresponding bfd image of the executable file
     ///specified as parameter
-    ExecLoader(std::string fileName, bool keepEndianess = true);
+    ExecLoader(std::string fileName);
     ~ExecLoader();
     ///Returns the entry point of the loaded program
     unsigned int getProgStart();

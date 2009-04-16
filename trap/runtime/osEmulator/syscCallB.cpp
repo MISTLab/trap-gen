@@ -92,8 +92,12 @@ void OSEmulatorBase::correct_flags(int &val){
     val = flags;
 }
 
-void OSEmulatorBase::set_environ(std::string name,  std::string value){
+void OSEmulatorBase::set_environ(std::string name, std::string value){
     OSEmulatorBase::env[name] = value;
+}
+
+void OSEmulatorBase::set_sysconf(std::string name, int value){
+    OSEmulatorBase::sysconfmap[name] = value;
 }
 
 void OSEmulatorBase::set_program_args(std::vector<std::string> args){
@@ -105,4 +109,3 @@ std::map<std::string,  std::string> OSEmulatorBase::env;
 std::map<std::string, int> OSEmulatorBase::sysconfmap;
 std::vector<std::string> OSEmulatorBase::programArgs;
 unsigned int OSEmulatorBase::heapPointer = 0;
-

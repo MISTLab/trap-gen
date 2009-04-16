@@ -87,6 +87,7 @@ class OSEmulatorBase{
     public:
     static void correct_flags(int &val);
     static void set_environ(std::string name,  std::string value);
+    static void set_sysconf(std::string name,  int value);
     static void set_program_args(std::vector<std::string> args);
 
     static std::map<std::string,  std::string> env;

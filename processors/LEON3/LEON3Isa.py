@@ -241,7 +241,7 @@ lduh_imm_Instr.addVariable(('readValue', 'BIT<32>'))
 lduh_imm_Instr.addVariable(('notAligned', 'BIT<1>'))
 isa.addInstruction(lduh_imm_Instr)
 lduh_reg_Instr = trap.Instruction('LDUH_reg', True, frequency = 5)
-lduh_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 0, 0, 0, 1, 0]}, ('lduhr', '%rs1', '+r', '%rs2', ' r', '%rd'))
+lduh_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 0, 0, 0, 1, 0]}, ('lduh r', '%rs1', '+r', '%rs2', ' r', '%rd'))
 lduh_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
 lduh_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 lduh_reg_Instr.setCode(opCodeExec, 'execute')
@@ -576,11 +576,11 @@ isa.addInstruction(ldda_reg_Instr)
 # Store integer instructions
 opCodeRegsImm = cxx_writer.writer_code.Code("""
 address = rs1 + SignExtend(simm13, 13);
-toWrite = (unsigned char)((rd >> ((address & 0x00000003) << 3)) & 0x000000FF);
+toWrite = (unsigned char)(rd & 0x000000FF);
 """)
 opCodeRegsRegs = cxx_writer.writer_code.Code("""
 address = rs1 + rs2;
-toWrite = (unsigned char)((rd >> ((address & 0x00000003) << 3)) & 0x000000FF);
+toWrite = (unsigned char)(rd & 0x000000FF);
 """)
 opCodeMem = cxx_writer.writer_code.Code("""
 dataMem.write_byte(address, toWrite);
@@ -605,11 +605,11 @@ stb_reg_Instr.addVariable(('toWrite', 'BIT<8>'))
 isa.addInstruction(stb_reg_Instr)
 opCodeRegsImm = cxx_writer.writer_code.Code("""
 address = rs1 + SignExtend(simm13, 13);
-toWrite = (unsigned short int)((rd >> ((address & 0x00000002) << 3)) & 0x0000FFFF);
+toWrite = (unsigned short int)(rd & 0x0000FFFF);
 """)
 opCodeRegsRegs = cxx_writer.writer_code.Code("""
 address = rs1 + rs2;
-toWrite = (unsigned short int)((rd >> ((address & 0x00000002) << 3)) & 0x0000FFFF);
+toWrite = (unsigned short int)(rd & 0x0000FFFF);
 """)
 opCodeMem = cxx_writer.writer_code.Code("""
 if(!notAligned){
@@ -758,7 +758,7 @@ std_reg_Instr.addVariable(('toWrite', 'BIT<64>'))
 isa.addInstruction(std_reg_Instr)
 opCodeRegsRegs = cxx_writer.writer_code.Code("""
 address = rs1 + rs2;
-toWrite = (unsigned char)((rd >> ((address & 0x00000003) << 3)) & 0x000000FF);
+toWrite = (unsigned char)(rd & 0x000000FF);
 supervisor = PSR[key_S];
 """)
 opCodeMem = cxx_writer.writer_code.Code("""
@@ -793,7 +793,7 @@ stba_reg_Instr.addVariable(('toWrite', 'BIT<8>'))
 isa.addInstruction(stba_reg_Instr)
 opCodeRegsRegs = cxx_writer.writer_code.Code("""
 address = rs1 + rs2;
-toWrite = (unsigned short int)((rd >> ((address & 0x00000002) << 3)) & 0x0000FFFF);
+toWrite = (unsigned short int)(rd & 0x0000FFFF);
 supervisor = PSR[key_S];
 """)
 opCodeMem = cxx_writer.writer_code.Code("""
@@ -2345,7 +2345,7 @@ switch(cond){
                     ((cond == 0xa) && (PSRbp[key_ICC_z] == 0) && (PSRbp[key_ICC_n] == PSRbp[key_ICC_v])) ||
                     ((cond == 0x2) && ((PSRbp[key_ICC_z] != 0) || (PSRbp[key_ICC_n] != PSRbp[key_ICC_v]))) ||
                     ((cond == 0xb) && PSRbp[key_ICC_n] == PSRbp[key_ICC_v]) ||
-                    ((cond == 0x3) && PSR[key_ICC_n] != PSRbp[key_ICC_v]) ||
+                    ((cond == 0x3) && PSRbp[key_ICC_n] != PSRbp[key_ICC_v]) ||
                     ((cond == 0xc) && (PSRbp[key_ICC_c] + PSRbp[key_ICC_z]) == 0) ||
                     ((cond == 0x4) && (PSRbp[key_ICC_c] + PSRbp[key_ICC_z]) > 0) ||
                     ((cond == 0xd) && PSRbp[key_ICC_c] == 0) ||
@@ -2564,7 +2564,7 @@ raiseException = (cond == 0x8) ||
             ((cond == 0xa) && (PSRbp[key_ICC_z] == 0) && (PSRbp[key_ICC_n] == PSRbp[key_ICC_v])) ||
             ((cond == 0x2) && ((PSRbp[key_ICC_z] != 0) || (PSRbp[key_ICC_n] != PSRbp[key_ICC_v]))) ||
             ((cond == 0xb) && PSRbp[key_ICC_n] == PSRbp[key_ICC_v]) ||
-            ((cond == 0x3) && PSR[key_ICC_n] != PSRbp[key_ICC_v]) ||
+            ((cond == 0x3) && PSRbp[key_ICC_n] != PSRbp[key_ICC_v]) ||
             ((cond == 0xc) && (PSRbp[key_ICC_c] + PSRbp[key_ICC_z]) == 0) ||
             ((cond == 0x4) && (PSRbp[key_ICC_c] + PSRbp[key_ICC_z]) > 0) ||
             ((cond == 0xd) && PSRbp[key_ICC_c] == 0) ||
@@ -2832,7 +2832,7 @@ raiseException = (PSR[key_S] == 0);
 """)
 opCodeWb = cxx_writer.writer_code.Code("""
 if(!raiseException){
-    WIM = result;
+    WIM = result & ((unsigned int)0xFFFFFFFF >> (32 - NUM_REG_WIN));
 }
 """)
 opCodeTrap = cxx_writer.writer_code.Code("""

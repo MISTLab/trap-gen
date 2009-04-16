@@ -962,6 +962,19 @@ def getCPPMemoryIf(self, model):
     writeDecl = cxx_writer.writer_code.Method('write_byte_dbg', writeDeclDBGBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], virtual = True, noException = True)
     memoryIfElements.append(writeDecl)
 
+    for curType in [archWordType, archHWordType]:
+        swapEndianessCode = str(archByteType) + """ helperByte = 0;
+        for(int i = 0; i < sizeof(""" + str(curType) + """)/2; i++){
+            helperByte = ((""" + str(archByteType) + """ *)&datum)[i];
+            ((""" + str(archByteType) + """ *)&datum)[i] = ((""" + str(archByteType) + """ *)&datum)[sizeof(""" + str(curType) + """) -1 -i];
+            ((""" + str(archByteType) + """ *)&datum)[sizeof(""" + str(curType) + """) -1 -i] = helperByte;
+        }
+        """
+        swapEndianessBody = cxx_writer.writer_code.Code(swapEndianessCode)
+        datumParam = cxx_writer.writer_code.Parameter('datum', curType.makeRef())
+        swapEndianessDecl = cxx_writer.writer_code.Method('swapEndianess', swapEndianessBody, cxx_writer.writer_code.voidType, 'pu', [datumParam], inline = True, noException = True, const = True)
+        memoryIfElements.append(swapEndianessDecl)
+
     lockDecl = cxx_writer.writer_code.Method('lock', emptyBody, cxx_writer.writer_code.voidType, 'pu', pure = True)
     memoryIfElements.append(lockDecl)
     unlockDecl = cxx_writer.writer_code.Method('unlock', emptyBody, cxx_writer.writer_code.voidType, 'pu', pure = True)
@@ -984,34 +997,47 @@ def getCPPMemoryIf(self, model):
         readMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\nreturn this->' + alias.alias + ';\n}\n'
         writeMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n this->' + alias.alias + ' = datum;\nreturn;\n}\n'
     checkAddressCode = 'if(address >= this->size){\nTHROW_ERROR("Address " << std::hex << std::showbase << address << " out of memory");\n}\n'
+    if self.isBigEndian:
+        swapEndianessCode = '#ifdef LITTLE_ENDIAN_BO\n'
+    else:
+        swapEndianessCode = '#ifdef BIG_ENDIAN_BO\n'
+    swapEndianessCode += 'this->swapEndianess(datum);\n#endif'
+    if self.isBigEndian:
+        swapDEndianessCode = '#ifdef LITTLE_ENDIAN_BO\n'
+    else:
+        swapDEndianessCode = '#ifdef BIG_ENDIAN_BO\n'
+    swapDEndianessCode += str(archWordType) + ' datum1 = (' + str(archWordType) + ')(datum);\nthis->swapEndianess(datum1);\n'
+    swapDEndianessCode += str(archWordType) + ' datum2 = (' + str(archWordType) + ')(datum >> ' + str(self.wordSize*self.byteSize) + ');\nthis->swapEndianess(datum2);\n'
+    swapDEndianessCode += 'datum = datum1 | (((' + str(archDWordType) + ')datum2) << ' + str(self.wordSize*self.byteSize) + ');\n#endif\n'
+
     if not self.memory or not self.memory[2]:
         memoryElements = []
         emptyBody = cxx_writer.writer_code.Code('')
         addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
-        readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + '\nreturn *(' + str(archDWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
+        readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + '\n' + str(archDWordType) + ' datum = *(' + str(archDWordType.makePointer()) + ')(this->memory + (unsigned long)address);\n' + swapDEndianessCode + '\nreturn datum;')
         readBody.addInclude('utils.hpp')
         readDecl = cxx_writer.writer_code.Method('read_dword', readBody, archDWordType, 'pu', [addressParam], const = len(self.tlmPorts) == 0, inline = True, noException = True)
         memoryElements.append(readDecl)
-        readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + 'return *(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
+        readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + '\n' + str(archWordType) + ' datum = *(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address);\n' + swapEndianessCode + '\nreturn datum;')
         readBody.addInclude('utils.hpp')
         readDecl = cxx_writer.writer_code.Method('read_word', readBody, archWordType, 'pu', [addressParam], const = len(self.tlmPorts) == 0, inline = True, noException = True)
         memoryElements.append(readDecl)
-        readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + 'return *(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
+        readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + '\n' + str(archHWordType) + ' datum = *(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address);\n' + swapEndianessCode + '\nreturn datum;')
         readDecl = cxx_writer.writer_code.Method('read_half', readBody, archHWordType, 'pu', [addressParam], const = len(self.tlmPorts) == 0, noException = True)
         memoryElements.append(readDecl)
         readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + 'return *(' + str(archByteType.makePointer()) + ')(this->memory + (unsigned long)address);')
         readDecl = cxx_writer.writer_code.Method('read_byte', readBody, archByteType, 'pu', [addressParam], const = len(self.tlmPorts) == 0, noException = True)
         memoryElements.append(readDecl)
         addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
-        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '*(' + str(archDWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
+        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '\n' + swapDEndianessCode + '\n*(' + str(archDWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
         datumParam = cxx_writer.writer_code.Parameter('datum', archDWordType)
         writeDecl = cxx_writer.writer_code.Method('write_dword', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], inline = True, noException = True)
         memoryElements.append(writeDecl)
-        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '*(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
+        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '\n' + swapEndianessCode + '\n*(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
         datumParam = cxx_writer.writer_code.Parameter('datum', archWordType)
         writeDecl = cxx_writer.writer_code.Method('write_word', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], inline = True, noException = True)
         memoryElements.append(writeDecl)
-        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '*(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
+        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '\n' + swapEndianessCode + '\n*(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
         datumParam = cxx_writer.writer_code.Parameter('datum', archHWordType)
         writeDecl = cxx_writer.writer_code.Method('write_half', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
         memoryElements.append(writeDecl)
@@ -1041,15 +1067,15 @@ def getCPPMemoryIf(self, model):
         memoryElements = []
         emptyBody = cxx_writer.writer_code.Code('')
         addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
-        readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + '\nreturn *(' + str(archDWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
+        readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + '\n' + str(archDWordType) + ' datum = *(' + str(archDWordType.makePointer()) + ')(this->memory + (unsigned long)address);\n' + swapDEndianessCode + '\nreturn datum;')
         readBody.addInclude('utils.hpp')
         readDecl = cxx_writer.writer_code.Method('read_dword', readBody, archDWordType, 'pu', [addressParam], const = len(self.tlmPorts) == 0, inline = True, noException = True)
         memoryElements.append(readDecl)
-        readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + 'return *(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
+        readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + '\n' + str(archWordType) + ' datum = *(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address);\n' + swapEndianessCode + '\nreturn datum;')
         readBody.addInclude('utils.hpp')
         readDecl = cxx_writer.writer_code.Method('read_word', readBody, archWordType, 'pu', [addressParam], const = len(self.tlmPorts) == 0, inline = True, noException = True)
         memoryElements.append(readDecl)
-        readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + 'return *(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address);')
+        readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + '\n' + str(archHWordType) + ' datum = *(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address);\n' + swapEndianessCode + '\nreturn datum;')
         readDecl = cxx_writer.writer_code.Method('read_half', readBody, archHWordType, 'pu', [addressParam], const = len(self.tlmPorts) == 0, noException = True)
         memoryElements.append(readDecl)
         readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + 'return *(' + str(archByteType.makePointer()) + ')(this->memory + (unsigned long)address);')
@@ -1069,7 +1095,7 @@ for(int i = 0; i < """ + str(self.wordSize*2) + """; i++){
     this->dumpFile.write((char *)&dumpInfo, sizeof(MemAccessType));
 }
 """
-        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '*(' + str(archDWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;' + dumpCode)
+        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '\n' + swapDEndianessCode + '\n*(' + str(archDWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;' + dumpCode)
         writeBody.addInclude('memAccessType.hpp')
         datumParam = cxx_writer.writer_code.Parameter('datum', archDWordType)
         writeDecl = cxx_writer.writer_code.Method('write_dword', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], inline = True, noException = True)
@@ -1087,7 +1113,7 @@ for(int i = 0; i < """ + str(self.wordSize) + """; i++){
     this->dumpFile.write((char *)&dumpInfo, sizeof(MemAccessType));
 }
 """
-        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '*(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;\n' + dumpCode)
+        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '\n' + swapEndianessCode + '\n*(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;\n' + dumpCode)
         datumParam = cxx_writer.writer_code.Parameter('datum', archWordType)
         writeDecl = cxx_writer.writer_code.Method('write_word', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], inline = True, noException = True)
         memoryElements.append(writeDecl)
@@ -1104,7 +1130,7 @@ for(int i = 0; i < """ + str(self.wordSize/2) + """; i++){
     this->dumpFile.write((char *)&dumpInfo, sizeof(MemAccessType));
 }
 """
-        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '*(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;\n' + dumpCode)
+        writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + '\n' + swapEndianessCode + '\n*(' + str(archHWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;\n' + dumpCode)
         writeBody.addInclude('memAccessType.hpp')
         datumParam = cxx_writer.writer_code.Parameter('datum', archHWordType)
         writeDecl = cxx_writer.writer_code.Method('write_half', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
@@ -2201,19 +2227,6 @@ def getCPPExternalPorts(self, model):
     tlmPortElements = []
     emptyBody = cxx_writer.writer_code.Code('')
 
-    for curType in [archDWordType, archWordType, archHWordType]:
-        swapEndianessCode = str(archByteType) + """ helperByte = 0;
-        for(int i = 0; i < sizeof(""" + str(curType) + """)/2; i++){
-            helperByte = ((""" + str(archByteType) + """ *)datum)[i];
-            ((""" + str(archByteType) + """ *)datum)[i] = ((""" + str(archByteType) + """ *)datum)[sizeof(""" + str(curType) + """) -1 -i];
-            ((""" + str(archByteType) + """ *)datum)[sizeof(""" + str(curType) + """) -1 -i] = helperByte;
-        }
-        """
-        swapEndianessBody = cxx_writer.writer_code.Code(swapEndianessCode)
-        datumParam = cxx_writer.writer_code.Parameter('datum', curType.makeRef())
-        swapEndianessDecl = cxx_writer.writer_code.Method('swapEndianess', swapEndianessBody, cxx_writer.writer_code.voidType, 'pu', [datumParam], inline = True, noException = True)
-        tlmPortElements.append(swapEndianessDecl)
-
     if model.endswith('AT'):
         # Some helper methods used only in the Approximate Timed coding style
         helperCode = """// TLM-2 backward non-blocking transport method
@@ -3297,6 +3310,9 @@ def getMainCode(self, model):
         code += """("frequency,f", boost::program_options::value<double>(), "processor clock frequency specified in MHz [Default 1MHz]")
         """
     code += """("application,a", boost::program_options::value<std::string>(), "application to be executed on the simulator")
+        ("arguments,r", boost::program_options::value<std::string>(), "application to be executed on the simulator")
+        ("environment,e", boost::program_options::value<std::string>(), "application to be executed on the simulator")
+        ("sysconf,s", boost::program_options::value<std::string>(), "application to be executed on the simulator")
     ;
 
     boost::program_options::variables_map vm;
@@ -3363,7 +3379,7 @@ def getMainCode(self, model):
         std::cerr << "ERROR: specified application " << vm["application"].as<std::string>() << " does not exist" << std::endl;
         return -1;
     }
-    ExecLoader loader(vm["application"].as<std::string>(), false);
+    ExecLoader loader(vm["application"].as<std::string>());
     //Lets copy the binary code into memory
     unsigned char * programData = loader.getProgData();
     for(unsigned int i = 0; i < loader.getProgDim(); i++){
@@ -3381,6 +3397,79 @@ def getMainCode(self, model):
         code += 'OSEmulator< ' + str(wordType) + ', 0 > osEmu(*(procInst.abiIf), ' + str(self.abi.emulOffset) + ');\n'
     code += """GDBStub< """ + str(wordType) + """ > gdbStub(*(procInst.abiIf));
     osEmu.initSysCalls(vm["application"].as<std::string>());
+    if(vm.count("arguments") > 0){
+        //Here we have to parse the command line program arguments; they are
+        //in the form option,option,option ...
+        std::vector<std::string> options;
+        options.push_back(vm["application"].as<std::string>());
+        std::string packedOpts = vm["arguments"].as<std::string>();
+        while(packedOpts.size() > 0){
+            std::size_t foundComma = packedOpts.find(',');
+            if(foundComma != std::string::npos){
+                options.push_back(packedOpts.substr(0, foundComma));
+                packedOpts = packedOpts.substr(foundComma + 1);
+            }
+            else{
+                options.push_back(packedOpts);
+                break;
+            }
+        }
+        OSEmulatorBase::set_program_args(options);
+    }
+    if(vm.count("environment") > 0){
+        //Here we have to parse the environment; they are
+        //in the form option=value,option=value .....
+        std::string packedEnv = vm["environment"].as<std::string>();
+        while(packedEnv.size() > 0){
+            std::size_t foundComma = packedEnv.find(',');
+            std::string curEnv;
+            if(foundComma != std::string::npos){
+                curEnv = packedEnv.substr(0, foundComma);
+                packedEnv = packedEnv.substr(foundComma + 1);
+            }
+            else{
+                curEnv = packedEnv;
+                packedEnv = "";
+            }
+            // Now I have to split the current environment
+            std::size_t equalPos = curEnv.find('=');
+            if(equalPos == std::string::npos){
+                std::cerr << "Error in the command line environmental options: = not found in option " << curEnv << std::endl;
+                return -1;
+            }
+            OSEmulatorBase::set_environ(curEnv.substr(0, equalPos), curEnv.substr(equalPos + 1));
+        }
+    }
+    if(vm.count("sysconf") > 0){
+        //Here we have to parse the environment; they are
+        //in the form option=value,option=value .....
+        std::string packedEnv = vm["sysconf"].as<std::string>();
+        while(packedEnv.size() > 0){
+            std::size_t foundComma = packedEnv.find(',');
+            std::string curEnv;
+            if(foundComma != std::string::npos){
+                curEnv = packedEnv.substr(0, foundComma);
+                packedEnv = packedEnv.substr(foundComma + 1);
+            }
+            else{
+                curEnv = packedEnv;
+                packedEnv = "";
+            }
+            // Now I have to split the current environment
+            std::size_t equalPos = curEnv.find('=');
+            if(equalPos == std::string::npos){
+                std::cerr << "Error in the command line sysconf options: = not found in option " << curEnv << std::endl;
+                return -1;
+            }
+            try{
+                OSEmulatorBase::set_sysconf(curEnv.substr(0, equalPos), boost::lexical_cast<int>(curEnv.substr(equalPos + 1)));
+            }
+            catch(...){
+                std::cerr << "Error in the command line sysconf options: error in option " << curEnv << std::endl;
+                return -1;
+            }
+        }
+    }
     procInst.toolManager.addTool(osEmu);
     if(vm.count("debugger") != 0){
         procInst.toolManager.addTool(gdbStub);
@@ -3428,6 +3517,8 @@ def getMainCode(self, model):
     mainCode.addInclude('boost/filesystem/fstream.hpp')
     mainCode.addInclude('boost/filesystem/convenience.hpp')
     mainCode.addInclude('boost/filesystem/path.hpp')
+    mainCode.addInclude('string')
+    mainCode.addInclude('vector')
     parameters = [cxx_writer.writer_code.Parameter('argc', cxx_writer.writer_code.intType), cxx_writer.writer_code.Parameter('argv', cxx_writer.writer_code.charPtrType.makePointer())]
     function = cxx_writer.writer_code.Function('sc_main', mainCode, cxx_writer.writer_code.intType, parameters)
     return function

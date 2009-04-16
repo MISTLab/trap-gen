@@ -20,7 +20,7 @@
 
 ///Given an array of chars (either in hex or decimal form) if converts it to the
 ///corresponding integer representation
-int MemAnalyzer::toIntNum(const std::string &numStr){
+unsigned int MemAnalyzer::toIntNum(const std::string &numStr){
     if(numStr.size() > 2 && numStr[0] == '0' && tolower(numStr[1]) == 'x'){
         int result;
         std::stringstream converter(numStr);
@@ -50,7 +50,8 @@ int MemAnalyzer::toIntNum(const std::string &numStr){
     return 0;
 }
 
-MemAnalyzer::MemAnalyzer(std::string fileName, unsigned int memSize) : memSize(memSize){
+MemAnalyzer::MemAnalyzer(std::string fileName, std::string memSize){
+    this->memSize = this->toIntNum(memSize);
     boost::filesystem::path memDumpPath = boost::filesystem::system_complete(boost::filesystem::path(fileName, boost::filesystem::native));
     if ( !boost::filesystem::exists( memDumpPath ) ){
         THROW_EXCEPTION("Path " << fileName << " specified for the memory dump does not exists");
@@ -72,7 +73,7 @@ MemAnalyzer::~MemAnalyzer(){
 void MemAnalyzer::createMemImage(boost::filesystem::path &outFile, double simTime){
     char * tempMemImage = new char[this->memSize];
     MemAccessType readVal;
-    int maxAddress = 0;
+    unsigned int maxAddress = 0;
 
     ::bzero(tempMemImage, this->memSize);
 
@@ -101,34 +102,36 @@ void MemAnalyzer::createMemImage(boost::filesystem::path &outFile, double simTim
 
 ///Returns the first memory access that modifies the address addr after
 ///procCycle
-MemAccessType MemAnalyzer::getFirstModAfter(unsigned int addr, double simTime){
+MemAccessType MemAnalyzer::getFirstModAfter(std::string addr, double simTime){
     MemAccessType readVal;
+    unsigned int address = this->toIntNum(addr);
 
     while(this->dumpFile.good()){
         this->dumpFile.read((char *)&readVal, sizeof(MemAccessType));
         if(this->dumpFile.good()){
-            if(readVal.simulationTime >= simTime && readVal.address == addr){
+            if(readVal.simulationTime >= simTime && readVal.address == address){
                 this->dumpFile.seekg(std::ifstream::beg);
                 return readVal;
             }
         }
     }
 
-    THROW_EXCEPTION("No modifications performed to address " << std::hex << std::showbase << addr);
+    THROW_EXCEPTION("No modifications performed to address " << std::hex << std::showbase << address);
 
     return readVal;
 }
 
 ///Returns the last memory access that modified addr
-MemAccessType MemAnalyzer::getLastMod(unsigned int addr){
+MemAccessType MemAnalyzer::getLastMod(std::string addr){
     MemAccessType readVal;
     MemAccessType foundVal;
     bool found = false;
+    unsigned int address = this->toIntNum(addr);
 
     while(this->dumpFile.good()){
         this->dumpFile.read((char *)&readVal, sizeof(MemAccessType));
         if(this->dumpFile.good()){
-            if(readVal.address == addr){
+            if(readVal.address == address){
                 foundVal = readVal;
                 found = true;
             }
@@ -136,21 +139,22 @@ MemAccessType MemAnalyzer::getLastMod(unsigned int addr){
     }
 
     if(!found)
-        THROW_EXCEPTION("No modifications performed to address " << std::hex << std::showbase << addr);
+        THROW_EXCEPTION("No modifications performed to address " << std::hex << std::showbase << address);
 
     this->dumpFile.seekg(std::ifstream::beg);
     return foundVal;
 }
 
 ///Prints all the modifications done to address addr
-void MemAnalyzer::getAllModifications(unsigned int addr, boost::filesystem::path &outFile, double initSimTime, double endSimTime){
+void MemAnalyzer::getAllModifications(std::string addr, boost::filesystem::path &outFile, double initSimTime, double endSimTime){
     MemAccessType readVal;
+    unsigned int address = this->toIntNum(addr);
     std::ofstream memImageFile(outFile.native_file_string().c_str());
 
     while(this->dumpFile.good()){
         this->dumpFile.read((char *)&readVal, sizeof(MemAccessType));
         if(this->dumpFile.good()){
-            if(readVal.address == addr && readVal.simulationTime >= initSimTime && (endSimTime < 0 || readVal.simulationTime <= endSimTime)){
+            if(readVal.address == address && readVal.simulationTime >= initSimTime && (endSimTime < 0 || readVal.simulationTime <= endSimTime)){
                 memImageFile << "MEM[" << std::hex << std::showbase << readVal.address << "] = " << readVal.val << " time " << std::dec << readVal.simulationTime << " program counter " << std::hex << std::showbase << readVal.programCounter << std::endl;
             }
         }

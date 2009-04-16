@@ -143,6 +143,7 @@ SECTIONS
   }
   .data1          : { *(.data1) }
   _edata = .; PROVIDE (edata = .);
+  . = ALIGN(8);
   __bss_start = .;
   .bss            :
   {

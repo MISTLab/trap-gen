@@ -4,5 +4,5 @@ tsim-leon -hwbp -logfile +tsimOutLog -nfp -nouart -ram 8192
 
 Using the BCC compiler, the compiltion options are
 -msoft-float -mv8
-in order to use soft floating point the SPARC multiplication and division instructions
+in order to use soft floating point and the SPARC multiplication and division instructions
 

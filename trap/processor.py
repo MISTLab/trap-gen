@@ -537,7 +537,7 @@ class Processor:
         wbStage = False
         checkHazardStage = False
         for pipeStage in self.pipes:
-            if pipeStage.wb != None:
+            if pipeStage.wb:
                 wbStage = True
             if pipeStage.checkHazard:
                 checkHazardStage = True
@@ -548,6 +548,8 @@ class Processor:
                 raise Exception('Pipeline stage ' + stage + ' declared for method ' + method.name + ' does not exist')
 
     def checkMemRegisters(self):
+        if not self.fetchReg:
+            raise Exception('Please specify the register containing the address of the instructions to be fetched (usually the PC) using the setFetchRegister method')
         for memAliasReg in self.memAlias:
             index = extractRegInterval(memAliasReg.alias)
             if index:
@@ -751,6 +753,7 @@ class Processor:
         self.isa.computeCoding()
         self.isa.checkCoding()
         self.checkAliases()
+        self.checkMemRegisters()
         self.checkPipeStages()
         if self.abi:
             self.checkABI()
