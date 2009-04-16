@@ -22,7 +22,53 @@
 SYM(_start):
     .globl SYM(start)
 SYM(start):
-       /* see if the stack is already setup. if not, then default
+        /* Initialization of all the global registers to 0 a part from PSR and WIM
+        */
+        set     __PSR_INIT,%g1
+        wr      %g1, %g0, %psr
+        mov     %g0, %tbr
+        mov     %g0, %wim;
+        mov     %g0, %y
+
+        flush
+
+        clr %g1
+        clr %g2
+        clr %g3
+        clr %g4
+        clr %g5
+        clr %g6
+        /* Initialization of all the registers of the registers windows and,
+         * finally, initialization of the WIM register itself
+        */
+        mov %g5, %g2
+wl0:
+        clr %i0
+        clr %i1
+        clr %i2
+        clr %i3
+        clr %i4
+        clr %i5
+        clr %i6
+        clr %i7
+        clr %l0
+        clr %l1
+        clr %l2
+        clr %l3
+        clr %l4
+        clr %l5
+        clr %l6
+        clr %l7
+        save
+        subcc   %g2, 1, %g2
+        bne wl0
+        nop
+
+        wr  %g0, __PSR_INIT, %psr
+        set __WIM_INIT, %g3
+        mov %g3, %wim
+
+        /* see if the stack is already setup. if not, then default
         *  to the __stack symbol
         */
         cmp     %g0,%sp

@@ -1244,14 +1244,14 @@ writeASR_imm_Instr.addTest({'rs1': 1, 'simm13': 5, 'rd': 18}, {'REGS[1]': 5, 'AS
 writeASR_imm_Instr.addTest({'rs1': 1, 'simm13': 3, 'rd': 18}, {'REGS[1]': 5, 'ASR[18]': 0xdd, 'ASR18bp': 0xcc}, {'ASR[18]': 6, 'ASR18bp': 6})
 writeASR_imm_Instr.addTest({'rs1': 1, 'simm13': 0x01000, 'rd': 18}, {'REGS[1]': 5, 'ASR[18]': 0xdd, 'ASR18bp': 0xcc}, {'ASR[18]': 0xFFFFF005, 'ASR18bp': 0xFFFFF005})
 
-writePsr_reg_Instr.addTest({'rs1': 1, 'rs2': 2}, {'REGS[1]': 5, 'REGS[2]': 5, 'PSR': 0xff, 'PSRbp': 0xff}, {'PSR': 0, 'PSRbp': 0})
-writePsr_reg_Instr.addTest({'rs1': 1, 'rs2': 2}, {'REGS[1]': 0x1000, 'REGS[2]': 0x100, 'PSR': 0xff, 'PSRbp': 0xff}, {'PSR': 0x1100, 'PSRbp': 0x1100})
+writePsr_reg_Instr.addTest({'rs1': 1, 'rs2': 2}, {'REGS[1]': 5, 'REGS[2]': 5, 'PSR': 0xff, 'PSRbp': 0xff}, {'PSR': 0xF3000000, 'PSRbp': 0xF3000000})
+writePsr_reg_Instr.addTest({'rs1': 1, 'rs2': 2}, {'REGS[1]': 0x5000, 'REGS[2]': 0x100, 'PSR': 0xff, 'PSRbp': 0xff}, {'PSR': 0xF3004100, 'PSRbp': 0xF3004100})
 writePsr_reg_Instr.addTest({'rs1': 1, 'rs2': 2}, {'REGS[1]': 0x04, 'REGS[2]': 0x10, 'PSR': 0xa1, 'PSRbp': 0x81, 'TBR': 0x0}, {'TBR': 0x20, 'PC': 0x24, 'NPC': 0x24})
 writePsr_reg_Instr.addTest({'rs1': 1, 'rs2': 2}, {'REGS[1]': 0, 'REGS[2]': 5, 'PSR': 0x21, 'PSRbp': 0x81, 'TBR': 0x0}, {'TBR': 0x30, 'PC': 0x34, 'NPC': 0x34})
 writePsr_reg_Instr.addTest({'rs1': 1, 'rs2': 2}, {'REGS[1]': 5, 'REGS[2]': 5, 'PSR': 0x21, 'PSRbp': 0x81, 'TBR': 0x0}, {'TBR': 0x30, 'PC': 0x34, 'NPC': 0x34})
 
-writePsr_imm_Instr.addTest({'rs1': 1, 'simm13': 5}, {'REGS[1]': 5, 'PSR': 0xff, 'PSRbp': 0xff}, {'PSR': 0, 'PSRbp': 0})
-writePsr_imm_Instr.addTest({'rs1': 1, 'simm13': 0x020}, {'REGS[1]': 0x1000, 'PSR': 0xff, 'PSRbp': 0xff}, {'PSR': 0x1020, 'PSRbp': 0x1020})
+writePsr_imm_Instr.addTest({'rs1': 1, 'simm13': 5}, {'REGS[1]': 5, 'PSR': 0xff, 'PSRbp': 0xff}, {'PSR': 0xF3000000, 'PSRbp': 0xF3000000})
+writePsr_imm_Instr.addTest({'rs1': 1, 'simm13': 0x020}, {'REGS[1]': 0x5000, 'PSR': 0xff, 'PSRbp': 0xff}, {'PSR': 0xF3004020, 'PSRbp': 0xF3004020})
 writePsr_imm_Instr.addTest({'rs1': 1, 'simm13': 0x10}, {'REGS[1]': 0x04, 'PSR': 0xa1, 'PSRbp': 0x81, 'TBR': 0x0}, {'TBR': 0x20, 'PC': 0x24, 'NPC': 0x24})
 writePsr_imm_Instr.addTest({'rs1': 1, 'simm13': 5}, {'REGS[1]': 0, 'PSR': 0x21, 'PSRbp': 0x81, 'TBR': 0x0}, {'TBR': 0x30, 'PC': 0x34, 'NPC': 0x34})
 writePsr_imm_Instr.addTest({'rs1': 1, 'simm13': 5}, {'REGS[1]': 5, 'PSR': 0x21, 'PSRbp': 0x81, 'TBR': 0x0}, {'TBR': 0x30, 'PC': 0x34, 'NPC': 0x34})

@@ -92,7 +92,7 @@ wimBitMask = {}
 for i in range(0, 32):
     wimBitMask['WIM_' + str(i)] = (i, i)
 wimReg = trap.Register('WIM', 32, wimBitMask)
-wimReg.setDefaultValue(0x00000002)
+wimReg.setDefaultValue(0)
 wimReg.setDelay(3)
 processor.addRegister(wimReg)
 # Trap Base Register

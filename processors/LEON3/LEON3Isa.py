@@ -2773,12 +2773,16 @@ isa.addInstruction(writeASR_imm_Instr)
 # ############################TODO: With respect to exceptions, the program counter appears to be written immediately:
 # this means that exceptions has to see the new value of the program counter ####################################
 opCodeXorR = cxx_writer.writer_code.Code("""
-result = rs1 ^ rs2;
+// Note how we filter writes to EF and EC fields since we do not
+// have neither a co-processor nor the FPU
+result = ((rs1 ^ rs2) & 0x00FFCFFF) | 0xF3000000;
 supervisorException = (PSR[key_S] == 0);
 illegalCWP = (result & 0x0000001f) >= NUM_REG_WIN;
 """)
 opCodeXorI = cxx_writer.writer_code.Code("""
-result = rs1 ^ SignExtend(simm13, 13);
+// Note how we filter writes to EF and EC fields since we do not
+// have neither a co-processor nor the FPU
+result = ((rs1 ^ SignExtend(simm13, 13)) & 0x00FFCFFF) | 0xF3000000;
 supervisorException = (PSR[key_S] == 0);
 illegalCWP = (result & 0x0000001f) >= NUM_REG_WIN;
 """)
