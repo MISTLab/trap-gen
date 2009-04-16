@@ -41,7 +41,7 @@ SYM(start):
         /* Initialization of all the registers of the registers windows and,
          * finally, initialization of the WIM register itself
         */
-        mov %g5, %g2
+        set __WINSIZE, %g2
 wl0:
         clr %i0
         clr %i1
