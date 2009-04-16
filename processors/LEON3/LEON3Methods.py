@@ -106,8 +106,7 @@ if(PSR[key_ET] == 0){
     if(exceptionId < IRQ_LEV_15){
         // I print a core dump and then I signal an error: an exception happened while
         // exceptions were disabled in the processor core
-        printTrace();
-        THROW_EXCEPTION("Exception " << exceptionId << " happened while the PSR[ET] = 0");
+        THROW_EXCEPTION("Exception " << exceptionId << " happened while the PSR[ET] = 0; PC " << PC << " Instruction " << getMnemonic());
     }
 }
 else{
