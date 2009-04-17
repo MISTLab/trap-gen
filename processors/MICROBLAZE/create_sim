@@ -1,0 +1,53 @@
+#!/bin/bash
+
+#The purpouse of this script is the automation of the simulator creation.
+#If all previous steps end correctly, the script runs the tests.
+
+SYSTEMC_PATH=/usr/lib/systemc
+TLM_INCLUDE_PATH=/usr/lib/TLM/include
+COUNT=1
+TOTAL=4
+
+echo "WARNING: You have to run this script from the MICROBLAZE directory."
+sleep 2
+
+if [ -d processor ]
+then
+	rm -r processor
+	echo "I've deleted old processor dir."
+	sleep 2
+fi
+
+	
+clear && echo "step $COUNT/$TOTAL: python MICROBLAZEArch.py"
+sleep 2
+python MICROBLAZEArch.py
+COUNT=$((COUNT+1))
+echo "COMPLETED!"
+sleep 1
+
+cd processor
+
+clear && echo "step $COUNT/$TOTAL: processor/waf configure --with-systemc=$SYSTEMC_PATH --with-tlm=$TLM_INCLUDE_PATH"
+sleep 2
+waf configure --with-systemc=$SYSTEMC_PATH --with-tlm=$TLM_INCLUDE_PATH
+COUNT=$((COUNT+1))
+echo "COMPLETED!"
+sleep 1
+
+clear && echo "step $COUNT/$TOTAL: processor/waf"
+sleep 2
+waf
+COUNT=$((COUNT+1))
+echo "COMPLETED!"
+sleep 1
+
+clear && echo "step $COUNT/$TOTAL: tests. In God we trust :)"
+sleep 2
+_build_/default/funcLT/tests/tests
+sleep 1
+
+echo "If all steps are completed without errors, you should feel extremely satisfied. :)"
+
+
+
