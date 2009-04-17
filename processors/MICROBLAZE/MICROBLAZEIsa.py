@@ -48,15 +48,9 @@ isa = trap.ISA()
 
 # Now I add to the ISA all the helper methods and operations which will be
 # called from the instructions
-isa.addMethod(restoreSPSR_method)
-isa.addMethod(updateAlias_method)
-isa.addMethod(AShiftRight_method)
-isa.addMethod(RotateRight_method)
-isa.addMethod(LSRegShift_method)
+
 isa.addMethod(SignExtend_method)
-isa.addMethod(UpdatePSRBitM_method)
-isa.addMethod(UpdatePSRAdd_method)
-isa.addMethod(UpdatePSRSub_method)
+
 
 #-------------------------------------------------------------------------------------
 # Let's now procede to set the behavior of the instructions
@@ -102,7 +96,7 @@ isa.addMethod(UpdatePSRSub_method)
 # ADD, second version
 opCode = cxx_writer.writer_code.Code("""
 result = (int)rb + (int)ra;
-MSR[key_C] = result >> 32;  #get the CarryOut
+MSR[key_C] = result >> 32;  /* get the CarryOut */
 rd = (unsigned int)result;
 """)
 add_Instr = trap.Instruction('ADD', True) #?? what does 'true' mean?
@@ -110,13 +104,13 @@ add_Instr.setMachineCode(oper_reg, {'opcode0': [0,0,0,0,0,0], 'opcode1': [0,0,0,
 add_Instr.setCode(opCode,'execute')
 add_Instr.addBehavior(IncrementPC, 'execute')
 add_Instr.addVariable(('result', 'BIT<64>'))
-add_Instr.addTest({'rd': 5, 'ra': 3, 'rb': 2}, {'GPR[3]': 4, 'GPR[2]': 6, 'GPR[5]': 0xfffff, 'PC':0x0}, {'GPR[5]': 10, 'PC':0x8})
+add_Instr.addTest({'rd': 5, 'ra': 3, 'rb': 2}, {'GPR[3]': 4, 'GPR[2]': 6, 'GPR[5]': 0xfffff, 'PC':0x0}, {'GPR[5]': 10, 'PC':0x4})
 isa.addInstruction(add_Instr)
 
 # ADDC
 opCode = cxx_writer.writer_code.Code("""
 result = (int)rb + (int)ra + (unsigned int)MSR[key_C];
-MSR[key_C] = result >> 32; #get the CarryOut
+MSR[key_C] = result >> 32; /* get the CarryOut */
 rd = (unsigned int)result;
 """)
 addc_Instr = trap.Instruction('ADDC', True)

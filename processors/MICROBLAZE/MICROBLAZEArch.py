@@ -131,6 +131,19 @@ processor.addRegister(btr)
 executeStage = trap.PipeStage('execute')
 processor.addPipeStage(executeStage)
 
+# Here we declare a memory for the MB (with size = 10MB)
+processor.setMemory('dataMem', 10*1024*1024)
+
+# The offset is '0', because we have a pipeline with a single stage.
+# (I'm not sure about this)
+processor.setFetchRegister('PC', 0)
+
+# --->>>> WARNING <<<<---
+# We are cheating! (temporarily, of course :D )
+# The ABI is defined COMPLETELY RANDOM!
+abi = trap.ABI('GPR[0]', 'GPR[0-3]', 'PC', 'EAR', 'FSR', 'BTR')
+abi.addMemory('dataMem')
+processor.setABI(abi)
 
 # Finally we can dump the processor on file
 #processor.write(folder = 'processor', models = ['funcLT'], dumpDecoderName = 'decoder.dot')
