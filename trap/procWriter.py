@@ -1209,7 +1209,8 @@ def getCPPProc(self, model, trace):
     from isa import resolveBitType
     fetchWordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>')
     includes = fetchWordType.getIncludes()
-    interfaceType = cxx_writer.writer_code.Type(self.name + '_ABIIf', 'interface.hpp')
+    if self.abi:
+        interfaceType = cxx_writer.writer_code.Type(self.name + '_ABIIf', 'interface.hpp')
     ToolsManagerType = cxx_writer.writer_code.TemplateType('ToolsManager', [fetchWordType], 'ToolsIf.hpp')
     processorElements = []
     codeString = ''
@@ -1505,8 +1506,9 @@ def getCPPProc(self, model, trace):
     if not model.startswith('acc'):
         decoderAttribute = cxx_writer.writer_code.Attribute('decoder', cxx_writer.writer_code.Type('Decoder', 'decoder.hpp'), 'pri')
         processorElements.append(decoderAttribute)
-    interfaceAttribute = cxx_writer.writer_code.Attribute('abiIf', interfaceType.makePointer(), 'pu')
-    processorElements.append(interfaceAttribute)
+    if self.abi:
+        interfaceAttribute = cxx_writer.writer_code.Attribute('abiIf', interfaceType.makePointer(), 'pu')
+        processorElements.append(interfaceAttribute)
     toolManagerAttribute = cxx_writer.writer_code.Attribute('toolManager', ToolsManagerType, 'pu')
     processorElements.append(toolManagerAttribute)
 
@@ -1515,7 +1517,8 @@ def getCPPProc(self, model, trace):
     bodyDestructor = ''
     aliasInit = {}
     bodyAliasInit = {}
-    abiIfInit = ''
+    if self.abi:
+        abiIfInit = ''
 
     if model.endswith('LT') and len(self.tlmPorts) > 0 and not self.externalClock:
         quantumKeeperType = cxx_writer.writer_code.Type('tlm_utils::tlm_quantumkeeper', 'tlm_utils/tlm_quantumkeeper.h')
@@ -1534,10 +1537,11 @@ def getCPPProc(self, model, trace):
     for reg in self.regs:
         attribute = cxx_writer.writer_code.Attribute(reg.name, resourceType[reg.name], 'pu')
         initElements.append(reg.name + '(\"' + reg.name + '\")')
-        abiIfInit += 'this->' + reg.name
-        if model.startswith('acc'):
-            abiIfInit += '_' + checkToolPipeStage.name
-        abiIfInit += ', '
+        if self.abi:
+            abiIfInit += 'this->' + reg.name
+            if model.startswith('acc'):
+                abiIfInit += '_' + checkToolPipeStage.name
+            abiIfInit += ', '
         processorElements.append(attribute)
         if model.startswith('acc'):
             for pipeStage in self.pipes:
@@ -1568,10 +1572,11 @@ def getCPPProc(self, model, trace):
                 for pipeStage in self.pipes:
                     bodyInits += 'this->' + regB.name + '_' + pipeStage.name + ' = new ' + str(resourceType[regB.name].makeNormal()) + '[' + str(regB.numRegs) + '];\n'
                     bodyDestructor += 'delete [] this->' + regB.name + '_' + pipeStage.name + ';\n'
-        abiIfInit += 'this->' + regB.name
-        if model.startswith('acc'):
-            abiIfInit += '_' + checkToolPipeStage.name
-        abiIfInit += ', '
+        if self.abi:
+            abiIfInit += 'this->' + regB.name
+            if model.startswith('acc'):
+                abiIfInit += '_' + checkToolPipeStage.name
+            abiIfInit += ', '
         processorElements.append(attribute)
         if model.startswith('acc'):
             for pipeStage in self.pipes:
@@ -1617,10 +1622,11 @@ def getCPPProc(self, model, trace):
                 for pipeStage in self.pipes:
                     bodyAliasInit[alias.name] += 'this->' + alias.name + '_' + pipeStage.name + '.updateAlias(this->' + alias.initAlias + '_' + pipeStage.name
                     bodyAliasInit[alias.name] += ');\n'
-        abiIfInit += 'this->' + alias.name
-        if model.startswith('acc'):
-            abiIfInit += '_' + checkToolPipeStage.name
-        abiIfInit += ', '
+        if self.abi:
+            abiIfInit += 'this->' + alias.name
+            if model.startswith('acc'):
+                abiIfInit += '_' + checkToolPipeStage.name
+            abiIfInit += ', '
         processorElements.append(attribute)
         if model.startswith('acc'):
             for pipeStage in self.pipes:
@@ -1683,16 +1689,18 @@ def getCPPProc(self, model, trace):
                             bodyAliasInit[aliasB.name] += ');\n'
                             curIndex += 1
 
-        abiIfInit += 'this->' + aliasB.name
-        if model.startswith('acc'):
-            abiIfInit += '_' + checkToolPipeStage.name
-        abiIfInit += ', '
+        if self.abi:
+            abiIfInit += 'this->' + aliasB.name
+            if model.startswith('acc'):
+                abiIfInit += '_' + checkToolPipeStage.name
+            abiIfInit += ', '
         processorElements.append(attribute)
         if model.startswith('acc'):
             for pipeStage in self.pipes:
                 attribute = cxx_writer.writer_code.Attribute(aliasB.name + '_' + pipeStage.name, resourceType[aliasB.name].makePointer(), 'pu')
                 processorElements.append(attribute)
-    abiIfInit = abiIfInit[:-2]
+    if self.abi:
+        abiIfInit = abiIfInit[:-2]
     # the initialization of the aliases must be chained (we should
     # create an initialization graph since an alias might depend on another one ...)
     global aliasGraph
@@ -1766,7 +1774,7 @@ def getCPPProc(self, model, trace):
         if self.memory[2] and self.memory[3]:
             initMemCode += ', ' + self.memory[3]
         initMemCode += ')'
-        if self.memory[0] in self.abi.memories.keys():
+        if self.abi and self.memory[0] in self.abi.memories.keys():
             abiIfInit = 'this->' + self.memory[0] + ', ' + abiIfInit
         initElements.append(initMemCode)
         processorElements.append(attribute)
@@ -1781,7 +1789,7 @@ def getCPPProc(self, model, trace):
         for memAl in self.memAlias:
             initPortCode += ', ' + memAl.alias
         initPortCode += ')'
-        if tlmPortName in self.abi.memories.keys():
+        if self.abi and tlmPortName in self.abi.memories.keys():
             abiIfInit = 'this->' + tlmPortName + ', ' + abiIfInit
         initElements.append(initPortCode)
         processorElements.append(attribute)
@@ -1815,11 +1823,13 @@ def getCPPProc(self, model, trace):
     progLimitAttr = cxx_writer.writer_code.Attribute('PROGRAM_LIMIT', fetchWordType, 'pu')
     processorElements.append(progLimitAttr)
     bodyInits += 'this->PROGRAM_LIMIT = 0;\n'
-    abiIfInit = 'this->PROGRAM_LIMIT, ' + abiIfInit
+    if self.abi:
+        abiIfInit = 'this->PROGRAM_LIMIT, ' + abiIfInit
     progStarttAttr = cxx_writer.writer_code.Attribute('PROGRAM_START', fetchWordType, 'pu')
     processorElements.append(progStarttAttr)
     bodyInits += 'this->PROGRAM_START = 0;\n'
-    bodyInits += 'this->abiIf = new ' + str(interfaceType) + '(' + abiIfInit + ');\n'
+    if self.abi:
+        bodyInits += 'this->abiIf = new ' + str(interfaceType) + '(' + abiIfInit + ');\n'
 
     IntructionType = cxx_writer.writer_code.Type('Instruction', 'instructions.hpp')
     IntructionTypePtr = IntructionType.makePointer()
@@ -1969,10 +1979,9 @@ def getCPPProc(self, model, trace):
             delete cacheIter->second;
         }
         """
-    destrCode += """
-        delete this->abiIf;
-    }
-    """
+    if self.abi:
+        destrCode += 'delete this->abiIf;\n'
+    destrCode += '}\n'
     destrCode += bodyDestructor
     destructorBody = cxx_writer.writer_code.Code(destrCode)
     publicDestr = cxx_writer.writer_code.Destructor(destructorBody, 'pu')
@@ -1984,6 +1993,9 @@ def getCPPProc(self, model, trace):
 def getCPPIf(self, model):
     # creates the interface which is used by the tools
     # to access the processor core
+    if not self.abi:
+        return
+
     from isa import resolveBitType
     wordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>')
     includes = wordType.getIncludes()
@@ -3304,15 +3316,23 @@ def getMainCode(self, model):
     boost::program_options::options_description desc("Processor simulator for """ + self.name + """");
     desc.add_options()
         ("help,h", "produces the help message")
-        ("debugger,d", "activates the use of the software debugger")
     """
+    if self.abi:
+        code += """
+            ("debugger,d", "activates the use of the software debugger")
+        """
     if self.systemc or model.startswith('acc'):
         code += """("frequency,f", boost::program_options::value<double>(), "processor clock frequency specified in MHz [Default 1MHz]")
         """
     code += """("application,a", boost::program_options::value<std::string>(), "application to be executed on the simulator")
-        ("arguments,r", boost::program_options::value<std::string>(), "application to be executed on the simulator")
-        ("environment,e", boost::program_options::value<std::string>(), "application to be executed on the simulator")
-        ("sysconf,s", boost::program_options::value<std::string>(), "application to be executed on the simulator")
+            """
+    if self.abi:
+        code += """
+            ("arguments,r", boost::program_options::value<std::string>(), "command line arguments (if any) of the application being simulated")
+            ("environment,e", boost::program_options::value<std::string>(), "environmental variables (if any) which can be accesses by the application being simulated")
+            ("sysconf,s", boost::program_options::value<std::string>(), "configuration information (if any) which can be accesses by the application being simulated")
+        """
+    code += """
     ;
 
     boost::program_options::variables_map vm;
@@ -3389,92 +3409,97 @@ def getMainCode(self, model):
     procInst.ENTRY_POINT = loader.getProgStart();
     procInst.PROGRAM_LIMIT = loader.getProgDim() + loader.getDataStart();
     procInst.PROGRAM_START = loader.getDataStart();
-    //Now I initialize the tools (i.e. debugger, os emulator, ...)
     """
-    if model.startswith('acc'):
-        code += 'OSEmulatorCA< ' + str(wordType) + ', -' + str(execOffset*self.wordSize) + ' > osEmu(*(procInst.abiIf), Processor::NOPInstrInstance, ' + str(self.abi.emulOffset) + ');\n'
-    else:
-        code += 'OSEmulator< ' + str(wordType) + ', 0 > osEmu(*(procInst.abiIf), ' + str(self.abi.emulOffset) + ');\n'
-    code += """GDBStub< """ + str(wordType) + """ > gdbStub(*(procInst.abiIf));
-    osEmu.initSysCalls(vm["application"].as<std::string>());
-    if(vm.count("arguments") > 0){
-        //Here we have to parse the command line program arguments; they are
-        //in the form option,option,option ...
-        std::vector<std::string> options;
-        options.push_back(vm["application"].as<std::string>());
-        std::string packedOpts = vm["arguments"].as<std::string>();
-        while(packedOpts.size() > 0){
-            std::size_t foundComma = packedOpts.find(',');
-            if(foundComma != std::string::npos){
-                options.push_back(packedOpts.substr(0, foundComma));
-                packedOpts = packedOpts.substr(foundComma + 1);
+    if self.abi:
+        code += """
+        //Now I initialize the tools (i.e. debugger, os emulator, ...)
+        """
+        if model.startswith('acc'):
+            code += 'OSEmulatorCA< ' + str(wordType) + ', -' + str(execOffset*self.wordSize) + ' > osEmu(*(procInst.abiIf), Processor::NOPInstrInstance, ' + str(self.abi.emulOffset) + ');\n'
+        else:
+            code += 'OSEmulator< ' + str(wordType) + ', 0 > osEmu(*(procInst.abiIf), ' + str(self.abi.emulOffset) + ');\n'
+        code += """GDBStub< """ + str(wordType) + """ > gdbStub(*(procInst.abiIf));
+        osEmu.initSysCalls(vm["application"].as<std::string>());
+        if(vm.count("arguments") > 0){
+            //Here we have to parse the command line program arguments; they are
+            //in the form option,option,option ...
+            std::vector<std::string> options;
+            options.push_back(vm["application"].as<std::string>());
+            std::string packedOpts = vm["arguments"].as<std::string>();
+            while(packedOpts.size() > 0){
+                std::size_t foundComma = packedOpts.find(',');
+                if(foundComma != std::string::npos){
+                    options.push_back(packedOpts.substr(0, foundComma));
+                    packedOpts = packedOpts.substr(foundComma + 1);
+                }
+                else{
+                    options.push_back(packedOpts);
+                    break;
+                }
             }
-            else{
-                options.push_back(packedOpts);
-                break;
+            OSEmulatorBase::set_program_args(options);
+        }
+        if(vm.count("environment") > 0){
+            //Here we have to parse the environment; they are
+            //in the form option=value,option=value .....
+            std::string packedEnv = vm["environment"].as<std::string>();
+            while(packedEnv.size() > 0){
+                std::size_t foundComma = packedEnv.find(',');
+                std::string curEnv;
+                if(foundComma != std::string::npos){
+                    curEnv = packedEnv.substr(0, foundComma);
+                    packedEnv = packedEnv.substr(foundComma + 1);
+                }
+                else{
+                    curEnv = packedEnv;
+                    packedEnv = "";
+                }
+                // Now I have to split the current environment
+                std::size_t equalPos = curEnv.find('=');
+                if(equalPos == std::string::npos){
+                    std::cerr << "Error in the command line environmental options: = not found in option " << curEnv << std::endl;
+                    return -1;
+                }
+                OSEmulatorBase::set_environ(curEnv.substr(0, equalPos), curEnv.substr(equalPos + 1));
             }
         }
-        OSEmulatorBase::set_program_args(options);
-    }
-    if(vm.count("environment") > 0){
-        //Here we have to parse the environment; they are
-        //in the form option=value,option=value .....
-        std::string packedEnv = vm["environment"].as<std::string>();
-        while(packedEnv.size() > 0){
-            std::size_t foundComma = packedEnv.find(',');
-            std::string curEnv;
-            if(foundComma != std::string::npos){
-                curEnv = packedEnv.substr(0, foundComma);
-                packedEnv = packedEnv.substr(foundComma + 1);
-            }
-            else{
-                curEnv = packedEnv;
-                packedEnv = "";
-            }
-            // Now I have to split the current environment
-            std::size_t equalPos = curEnv.find('=');
-            if(equalPos == std::string::npos){
-                std::cerr << "Error in the command line environmental options: = not found in option " << curEnv << std::endl;
-                return -1;
-            }
-            OSEmulatorBase::set_environ(curEnv.substr(0, equalPos), curEnv.substr(equalPos + 1));
-        }
-    }
-    if(vm.count("sysconf") > 0){
-        //Here we have to parse the environment; they are
-        //in the form option=value,option=value .....
-        std::string packedEnv = vm["sysconf"].as<std::string>();
-        while(packedEnv.size() > 0){
-            std::size_t foundComma = packedEnv.find(',');
-            std::string curEnv;
-            if(foundComma != std::string::npos){
-                curEnv = packedEnv.substr(0, foundComma);
-                packedEnv = packedEnv.substr(foundComma + 1);
-            }
-            else{
-                curEnv = packedEnv;
-                packedEnv = "";
-            }
-            // Now I have to split the current environment
-            std::size_t equalPos = curEnv.find('=');
-            if(equalPos == std::string::npos){
-                std::cerr << "Error in the command line sysconf options: = not found in option " << curEnv << std::endl;
-                return -1;
-            }
-            try{
-                OSEmulatorBase::set_sysconf(curEnv.substr(0, equalPos), boost::lexical_cast<int>(curEnv.substr(equalPos + 1)));
-            }
-            catch(...){
-                std::cerr << "Error in the command line sysconf options: error in option " << curEnv << std::endl;
-                return -1;
+        if(vm.count("sysconf") > 0){
+            //Here we have to parse the environment; they are
+            //in the form option=value,option=value .....
+            std::string packedEnv = vm["sysconf"].as<std::string>();
+            while(packedEnv.size() > 0){
+                std::size_t foundComma = packedEnv.find(',');
+                std::string curEnv;
+                if(foundComma != std::string::npos){
+                    curEnv = packedEnv.substr(0, foundComma);
+                    packedEnv = packedEnv.substr(foundComma + 1);
+                }
+                else{
+                    curEnv = packedEnv;
+                    packedEnv = "";
+                }
+                // Now I have to split the current environment
+                std::size_t equalPos = curEnv.find('=');
+                if(equalPos == std::string::npos){
+                    std::cerr << "Error in the command line sysconf options: = not found in option " << curEnv << std::endl;
+                    return -1;
+                }
+                try{
+                    OSEmulatorBase::set_sysconf(curEnv.substr(0, equalPos), boost::lexical_cast<int>(curEnv.substr(equalPos + 1)));
+                }
+                catch(...){
+                    std::cerr << "Error in the command line sysconf options: error in option " << curEnv << std::endl;
+                    return -1;
+                }
             }
         }
-    }
-    procInst.toolManager.addTool(osEmu);
-    if(vm.count("debugger") != 0){
-        procInst.toolManager.addTool(gdbStub);
-        gdbStub.initialize();
-    }
+        procInst.toolManager.addTool(osEmu);
+        if(vm.count("debugger") != 0){
+            procInst.toolManager.addTool(gdbStub);
+            gdbStub.initialize();
+        }
+    """
+    code += """
     //Now we can start the execution
     boost::timer t;
     sc_start();
@@ -3506,11 +3531,12 @@ def getMainCode(self, model):
     mainCode.addInclude('utils.hpp')
     mainCode.addInclude('systemc.h')
     mainCode.addInclude('execLoader.hpp')
-    mainCode.addInclude('GDBStub.hpp')
-    if model.startswith('acc'):
-        mainCode.addInclude('osEmulatorCA.hpp')
-    else:
-        mainCode.addInclude('osEmulator.hpp')
+    if self.abi:
+        mainCode.addInclude('GDBStub.hpp')
+        if model.startswith('acc'):
+            mainCode.addInclude('osEmulatorCA.hpp')
+        else:
+            mainCode.addInclude('osEmulator.hpp')
     mainCode.addInclude('boost/program_options.hpp')
     mainCode.addInclude('boost/timer.hpp')
     mainCode.addInclude('boost/filesystem/operations.hpp')

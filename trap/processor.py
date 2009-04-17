@@ -548,6 +548,8 @@ class Processor:
                 raise Exception('Pipeline stage ' + stage + ' declared for method ' + method.name + ' does not exist')
 
     def checkMemRegisters(self):
+        if not self.memory and not self.tlmPorts:
+            raise Exception("Memories are not specified; please specify either an internal memory (with the setMemory method) or a TLM memory port (with the addTLMPort method)")
         if not self.fetchReg:
             raise Exception('Please specify the register containing the address of the instructions to be fetched (usually the PC) using the setFetchRegister method')
         for memAliasReg in self.memAlias:
