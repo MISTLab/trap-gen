@@ -587,7 +587,7 @@ isa.addInstruction(brki_Instr)
 #BSRL (S=0, T=0)
 opCode = cxx_writer.writer_code.Code("""
 
-""") 
+""")
 bsrl_Instr = trap.Instruction('BSRL', True)
 bsrl_Instr.setMachineCode(barrel_reg, {'opcode0': [0,1,0,0,0,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 bsrl_Instr.setCode(opCode,'execute')
@@ -1103,7 +1103,6 @@ isa.addInstruction(sw_Instr)
 
 #SWI
 opCode = cxx_writer.writer_code.Code("""
-T
 """)
 swi_Instr = trap.Instruction('SWI', True)
 swi_Instr.setMachineCode(oper_imm, {'opcode': [1,1,1,1,1,0]}, 'TODO')

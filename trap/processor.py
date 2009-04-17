@@ -548,6 +548,8 @@ class Processor:
                 raise Exception('Pipeline stage ' + stage + ' declared for method ' + method.name + ' does not exist')
 
     def checkMemRegisters(self):
+        if not self.memory and not self.tlmPorts:
+            raise Exception("Memories are not specified; please specify either an internal memory (with the setMemory method) or a TLM memory port (with the addTLMPort method)")
         if not self.fetchReg:
             raise Exception('Please specify the register containing the address of the instructions to be fetched (usually the PC) using the setFetchRegister method')
         for memAliasReg in self.memAlias:
@@ -779,23 +781,18 @@ class Processor:
                     if savedSig != instructionSignature:
                         forceDecoderCreation = True
                 except:
+                    try:
+                        decSigFile.close()
+                    except:
+                        pass
                     forceDecoderCreation = True
             else:
                 forceDecoderCreation = True
         if forceDecoderCreation:
             print ('\t\tCreating the decoder')
             dec = decoder.decoderCreator(self.isa.instructions, self.isa.subInstructions)
-            try:
-                import pickle
-                decDumpFile = open(os.path.join(os.path.expanduser(os.path.expandvars(folder)), '.decoderDump.pickle'), 'w')
-                pickle.dump(dec, decDumpFile, pickle.HIGHEST_PROTOCOL)
-                decDumpFile.close()
-                # Now I have to save the instruction signature
-                decSigFile = open(os.path.join(os.path.expanduser(os.path.expandvars(folder)), '.decoderSig'), 'w')
-                decSigFile.write(instructionSignature)
-                decSigFile.close()
-            except:
-                pass
+            import copy
+            decCopy = copy.deepcopy(dec)
         else:
             print ('\t\tLoading the decoder from cache')
             import pickle
@@ -903,7 +900,7 @@ class Processor:
                 testFolder.addCode(decTestsFile)
                 testFolder.addHeader(hdecTestsFile)
                 ISATests = self.isa.getCPPTests(self, model, trace)
-                testPerFile = 200
+                testPerFile = 100
                 numTestFiles = len(ISATests)/testPerFile
                 for i in range(0, numTestFiles):
                     ISATestsFile = cxx_writer.writer_code.FileDumper('isaTests' + str(i) + '.cpp', False)
@@ -957,6 +954,18 @@ class Processor:
         # We create and print the main folder and also add a configuration
         # part to the wscript
         mainFolder.create(configure = True, projectName = self.name, version = self.version)
+        if forceDecoderCreation:
+            try:
+                import pickle
+                decDumpFile = open(os.path.join(os.path.expanduser(os.path.expandvars(folder)), '.decoderDump.pickle'), 'w')
+                pickle.dump(decCopy, decDumpFile, pickle.HIGHEST_PROTOCOL)
+                decDumpFile.close()
+                # Now I have to save the instruction signature
+                decSigFile = open(os.path.join(os.path.expanduser(os.path.expandvars(folder)), '.decoderSig'), 'w')
+                decSigFile.write(instructionSignature)
+                decSigFile.close()
+            except:
+                pass
 
 class PipeStage:
     """Identified by (a) name (b) optional, if it is wb,
