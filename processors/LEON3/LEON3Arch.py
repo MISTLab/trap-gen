@@ -102,7 +102,7 @@ tbrReg.setDefaultValue(0)
 processor.addRegister(tbrReg)
 # Multiply / Divide Register
 yReg = trap.Register('Y', 32)
-yReg.setDelay(3)
+#yReg.setDelay(3)
 processor.addRegister(yReg)
 # Program Counter
 pcReg = trap.Register('PC', 32)
