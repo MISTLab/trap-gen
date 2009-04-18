@@ -101,7 +101,6 @@ void OSEmulatorBase::set_sysconf(std::string name, int value){
 }
 
 void OSEmulatorBase::set_program_args(std::vector<std::string> args){
-    BFDFrontend &bfdFE = BFDFrontend::getInstance();
     OSEmulatorBase::programArgs = args;
 }
 

@@ -114,6 +114,11 @@ int unlink(const char *pathname){
     return -1;
 }
 
+long sysconf(int name){
+    _exit(-1);
+    return -1;
+}
+
 void _exit(int exitVal){
     _exit(exitVal);
 }

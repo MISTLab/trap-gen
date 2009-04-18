@@ -254,11 +254,9 @@ template<class issueWidth, int stageOffset> class OSEmulator : public ToolsIf<is
         registered |= this->register_syscall("_stat", *z);
         if(!registered)
             delete z;
-        if(OSEmulatorBase::programArgs.size() > 0){
-            mainSysCall<issueWidth> * mainCallBack = new mainSysCall<issueWidth>(this->processorInstance);
-            if(!this->register_syscall("main", *mainCallBack))
-                THROW_EXCEPTION("Fatal Error, unable to find main function in current application");
-        }
+        mainSysCall<issueWidth> * mainCallBack = new mainSysCall<issueWidth>(this->processorInstance);
+        if(!this->register_syscall("main", *mainCallBack))
+            THROW_EXCEPTION("Fatal Error, unable to find main function in current application");
     }
     bool newIssue(const issueWidth &curPC, const void *curInstr) throw(){
         //I have to go over all the registered system calls and check if there is one

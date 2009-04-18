@@ -3420,11 +3420,11 @@ def getMainCode(self, model):
             code += 'OSEmulator< ' + str(wordType) + ', 0 > osEmu(*(procInst.abiIf), ' + str(self.abi.emulOffset) + ');\n'
         code += """GDBStub< """ + str(wordType) + """ > gdbStub(*(procInst.abiIf));
         osEmu.initSysCalls(vm["application"].as<std::string>());
+        std::vector<std::string> options;
+        options.push_back(vm["application"].as<std::string>());
         if(vm.count("arguments") > 0){
             //Here we have to parse the command line program arguments; they are
             //in the form option,option,option ...
-            std::vector<std::string> options;
-            options.push_back(vm["application"].as<std::string>());
             std::string packedOpts = vm["arguments"].as<std::string>();
             while(packedOpts.size() > 0){
                 std::size_t foundComma = packedOpts.find(',');
@@ -3437,8 +3437,8 @@ def getMainCode(self, model):
                     break;
                 }
             }
-            OSEmulatorBase::set_program_args(options);
         }
+        OSEmulatorBase::set_program_args(options);
         if(vm.count("environment") > 0){
             //Here we have to parse the environment; they are
             //in the form option=value,option=value .....

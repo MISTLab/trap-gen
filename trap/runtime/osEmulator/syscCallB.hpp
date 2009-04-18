@@ -122,9 +122,6 @@ template<class wordSize> class openSysCall : public SyscallCB<wordSize>{
             if(pathname[i] == '\x0')
                 break;
         }
-        #ifndef NDEBUG
-        std::cerr << "Opening file -->" << pathname << "<--" << std::endl;
-        #endif
         int flags = callArgs[1];
         OSEmulatorBase::correct_flags(flags);
         int mode = callArgs[2];
@@ -155,9 +152,6 @@ template<class wordSize> class creatSysCall : public SyscallCB<wordSize>{
                 break;
         }
         int mode = callArgs[1];
-        #ifndef NDEBUG
-        std::cerr << "Creating file -->" << pathname << "<--" << std::endl;
-        #endif
         #ifdef __GNUC__
         int ret = ::creat((char*)pathname, mode);
         #else
@@ -294,10 +288,6 @@ template<class wordSize> class sbrkSysCall : public SyscallCB<wordSize>{
 
         wordSize base = OSEmulatorBase::heapPointer;
         long long increment = callArgs[0];
-
-        #ifndef NDEBUG
-        std::cerr << "Allocating " << increment << " bytes starting at address " << std::showbase << std::hex << base << std::dec << std::endl;
-        #endif
 
         OSEmulatorBase::heapPointer += increment;
 
@@ -632,14 +622,8 @@ template<class wordSize> class getenvSysCall : public SyscallCB<wordSize>{
                 if(envname[i] == '\x0')
                     break;
             }
-            #ifndef NDEBUG
-            std::cerr << "Reading variable -->" << envname << "<--" << std::endl;
-            #endif
             std::map<std::string,  std::string>::iterator curEnv = OSEmulatorBase::env.find((std::string(envname)));
             if(curEnv == OSEmulatorBase::env.end()){
-                #ifndef NDEBUG
-                std::cerr << "Not Found" << std::endl;
-                #endif
                 this->processorInstance.setRetVal(0);
                 this->processorInstance.returnFromCall();
             }
@@ -647,13 +631,10 @@ template<class wordSize> class getenvSysCall : public SyscallCB<wordSize>{
                 //I have to allocate memory for the result on the simulated memory;
                 //I then have to copy the read environment variable here and return
                 //the pointer to it
-                #ifndef NDEBUG
-                std::cerr << "Found with value -->" << curEnv->second << "<--" << std::endl;
-                #endif
                 unsigned int base = OSEmulatorBase::heapPointer;
-                OSEmulatorBase::heapPointer += curEnv->second.size();
+                OSEmulatorBase::heapPointer += curEnv->second.size() + 1;
                 for(unsigned int i = 0; i < curEnv->second.size(); i++){
-                    this->processorInstance.writeCharMem(base, curEnv->second[i]);
+                    this->processorInstance.writeCharMem(base + i, curEnv->second[i]);
                 }
                 this->processorInstance.writeCharMem(base + curEnv->second.size(), 0);
                 this->processorInstance.setRetVal(base);
@@ -745,9 +726,6 @@ template<class wordSize> class chownSysCall : public SyscallCB<wordSize>{
         }
         uid_t owner = callArgs[1];
         gid_t group = callArgs[2];
-        #ifndef NDEBUG
-        std::cerr << "Chowning file -->" << pathname << "<--" << std::endl;
-        #endif
         int ret = ::chown((char*)pathname, owner, group);
         #else
         int ret = 0;
@@ -773,9 +751,6 @@ template<class wordSize> class unlinkSysCall : public SyscallCB<wordSize>{
             if(pathname[i] == '\x0')
                 break;
         }
-        #ifndef NDEBUG
-        std::cerr << "Unlinking file -->" << pathname << "<--" << std::endl;
-        #endif
         #ifdef __GNUC__
         int ret = ::unlink((char*)pathname);
         #else
@@ -804,30 +779,43 @@ template<class wordSize> class mainSysCall : public SyscallCB<wordSize>{
     public:
     mainSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     bool operator()(){
-        if(OSEmulatorBase::programArgs.size() == 0)
+        this->processorInstance.preCall();
+
+        std::vector< wordSize > callArgs = this->processorInstance.readArgs();
+        if(callArgs[0] != 0){
+            this->processorInstance.postCall();
             return false;
+        }
+
+        std::vector< wordSize > mainArgs;
+
+        if(OSEmulatorBase::programArgs.size() == 0){
+            mainArgs.push_back(0);
+            mainArgs.push_back(0);
+            this->processorInstance.setArgs(mainArgs);
+            this->processorInstance.postCall();
+            return false;
+        }
+
         unsigned int argAddr = ((unsigned int)OSEmulatorBase::heapPointer) + (OSEmulatorBase::programArgs.size() + 1)*4;
         unsigned int argNumAddr = OSEmulatorBase::heapPointer;
         std::vector<std::string>::iterator argsIter, argsEnd;
         for(argsIter = OSEmulatorBase::programArgs.begin(), argsEnd = OSEmulatorBase::programArgs.end(); argsIter != argsEnd; argsIter++){
-            #ifndef NDEBUG
-            std::cerr << "Setting argument --> " << *argsIter << std::endl;
-            #endif
             this->processorInstance.writeMem(argNumAddr, argAddr, 4);
             argNumAddr += 4;
             for(unsigned int i = 0; i < argsIter->size(); i++){
-                this->processorInstance.writeCharMem(argAddr, argsIter->c_str()[i]);
+                this->processorInstance.writeCharMem(argAddr + i, argsIter->c_str()[i]);
             }
             this->processorInstance.writeCharMem(argAddr + argsIter->size(), 0);
             argAddr += argsIter->size() + 1;
         }
         this->processorInstance.writeMem(argNumAddr, 0, 4);
 
-        std::vector< wordSize > mainArgs;
         mainArgs.push_back(OSEmulatorBase::programArgs.size());
         mainArgs.push_back(OSEmulatorBase::heapPointer);
         this->processorInstance.setArgs(mainArgs);
         OSEmulatorBase::heapPointer = argAddr;
+        this->processorInstance.postCall();
         return false;
     }
 };
