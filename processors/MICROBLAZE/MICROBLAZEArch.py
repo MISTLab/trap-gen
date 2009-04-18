@@ -138,13 +138,6 @@ processor.setMemory('dataMem', 10*1024*1024)
 # (I'm not sure about this)
 processor.setFetchRegister('PC', 0)
 
-# --->>>> WARNING <<<<---
-# We are cheating! (temporarily, of course :D )
-# The ABI is defined COMPLETELY RANDOM!
-#abi = trap.ABI('GPR[0]', 'GPR[0-3]', 'PC', 'EAR', 'FSR', 'BTR')
-#abi.addMemory('dataMem')
-#processor.setABI(abi)
-
 # Finally we can dump the processor on file
 #processor.write(folder = 'processor', models = ['funcLT'], dumpDecoderName = 'decoder.dot')
 #processor.write(folder = 'processor', models = ['funcLT'], trace = True)

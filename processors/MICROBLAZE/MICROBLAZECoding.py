@@ -57,7 +57,6 @@ oper_reg.setVarField('rb', ('GPR', 0), 'in')
 oper_imm = trap.MachineCode([('opcode', 6), ('rd', 5), ('ra', 5),('imm',16)])
 oper_imm.setVarField('rd', ('GPR', 0), 'out')
 oper_imm.setVarField('ra', ('GPR', 0), 'in')
-oper_imm.setVarField('imm', ('GPR', 0), 'in')
 
 #BRANCH COND with REG
 branch_cond_reg = trap.MachineCode([('opcode0', 6), ('opcode1', 5), ('ra', 5), ('rb',5), ('opcode2',11)])
@@ -67,7 +66,6 @@ branch_cond_reg.setVarField('rb', ('GPR', 0), 'in')
 #BRANCH COND with IMM
 branch_cond_imm = trap.MachineCode([('opcode0', 6), ('opcode1', 5), ('ra', 5), ('imm',16)])
 branch_cond_imm.setVarField('ra', ('GPR', 0), 'in')
-branch_cond_imm.setVarField('imm', ('GPR', 0), 'in')
 
 #BRANCH UNCOND with REG
 branch_uncond_reg = trap.MachineCode([('opcode0', 6), ('rd', 5), ('opcode1', 5), ('rb',5), ('opcode2',11)])
@@ -77,7 +75,6 @@ branch_uncond_reg.setVarField('rb', ('GPR', 0), 'in')
 #BRANCH UNCOND with IMM
 branch_uncond_imm = trap.MachineCode([('opcode0', 6), ('rd', 5), ('opcode1', 5), ('imm',16)])
 branch_uncond_imm.setVarField('rd', ('GPR', 0), 'out')
-branch_uncond_imm.setVarField('imm', ('GPR', 0), 'in')
 
 #BARREL with REG
 barrel_reg = trap.MachineCode([('opcode0', 6), ('rd', 5), ('ra', 5), ('rb',5), ('opcode1',11)])
@@ -89,14 +86,12 @@ barrel_reg.setVarField('rb', ('GPR', 0), 'in')
 barrel_imm = trap.MachineCode([('opcode0', 6), ('rd', 5), ('ra', 5),('opcode1',5), ('opcode2', 6), ('imm', 5)])
 barrel_imm.setVarField('rd', ('GPR', 0), 'out')
 barrel_imm.setVarField('ra', ('GPR', 0), 'in')
-barrel_imm.setVarField('imm', ('GPR', 0), 'in')
 
 #FLOAT compare
 float_cmp = trap.MachineCode([('opcode0', 6), ('rd', 5), ('ra', 5),('rb',5), ('opcode1', 4), ('opsel', 3), ('opcode2', 4)])
 float_cmp.setVarField('rd', ('GPR', 0), 'out')
 float_cmp.setVarField('ra', ('GPR', 0), 'in')
 float_cmp.setVarField('rb', ('GPR', 0), 'in')
-float_cmp.setVarField('opsel', ('GPR', 0), 'in')
 
 #FLOAT unary oper
 float_unary = trap.MachineCode([('opcode0', 6), ('rd', 5), ('ra', 5), ('zero', 5),('opcode1', 11)])
@@ -105,13 +100,11 @@ float_unary.setVarField('ra', ('GPR', 0), 'in')
 
 #IMM code
 imm_code = trap.MachineCode([('opcode', 6), ('zero', 5), ('zero', 5),('imm', 16)])
-imm_code.setVarField('imm', ('GPR', 0), 'in')
 
 #MFS code
 mfs_code = trap.MachineCode([('opcode', 6), ('rd', 5), ('zero', 5), ('sel', 2), ('rs', 14)])
 mfs_code.setVarField('rd', ('GPR', 0), 'out')
 mfs_code.setVarField('rs', ('GPR', 0), 'in')
-mfs_code.setBitfield('sel', [1,0])
 
 #MTS code
 mts_code = trap.MachineCode([('opcode', 6), ('zero', 5), ('ra', 5), ('sel', 2), ('rs', 14)])
@@ -122,7 +115,6 @@ mts_code.setBitfield('sel', [1,1])
 #MSR oper
 msr_oper = trap.MachineCode([('opcode0', 6), ('rd', 5), ('opcode1', 6), ('imm15', 15)])
 msr_oper.setVarField('rd', ('GPR', 0), 'out')
-msr_oper.setVarField('imm15', ('GPR', 0), 'in')
 
 #UNARY oper (SIGN EXTEND - SRA,SRC,SRL)
 unary_oper = trap.MachineCode([('opcode0', 6), ('rd', 5), ('ra', 5), ('opcode1', 16)])

@@ -78,46 +78,43 @@ isa.addMethod(SignExtend_method)
 #----------------------------------------------------------------------------------------------------
 #____________________________________________________________________________________________________
 
-#this is just a trial
-
 #ADD instruction family
-# ADD, first version
-#~ opCode = cxx_writer.writer_code.Code("""
-#~ unsigned long long result = (int)rb + (int)ra;
-#~ MSR[C] = ((unsigned long long)result) >> 32;  #get the CarryOut
-#~ rd = (unsigned int)result;
-#~ """)
-#~ add_Instr = trap.Instruction('ADD', True)
-#~ add_Instr.setMachineCode(oper_reg, {'opcode0': [0,0,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
-#~ add_Instr.setCode(opCode,'execute')
-#~ add_Instr.addBehavior(IncrementPC, 'execute')
-#~ isa.addInstruction(add_Instr)
-
-# ADD, second version
+# ADD
 opCode = cxx_writer.writer_code.Code("""
-result = (int)rb + (int)ra;
-MSR[key_C] = result >> 32;  /* get the CarryOut */
-rd = (unsigned int)result;
+long long result = (long long)((int)rb) + (long long)((int)ra);
+MSR[key_C] = ((ra^rb^(int)(result >> 1)) & 0x80000000) != 0;
+rd = (int)result; 
 """)
-add_Instr = trap.Instruction('ADD', True) #?? what does 'true' mean?
+add_Instr = trap.Instruction('ADD', True)
 add_Instr.setMachineCode(oper_reg, {'opcode0': [0,0,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 add_Instr.setCode(opCode,'execute')
 add_Instr.addBehavior(IncrementPC, 'execute')
-add_Instr.addVariable(('result', 'BIT<64>'))
-add_Instr.addTest({'rd': 5, 'ra': 3, 'rb': 2}, {'GPR[3]': 4, 'GPR[2]': 6, 'GPR[5]': 0xfffff, 'PC':0x0}, {'GPR[5]': 10, 'PC':0x4})
+add_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
+add_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
+add_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x7fffffff, 'GPR[2]': 0x2, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x80000001, 'PC':0x4, 'MSR':0x00000000})
+add_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffffffff, 'GPR[2]': 0x4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x3, 'PC':0x4, 'MSR':0x20000000})
+add_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff000000, 'GPR[2]': 0x80000000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x7f000000, 'PC':0x4, 'MSR':0x20000000})
 isa.addInstruction(add_Instr)
 
 # ADDC
 opCode = cxx_writer.writer_code.Code("""
-result = (int)rb + (int)ra + (unsigned int)MSR[key_C];
-MSR[key_C] = result >> 32; /* get the CarryOut */
-rd = (unsigned int)result;
+long long result = (long long)((int)ra) + (long long)((int)rb) + (long long)MSR[key_C];
+MSR[key_C] = ((ra^rb^(int)(result >> 1)) & 0x80000000) != 0;
+rd = (int)result;
 """)
 addc_Instr = trap.Instruction('ADDC', True)
 addc_Instr.setMachineCode(oper_reg, {'opcode0': [0,0,0,0,1,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 addc_Instr.setCode(opCode,'execute')
 addc_Instr.addBehavior(IncrementPC, 'execute')
-addc_Instr.addVariable(('result', 'BIT<64>'))
+addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
+addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 11, 'PC':0x4, 'MSR':0x00000000})
+addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x7fffffff, 'GPR[2]': 0x2, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x80000001, 'PC':0x4, 'MSR':0x00000000})
+addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffffffff, 'GPR[2]': 0x4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x3, 'PC':0x4, 'MSR':0x20000000})
+addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff000000, 'GPR[2]': 0x80000000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x7f000000, 'PC':0x4, 'MSR':0x20000000})
+addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x7fffffff, 'GPR[2]': 0x2, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 0x80000002, 'PC':0x4, 'MSR':0x00000000})
+addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffffffff, 'GPR[2]': 0x4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 0x4, 'PC':0x4, 'MSR':0x20000000})
+addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff000000, 'GPR[2]': 0x80000000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 0x7f000001, 'PC':0x4, 'MSR':0x20000000})
+addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfffffffe, 'GPR[2]': 0x00000001, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 0x00000000, 'PC':0x4, 'MSR':0x20000000})
 isa.addInstruction(addc_Instr)
 
 # ADDK
@@ -128,43 +125,69 @@ addk_Instr = trap.Instruction('ADDK', True)
 addk_Instr.setMachineCode(oper_reg, {'opcode0': [0,0,0,1,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 addk_Instr.setCode(opCode,'execute')
 addk_Instr.addBehavior(IncrementPC, 'execute')
+addk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
+addk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x20000000})
+addk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x7fffffff, 'GPR[2]': 0x2, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x80000001, 'PC':0x4, 'MSR':0x00000000})
+addk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffffffff, 'GPR[2]': 0x4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x3, 'PC':0x4, 'MSR':0x00000000})
+addk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff000000, 'GPR[2]': 0x80000000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x7f000000, 'PC':0x4, 'MSR':0x00000000})
+addk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x7fffffff, 'GPR[2]': 0x2, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 0x80000001, 'PC':0x4, 'MSR':0x20000000})
+addk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffffffff, 'GPR[2]': 0x4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 0x3, 'PC':0x4, 'MSR':0x20000000})
+addk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff000000, 'GPR[2]': 0x80000000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 0x7f000000, 'PC':0x4, 'MSR':0x20000000})
 isa.addInstruction(addk_Instr)
 
 # ADDKC
 opCode = cxx_writer.writer_code.Code("""
-rd = (int)rb + (int)ra +(unsigned int)MSR[key_C];
+rd = (int)rb + (int)ra +(int)MSR[key_C];
 """)
 addkc_Instr = trap.Instruction('ADDKC', True)
 addkc_Instr.setMachineCode(oper_reg, {'opcode0': [0,0,0,1,1,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 addkc_Instr.setCode(opCode,'execute')
 addkc_Instr.addBehavior(IncrementPC, 'execute')
+addkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
+addkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 11, 'PC':0x4, 'MSR':0x20000000})
+addkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x7fffffff, 'GPR[2]': 0x2, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x80000001, 'PC':0x4, 'MSR':0x00000000})
+addkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffffffff, 'GPR[2]': 0x4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x3, 'PC':0x4, 'MSR':0x00000000})
+addkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff000000, 'GPR[2]': 0x80000000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x7f000000, 'PC':0x4, 'MSR':0x00000000})
+addkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x7fffffff, 'GPR[2]': 0x2, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 0x80000002, 'PC':0x4, 'MSR':0x20000000})
+addkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffffffff, 'GPR[2]': 0x4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 0x4, 'PC':0x4, 'MSR':0x20000000})
+addkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff000000, 'GPR[2]': 0x80000000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 0x7f000001, 'PC':0x4, 'MSR':0x20000000})
 isa.addInstruction(addkc_Instr)
 
 #ADDI instruction family
 #ADDI
 opCode = cxx_writer.writer_code.Code("""
-result = (int)ra + ((int)SignExtend(imm, 16));
-MSR[key_C] = result >> 32;
-rd = (unsigned int)result;
+int imm_value = (int)SignExtend(imm, 16);
+long long result = (long long)((int)ra) + ((long long)imm_value);
+MSR[key_C] = ((ra^imm_value^(int)(result >> 1)) & 0x80000000) != 0;
+rd = (int)result;
 """)
 addi_Instr = trap.Instruction('ADDI', True)
 addi_Instr.setMachineCode(oper_imm, {'opcode': [0,0,1,0,0,0]}, 'TODO')
 addi_Instr.setCode(opCode,'execute')
 addi_Instr.addBehavior(IncrementPC, 'execute')
-addi_Instr.addVariable(('result', 'BIT<64>'))
+addi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0006}, {'GPR[1]': 4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
+addi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0006}, {'GPR[1]': 4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
+addi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0002}, {'GPR[1]': 0x7fffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x80000001, 'PC':0x4, 'MSR':0x00000000})
+addi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x8000}, {'GPR[1]': 0x00ff0000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x00fe8000, 'PC':0x4, 'MSR':0x20000000})
+addi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x8000}, {'GPR[1]': 0x00ff0000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 0x00fe8000, 'PC':0x4, 'MSR':0x20000000})
 isa.addInstruction(addi_Instr)
 
 #ADDIC
 opCode = cxx_writer.writer_code.Code("""
-result = (int)ra + ((int)SignExtend(imm,16)) + (unsigned int)MSR[key_C];
-MSR[key_C] = result >> 32;
-rd = (unsigned int)result;
+int imm_value = (int)SignExtend(imm, 16);
+long long result = (long long)((int)ra) + ((long long)imm_value) + (long long)MSR[key_C];
+MSR[key_C] = ((ra^imm_value^(int)(result >> 1)) & 0x80000000) != 0;
+rd = (int)result;
 """)
 addic_Instr = trap.Instruction('ADDIC', True)
 addic_Instr.setMachineCode(oper_imm, {'opcode': [0,0,1,0,1,0]}, 'TODO')
 addic_Instr.setCode(opCode,'execute')
 addic_Instr.addBehavior(IncrementPC, 'execute')
-addic_Instr.addVariable(('result', 'BIT<64>'))
+addic_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0006}, {'GPR[1]': 4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
+addic_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0006}, {'GPR[1]': 4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 11, 'PC':0x4, 'MSR':0x00000000})
+addic_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0002}, {'GPR[1]': 0x7fffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x80000001, 'PC':0x4, 'MSR':0x00000000})
+addic_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x8000}, {'GPR[1]': 0x00ff0000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x00fe8000, 'PC':0x4, 'MSR':0x20000000})
+addic_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x8000}, {'GPR[1]': 0x00ff0000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 0x00fe8001, 'PC':0x4, 'MSR':0x20000000})
 isa.addInstruction(addic_Instr)
 
 #ADDIK
@@ -175,58 +198,76 @@ addik_Instr = trap.Instruction('ADDIK', True)
 addik_Instr.setMachineCode(oper_imm, {'opcode': [0,0,1,1,0,0]}, 'TODO')
 addik_Instr.setCode(opCode,'execute')
 addik_Instr.addBehavior(IncrementPC, 'execute')
+addik_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0006}, {'GPR[1]': 4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
+addik_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0006}, {'GPR[1]': 4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x20000000})
+addik_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0002}, {'GPR[1]': 0x7fffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x80000001, 'PC':0x4, 'MSR':0x00000000})
+addik_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x8000}, {'GPR[1]': 0x00ff0000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x00fe8000, 'PC':0x4, 'MSR':0x00000000})
+addik_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x8000}, {'GPR[1]': 0x00ff0000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 0x00fe8000, 'PC':0x4, 'MSR':0x20000000})
 isa.addInstruction(addik_Instr)
 
 #ADDIKC
 opCode = cxx_writer.writer_code.Code("""
-rd = (int)ra + ((int)SignExtend(imm, 16)) +(int)MSR[key_C];
+rd = (int)ra + (int)SignExtend(imm, 16) + (int)MSR[key_C];
 """)
 addikc_Instr = trap.Instruction('ADDIKC', True)
 addikc_Instr.setMachineCode(oper_imm, {'opcode': [0,0,1,1,1,0]}, 'TODO')
 addikc_Instr.setCode(opCode,'execute')
 addikc_Instr.addBehavior(IncrementPC, 'execute')
+addikc_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0006}, {'GPR[1]': 4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
+addikc_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0006}, {'GPR[1]': 4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 11, 'PC':0x4, 'MSR':0x20000000})
+addikc_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0002}, {'GPR[1]': 0x7fffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x80000001, 'PC':0x4, 'MSR':0x00000000})
+addikc_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x8000}, {'GPR[1]': 0x00ff0000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x00fe8000, 'PC':0x4, 'MSR':0x00000000})
+addikc_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x8000}, {'GPR[1]': 0x00ff0000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 0x00fe8001, 'PC':0x4, 'MSR':0x20000000})
 isa.addInstruction(addikc_Instr)
 
-#from here to the end, it is specified for each instruction, only
-#the bytecode and the name.
-#After, it will be specified also the behavior.
-
+#AND instruction family
 #AND
 opCode = cxx_writer.writer_code.Code("""
-
+rd = (int)ra & (int)rb;
 """)
 and_Instr = trap.Instruction('AND', True)
 and_Instr.setMachineCode(oper_reg, {'opcode0': [1,0,0,0,0,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 and_Instr.setCode(opCode,'execute')
+and_Instr.addBehavior(IncrementPC, 'execute')
+and_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffcc8844, 'GPR[2]': 0x66666666, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x66440044, 'PC':0x4})
 isa.addInstruction(and_Instr)
 
-#AND instruction family
 #ANDI
 opCode = cxx_writer.writer_code.Code("""
-
+rd = (int)ra & (int)SignExtend(imm, 16);
 """)
 andi_Instr = trap.Instruction('ANDI', True)
 andi_Instr.setMachineCode(oper_imm, {'opcode': [1,0,1,0,0,1]}, 'TODO')
 andi_Instr.setCode(opCode,'execute')
+andi_Instr.addBehavior(IncrementPC, 'execute')
+andi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x6666}, {'GPR[1]': 0xffcc8844, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x00000044, 'PC':0x4})
 isa.addInstruction(andi_Instr)
 
 #ANDN
 opCode = cxx_writer.writer_code.Code("""
-
+rd = (int)ra & ~((int)rb);
 """)
 andn_Instr = trap.Instruction('ANDN', True)
 andn_Instr.setMachineCode(oper_reg, {'opcode0': [1,0,0,0,1,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 andn_Instr.setCode(opCode,'execute')
+andn_Instr.addBehavior(IncrementPC, 'execute')
+andn_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffcc8844, 'GPR[2]': 0x66666666, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x99888800, 'PC':0x4})
 isa.addInstruction(andn_Instr)
 
 #ANDNI
 opCode = cxx_writer.writer_code.Code("""
-
+rd = (int)ra & ~((int)SignExtend(imm, 16));
 """)
 andni_Instr = trap.Instruction('ANDNI', True)
 andni_Instr.setMachineCode(oper_imm, {'opcode': [1,0,1,0,1,1]}, 'TODO')
 andni_Instr.setCode(opCode,'execute')
+andni_Instr.addBehavior(IncrementPC, 'execute')
+andni_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x6666}, {'GPR[1]': 0xffcc8844, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0xffcc8800, 'PC':0x4})
 isa.addInstruction(andni_Instr)
+
+#from here to the end, it is specified for each instruction, only
+#the bytecode and the name.
+#After, it will be specified also the behavior.
 
 #BRANCH instruction family
 #BEQ

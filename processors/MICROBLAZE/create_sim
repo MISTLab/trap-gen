@@ -48,6 +48,4 @@ _build_/default/funcLT/tests/tests
 sleep 1
 
 echo "If all steps are completed without errors, you should feel extremely satisfied. :)"
-
-
-
+beep -f 1500 -r 3
