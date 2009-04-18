@@ -2105,7 +2105,7 @@ def getCPPIf(self, model):
         if self.abi.offset.has_key(reg) and not model.startswith('acc'):
             readGDBRegBody += ' + ' + str(self.abi.offset[reg])
         readGDBRegBody += ';\nbreak;}\n'
-    readGDBRegBody += 'default:{\nTHROW_EXCEPTION(\"No register corresponding to GDB id \" << gdbId);\nreturn 0;\n}\n}\n'
+    readGDBRegBody += 'default:{\nreturn 0;\n}\n}\n'
     readGDBRegCode = cxx_writer.writer_code.Code(readGDBRegBody)
     readGDBRegCode.addInclude(includes)
     readGDBRegParam = cxx_writer.writer_code.Parameter('gdbId', cxx_writer.writer_code.uintType.makeRef().makeConst())
