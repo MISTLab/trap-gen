@@ -83,7 +83,7 @@ barrel_reg.setVarField('ra', ('GPR', 0), 'in')
 barrel_reg.setVarField('rb', ('GPR', 0), 'in')
 
 #BARREL with IMM
-barrel_imm = trap.MachineCode([('opcode0', 6), ('rd', 5), ('ra', 5),('opcode1',5), ('opcode2', 6), ('imm', 5)])
+barrel_imm = trap.MachineCode([('opcode0', 6), ('rd', 5), ('ra', 5),('zero',5), ('opcode1', 6), ('imm', 5)])
 barrel_imm.setVarField('rd', ('GPR', 0), 'out')
 barrel_imm.setVarField('ra', ('GPR', 0), 'in')
 
@@ -105,6 +105,7 @@ imm_code = trap.MachineCode([('opcode', 6), ('zero', 5), ('zero', 5),('imm', 16)
 mfs_code = trap.MachineCode([('opcode', 6), ('rd', 5), ('zero', 5), ('sel', 2), ('rs', 14)])
 mfs_code.setVarField('rd', ('GPR', 0), 'out')
 mfs_code.setVarField('rs', ('GPR', 0), 'in')
+mfs_code.setBitfield('sel', [1,0])
 
 #MTS code
 mts_code = trap.MachineCode([('opcode', 6), ('zero', 5), ('ra', 5), ('sel', 2), ('rs', 14)])

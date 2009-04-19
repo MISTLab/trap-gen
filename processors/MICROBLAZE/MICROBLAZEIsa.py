@@ -627,75 +627,116 @@ isa.addInstruction(brki_Instr)
 #BARREL SHIFT family
 #BSRL (S=0, T=0)
 opCode = cxx_writer.writer_code.Code("""
-
+rd = (unsigned int)ra >> ((int)rb & 0x1f); /* I consider only the five less significant bits */
 """)
 bsrl_Instr = trap.Instruction('BSRL', True)
 bsrl_Instr.setMachineCode(barrel_reg, {'opcode0': [0,1,0,0,0,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 bsrl_Instr.setCode(opCode,'execute')
+bsrl_Instr.addBehavior(IncrementPC, 'execute')
+bsrl_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x151fbb18, 'GPR[2]': 0x7, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x2a3f76, 'PC':0x4})
+bsrl_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x151fbb18, 'GPR[2]': 0xf5489fe7, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x2a3f76, 'PC':0x4})
+bsrl_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff1fbb18, 'GPR[2]': 0x7, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x1fe3f76, 'PC':0x4})
 isa.addInstruction(bsrl_Instr)
 
 #BSRA (S=0, T=1)
 opCode = cxx_writer.writer_code.Code("""
-
+rd = (int)ra >> ((int)rb & 0x1f); /* the C shift is Arithmetical! */
 """)
 bsra_Instr = trap.Instruction('BSRA', True)
 bsra_Instr.setMachineCode(barrel_reg, {'opcode0': [0,1,0,0,0,1], 'opcode1': [0,1,0,0,0,0,0,0,0,0,0]}, 'TODO')
 bsra_Instr.setCode(opCode,'execute')
+bsra_Instr.addBehavior(IncrementPC, 'execute')
+bsra_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x151fbb18, 'GPR[2]': 0x7, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x2a3f76, 'PC':0x4})
+bsra_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x151fbb18, 'GPR[2]': 0xf5489fe7, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x2a3f76, 'PC':0x4})
+bsra_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff1fbb18, 'GPR[2]': 0x7, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0xfffe3f76, 'PC':0x4})
 isa.addInstruction(bsra_Instr)
 
 #BSLL (S=1, T=0)
 opCode = cxx_writer.writer_code.Code("""
-
+rd = (unsigned int)ra << ((int)rb & 0x1f);
 """)
 bsll_Instr = trap.Instruction('BSLL', True)
 bsll_Instr.setMachineCode(barrel_reg, {'opcode0': [0,1,0,0,0,1], 'opcode1': [1,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 bsll_Instr.setCode(opCode,'execute')
+bsll_Instr.addBehavior(IncrementPC, 'execute')
+bsll_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x151fbb18, 'GPR[2]': 0x7, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x8fdd8c00, 'PC':0x4})
+bsll_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x151fbb18, 'GPR[2]': 0xf5489fe7, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x8fdd8c00, 'PC':0x4})
+bsll_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff1fbb18, 'GPR[2]': 0x7, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x8fdd8c00, 'PC':0x4})
 isa.addInstruction(bsll_Instr)
 
 #BSRLI (S=0, T=0)
 opCode = cxx_writer.writer_code.Code("""
-
+rd = (unsigned int)ra >> (int)imm;
 """)
 bsrli_Instr = trap.Instruction('BSRLI', True)
-bsrli_Instr.setMachineCode(barrel_imm, {'opcode0': [0,1,1,0,0,1], 'opcode1': [0,0,0,0,0], 'opcode2': [0,0,0,0,0,0]}, 'TODO')
+bsrli_Instr.setMachineCode(barrel_imm, {'opcode0': [0,1,1,0,0,1], 'opcode1': [0,0,0,0,0,0]}, 'TODO')
 bsrli_Instr.setCode(opCode,'execute')
+bsrli_Instr.addBehavior(IncrementPC, 'execute')
+bsrli_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 7}, {'GPR[1]': 0x151fbb18, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x2a3f76, 'PC':0x4})
+bsrli_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 7}, {'GPR[1]': 0xff1fbb18, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x1fe3f76, 'PC':0x4})
 isa.addInstruction(bsrli_Instr)
 
 #BSRAI (S=0, T=1)
 opCode = cxx_writer.writer_code.Code("""
-
+rd = (int)ra >> (int)imm;
 """)
 bsrai_Instr = trap.Instruction('BSRAI', True)
-bsrai_Instr.setMachineCode(barrel_imm, {'opcode0': [0,1,1,0,0,1], 'opcode1': [0,0,0,0,0], 'opcode2': [0,1,0,0,0,0]}, 'TODO')
+bsrai_Instr.setMachineCode(barrel_imm, {'opcode0': [0,1,1,0,0,1], 'opcode1': [0,1,0,0,0,0]}, 'TODO')
 bsrai_Instr.setCode(opCode,'execute')
+bsrai_Instr.addBehavior(IncrementPC, 'execute')
+bsrai_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 7}, {'GPR[1]': 0x151fbb18, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x2a3f76, 'PC':0x4})
+bsrai_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 7}, {'GPR[1]': 0xff1fbb18, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0xfffe3f76, 'PC':0x4})
 isa.addInstruction(bsrai_Instr)
 
 #BSLLI (S=0, T=1)
 opCode = cxx_writer.writer_code.Code("""
-
+rd = (unsigned int)ra << (int)imm;
 """)
 bslli_Instr = trap.Instruction('BSLLI', True)
-bslli_Instr.setMachineCode(barrel_imm, {'opcode0': [0,1,1,0,0,1], 'opcode1': [0,0,0,0,0], 'opcode2': [1,0,0,0,0,0]}, 'TODO')
+bslli_Instr.setMachineCode(barrel_imm, {'opcode0': [0,1,1,0,0,1], 'opcode1': [1,0,0,0,0,0]}, 'TODO')
 bslli_Instr.setCode(opCode,'execute')
+bslli_Instr.addBehavior(IncrementPC, 'execute')
+bslli_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 7}, {'GPR[1]': 0x151fbb18, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x8fdd8c00, 'PC':0x4})
+bslli_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 7}, {'GPR[1]': 0xff1fbb18, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x8fdd8c00, 'PC':0x4})
 isa.addInstruction(bslli_Instr)
 
 #COMPARE family
 #CMP
 opCode = cxx_writer.writer_code.Code("""
-
+int result = (int)rb - (int)ra;
+if ((int)ra > (int) rb) {
+	result |= 0x80000000;
+} else {
+	result &= 0x7fffffff;
+}
+rd = result;
 """)
 cmp_Instr = trap.Instruction('CMP', True)
 cmp_Instr.setMachineCode(oper_reg, {'opcode0': [0,0,0,1,0,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,1]}, 'TODO')
 cmp_Instr.setCode(opCode,'execute')
+cmp_Instr.addBehavior(IncrementPC, 'execute')
+cmp_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+cmp_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xfffea385, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0xfffda652, 'PC':0x4})
+cmp_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x15c7b, 'GPR[2]': 0xffff02cd, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0xfffda652, 'PC':0x4})
 isa.addInstruction(cmp_Instr)
 
 #CMPU
 opCode = cxx_writer.writer_code.Code("""
-
+unsigned int result = (unsigned int)rb - (unsigned int)ra;
+if ((unsigned int)ra > (unsigned int) rb) {
+	result |= 0x80000000;
+} else {
+	result &= 0x7fffffff;
+}
+rd = result;
 """)
 cmpu_Instr = trap.Instruction('CMPU', True)
 cmpu_Instr.setMachineCode(oper_reg, {'opcode0': [0,0,0,1,0,1], 'opcode1': [0,0,0,0,0,0,0,0,0,1,1]}, 'TODO')
 cmpu_Instr.setCode(opCode,'execute')
+cmpu_Instr.addBehavior(IncrementPC, 'execute')
+cmpu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+cmpu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xfffea385, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x7ffda652, 'PC':0x4})
+cmpu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x15c7b, 'GPR[2]': 0xffff02cd, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x7ffda652, 'PC':0x4})
 isa.addInstruction(cmpu_Instr)
 
 #FLOAT family
