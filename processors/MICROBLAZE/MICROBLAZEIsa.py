@@ -271,10 +271,9 @@ isa.addInstruction(andni_Instr)
 
 #BRANCH instruction family
 #BEQ
-#TODO: check if BEQ opcode is correct
 opCode = cxx_writer.writer_code.Code("""
-if (ra==0) {
-	PC = PC + ((int)SignExtend(rb, 8));
+if ((int)ra==0) {
+	PC = PC + (int)rb;
 } else {
 	PC = PC + 4;
 }
@@ -282,29 +281,34 @@ if (ra==0) {
 beq_Instr = trap.Instruction('BEQ','True')
 beq_Instr.setMachineCode(branch_cond_reg, {'opcode0': [1,0,0,1,1,1], 'opcode1': [0,0,0,0,0], 'opcode2': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 beq_Instr.setCode(opCode,'execute')
-# we increment PC in the code. We don't have to use IncrementPCBehavior.
-# beq_Instr.addBehavior(IncrementPC, 'execute')
+beq_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': 0, 'GPR[2]': 0x10, 'PC':0x500000}, {'PC':0x500010})
+beq_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': 0, 'GPR[2]': 0xfffffff0, 'PC':0x500000}, {'PC':0x4ffff0})
+beq_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': 1, 'GPR[2]': 0x10, 'PC':0x500000}, {'PC':0x500004})
 isa.addInstruction(beq_Instr)
 
 #BEQD
-#TODO: check if BEQ is correct
 opCode = cxx_writer.writer_code.Code("""
 
 """)
 beqd_Instr = trap.Instruction('BEQD','True')
 beqd_Instr.setMachineCode(branch_cond_reg, {'opcode0': [1,0,0,1,1,1], 'opcode1': [1,0,0,0,0], 'opcode2': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 beqd_Instr.setCode(opCode,'execute')
-# we increment PC in the code. We don't have to use IncrementPCBehavior.
-# beq_Instr.addBehavior(IncrementPC, 'execute')
 isa.addInstruction(beqd_Instr)
 
 #BEQI
 opCode = cxx_writer.writer_code.Code("""
-
+if ((int)ra==0) {
+	PC = PC + SignExtend(imm,16);
+} else {
+	PC = PC + 4;
+}
 """)
 beqi_Instr = trap.Instruction('BEQI','True')
 beqi_Instr.setMachineCode(branch_cond_imm, {'opcode0': [1,0,1,1,1,1], 'opcode1': [0,0,0,0,0]}, 'TODO')
 beqi_Instr.setCode(opCode,'execute')
+beqi_Instr.addTest({'ra': 1, 'imm': 0x10}, {'GPR[1]': 0, 'PC':0x500000}, {'PC':0x500010})
+beqi_Instr.addTest({'ra': 1, 'imm': 0xfff0}, {'GPR[1]': 0, 'PC':0x500000}, {'PC':0x4ffff0})
+beqi_Instr.addTest({'ra': 1, 'imm': 0x10}, {'GPR[1]': 1, 'PC':0x500000}, {'PC':0x500004})
 isa.addInstruction(beqi_Instr)
 
 #BEQID
@@ -318,11 +322,18 @@ isa.addInstruction(beqid_Instr)
 
 #BGE
 opCode = cxx_writer.writer_code.Code("""
-
+if ((int)ra>=0) {
+	PC = PC + (int)rb;
+} else {
+	PC = PC + 4;
+}
 """)
 bge_Instr = trap.Instruction('BGE','True')
 bge_Instr.setMachineCode(branch_cond_reg, {'opcode0': [1,0,0,1,1,1], 'opcode1': [0,0,1,0,1], 'opcode2': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 bge_Instr.setCode(opCode,'execute')
+bge_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': 5, 'GPR[2]': 0x10, 'PC':0x500000}, {'PC':0x500010})
+bge_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': 0, 'GPR[2]': 0xfffffff0, 'PC':0x500000}, {'PC':0x4ffff0})
+bge_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': -5, 'GPR[2]': 0x10, 'PC':0x500000}, {'PC':0x500004})
 isa.addInstruction(bge_Instr)
 
 #BGED
@@ -336,11 +347,18 @@ isa.addInstruction(bged_Instr)
 
 #BGEI
 opCode = cxx_writer.writer_code.Code("""
-
+if ((int)ra>=0) {
+	PC = PC + SignExtend(imm,16);
+} else {
+	PC = PC + 4;
+}
 """)
 bgei_Instr = trap.Instruction('BGEI','True')
 bgei_Instr.setMachineCode(branch_cond_imm, {'opcode0': [1,0,1,1,1,1], 'opcode1': [0,0,1,0,1]}, 'TODO')
 bgei_Instr.setCode(opCode,'execute')
+bgei_Instr.addTest({'ra': 1, 'imm': 0x10}, {'GPR[1]': 5, 'PC':0x500000}, {'PC':0x500010})
+bgei_Instr.addTest({'ra': 1, 'imm': 0xfff0}, {'GPR[1]': 0, 'PC':0x500000}, {'PC':0x4ffff0})
+bgei_Instr.addTest({'ra': 1, 'imm': 0x10}, {'GPR[1]': -5, 'PC':0x500000}, {'PC':0x500004})
 isa.addInstruction(bgei_Instr)
 
 #BGEID
@@ -354,11 +372,18 @@ isa.addInstruction(bgeid_Instr)
 
 #BGT
 opCode = cxx_writer.writer_code.Code("""
-
+if ((int)ra>0) {
+	PC = PC + (int)rb;
+} else {
+	PC = PC + 4;
+}
 """)
 bgt_Instr = trap.Instruction('BGT','True')
 bgt_Instr.setMachineCode(branch_cond_reg, {'opcode0': [1,0,0,1,1,1], 'opcode1': [0,0,1,0,0], 'opcode2': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 bgt_Instr.setCode(opCode,'execute')
+bgt_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': 5, 'GPR[2]': 0x10, 'PC':0x500000}, {'PC':0x500010})
+bgt_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': 0, 'GPR[2]': 0xfffffff0, 'PC':0x500000}, {'PC':0x500004})
+bgt_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': -5, 'GPR[2]': 0x10, 'PC':0x500000}, {'PC':0x500004})
 isa.addInstruction(bgt_Instr)
 
 #BGTD
@@ -372,11 +397,18 @@ isa.addInstruction(bgtd_Instr)
 
 #BGTI
 opCode = cxx_writer.writer_code.Code("""
-
+if ((int)ra>0) {
+	PC = PC + SignExtend(imm,16);
+} else {
+	PC = PC + 4;
+}
 """)
 bgti_Instr = trap.Instruction('BGTI','True')
 bgti_Instr.setMachineCode(branch_cond_imm, {'opcode0': [1,0,1,1,1,1], 'opcode1': [0,0,1,0,0]}, 'TODO')
 bgti_Instr.setCode(opCode,'execute')
+bgti_Instr.addTest({'ra': 1, 'imm': 0x10}, {'GPR[1]': 5, 'PC':0x500000}, {'PC':0x500010})
+bgti_Instr.addTest({'ra': 1, 'imm': 0xfff0}, {'GPR[1]': 0, 'PC':0x500000}, {'PC':0x500004})
+bgti_Instr.addTest({'ra': 1, 'imm': 0x10}, {'GPR[1]': -5, 'PC':0x500000}, {'PC':0x500004})
 isa.addInstruction(bgti_Instr)
 
 #BGTID
@@ -390,11 +422,18 @@ isa.addInstruction(bgtid_Instr)
 
 #BLE
 opCode = cxx_writer.writer_code.Code("""
-
+if ((int)ra<=0) {
+	PC = PC + (int)rb;
+} else {
+	PC = PC + 4;
+}
 """)
 ble_Instr = trap.Instruction('BLE','True')
 ble_Instr.setMachineCode(branch_cond_reg, {'opcode0': [1,0,0,1,1,1], 'opcode1': [0,0,0,1,1], 'opcode2': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 ble_Instr.setCode(opCode,'execute')
+ble_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': 5, 'GPR[2]': 0x10, 'PC':0x500000}, {'PC':0x500004})
+ble_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': 0, 'GPR[2]': 0xfffffff0, 'PC':0x500000}, {'PC':0x4ffff0})
+ble_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': -5, 'GPR[2]': 0x10, 'PC':0x500000}, {'PC':0x500010})
 isa.addInstruction(ble_Instr)
 
 #BLED
@@ -408,11 +447,18 @@ isa.addInstruction(bled_Instr)
 
 #BLEI
 opCode = cxx_writer.writer_code.Code("""
-
+if ((int)ra<=0) {
+	PC = PC + SignExtend(imm,16);
+} else {
+	PC = PC + 4;
+}
 """)
 blei_Instr = trap.Instruction('BLEI','True')
 blei_Instr.setMachineCode(branch_cond_imm, {'opcode0': [1,0,1,1,1,1], 'opcode1': [0,0,0,1,1]}, 'TODO')
 blei_Instr.setCode(opCode,'execute')
+blei_Instr.addTest({'ra': 1, 'imm': 0x10}, {'GPR[1]': 5, 'PC':0x500000}, {'PC':0x500004})
+blei_Instr.addTest({'ra': 1, 'imm': 0xfff0}, {'GPR[1]': 0, 'PC':0x500000}, {'PC':0x4ffff0})
+blei_Instr.addTest({'ra': 1, 'imm': 0x10}, {'GPR[1]': -5, 'PC':0x500000}, {'PC':0x500010})
 isa.addInstruction(blei_Instr)
 
 #BLEID
@@ -426,11 +472,18 @@ isa.addInstruction(bleid_Instr)
 
 #BLT
 opCode = cxx_writer.writer_code.Code("""
-
+if ((int)ra<0) {
+	PC = PC + (int)rb;
+} else {
+	PC = PC + 4;
+}
 """)
 blt_Instr = trap.Instruction('BLT','True')
 blt_Instr.setMachineCode(branch_cond_reg, {'opcode0': [1,0,0,1,1,1], 'opcode1': [0,0,0,1,0], 'opcode2': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 blt_Instr.setCode(opCode,'execute')
+blt_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': 5, 'GPR[2]': 0x10, 'PC':0x500000}, {'PC':0x500004})
+blt_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': 0, 'GPR[2]': 0xfffffff0, 'PC':0x500000}, {'PC':0x500004})
+blt_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': -5, 'GPR[2]': 0x10, 'PC':0x500000}, {'PC':0x500010})
 isa.addInstruction(blt_Instr)
 
 #BLTD
@@ -444,11 +497,18 @@ isa.addInstruction(bltd_Instr)
 
 #BLTI
 opCode = cxx_writer.writer_code.Code("""
-
+if ((int)ra<0) {
+	PC = PC + SignExtend(imm,16);
+} else {
+	PC = PC + 4;
+}
 """)
 blti_Instr = trap.Instruction('BLTI','True')
 blti_Instr.setMachineCode(branch_cond_imm, {'opcode0': [1,0,1,1,1,1], 'opcode1': [0,0,0,1,0]}, 'TODO')
 blti_Instr.setCode(opCode,'execute')
+blti_Instr.addTest({'ra': 1, 'imm': 0x10}, {'GPR[1]': 5, 'PC':0x500000}, {'PC':0x500004})
+blti_Instr.addTest({'ra': 1, 'imm': 0xfff0}, {'GPR[1]': 0, 'PC':0x500000}, {'PC':0x500004})
+blti_Instr.addTest({'ra': 1, 'imm': 0x10}, {'GPR[1]': -5, 'PC':0x500000}, {'PC':0x500010})
 isa.addInstruction(blti_Instr)
 
 #BLTID
@@ -462,11 +522,18 @@ isa.addInstruction(bltid_Instr)
 
 #BNE
 opCode = cxx_writer.writer_code.Code("""
-
+if ((int)ra!=0) {
+	PC = PC + (int)rb;
+} else {
+	PC = PC + 4;
+}
 """)
 bne_Instr = trap.Instruction('BNE','True')
 bne_Instr.setMachineCode(branch_cond_reg, {'opcode0': [1,0,0,1,1,1], 'opcode1': [0,0,0,0,1], 'opcode2': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 bne_Instr.setCode(opCode,'execute')
+bne_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': 5, 'GPR[2]': 0x10, 'PC':0x500000}, {'PC':0x500010})
+bne_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': 0, 'GPR[2]': 0xfffffff0, 'PC':0x500000}, {'PC':0x500004})
+bne_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': -5, 'GPR[2]': 0x10, 'PC':0x500000}, {'PC':0x500010})
 isa.addInstruction(bne_Instr)
 
 #BNED
@@ -480,11 +547,18 @@ isa.addInstruction(bned_Instr)
 
 #BNEI
 opCode = cxx_writer.writer_code.Code("""
-
+if ((int)ra!=0) {
+	PC = PC + SignExtend(imm,16);
+} else {
+	PC = PC + 4;
+}
 """)
 bnei_Instr = trap.Instruction('BNEI','True')
 bnei_Instr.setMachineCode(branch_cond_imm, {'opcode0': [1,0,1,1,1,1], 'opcode1': [0,0,0,0,1]}, 'TODO')
 bnei_Instr.setCode(opCode,'execute')
+bnei_Instr.addTest({'ra': 1, 'imm': 0x10}, {'GPR[1]': 5, 'PC':0x500000}, {'PC':0x500010})
+bnei_Instr.addTest({'ra': 1, 'imm': 0xfff0}, {'GPR[1]': 0, 'PC':0x500000}, {'PC':0x500004})
+bnei_Instr.addTest({'ra': 1, 'imm': 0x10}, {'GPR[1]': -5, 'PC':0x500000}, {'PC':0x500010})
 isa.addInstruction(bnei_Instr)
 
 #BNEID
@@ -666,7 +740,7 @@ isa.addInstruction(bsll_Instr)
 
 #BSRLI (S=0, T=0)
 opCode = cxx_writer.writer_code.Code("""
-rd = (unsigned int)ra >> (int)imm;
+rd = (unsigned int)ra >> (unsigned int)imm;
 """)
 bsrli_Instr = trap.Instruction('BSRLI', True)
 bsrli_Instr.setMachineCode(barrel_imm, {'opcode0': [0,1,1,0,0,1], 'opcode1': [0,0,0,0,0,0]}, 'TODO')
@@ -678,7 +752,7 @@ isa.addInstruction(bsrli_Instr)
 
 #BSRAI (S=0, T=1)
 opCode = cxx_writer.writer_code.Code("""
-rd = (int)ra >> (int)imm;
+rd = (int)ra >> (unsigned int)imm;
 """)
 bsrai_Instr = trap.Instruction('BSRAI', True)
 bsrai_Instr.setMachineCode(barrel_imm, {'opcode0': [0,1,1,0,0,1], 'opcode1': [0,1,0,0,0,0]}, 'TODO')
@@ -690,7 +764,7 @@ isa.addInstruction(bsrai_Instr)
 
 #BSLLI (S=0, T=1)
 opCode = cxx_writer.writer_code.Code("""
-rd = (unsigned int)ra << (int)imm;
+rd = (unsigned int)ra << (unsigned int)imm;
 """)
 bslli_Instr = trap.Instruction('BSLLI', True)
 bslli_Instr.setMachineCode(barrel_imm, {'opcode0': [0,1,1,0,0,1], 'opcode1': [1,0,0,0,0,0]}, 'TODO')
