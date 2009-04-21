@@ -89,11 +89,12 @@ add_Instr = trap.Instruction('ADD', True)
 add_Instr.setMachineCode(oper_reg, {'opcode0': [0,0,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 add_Instr.setCode(opCode,'execute')
 add_Instr.addBehavior(IncrementPC, 'execute')
-add_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
-add_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
-add_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x7fffffff, 'GPR[2]': 0x2, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x80000001, 'PC':0x4, 'MSR':0x00000000})
-add_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffffffff, 'GPR[2]': 0x4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x3, 'PC':0x4, 'MSR':0x20000000})
-add_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff000000, 'GPR[2]': 0x80000000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x7f000000, 'PC':0x4, 'MSR':0x20000000})
+add_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
+add_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
+add_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x7fffffff, 'GPR[2]': 0x2, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x80000001, 'PC':0x4, 'MSR':0x00000000})
+add_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffffffff, 'GPR[2]': 0x4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x3, 'PC':0x4, 'MSR':0x20000000})
+add_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff000000, 'GPR[2]': 0x80000000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x7f000000, 'PC':0x4, 'MSR':0x20000000})
+add_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0x50}, {'GPR[3]': 10, 'PC':0x50, 'MSR':0x00000000, 'TARGET':0xffffffff})
 isa.addInstruction(add_Instr)
 
 # ADDC
@@ -106,15 +107,15 @@ addc_Instr = trap.Instruction('ADDC', True)
 addc_Instr.setMachineCode(oper_reg, {'opcode0': [0,0,0,0,1,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 addc_Instr.setCode(opCode,'execute')
 addc_Instr.addBehavior(IncrementPC, 'execute')
-addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
-addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 11, 'PC':0x4, 'MSR':0x00000000})
-addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x7fffffff, 'GPR[2]': 0x2, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x80000001, 'PC':0x4, 'MSR':0x00000000})
-addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffffffff, 'GPR[2]': 0x4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x3, 'PC':0x4, 'MSR':0x20000000})
-addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff000000, 'GPR[2]': 0x80000000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x7f000000, 'PC':0x4, 'MSR':0x20000000})
-addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x7fffffff, 'GPR[2]': 0x2, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 0x80000002, 'PC':0x4, 'MSR':0x00000000})
-addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffffffff, 'GPR[2]': 0x4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 0x4, 'PC':0x4, 'MSR':0x20000000})
-addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff000000, 'GPR[2]': 0x80000000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 0x7f000001, 'PC':0x4, 'MSR':0x20000000})
-addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfffffffe, 'GPR[2]': 0x00000001, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 0x00000000, 'PC':0x4, 'MSR':0x20000000})
+addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
+addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[3]': 11, 'PC':0x4, 'MSR':0x00000000})
+addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x7fffffff, 'GPR[2]': 0x2, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x80000001, 'PC':0x4, 'MSR':0x00000000})
+addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffffffff, 'GPR[2]': 0x4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x3, 'PC':0x4, 'MSR':0x20000000})
+addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff000000, 'GPR[2]': 0x80000000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x7f000000, 'PC':0x4, 'MSR':0x20000000})
+addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x7fffffff, 'GPR[2]': 0x2, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x80000002, 'PC':0x4, 'MSR':0x00000000})
+addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffffffff, 'GPR[2]': 0x4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x4, 'PC':0x4, 'MSR':0x20000000})
+addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff000000, 'GPR[2]': 0x80000000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x7f000001, 'PC':0x4, 'MSR':0x20000000})
+addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfffffffe, 'GPR[2]': 0x00000001, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x00000000, 'PC':0x4, 'MSR':0x20000000})
 isa.addInstruction(addc_Instr)
 
 # ADDK
@@ -125,14 +126,14 @@ addk_Instr = trap.Instruction('ADDK', True)
 addk_Instr.setMachineCode(oper_reg, {'opcode0': [0,0,0,1,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 addk_Instr.setCode(opCode,'execute')
 addk_Instr.addBehavior(IncrementPC, 'execute')
-addk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
-addk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x20000000})
-addk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x7fffffff, 'GPR[2]': 0x2, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x80000001, 'PC':0x4, 'MSR':0x00000000})
-addk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffffffff, 'GPR[2]': 0x4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x3, 'PC':0x4, 'MSR':0x00000000})
-addk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff000000, 'GPR[2]': 0x80000000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x7f000000, 'PC':0x4, 'MSR':0x00000000})
-addk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x7fffffff, 'GPR[2]': 0x2, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 0x80000001, 'PC':0x4, 'MSR':0x20000000})
-addk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffffffff, 'GPR[2]': 0x4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 0x3, 'PC':0x4, 'MSR':0x20000000})
-addk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff000000, 'GPR[2]': 0x80000000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 0x7f000000, 'PC':0x4, 'MSR':0x20000000})
+addk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
+addk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x20000000})
+addk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x7fffffff, 'GPR[2]': 0x2, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x80000001, 'PC':0x4, 'MSR':0x00000000})
+addk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffffffff, 'GPR[2]': 0x4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x3, 'PC':0x4, 'MSR':0x00000000})
+addk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff000000, 'GPR[2]': 0x80000000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x7f000000, 'PC':0x4, 'MSR':0x00000000})
+addk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x7fffffff, 'GPR[2]': 0x2, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x80000001, 'PC':0x4, 'MSR':0x20000000})
+addk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffffffff, 'GPR[2]': 0x4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x3, 'PC':0x4, 'MSR':0x20000000})
+addk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff000000, 'GPR[2]': 0x80000000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x7f000000, 'PC':0x4, 'MSR':0x20000000})
 isa.addInstruction(addk_Instr)
 
 # ADDKC
@@ -143,14 +144,14 @@ addkc_Instr = trap.Instruction('ADDKC', True)
 addkc_Instr.setMachineCode(oper_reg, {'opcode0': [0,0,0,1,1,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 addkc_Instr.setCode(opCode,'execute')
 addkc_Instr.addBehavior(IncrementPC, 'execute')
-addkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
-addkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 11, 'PC':0x4, 'MSR':0x20000000})
-addkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x7fffffff, 'GPR[2]': 0x2, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x80000001, 'PC':0x4, 'MSR':0x00000000})
-addkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffffffff, 'GPR[2]': 0x4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x3, 'PC':0x4, 'MSR':0x00000000})
-addkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff000000, 'GPR[2]': 0x80000000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x7f000000, 'PC':0x4, 'MSR':0x00000000})
-addkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x7fffffff, 'GPR[2]': 0x2, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 0x80000002, 'PC':0x4, 'MSR':0x20000000})
-addkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffffffff, 'GPR[2]': 0x4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 0x4, 'PC':0x4, 'MSR':0x20000000})
-addkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff000000, 'GPR[2]': 0x80000000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 0x7f000001, 'PC':0x4, 'MSR':0x20000000})
+addkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
+addkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[3]': 11, 'PC':0x4, 'MSR':0x20000000})
+addkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x7fffffff, 'GPR[2]': 0x2, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x80000001, 'PC':0x4, 'MSR':0x00000000})
+addkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffffffff, 'GPR[2]': 0x4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x3, 'PC':0x4, 'MSR':0x00000000})
+addkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff000000, 'GPR[2]': 0x80000000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x7f000000, 'PC':0x4, 'MSR':0x00000000})
+addkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x7fffffff, 'GPR[2]': 0x2, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x80000002, 'PC':0x4, 'MSR':0x20000000})
+addkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffffffff, 'GPR[2]': 0x4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x4, 'PC':0x4, 'MSR':0x20000000})
+addkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff000000, 'GPR[2]': 0x80000000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x7f000001, 'PC':0x4, 'MSR':0x20000000})
 isa.addInstruction(addkc_Instr)
 
 #ADDI instruction family
@@ -165,11 +166,11 @@ addi_Instr = trap.Instruction('ADDI', True)
 addi_Instr.setMachineCode(oper_imm, {'opcode': [0,0,1,0,0,0]}, 'TODO')
 addi_Instr.setCode(opCode,'execute')
 addi_Instr.addBehavior(IncrementPC, 'execute')
-addi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0006}, {'GPR[1]': 4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
-addi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0006}, {'GPR[1]': 4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
-addi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0002}, {'GPR[1]': 0x7fffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x80000001, 'PC':0x4, 'MSR':0x00000000})
-addi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x8000}, {'GPR[1]': 0x00ff0000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x00fe8000, 'PC':0x4, 'MSR':0x20000000})
-addi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x8000}, {'GPR[1]': 0x00ff0000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 0x00fe8000, 'PC':0x4, 'MSR':0x20000000})
+addi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0006}, {'GPR[1]': 4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
+addi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0006}, {'GPR[1]': 4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
+addi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0002}, {'GPR[1]': 0x7fffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x80000001, 'PC':0x4, 'MSR':0x00000000})
+addi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x8000}, {'GPR[1]': 0x00ff0000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x00fe8000, 'PC':0x4, 'MSR':0x20000000})
+addi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x8000}, {'GPR[1]': 0x00ff0000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x00fe8000, 'PC':0x4, 'MSR':0x20000000})
 isa.addInstruction(addi_Instr)
 
 #ADDIC
@@ -183,11 +184,11 @@ addic_Instr = trap.Instruction('ADDIC', True)
 addic_Instr.setMachineCode(oper_imm, {'opcode': [0,0,1,0,1,0]}, 'TODO')
 addic_Instr.setCode(opCode,'execute')
 addic_Instr.addBehavior(IncrementPC, 'execute')
-addic_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0006}, {'GPR[1]': 4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
-addic_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0006}, {'GPR[1]': 4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 11, 'PC':0x4, 'MSR':0x00000000})
-addic_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0002}, {'GPR[1]': 0x7fffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x80000001, 'PC':0x4, 'MSR':0x00000000})
-addic_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x8000}, {'GPR[1]': 0x00ff0000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x00fe8000, 'PC':0x4, 'MSR':0x20000000})
-addic_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x8000}, {'GPR[1]': 0x00ff0000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 0x00fe8001, 'PC':0x4, 'MSR':0x20000000})
+addic_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0006}, {'GPR[1]': 4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
+addic_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0006}, {'GPR[1]': 4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[3]': 11, 'PC':0x4, 'MSR':0x00000000})
+addic_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0002}, {'GPR[1]': 0x7fffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x80000001, 'PC':0x4, 'MSR':0x00000000})
+addic_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x8000}, {'GPR[1]': 0x00ff0000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x00fe8000, 'PC':0x4, 'MSR':0x20000000})
+addic_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x8000}, {'GPR[1]': 0x00ff0000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x00fe8001, 'PC':0x4, 'MSR':0x20000000})
 isa.addInstruction(addic_Instr)
 
 #ADDIK
@@ -198,11 +199,11 @@ addik_Instr = trap.Instruction('ADDIK', True)
 addik_Instr.setMachineCode(oper_imm, {'opcode': [0,0,1,1,0,0]}, 'TODO')
 addik_Instr.setCode(opCode,'execute')
 addik_Instr.addBehavior(IncrementPC, 'execute')
-addik_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0006}, {'GPR[1]': 4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
-addik_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0006}, {'GPR[1]': 4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x20000000})
-addik_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0002}, {'GPR[1]': 0x7fffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x80000001, 'PC':0x4, 'MSR':0x00000000})
-addik_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x8000}, {'GPR[1]': 0x00ff0000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x00fe8000, 'PC':0x4, 'MSR':0x00000000})
-addik_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x8000}, {'GPR[1]': 0x00ff0000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 0x00fe8000, 'PC':0x4, 'MSR':0x20000000})
+addik_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0006}, {'GPR[1]': 4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
+addik_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0006}, {'GPR[1]': 4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x20000000})
+addik_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0002}, {'GPR[1]': 0x7fffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x80000001, 'PC':0x4, 'MSR':0x00000000})
+addik_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x8000}, {'GPR[1]': 0x00ff0000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x00fe8000, 'PC':0x4, 'MSR':0x00000000})
+addik_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x8000}, {'GPR[1]': 0x00ff0000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x00fe8000, 'PC':0x4, 'MSR':0x20000000})
 isa.addInstruction(addik_Instr)
 
 #ADDIKC
@@ -213,11 +214,11 @@ addikc_Instr = trap.Instruction('ADDIKC', True)
 addikc_Instr.setMachineCode(oper_imm, {'opcode': [0,0,1,1,1,0]}, 'TODO')
 addikc_Instr.setCode(opCode,'execute')
 addikc_Instr.addBehavior(IncrementPC, 'execute')
-addikc_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0006}, {'GPR[1]': 4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
-addikc_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0006}, {'GPR[1]': 4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 11, 'PC':0x4, 'MSR':0x20000000})
-addikc_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0002}, {'GPR[1]': 0x7fffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x80000001, 'PC':0x4, 'MSR':0x00000000})
-addikc_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x8000}, {'GPR[1]': 0x00ff0000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000}, {'GPR[3]': 0x00fe8000, 'PC':0x4, 'MSR':0x00000000})
-addikc_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x8000}, {'GPR[1]': 0x00ff0000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000}, {'GPR[3]': 0x00fe8001, 'PC':0x4, 'MSR':0x20000000})
+addikc_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0006}, {'GPR[1]': 4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'MSR':0x00000000})
+addikc_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0006}, {'GPR[1]': 4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[3]': 11, 'PC':0x4, 'MSR':0x20000000})
+addikc_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x0002}, {'GPR[1]': 0x7fffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x80000001, 'PC':0x4, 'MSR':0x00000000})
+addikc_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x8000}, {'GPR[1]': 0x00ff0000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x00fe8000, 'PC':0x4, 'MSR':0x00000000})
+addikc_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x8000}, {'GPR[1]': 0x00ff0000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x00fe8001, 'PC':0x4, 'MSR':0x20000000})
 isa.addInstruction(addikc_Instr)
 
 #AND instruction family
@@ -229,7 +230,7 @@ and_Instr = trap.Instruction('AND', True)
 and_Instr.setMachineCode(oper_reg, {'opcode0': [1,0,0,0,0,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 and_Instr.setCode(opCode,'execute')
 and_Instr.addBehavior(IncrementPC, 'execute')
-and_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffcc8844, 'GPR[2]': 0x66666666, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x66440044, 'PC':0x4})
+and_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffcc8844, 'GPR[2]': 0x66666666, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x66440044, 'PC':0x4})
 isa.addInstruction(and_Instr)
 
 #ANDI
@@ -240,7 +241,7 @@ andi_Instr = trap.Instruction('ANDI', True)
 andi_Instr.setMachineCode(oper_imm, {'opcode': [1,0,1,0,0,1]}, 'TODO')
 andi_Instr.setCode(opCode,'execute')
 andi_Instr.addBehavior(IncrementPC, 'execute')
-andi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x6666}, {'GPR[1]': 0xffcc8844, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x00000044, 'PC':0x4})
+andi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x6666}, {'GPR[1]': 0xffcc8844, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x00000044, 'PC':0x4})
 isa.addInstruction(andi_Instr)
 
 #ANDN
@@ -251,7 +252,7 @@ andn_Instr = trap.Instruction('ANDN', True)
 andn_Instr.setMachineCode(oper_reg, {'opcode0': [1,0,0,0,1,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 andn_Instr.setCode(opCode,'execute')
 andn_Instr.addBehavior(IncrementPC, 'execute')
-andn_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffcc8844, 'GPR[2]': 0x66666666, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x99888800, 'PC':0x4})
+andn_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffcc8844, 'GPR[2]': 0x66666666, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x99888800, 'PC':0x4})
 isa.addInstruction(andn_Instr)
 
 #ANDNI
@@ -262,12 +263,8 @@ andni_Instr = trap.Instruction('ANDNI', True)
 andni_Instr.setMachineCode(oper_imm, {'opcode': [1,0,1,0,1,1]}, 'TODO')
 andni_Instr.setCode(opCode,'execute')
 andni_Instr.addBehavior(IncrementPC, 'execute')
-andni_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x6666}, {'GPR[1]': 0xffcc8844, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0xffcc8800, 'PC':0x4})
+andni_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x6666}, {'GPR[1]': 0xffcc8844, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffcc8800, 'PC':0x4})
 isa.addInstruction(andni_Instr)
-
-#from here to the end, it is specified for each instruction, only
-#the bytecode and the name.
-#After, it will be specified also the behavior.
 
 #BRANCH instruction family
 #BEQ
@@ -288,11 +285,18 @@ isa.addInstruction(beq_Instr)
 
 #BEQD
 opCode = cxx_writer.writer_code.Code("""
-
+if ((int)ra == 0 ) {
+	TARGET = PC + (int)rb;
+} else {
+	TARGET = PC + 8; /* we have to jump to the instruction AFTER the delay slot. */
+}
+PC = PC + 4;
 """)
 beqd_Instr = trap.Instruction('BEQD','True')
 beqd_Instr.setMachineCode(branch_cond_reg, {'opcode0': [1,0,0,1,1,1], 'opcode1': [1,0,0,0,0], 'opcode2': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 beqd_Instr.setCode(opCode,'execute')
+beqd_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': 0, 'GPR[2]': 0x10, 'PC':0x500000, 'TARGET':0xffffffff}, {'PC':0x500004, 'TARGET':0x500010})
+beqd_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': 1, 'GPR[2]': 0x10, 'PC':0x500000, 'TARGET':0xffffffff}, {'PC':0x500004, 'TARGET':0x500008})
 isa.addInstruction(beqd_Instr)
 
 #BEQI
@@ -313,11 +317,18 @@ isa.addInstruction(beqi_Instr)
 
 #BEQID
 opCode = cxx_writer.writer_code.Code("""
-
+if ((int)ra == 0 ) {
+	TARGET = PC + SignExtend(imm,16);
+} else {
+	TARGET = PC + 8; /* we have to jump to the instruction AFTER the delay slot. */
+}
+PC = PC + 4;
 """)
 beqid_Instr = trap.Instruction('BEQID','True')
 beqid_Instr.setMachineCode(branch_cond_imm, {'opcode0': [1,0,1,1,1,1], 'opcode1': [1,0,0,0,0]}, 'TODO')
 beqid_Instr.setCode(opCode,'execute')
+beqid_Instr.addTest({'ra': 1, 'imm': 0x10}, {'GPR[1]': 0, 'PC':0x500000, 'TARGET':0xffffffff}, {'PC':0x500004, 'TARGET':0x500010})
+beqid_Instr.addTest({'ra': 1, 'imm': 0x10}, {'GPR[1]': 1, 'PC':0x500000, 'TARGET':0xffffffff}, {'PC':0x500004, 'TARGET':0x500008})
 isa.addInstruction(beqid_Instr)
 
 #BGE
@@ -338,11 +349,18 @@ isa.addInstruction(bge_Instr)
 
 #BGED
 opCode = cxx_writer.writer_code.Code("""
-
+if ((int)ra >= 0 ) {
+	TARGET = PC + (int)rb;
+} else {
+	TARGET = PC + 8; /* we have to jump to the instruction AFTER the delay slot. */
+}
+PC = PC + 4;
 """)
 bged_Instr = trap.Instruction('BGED','True')
 bged_Instr.setMachineCode(branch_cond_reg, {'opcode0': [1,0,0,1,1,1], 'opcode1': [1,0,1,0,1], 'opcode2': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 bged_Instr.setCode(opCode,'execute')
+bged_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': 1, 'GPR[2]': 0x10, 'PC':0x500000, 'TARGET':0xffffffff}, {'PC':0x500004, 'TARGET':0x500010})
+bged_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': -1, 'GPR[2]': 0x10, 'PC':0x500000, 'TARGET':0xffffffff}, {'PC':0x500004, 'TARGET':0x500008})
 isa.addInstruction(bged_Instr)
 
 #BGEI
@@ -363,11 +381,18 @@ isa.addInstruction(bgei_Instr)
 
 #BGEID
 opCode = cxx_writer.writer_code.Code("""
-
+if ((int)ra >= 0 ) {
+	TARGET = PC + SignExtend(imm,16);
+} else {
+	TARGET = PC + 8; /* we have to jump to the instruction AFTER the delay slot. */
+}
+PC = PC + 4;
 """)
 bgeid_Instr = trap.Instruction('BGEID','True')
 bgeid_Instr.setMachineCode(branch_cond_imm, {'opcode0': [1,0,1,1,1,1], 'opcode1': [1,0,1,0,1]}, 'TODO')
 bgeid_Instr.setCode(opCode,'execute')
+bgeid_Instr.addTest({'ra': 1, 'imm': 0x10}, {'GPR[1]': 0, 'PC':0x500000, 'TARGET':0xffffffff}, {'PC':0x500004, 'TARGET':0x500010})
+bgeid_Instr.addTest({'ra': 1, 'imm': 0x10}, {'GPR[1]': -1, 'PC':0x500000, 'TARGET':0xffffffff}, {'PC':0x500004, 'TARGET':0x500008})
 isa.addInstruction(bgeid_Instr)
 
 #BGT
@@ -388,11 +413,18 @@ isa.addInstruction(bgt_Instr)
 
 #BGTD
 opCode = cxx_writer.writer_code.Code("""
-
+if ((int)ra > 0 ) {
+	TARGET = PC + (int)rb;
+} else {
+	TARGET = PC + 8; /* we have to jump to the instruction AFTER the delay slot. */
+}
+PC = PC + 4;
 """)
 bgtd_Instr = trap.Instruction('BGTD','True')
 bgtd_Instr.setMachineCode(branch_cond_reg, {'opcode0': [1,0,0,1,1,1], 'opcode1': [1,0,1,0,0], 'opcode2': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 bgtd_Instr.setCode(opCode,'execute')
+bgtd_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': 1, 'GPR[2]': 0x10, 'PC':0x500000, 'TARGET':0xffffffff}, {'PC':0x500004, 'TARGET':0x500010})
+bgtd_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': 0, 'GPR[2]': 0x10, 'PC':0x500000, 'TARGET':0xffffffff}, {'PC':0x500004, 'TARGET':0x500008})
 isa.addInstruction(bgtd_Instr)
 
 #BGTI
@@ -413,11 +445,18 @@ isa.addInstruction(bgti_Instr)
 
 #BGTID
 opCode = cxx_writer.writer_code.Code("""
-
+if ((int)ra > 0 ) {
+	TARGET = PC + SignExtend(imm,16);
+} else {
+	TARGET = PC + 8; /* we have to jump to the instruction AFTER the delay slot. */
+}
+PC = PC + 4;
 """)
 bgtid_Instr = trap.Instruction('BGTID','True')
 bgtid_Instr.setMachineCode(branch_cond_imm, {'opcode0': [1,0,1,1,1,1], 'opcode1': [1,0,1,0,0]}, 'TODO')
 bgtid_Instr.setCode(opCode,'execute')
+bgtid_Instr.addTest({'ra': 1, 'imm': 0x10}, {'GPR[1]': 1, 'PC':0x500000, 'TARGET':0xffffffff}, {'PC':0x500004, 'TARGET':0x500010})
+bgtid_Instr.addTest({'ra': 1, 'imm': 0x10}, {'GPR[1]': 0, 'PC':0x500000, 'TARGET':0xffffffff}, {'PC':0x500004, 'TARGET':0x500008})
 isa.addInstruction(bgtid_Instr)
 
 #BLE
@@ -438,11 +477,18 @@ isa.addInstruction(ble_Instr)
 
 #BLED
 opCode = cxx_writer.writer_code.Code("""
-
+if ((int)ra <= 0 ) {
+	TARGET = PC + (int)rb;
+} else {
+	TARGET = PC + 8; /* we have to jump to the instruction AFTER the delay slot. */
+}
+PC = PC + 4;
 """)
 bled_Instr = trap.Instruction('BLED','True')
 bled_Instr.setMachineCode(branch_cond_reg, {'opcode0': [1,0,0,1,1,1], 'opcode1': [1,0,0,1,1], 'opcode2': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 bled_Instr.setCode(opCode,'execute')
+bled_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': -1, 'GPR[2]': 0x10, 'PC':0x500000, 'TARGET':0xffffffff}, {'PC':0x500004, 'TARGET':0x500010})
+bled_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': 1, 'GPR[2]': 0x10, 'PC':0x500000, 'TARGET':0xffffffff}, {'PC':0x500004, 'TARGET':0x500008})
 isa.addInstruction(bled_Instr)
 
 #BLEI
@@ -463,11 +509,18 @@ isa.addInstruction(blei_Instr)
 
 #BLEID
 opCode = cxx_writer.writer_code.Code("""
-
+if ((int)ra <= 0 ) {
+	TARGET = PC + SignExtend(imm,16);
+} else {
+	TARGET = PC + 8; /* we have to jump to the instruction AFTER the delay slot. */
+}
+PC = PC + 4;
 """)
 bleid_Instr = trap.Instruction('BLEID','True')
 bleid_Instr.setMachineCode(branch_cond_imm, {'opcode0': [1,0,1,1,1,1], 'opcode1': [1,0,0,1,1]}, 'TODO')
 bleid_Instr.setCode(opCode,'execute')
+bleid_Instr.addTest({'ra': 1, 'imm': 0x10}, {'GPR[1]': 0, 'PC':0x500000, 'TARGET':0xffffffff}, {'PC':0x500004, 'TARGET':0x500010})
+bleid_Instr.addTest({'ra': 1, 'imm': 0x10}, {'GPR[1]': 1, 'PC':0x500000, 'TARGET':0xffffffff}, {'PC':0x500004, 'TARGET':0x500008})
 isa.addInstruction(bleid_Instr)
 
 #BLT
@@ -488,11 +541,18 @@ isa.addInstruction(blt_Instr)
 
 #BLTD
 opCode = cxx_writer.writer_code.Code("""
-
+if ((int)ra < 0 ) {
+	TARGET = PC + (int)rb;
+} else {
+	TARGET = PC + 8; /* we have to jump to the instruction AFTER the delay slot. */
+}
+PC = PC + 4;
 """)
 bltd_Instr = trap.Instruction('BLTD','True')
 bltd_Instr.setMachineCode(branch_cond_reg, {'opcode0': [1,0,0,1,1,1], 'opcode1': [1,0,0,1,0], 'opcode2': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 bltd_Instr.setCode(opCode,'execute')
+bltd_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': -1, 'GPR[2]': 0x10, 'PC':0x500000, 'TARGET':0xffffffff}, {'PC':0x500004, 'TARGET':0x500010})
+bltd_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': 0, 'GPR[2]': 0x10, 'PC':0x500000, 'TARGET':0xffffffff}, {'PC':0x500004, 'TARGET':0x500008})
 isa.addInstruction(bltd_Instr)
 
 #BLTI
@@ -513,11 +573,18 @@ isa.addInstruction(blti_Instr)
 
 #BLTID
 opCode = cxx_writer.writer_code.Code("""
-
+if ((int)ra < 0 ) {
+	TARGET = PC + SignExtend(imm,16);
+} else {
+	TARGET = PC + 8; /* we have to jump to the instruction AFTER the delay slot. */
+}
+PC = PC + 4;
 """)
 bltid_Instr = trap.Instruction('BLTID','True')
 bltid_Instr.setMachineCode(branch_cond_imm, {'opcode0': [1,0,1,1,1,1], 'opcode1': [1,0,0,1,0]}, 'TODO')
 bltid_Instr.setCode(opCode,'execute')
+bltid_Instr.addTest({'ra': 1, 'imm': 0x10}, {'GPR[1]': -1, 'PC':0x500000, 'TARGET':0xffffffff}, {'PC':0x500004, 'TARGET':0x500010})
+bltid_Instr.addTest({'ra': 1, 'imm': 0x10}, {'GPR[1]': 0, 'PC':0x500000, 'TARGET':0xffffffff}, {'PC':0x500004, 'TARGET':0x500008})
 isa.addInstruction(bltid_Instr)
 
 #BNE
@@ -538,11 +605,18 @@ isa.addInstruction(bne_Instr)
 
 #BNED
 opCode = cxx_writer.writer_code.Code("""
-
+if ((int)ra != 0 ) {
+	TARGET = PC + (int)rb;
+} else {
+	TARGET = PC + 8; /* we have to jump to the instruction AFTER the delay slot. */
+}
+PC = PC + 4;
 """)
 bned_Instr = trap.Instruction('BNED','True')
 bned_Instr.setMachineCode(branch_cond_reg, {'opcode0': [1,0,0,1,1,1], 'opcode1': [1,0,0,0,1], 'opcode2': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 bned_Instr.setCode(opCode,'execute')
+bned_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': 1, 'GPR[2]': 0x10, 'PC':0x500000, 'TARGET':0xffffffff}, {'PC':0x500004, 'TARGET':0x500010})
+bned_Instr.addTest({'ra': 1, 'rb': 2}, {'GPR[1]': 0, 'GPR[2]': 0x10, 'PC':0x500000, 'TARGET':0xffffffff}, {'PC':0x500004, 'TARGET':0x500008})
 isa.addInstruction(bned_Instr)
 
 #BNEI
@@ -563,139 +637,193 @@ isa.addInstruction(bnei_Instr)
 
 #BNEID
 opCode = cxx_writer.writer_code.Code("""
-
+if ((int)ra != 0 ) {
+	TARGET = PC + SignExtend(imm,16);
+} else {
+	TARGET = PC + 8; /* we have to jump to the instruction AFTER the delay slot. */
+}
+PC = PC + 4;
 """)
 bneid_Instr = trap.Instruction('BNEID','True')
 bneid_Instr.setMachineCode(branch_cond_imm, {'opcode0': [1,0,1,1,1,1], 'opcode1': [1,0,0,0,1]}, 'TODO')
 bneid_Instr.setCode(opCode,'execute')
+bneid_Instr.addTest({'ra': 1, 'imm': 0x10}, {'GPR[1]': 1, 'PC':0x500000, 'TARGET':0xffffffff}, {'PC':0x500004, 'TARGET':0x500010})
+bneid_Instr.addTest({'ra': 1, 'imm': 0x10}, {'GPR[1]': 0, 'PC':0x500000, 'TARGET':0xffffffff}, {'PC':0x500004, 'TARGET':0x500008})
 isa.addInstruction(bneid_Instr)
 
 #BR
 opCode = cxx_writer.writer_code.Code("""
-
+PC = PC + (int)rb;
 """)
 br_Instr = trap.Instruction('BR','True')
 br_Instr.setMachineCode(branch_uncond_reg, {'opcode0': [1,0,0,1,1,0], 'opcode1': [0,0,0,0,0], 'opcode2': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 br_Instr.setCode(opCode,'execute')
+br_Instr.addTest({'rb': 1}, {'GPR[1]': 0x50, 'PC':0x500000}, {'PC':0x500050})
 isa.addInstruction(br_Instr)
 
 #BRA
 opCode = cxx_writer.writer_code.Code("""
-
+PC = (int)rb;
 """)
 bra_Instr = trap.Instruction('BRA','True')
 bra_Instr.setMachineCode(branch_uncond_reg, {'opcode0': [1,0,0,1,1,0], 'opcode1': [0,1,0,0,0], 'opcode2': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 bra_Instr.setCode(opCode,'execute')
+bra_Instr.addTest({'rb': 1}, {'GPR[1]': 0x50, 'PC':0x500000}, {'PC':0x50})
 isa.addInstruction(bra_Instr)
 
 #BRD
 opCode = cxx_writer.writer_code.Code("""
-
+TARGET = PC + (int)rb;
+PC = PC + 4;
 """)
 brd_Instr = trap.Instruction('BRD','True')
 brd_Instr.setMachineCode(branch_uncond_reg, {'opcode0': [1,0,0,1,1,0], 'opcode1': [1,0,0,0,0], 'opcode2': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 brd_Instr.setCode(opCode,'execute')
+brd_Instr.addTest({'rb': 1}, {'GPR[1]': 0x50, 'PC':0x500000}, {'PC':0x500004, 'TARGET':0x500050})
 isa.addInstruction(brd_Instr)
 
 #BRAD
 opCode = cxx_writer.writer_code.Code("""
-
+TARGET = (int)rb;
+PC = PC + 4;
 """)
 brad_Instr = trap.Instruction('BRAD','True')
 brad_Instr.setMachineCode(branch_uncond_reg, {'opcode0': [1,0,0,1,1,0], 'opcode1': [1,1,0,0,0], 'opcode2': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 brad_Instr.setCode(opCode,'execute')
+brad_Instr.addTest({'rb': 1}, {'GPR[1]': 0x50, 'PC':0x500000}, {'PC':0x500004, 'TARGET':0x50})
 isa.addInstruction(brad_Instr)
 
 #BRLD
 opCode = cxx_writer.writer_code.Code("""
-
+rd = PC;
+TARGET = PC + (int)rb;
+PC = PC + 4;
 """)
 brld_Instr = trap.Instruction('BRLD','True')
 brld_Instr.setMachineCode(branch_uncond_reg, {'opcode0': [1,0,0,1,1,0], 'opcode1': [1,0,1,0,0], 'opcode2': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 brld_Instr.setCode(opCode,'execute')
+brld_Instr.addTest({'rb': 1, 'rd': 2}, {'GPR[1]': 0x50, 'GPR[2]':0xffff, 'PC':0x500000}, {'GPR[2]': 0x500000, 'PC':0x500004, 'TARGET':0x500050})
 isa.addInstruction(brld_Instr)
 
 #BRALD
 opCode = cxx_writer.writer_code.Code("""
-
+rd = PC;
+TARGET = (int)rb;
+PC = PC + 4;
 """)
 brald_Instr = trap.Instruction('BRALD','True')
 brald_Instr.setMachineCode(branch_uncond_reg, {'opcode0': [1,0,0,1,1,0], 'opcode1': [1,1,1,0,0], 'opcode2': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 brald_Instr.setCode(opCode,'execute')
+brald_Instr.addTest({'rb': 1, 'rd': 2}, {'GPR[1]': 0x50, 'GPR[2]':0xffff, 'PC':0x500000}, {'GPR[2]': 0x500000, 'PC':0x500004, 'TARGET':0x50})
 isa.addInstruction(brald_Instr)
 
 #BRI
 opCode = cxx_writer.writer_code.Code("""
-
+PC = PC + SignExtend(imm,16);
 """)
 bri_Instr = trap.Instruction('BRI','True')
 bri_Instr.setMachineCode(branch_uncond_imm, {'opcode0': [1,0,1,1,1,0], 'opcode1': [0,0,0,0,0]}, 'TODO')
 bri_Instr.setCode(opCode,'execute')
+bri_Instr.addTest({'imm': 0x50}, {'PC':0x500000}, {'PC':0x500050})
 isa.addInstruction(bri_Instr)
 
 #BRAI
 opCode = cxx_writer.writer_code.Code("""
-
+PC = SignExtend(imm,16);
 """)
 brai_Instr = trap.Instruction('BRAI','True')
 brai_Instr.setMachineCode(branch_uncond_imm, {'opcode0': [1,0,1,1,1,0], 'opcode1': [0,1,0,0,0]}, 'TODO')
 brai_Instr.setCode(opCode,'execute')
+brai_Instr.addTest({'imm': 0x50}, {'PC':0x500000}, {'PC':0x50})
 isa.addInstruction(brai_Instr)
 
 #BRID
 opCode = cxx_writer.writer_code.Code("""
-
+TARGET = PC + SignExtend(imm,16);
+PC = PC + 4;
 """)
 brid_Instr = trap.Instruction('BRID','True')
 brid_Instr.setMachineCode(branch_uncond_imm, {'opcode0': [1,0,1,1,1,0], 'opcode1': [1,0,0,0,0]}, 'TODO')
 brid_Instr.setCode(opCode,'execute')
+brid_Instr.addTest({'imm': 0x50}, {'PC':0x500000}, {'PC':0x500004, 'TARGET':0x500050})
 isa.addInstruction(brid_Instr)
 
 #BRAID
 opCode = cxx_writer.writer_code.Code("""
-
+TARGET = SignExtend(imm,16);
+PC = PC + 4;
 """)
 brai_Instr = trap.Instruction('BRAID','True')
 brai_Instr.setMachineCode(branch_uncond_imm, {'opcode0': [1,0,1,1,1,0], 'opcode1': [1,1,0,0,0]}, 'TODO')
 brai_Instr.setCode(opCode,'execute')
+brai_Instr.addTest({'imm': 0x50}, {'PC':0x500000}, {'PC':0x500004, 'TARGET':0x50})
 isa.addInstruction(brai_Instr)
 
 #BRLID
 opCode = cxx_writer.writer_code.Code("""
-
+rd = PC;
+TARGET = PC + SignExtend(imm,16);
+PC = PC + 4;
 """)
 brlid_Instr = trap.Instruction('BRLID','True')
 brlid_Instr.setMachineCode(branch_uncond_imm, {'opcode0': [1,0,1,1,1,0], 'opcode1': [1,0,1,0,0]}, 'TODO')
 brlid_Instr.setCode(opCode,'execute')
+brlid_Instr.addTest({'rd': 1, 'imm': 0x50}, {'GPR[1]': 0xffff, 'PC':0x500000}, {'GPR[1]': 0x500000, 'PC':0x500004, 'TARGET':0x500050})
 isa.addInstruction(brlid_Instr)
 
 #BRALID
 opCode = cxx_writer.writer_code.Code("""
-
+rd = PC;
+TARGET = SignExtend(imm,16);
+PC = PC + 4;
 """)
 bralid_Instr = trap.Instruction('BRALID','True')
 bralid_Instr.setMachineCode(branch_uncond_imm, {'opcode0': [1,0,1,1,1,0], 'opcode1': [1,1,1,0,0]}, 'TODO')
 bralid_Instr.setCode(opCode,'execute')
+bralid_Instr.addTest({'rd': 1, 'imm': 0x50}, {'GPR[1]': 0xffff, 'PC':0x500000}, {'GPR[1]': 0x500000, 'PC':0x500004, 'TARGET':0x50})
 isa.addInstruction(bralid_Instr)
 
 #BRK
-#BRK is equal to BRAL
 opCode = cxx_writer.writer_code.Code("""
-
+if ( MSR[key_UM] == 0x1 ) {
+	ESR[key_EC] = 0x1c;
+} else {
+	rd = PC;
+	PC = (int)rb;
+	MSR[key_BIP] = 0x1;
+}
 """)
 brk_Instr = trap.Instruction('BRK','True')
 brk_Instr.setMachineCode(branch_uncond_reg, {'opcode0': [1,0,0,1,1,0], 'opcode1': [0,1,1,0,0], 'opcode2': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 brk_Instr.setCode(opCode,'execute')
+brk_Instr.addTest({'rd': 1, 'rb': 2}, {'GPR[1]': 0xffff, 'GPR[2]': 0x50, 'PC':0x500000, 'MSR': 0x0}, {'GPR[1]': 0x500000, 'PC':0x50, 'MSR': 0x10000000})
+brk_Instr.addTest({'rd': 1, 'rb': 2}, {'GPR[1]': 0xffff, 'GPR[2]': 0x50, 'PC':0x500000, 'MSR': 0x00100000}, {'GPR[1]': 0xffff, 'PC':0x500000, 'MSR': 0x00100000, 'ESR': 0xe0000000})
 isa.addInstruction(brk_Instr)
 
 #BRKI
-#BRKI is equal to BRALI
 opCode = cxx_writer.writer_code.Code("""
-
+if ((MSR[key_UM] == 1) && ((int)imm != 0x8) && ((int)imm != 0x18)) {
+	ESR[key_EC] = 0x1c;
+} else {
+	rd = PC;
+	PC = SignExtend(imm,16);
+	MSR[key_BIP] = 0x1;
+	if ( ((int)imm == 0x8) || ((int)imm == 0x18) ) {
+		MSR[key_UMS] = MSR[key_UM];
+		MSR[key_VMS] = MSR[key_VM];
+		MSR[key_UM] = 0x0;
+		MSR[key_VM] = 0x0;
+	}
+}
 """)
 brki_Instr = trap.Instruction('BRKI','True')
 brki_Instr.setMachineCode(branch_uncond_imm, {'opcode0': [1,0,1,1,1,0], 'opcode1': [0,1,1,0,0]}, 'TODO')
 brki_Instr.setCode(opCode,'execute')
+brki_Instr.addTest({'rd': 1, 'imm': 0x8bcd}, {'GPR[1]': 0xffff, 'PC':0x500000, 'MSR': 0x0}, {'GPR[1]': 0x500000, 'PC':0xffff8bcd, 'MSR': 0x10000000})
+brki_Instr.addTest({'rd': 1, 'imm': 0x8}, {'GPR[1]': 0xffff, 'PC':0x500000, 'MSR': 0x0}, {'GPR[1]': 0x500000, 'PC':0x00000008, 'MSR': 0x10000000})
+brki_Instr.addTest({'rd': 1, 'imm': 0x8}, {'GPR[1]': 0xffff, 'PC':0x500000, 'MSR': 0x00040000}, {'GPR[1]': 0x500000, 'PC':0x00000008, 'MSR': 0x10020000})
+brki_Instr.addTest({'rd': 1, 'imm': 0x8}, {'GPR[1]': 0xffff, 'PC':0x500000, 'MSR': 0x00100000}, {'GPR[1]': 0x500000, 'PC':0x00000008, 'MSR': 0x10080000})
+brki_Instr.addTest({'rd': 1, 'imm': 0x40}, {'GPR[1]': 0xffff, 'PC':0x500000, 'MSR': 0x00100000}, {'GPR[1]': 0xffff, 'PC':0x500000, 'ESR': 0xe0000000})
 isa.addInstruction(brki_Instr)
 
 #BARREL SHIFT family
@@ -707,9 +835,9 @@ bsrl_Instr = trap.Instruction('BSRL', True)
 bsrl_Instr.setMachineCode(barrel_reg, {'opcode0': [0,1,0,0,0,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 bsrl_Instr.setCode(opCode,'execute')
 bsrl_Instr.addBehavior(IncrementPC, 'execute')
-bsrl_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x151fbb18, 'GPR[2]': 0x7, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x2a3f76, 'PC':0x4})
-bsrl_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x151fbb18, 'GPR[2]': 0xf5489fe7, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x2a3f76, 'PC':0x4})
-bsrl_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff1fbb18, 'GPR[2]': 0x7, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x1fe3f76, 'PC':0x4})
+bsrl_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x151fbb18, 'GPR[2]': 0x7, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x2a3f76, 'PC':0x4})
+bsrl_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x151fbb18, 'GPR[2]': 0xf5489fe7, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x2a3f76, 'PC':0x4})
+bsrl_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff1fbb18, 'GPR[2]': 0x7, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x1fe3f76, 'PC':0x4})
 isa.addInstruction(bsrl_Instr)
 
 #BSRA (S=0, T=1)
@@ -720,9 +848,9 @@ bsra_Instr = trap.Instruction('BSRA', True)
 bsra_Instr.setMachineCode(barrel_reg, {'opcode0': [0,1,0,0,0,1], 'opcode1': [0,1,0,0,0,0,0,0,0,0,0]}, 'TODO')
 bsra_Instr.setCode(opCode,'execute')
 bsra_Instr.addBehavior(IncrementPC, 'execute')
-bsra_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x151fbb18, 'GPR[2]': 0x7, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x2a3f76, 'PC':0x4})
-bsra_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x151fbb18, 'GPR[2]': 0xf5489fe7, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x2a3f76, 'PC':0x4})
-bsra_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff1fbb18, 'GPR[2]': 0x7, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0xfffe3f76, 'PC':0x4})
+bsra_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x151fbb18, 'GPR[2]': 0x7, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x2a3f76, 'PC':0x4})
+bsra_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x151fbb18, 'GPR[2]': 0xf5489fe7, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x2a3f76, 'PC':0x4})
+bsra_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff1fbb18, 'GPR[2]': 0x7, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xfffe3f76, 'PC':0x4})
 isa.addInstruction(bsra_Instr)
 
 #BSLL (S=1, T=0)
@@ -733,9 +861,9 @@ bsll_Instr = trap.Instruction('BSLL', True)
 bsll_Instr.setMachineCode(barrel_reg, {'opcode0': [0,1,0,0,0,1], 'opcode1': [1,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 bsll_Instr.setCode(opCode,'execute')
 bsll_Instr.addBehavior(IncrementPC, 'execute')
-bsll_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x151fbb18, 'GPR[2]': 0x7, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x8fdd8c00, 'PC':0x4})
-bsll_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x151fbb18, 'GPR[2]': 0xf5489fe7, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x8fdd8c00, 'PC':0x4})
-bsll_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff1fbb18, 'GPR[2]': 0x7, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x8fdd8c00, 'PC':0x4})
+bsll_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x151fbb18, 'GPR[2]': 0x7, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x8fdd8c00, 'PC':0x4})
+bsll_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x151fbb18, 'GPR[2]': 0xf5489fe7, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x8fdd8c00, 'PC':0x4})
+bsll_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff1fbb18, 'GPR[2]': 0x7, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x8fdd8c00, 'PC':0x4})
 isa.addInstruction(bsll_Instr)
 
 #BSRLI (S=0, T=0)
@@ -746,8 +874,8 @@ bsrli_Instr = trap.Instruction('BSRLI', True)
 bsrli_Instr.setMachineCode(barrel_imm, {'opcode0': [0,1,1,0,0,1], 'opcode1': [0,0,0,0,0,0]}, 'TODO')
 bsrli_Instr.setCode(opCode,'execute')
 bsrli_Instr.addBehavior(IncrementPC, 'execute')
-bsrli_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 7}, {'GPR[1]': 0x151fbb18, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x2a3f76, 'PC':0x4})
-bsrli_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 7}, {'GPR[1]': 0xff1fbb18, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x1fe3f76, 'PC':0x4})
+bsrli_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 7}, {'GPR[1]': 0x151fbb18, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x2a3f76, 'PC':0x4})
+bsrli_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 7}, {'GPR[1]': 0xff1fbb18, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x1fe3f76, 'PC':0x4})
 isa.addInstruction(bsrli_Instr)
 
 #BSRAI (S=0, T=1)
@@ -758,8 +886,8 @@ bsrai_Instr = trap.Instruction('BSRAI', True)
 bsrai_Instr.setMachineCode(barrel_imm, {'opcode0': [0,1,1,0,0,1], 'opcode1': [0,1,0,0,0,0]}, 'TODO')
 bsrai_Instr.setCode(opCode,'execute')
 bsrai_Instr.addBehavior(IncrementPC, 'execute')
-bsrai_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 7}, {'GPR[1]': 0x151fbb18, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x2a3f76, 'PC':0x4})
-bsrai_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 7}, {'GPR[1]': 0xff1fbb18, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0xfffe3f76, 'PC':0x4})
+bsrai_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 7}, {'GPR[1]': 0x151fbb18, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x2a3f76, 'PC':0x4})
+bsrai_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 7}, {'GPR[1]': 0xff1fbb18, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xfffe3f76, 'PC':0x4})
 isa.addInstruction(bsrai_Instr)
 
 #BSLLI (S=0, T=1)
@@ -770,8 +898,8 @@ bslli_Instr = trap.Instruction('BSLLI', True)
 bslli_Instr.setMachineCode(barrel_imm, {'opcode0': [0,1,1,0,0,1], 'opcode1': [1,0,0,0,0,0]}, 'TODO')
 bslli_Instr.setCode(opCode,'execute')
 bslli_Instr.addBehavior(IncrementPC, 'execute')
-bslli_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 7}, {'GPR[1]': 0x151fbb18, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x8fdd8c00, 'PC':0x4})
-bslli_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 7}, {'GPR[1]': 0xff1fbb18, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x8fdd8c00, 'PC':0x4})
+bslli_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 7}, {'GPR[1]': 0x151fbb18, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x8fdd8c00, 'PC':0x4})
+bslli_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 7}, {'GPR[1]': 0xff1fbb18, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x8fdd8c00, 'PC':0x4})
 isa.addInstruction(bslli_Instr)
 
 #COMPARE family
@@ -789,9 +917,9 @@ cmp_Instr = trap.Instruction('CMP', True)
 cmp_Instr.setMachineCode(oper_reg, {'opcode0': [0,0,0,1,0,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,1]}, 'TODO')
 cmp_Instr.setCode(opCode,'execute')
 cmp_Instr.addBehavior(IncrementPC, 'execute')
-cmp_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0xffffd999, 'PC':0x4})
-cmp_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xfffea385, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0xfffda652, 'PC':0x4})
-cmp_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x15c7b, 'GPR[2]': 0xffff02cd, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0xfffda652, 'PC':0x4})
+cmp_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+cmp_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xfffea385, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xfffda652, 'PC':0x4})
+cmp_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x15c7b, 'GPR[2]': 0xffff02cd, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xfffda652, 'PC':0x4})
 isa.addInstruction(cmp_Instr)
 
 #CMPU
@@ -808,9 +936,9 @@ cmpu_Instr = trap.Instruction('CMPU', True)
 cmpu_Instr.setMachineCode(oper_reg, {'opcode0': [0,0,0,1,0,1], 'opcode1': [0,0,0,0,0,0,0,0,0,1,1]}, 'TODO')
 cmpu_Instr.setCode(opCode,'execute')
 cmpu_Instr.addBehavior(IncrementPC, 'execute')
-cmpu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0xffffd999, 'PC':0x4})
-cmpu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xfffea385, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x7ffda652, 'PC':0x4})
-cmpu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x15c7b, 'GPR[2]': 0xffff02cd, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x7ffda652, 'PC':0x4})
+cmpu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+cmpu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xfffea385, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x7ffda652, 'PC':0x4})
+cmpu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x15c7b, 'GPR[2]': 0xffff02cd, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x7ffda652, 'PC':0x4})
 isa.addInstruction(cmpu_Instr)
 
 #FLOAT family
@@ -909,11 +1037,14 @@ isa.addInstruction(idivu_Instr)
 
 #IMM
 opCode = cxx_writer.writer_code.Code("""
-
+IMMREG = SignExtend(imm,16);
 """)
 imm_Instr = trap.Instruction('IMM', True)
 imm_Instr.setMachineCode(imm_code, {'opcode': [1,0,1,1,0,0]}, 'TODO')
 imm_Instr.setCode(opCode,'execute')
+imm_Instr.addBehavior(IncrementPC, 'execute')
+imm_Instr.addTest({'imm': 0x8bcd}, {'IMMREG' : 0x00000000,'PC' : 0x0, 'TARGET':0xffffffff}, {'IMMREG' : 0xffff8bcd, 'PC' : 0x4})
+imm_Instr.addTest({'imm': 0x7bcd}, {'IMMREG' : 0x00000000,'PC' : 0x0, 'TARGET':0xffffffff}, {'IMMREG' : 0x00007bcd, 'PC' : 0x4})
 isa.addInstruction(imm_Instr)
 
 #LOAD family
@@ -927,9 +1058,9 @@ lbu_Instr = trap.Instruction('LBU', True)
 lbu_Instr.setMachineCode(oper_reg, {'opcode0': [1,1,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 lbu_Instr.setCode(opCode,'execute')
 lbu_Instr.addBehavior(IncrementPC, 'execute')
-lbu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x20, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0}, {'GPR[3]': 0xff, 'PC' : 0x4})
-lbu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x21, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0}, {'GPR[3]': 0x44, 'PC' : 0x4})
-lbu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x21, 'GPR[3]' : 0x123456cd, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0}, {'GPR[3]': 0xff, 'PC' : 0x4})
+lbu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x20, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xff, 'PC' : 0x4})
+lbu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x21, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x44, 'PC' : 0x4})
+lbu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x21, 'GPR[3]' : 0x123456cd, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xff, 'PC' : 0x4})
 isa.addInstruction(lbu_Instr)
 
 #LBUI
@@ -942,9 +1073,9 @@ lbui_Instr = trap.Instruction('LBUI', True)
 lbui_Instr.setMachineCode(oper_imm, {'opcode': [1,1,1,0,0,0]}, 'TODO')
 lbui_Instr.setCode(opCode,'execute')
 lbui_Instr.addBehavior(IncrementPC, 'execute')
-lbui_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x20}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0}, {'GPR[3]': 0xff, 'PC' : 0x4})
-lbui_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0}, {'GPR[3]': 0x44, 'PC' : 0x4})
-lbui_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456cd, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0}, {'GPR[3]': 0xff, 'PC' : 0x4})
+lbui_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x20}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xff, 'PC' : 0x4})
+lbui_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x44, 'PC' : 0x4})
+lbui_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456cd, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xff, 'PC' : 0x4})
 isa.addInstruction(lbui_Instr)
 
 #LHU
@@ -964,10 +1095,10 @@ lhu_Instr = trap.Instruction('LHU', True)
 lhu_Instr.setMachineCode(oper_reg, {'opcode0': [1,1,0,0,0,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 lhu_Instr.setCode(opCode,'execute')
 lhu_Instr.addBehavior(IncrementPC, 'execute')
-lhu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x20, 'GPR[3]' : 0x1111, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0x0000ff44, 'PC' : 0x4, 'ESR': 0x0})
-lhu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x21, 'GPR[3]' : 0x1111, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0x1111, 'PC' : 0x4, 'ESR': 0x80D00000})
-lhu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x22, 'GPR[3]' : 0x1111, 'dataMem[0x32]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0x0000ff44, 'PC' : 0x4, 'ESR': 0x0})
-lhu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x13, 'GPR[2]' : 0x21, 'GPR[3]' : 0x1111, 'dataMem[0x34]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0x0000ff44, 'PC' : 0x4, 'ESR': 0x0})
+lhu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x20, 'GPR[3]' : 0x1111, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'GPR[3]' : 0x0000ff44, 'PC' : 0x4, 'ESR': 0x0})
+lhu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x21, 'GPR[3]' : 0x1111, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'GPR[3]' : 0x1111, 'PC' : 0x4, 'ESR': 0x08c00000})
+lhu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x22, 'GPR[3]' : 0x1111, 'dataMem[0x32]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'GPR[3]' : 0x0000ff44, 'PC' : 0x4, 'ESR': 0x0})
+lhu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x13, 'GPR[2]' : 0x21, 'GPR[3]' : 0x1111, 'dataMem[0x34]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'GPR[3]' : 0x0000ff44, 'PC' : 0x4, 'ESR': 0x0})
 isa.addInstruction(lhu_Instr)
 
 #LHUI
@@ -987,10 +1118,10 @@ lhui_Instr = trap.Instruction('LHUI', True)
 lhui_Instr.setMachineCode(oper_imm, {'opcode': [1,1,1,0,0,1]}, 'TODO')
 lhui_Instr.setCode(opCode,'execute')
 lhui_Instr.addBehavior(IncrementPC, 'execute')
-lhui_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x20}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x1111, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0x0000ff44, 'PC' : 0x4, 'ESR': 0x0})
-lhui_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x1111, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0x1111, 'PC' : 0x4, 'ESR': 0x80D00000})
-lhui_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x22}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x1111, 'dataMem[0x32]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0x0000ff44, 'PC' : 0x4, 'ESR': 0x0})
-lhui_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x13, 'GPR[3]' : 0x1111, 'dataMem[0x34]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0x0000ff44, 'PC' : 0x4, 'ESR': 0x0})
+lhui_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x20}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x1111, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'GPR[3]' : 0x0000ff44, 'PC' : 0x4, 'ESR': 0x0})
+lhui_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x1111, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'GPR[3]' : 0x1111, 'PC' : 0x4, 'ESR': 0x08c00000})
+lhui_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x22}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x1111, 'dataMem[0x32]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'GPR[3]' : 0x0000ff44, 'PC' : 0x4, 'ESR': 0x0})
+lhui_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x13, 'GPR[3]' : 0x1111, 'dataMem[0x34]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'GPR[3]' : 0x0000ff44, 'PC' : 0x4, 'ESR': 0x0})
 isa.addInstruction(lhui_Instr)
 
 #LW
@@ -1009,10 +1140,10 @@ lw_Instr = trap.Instruction('LW', True)
 lw_Instr.setMachineCode(oper_reg, {'opcode0': [1,1,0,0,1,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 lw_Instr.setCode(opCode,'execute')
 lw_Instr.addBehavior(IncrementPC, 'execute')
-lw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x20, 'GPR[3]' : 0x1111, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0xff445566, 'PC' : 0x4, 'ESR': 0x0})
-lw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x21, 'GPR[3]' : 0x1111, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0x1111, 'PC' : 0x4, 'ESR': 0x80D00000})
-lw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x22, 'GPR[3]' : 0x1111, 'dataMem[0x32]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0x1111, 'PC' : 0x4, 'ESR': 0x80D00000})
-lw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x13, 'GPR[2]' : 0x21, 'GPR[3]' : 0x1111, 'dataMem[0x34]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0xff445566, 'PC' : 0x4, 'ESR': 0x0})
+lw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x20, 'GPR[3]' : 0x1111, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'GPR[3]' : 0xff445566, 'PC' : 0x4, 'ESR': 0x0})
+lw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x21, 'GPR[3]' : 0x1111, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'GPR[3]' : 0x1111, 'PC' : 0x4, 'ESR': 0x08d00000})
+lw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x22, 'GPR[3]' : 0x1111, 'dataMem[0x32]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'GPR[3]' : 0x1111, 'PC' : 0x4, 'ESR': 0x08d00000})
+lw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x13, 'GPR[2]' : 0x21, 'GPR[3]' : 0x1111, 'dataMem[0x34]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'GPR[3]' : 0xff445566, 'PC' : 0x4, 'ESR': 0x0})
 isa.addInstruction(lw_Instr)
 
 #LWI
@@ -1031,10 +1162,10 @@ lwi_Instr = trap.Instruction('LWI', True)
 lwi_Instr.setMachineCode(oper_imm, {'opcode': [1,1,1,0,1,0]}, 'TODO')
 lwi_Instr.setCode(opCode,'execute')
 lwi_Instr.addBehavior(IncrementPC, 'execute')
-lwi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x20}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x1111, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0xff445566, 'PC' : 0x4, 'ESR': 0x0})
-lwi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x1111, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0x1111, 'PC' : 0x4, 'ESR': 0x80D00000})
-lwi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x22}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x1111, 'dataMem[0x32]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0x1111, 'PC' : 0x4, 'ESR': 0x80D00000})
-lwi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x13, 'GPR[3]' : 0x1111, 'dataMem[0x34]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0xff445566, 'PC' : 0x4, 'ESR': 0x0})
+lwi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x20}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x1111, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'GPR[3]' : 0xff445566, 'PC' : 0x4, 'ESR': 0x0})
+lwi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x1111, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'GPR[3]' : 0x1111, 'PC' : 0x4, 'ESR': 0x08d00000})
+lwi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x22}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x1111, 'dataMem[0x32]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'GPR[3]' : 0x1111, 'PC' : 0x4, 'ESR': 0x08d00000})
+lwi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x13, 'GPR[3]' : 0x1111, 'dataMem[0x34]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'GPR[3]' : 0xff445566, 'PC' : 0x4, 'ESR': 0x0})
 isa.addInstruction(lwi_Instr)
 
 #MFS
@@ -1082,12 +1213,12 @@ mul_Instr = trap.Instruction('MUL', True)
 mul_Instr.setMachineCode(oper_reg, {'opcode0': [0,1,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 mul_Instr.setCode(opCode,'execute')
 mul_Instr.addBehavior(IncrementPC, 'execute')
-mul_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 24, 'PC':0x4})
-mul_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfffffffc, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0xffffffe8, 'PC':0x4})
-mul_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x10000001, 'GPR[2]': 0x10, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x10, 'PC':0x4})
-mul_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xefffffff, 'GPR[2]': 0x100, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0xffffff00, 'PC':0x4})
-mul_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x10000001, 'GPR[2]': 0xffffff00, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0xffffff00, 'PC':0x4})
-mul_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xefffffff, 'GPR[2]': 0xffffff00, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x100, 'PC':0x4})
+mul_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 24, 'PC':0x4})
+mul_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfffffffc, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffffe8, 'PC':0x4})
+mul_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x10000001, 'GPR[2]': 0x10, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x10, 'PC':0x4})
+mul_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xefffffff, 'GPR[2]': 0x100, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffff00, 'PC':0x4})
+mul_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x10000001, 'GPR[2]': 0xffffff00, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffff00, 'PC':0x4})
+mul_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xefffffff, 'GPR[2]': 0xffffff00, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x100, 'PC':0x4})
 isa.addInstruction(mul_Instr)
 
 #MULH
@@ -1112,11 +1243,11 @@ mulh_Instr = trap.Instruction('MULH', True)
 mulh_Instr.setMachineCode(oper_reg, {'opcode0': [0,1,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,1]}, 'TODO')
 mulh_Instr.setCode(opCode,'execute')
 mulh_Instr.addBehavior(IncrementPC, 'execute')
-mulh_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0, 'PC':0x4})
-mulh_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfffffffc, 'GPR[2]': 6, 'GPR[3]': 0xffffffff, 'PC':0x0}, {'GPR[3]': 0xffffffff, 'PC':0x4})
-mulh_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x10000001, 'GPR[2]': 0x10, 'GPR[3]': 0xffffffff, 'PC':0x0}, {'GPR[3]': 0x1, 'PC':0x4})
-mulh_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xefffffff, 'GPR[2]': 0x100, 'GPR[3]': 0xffffffff, 'PC':0x0}, {'GPR[3]': 0xffffffef, 'PC':0x4})
-mulh_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xefffffff, 'GPR[2]': 0xffffff00, 'GPR[3]': 0xffffffff, 'PC':0x0}, {'GPR[3]': 0x10, 'PC':0x4})
+mulh_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0, 'PC':0x4})
+mulh_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfffffffc, 'GPR[2]': 6, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffffff, 'PC':0x4})
+mulh_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x10000001, 'GPR[2]': 0x10, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x1, 'PC':0x4})
+mulh_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xefffffff, 'GPR[2]': 0x100, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffffef, 'PC':0x4})
+mulh_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xefffffff, 'GPR[2]': 0xffffff00, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x10, 'PC':0x4})
 isa.addInstruction(mulh_Instr)
 
 #MULHU
@@ -1129,10 +1260,10 @@ mulhu_Instr = trap.Instruction('MULHU', True)
 mulhu_Instr.setMachineCode(oper_reg, {'opcode0': [0,1,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,1,1]}, 'TODO')
 mulhu_Instr.setCode(opCode,'execute')
 mulhu_Instr.addBehavior(IncrementPC, 'execute')
-mulhu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0, 'PC':0x4})
-mulhu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfffffffc, 'GPR[2]': 6, 'GPR[3]': 0xffffffff, 'PC':0x0}, {'GPR[3]': 0x5, 'PC':0x4})
-mulhu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x10000001, 'GPR[2]': 0x10, 'GPR[3]': 0xffffffff, 'PC':0x0}, {'GPR[3]': 0x1, 'PC':0x4})
-mulhu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xefffffff, 'GPR[2]': 0x100, 'GPR[3]': 0xffffffff, 'PC':0x0}, {'GPR[3]': 0xef, 'PC':0x4})
+mulhu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0, 'PC':0x4})
+mulhu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfffffffc, 'GPR[2]': 6, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x5, 'PC':0x4})
+mulhu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x10000001, 'GPR[2]': 0x10, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x1, 'PC':0x4})
+mulhu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xefffffff, 'GPR[2]': 0x100, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xef, 'PC':0x4})
 isa.addInstruction(mulhu_Instr)
 
 #MULHSU
@@ -1148,12 +1279,12 @@ mulhsu_Instr = trap.Instruction('MULHSU', True)
 mulhsu_Instr.setMachineCode(oper_reg, {'opcode0': [0,1,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,1,0]}, 'TODO')
 mulhsu_Instr.setCode(opCode,'execute')
 mulhsu_Instr.addBehavior(IncrementPC, 'execute')
-mulhsu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0, 'PC':0x4})
-mulhsu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfffffffc, 'GPR[2]': 6, 'GPR[3]': 0xffffffff, 'PC':0x0}, {'GPR[3]': 0xffffffff, 'PC':0x4})
-mulhsu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 0xfffffffa, 'GPR[3]': 0xffffffff, 'PC':0x0}, {'GPR[3]': 0x3, 'PC':0x4})
-mulhsu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x10000001, 'GPR[2]': 0x10, 'GPR[3]': 0xffffffff, 'PC':0x0}, {'GPR[3]': 0x1, 'PC':0x4})
-mulhsu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xefffffff, 'GPR[2]': 0x100, 'GPR[3]': 0xffffffff, 'PC':0x0}, {'GPR[3]': 0xffffffef, 'PC':0x4})
-mulhsu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x10000001, 'GPR[2]': 0xffffff00, 'GPR[3]': 0xffffffff, 'PC':0x0}, {'GPR[3]': 0xffffff0, 'PC':0x4})
+mulhsu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0, 'PC':0x4})
+mulhsu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfffffffc, 'GPR[2]': 6, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffffff, 'PC':0x4})
+mulhsu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 0xfffffffa, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x3, 'PC':0x4})
+mulhsu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x10000001, 'GPR[2]': 0x10, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x1, 'PC':0x4})
+mulhsu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xefffffff, 'GPR[2]': 0x100, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffffef, 'PC':0x4})
+mulhsu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x10000001, 'GPR[2]': 0xffffff00, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffff0, 'PC':0x4})
 isa.addInstruction(mulhsu_Instr)
 
 #MULI
@@ -1170,11 +1301,11 @@ muli_Instr = trap.Instruction('MULI', True)
 muli_Instr.setMachineCode(oper_imm, {'opcode': [0,1,1,0,0,0]}, 'TODO')
 muli_Instr.setCode(opCode,'execute')
 muli_Instr.addBehavior(IncrementPC, 'execute')
-muli_Instr.addTest({'rd': 3, 'ra': 1,'imm': 0}, {'GPR[1]': 4, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0, 'PC':0x4})
-muli_Instr.addTest({'rd': 3, 'ra': 1,'imm': 1}, {'GPR[1]': 0xfffffffc, 'GPR[3]': 0xffffffff, 'PC':0x0}, {'GPR[3]': 0xfffffffc, 'PC':0x4})
-muli_Instr.addTest({'rd': 3, 'ra': 1,'imm': 0xffff}, {'GPR[1]': 4, 'GPR[3]': 0xffffffff, 'PC':0x0}, {'GPR[3]': 0xfffffffc, 'PC':0x4})
-muli_Instr.addTest({'rd': 3, 'ra': 1,'imm': 0xffff}, {'GPR[1]': 0xfffffffc, 'GPR[3]': 0xffffffff, 'PC':0x0}, {'GPR[3]': 0x4, 'PC':0x4})
-muli_Instr.addTest({'rd': 3, 'ra': 1,'imm': 5}, {'GPR[1]': 30000, 'GPR[3]': 0xffffffff, 'PC':0x0}, {'GPR[3]': 150000, 'PC':0x4})
+muli_Instr.addTest({'rd': 3, 'ra': 1,'imm': 0}, {'GPR[1]': 4, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0, 'PC':0x4})
+muli_Instr.addTest({'rd': 3, 'ra': 1,'imm': 1}, {'GPR[1]': 0xfffffffc, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xfffffffc, 'PC':0x4})
+muli_Instr.addTest({'rd': 3, 'ra': 1,'imm': 0xffff}, {'GPR[1]': 4, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xfffffffc, 'PC':0x4})
+muli_Instr.addTest({'rd': 3, 'ra': 1,'imm': 0xffff}, {'GPR[1]': 0xfffffffc, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x4, 'PC':0x4})
+muli_Instr.addTest({'rd': 3, 'ra': 1,'imm': 5}, {'GPR[1]': 30000, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 150000, 'PC':0x4})
 isa.addInstruction(muli_Instr)
 
 #OR
@@ -1185,8 +1316,8 @@ or_Instr = trap.Instruction('OR', True)
 or_Instr.setMachineCode(oper_reg, {'opcode0': [1,0,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 or_Instr.setCode(opCode,'execute')
 or_Instr.addBehavior(IncrementPC, 'execute')
-or_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0, 'GPR[2]': 0, 'GPR[3]': 0xffffffff, 'PC':0x0}, {'GPR[3]': 0, 'PC':4})
-or_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 2, 'GPR[2]': 0, 'GPR[3]': 0xffffffff, 'PC':0x0}, {'GPR[3]': 1, 'PC':4})
+or_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0, 'GPR[2]': 0, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0, 'PC':4})
+or_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 2, 'GPR[2]': 0, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 1, 'PC':4})
 isa.addInstruction(or_Instr)
 
 #ORI
@@ -1197,9 +1328,9 @@ ori_Instr = trap.Instruction('ORI', True)
 ori_Instr.setMachineCode(oper_imm, {'opcode': [1,0,1,0,0,0]}, 'TODO')
 ori_Instr.setCode(opCode,'execute')
 ori_Instr.addBehavior(IncrementPC, 'execute')
-ori_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0}, {'GPR[1]': 0,  'GPR[3]': 0xffffffff, 'PC':0x0}, {'GPR[3]': 0, 'PC':4})
-ori_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0}, {'GPR[1]': 2,  'GPR[3]': 0xffffffff, 'PC':0x0}, {'GPR[3]': 1, 'PC':4})
-ori_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x8000}, {'GPR[1]': 0x80000000,  'GPR[3]': 0xffffffff, 'PC':0x0}, {'GPR[3]': 1, 'PC':4})
+ori_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0}, {'GPR[1]': 0,  'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0, 'PC':4})
+ori_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0}, {'GPR[1]': 2,  'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 1, 'PC':4})
+ori_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x8000}, {'GPR[1]': 0x80000000,  'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 1, 'PC':4})
 isa.addInstruction(ori_Instr)
 
 
@@ -1220,12 +1351,12 @@ pcmpbf_Instr = trap.Instruction('PCMPBF', True)
 pcmpbf_Instr.setMachineCode(oper_reg, {'opcode0': [1,0,0,0,0,0], 'opcode1': [1,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 pcmpbf_Instr.setCode(opCode,'execute')
 pcmpbf_Instr.addBehavior(IncrementPC, 'execute')
-pcmpbf_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0xffffffff, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x0, 'PC':0x4})
-pcmpbf_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0x12ffffff, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x1, 'PC':0x4})
-pcmpbf_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0xff34ffff, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x2, 'PC':0x4})
-pcmpbf_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0xfffffeff, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x3, 'PC':0x4})
-pcmpbf_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0xffffffdc, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x4, 'PC':0x4})
-pcmpbf_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0xff34ffdc, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x2, 'PC':0x4})
+pcmpbf_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0xffffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x0, 'PC':0x4})
+pcmpbf_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0x12ffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x1, 'PC':0x4})
+pcmpbf_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0xff34ffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x2, 'PC':0x4})
+pcmpbf_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0xfffffeff, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x3, 'PC':0x4})
+pcmpbf_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0xffffffdc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x4, 'PC':0x4})
+pcmpbf_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0xff34ffdc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x2, 'PC':0x4})
 isa.addInstruction(pcmpbf_Instr)
 
 #PCMPEQ
@@ -1236,8 +1367,8 @@ pcmpeq_Instr = trap.Instruction('PCMPEQ', True)
 pcmpeq_Instr.setMachineCode(oper_reg, {'opcode0': [1,0,0,0,1,0], 'opcode1': [1,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 pcmpeq_Instr.setCode(opCode,'execute')
 pcmpeq_Instr.addBehavior(IncrementPC, 'execute')
-pcmpeq_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0x1234fedc, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x1, 'PC':0x4})
-pcmpeq_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0xffffffff, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x0, 'PC':0x4})
+pcmpeq_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0x1234fedc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x1, 'PC':0x4})
+pcmpeq_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0xffffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x0, 'PC':0x4})
 isa.addInstruction(pcmpeq_Instr)
 
 #PCMPNE
@@ -1248,8 +1379,8 @@ pcmpne_Instr = trap.Instruction('PCMPNE', True)
 pcmpne_Instr.setMachineCode(oper_reg, {'opcode0': [1,0,0,0,1,1], 'opcode1': [1,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 pcmpne_Instr.setCode(opCode,'execute')
 pcmpne_Instr.addBehavior(IncrementPC, 'execute')
-pcmpne_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0x1234fedc, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x0, 'PC':0x4})
-pcmpne_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0xffffffff, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x1, 'PC':0x4})
+pcmpne_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0x1234fedc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x0, 'PC':0x4})
+pcmpne_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0xffffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x1, 'PC':0x4})
 isa.addInstruction(pcmpne_Instr)
 
 #PUT / PUTD
@@ -1376,9 +1507,9 @@ sb_Instr = trap.Instruction('SB', True)
 sb_Instr.setMachineCode(oper_reg, {'opcode0': [1,1,0,1,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 sb_Instr.setCode(opCode,'execute')
 sb_Instr.addBehavior(IncrementPC, 'execute')
-sb_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x20, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0}, {'dataMem[0x30]': 0xab445566, 'PC' : 0x4})
-sb_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x21, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0}, {'dataMem[0x30]': 0xffab5566, 'PC' : 0x4})
-sb_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x21, 'GPR[3]' : 0x123456ab, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0}, {'dataMem[0x31]': 0xab445566, 'PC' : 0x4})
+sb_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x20, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'TARGET':0xffffffff}, {'dataMem[0x30]': 0xab445566, 'PC' : 0x4})
+sb_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x21, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'TARGET':0xffffffff}, {'dataMem[0x30]': 0xffab5566, 'PC' : 0x4})
+sb_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x21, 'GPR[3]' : 0x123456ab, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'TARGET':0xffffffff}, {'dataMem[0x31]': 0xab445566, 'PC' : 0x4})
 isa.addInstruction(sb_Instr)
 
 #SBI
@@ -1390,9 +1521,9 @@ sbi_Instr = trap.Instruction('SBI', True)
 sbi_Instr.setMachineCode(oper_imm, {'opcode': [1,1,1,1,0,0]}, 'TODO')
 sbi_Instr.setCode(opCode,'execute')
 sbi_Instr.addBehavior(IncrementPC, 'execute')
-sbi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x20}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0}, {'dataMem[0x30]': 0xab445566, 'PC' : 0x4})
-sbi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0}, {'dataMem[0x30]': 0xffab5566, 'PC' : 0x4})
-sbi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0}, {'dataMem[0x31]': 0xab445566, 'PC' : 0x4})
+sbi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x20}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'TARGET':0xffffffff}, {'dataMem[0x30]': 0xab445566, 'PC' : 0x4})
+sbi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'TARGET':0xffffffff}, {'dataMem[0x30]': 0xffab5566, 'PC' : 0x4})
+sbi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'TARGET':0xffffffff}, {'dataMem[0x31]': 0xab445566, 'PC' : 0x4})
 isa.addInstruction(sbi_Instr)
 
 #SH
@@ -1411,10 +1542,10 @@ sh_Instr = trap.Instruction('SH', True)
 sh_Instr.setMachineCode(oper_reg, {'opcode0': [1,1,0,1,0,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 sh_Instr.setCode(opCode,'execute')
 sh_Instr.addBehavior(IncrementPC, 'execute')
-sh_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x20, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x30]': 0x56ab5566, 'PC' : 0x4, 'ESR': 0x0})
-sh_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x21, 'GPR[3]' : 0x123456ab, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x31]': 0xff445566, 'PC' : 0x4, 'ESR': 0x80D00000})
-sh_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x22, 'GPR[3]' : 0x123456ab, 'dataMem[0x32]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x32]': 0x56ab5566, 'PC' : 0x4, 'ESR': 0x0})
-sh_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x13, 'GPR[2]' : 0x21, 'GPR[3]' : 0x123456ab, 'dataMem[0x34]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x34]': 0x56ab5566, 'PC' : 0x4, 'ESR': 0x0})
+sh_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x20, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'dataMem[0x30]': 0x56ab5566, 'PC' : 0x4, 'ESR': 0x0})
+sh_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x21, 'GPR[3]' : 0x123456ab, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'dataMem[0x31]': 0xff445566, 'PC' : 0x4, 'ESR': 0x08e00000})
+sh_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x22, 'GPR[3]' : 0x123456ab, 'dataMem[0x32]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'dataMem[0x32]': 0x56ab5566, 'PC' : 0x4, 'ESR': 0x0})
+sh_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x13, 'GPR[2]' : 0x21, 'GPR[3]' : 0x123456ab, 'dataMem[0x34]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'dataMem[0x34]': 0x56ab5566, 'PC' : 0x4, 'ESR': 0x0})
 isa.addInstruction(sh_Instr)
 
 #SHI
@@ -1433,10 +1564,10 @@ shi_Instr = trap.Instruction('SHI', True)
 shi_Instr.setMachineCode(oper_imm, {'opcode': [1,1,1,1,0,1]}, 'TODO')
 shi_Instr.setCode(opCode,'execute')
 shi_Instr.addBehavior(IncrementPC, 'execute')
-shi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x20}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x30]': 0x56ab5566, 'PC' : 0x4, 'ESR': 0x0})
-shi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x31]': 0xff445566, 'PC' : 0x4, 'ESR': 0x80D00000})
-shi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x22}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x32]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x32]': 0x56ab5566, 'PC' : 0x4, 'ESR': 0x0})
-shi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x13, 'GPR[3]' : 0x123456ab, 'dataMem[0x34]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x34]': 0x56ab5566, 'PC' : 0x4, 'ESR': 0x0})
+shi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x20}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'dataMem[0x30]': 0x56ab5566, 'PC' : 0x4, 'ESR': 0x0})
+shi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'dataMem[0x31]': 0xff445566, 'PC' : 0x4, 'ESR': 0x08e00000})
+shi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x22}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x32]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'dataMem[0x32]': 0x56ab5566, 'PC' : 0x4, 'ESR': 0x0})
+shi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x13, 'GPR[3]' : 0x123456ab, 'dataMem[0x34]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'dataMem[0x34]': 0x56ab5566, 'PC' : 0x4, 'ESR': 0x0})
 isa.addInstruction(shi_Instr)
 
 #SW
@@ -1455,10 +1586,10 @@ sw_Instr = trap.Instruction('SW', True)
 sw_Instr.setMachineCode(oper_reg, {'opcode0': [1,1,0,1,1,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 sw_Instr.setCode(opCode,'execute')
 sw_Instr.addBehavior(IncrementPC, 'execute')
-sw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x20, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x30]': 0x123456ab, 'PC' : 0x4, 'ESR': 0x0})
-sw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x21, 'GPR[3]' : 0x123456ab, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x31]': 0xff445566, 'PC' : 0x4, 'ESR': 0x80D00000})
-sw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x22, 'GPR[3]' : 0x123456ab, 'dataMem[0x32]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x32]': 0xff445566, 'PC' : 0x4, 'ESR': 0x80D00000})
-sw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x13, 'GPR[2]' : 0x21, 'GPR[3]' : 0x123456ab, 'dataMem[0x34]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x34]': 0x123456ab, 'PC' : 0x4, 'ESR': 0x0})
+sw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x20, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'dataMem[0x30]': 0x123456ab, 'PC' : 0x4, 'ESR': 0x0})
+sw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x21, 'GPR[3]' : 0x123456ab, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'dataMem[0x31]': 0xff445566, 'PC' : 0x4, 'ESR': 0x08f00000})
+sw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x22, 'GPR[3]' : 0x123456ab, 'dataMem[0x32]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'dataMem[0x32]': 0xff445566, 'PC' : 0x4, 'ESR': 0x08f00000})
+sw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x13, 'GPR[2]' : 0x21, 'GPR[3]' : 0x123456ab, 'dataMem[0x34]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'dataMem[0x34]': 0x123456ab, 'PC' : 0x4, 'ESR': 0x0})
 isa.addInstruction(sw_Instr)
 
 #SWI
@@ -1477,10 +1608,10 @@ swi_Instr = trap.Instruction('SWI', True)
 swi_Instr.setMachineCode(oper_imm, {'opcode': [1,1,1,1,1,0]}, 'TODO')
 swi_Instr.setCode(opCode,'execute')
 swi_Instr.addBehavior(IncrementPC, 'execute')
-swi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x20}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x30]': 0x123456ab, 'PC' : 0x4, 'ESR': 0x0})
-swi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x31]': 0xff445566, 'PC' : 0x4, 'ESR': 0x80D00000})
-swi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x22}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x32]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x32]': 0xff445566, 'PC' : 0x4, 'ESR': 0x80D00000})
-swi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x13, 'GPR[3]' : 0x123456ab, 'dataMem[0x34]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x34]': 0x123456ab, 'PC' : 0x4, 'ESR': 0x0})
+swi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x20}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'dataMem[0x30]': 0x123456ab, 'PC' : 0x4, 'ESR': 0x0})
+swi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'dataMem[0x31]': 0xff445566, 'PC' : 0x4, 'ESR': 0x08f00000})
+swi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x22}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x32]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'dataMem[0x32]': 0xff445566, 'PC' : 0x4, 'ESR': 0x08f00000})
+swi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x13, 'GPR[3]' : 0x123456ab, 'dataMem[0x34]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'dataMem[0x34]': 0x123456ab, 'PC' : 0x4, 'ESR': 0x0})
 isa.addInstruction(swi_Instr)
 
 #SEXT16
@@ -1495,9 +1626,9 @@ sext16_Instr = trap.Instruction('SEXT16', True)
 sext16_Instr.setMachineCode(unary_oper, {'opcode0': [1,0,0,1,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1]}, 'TODO')
 sext16_Instr.setCode(opCode,'execute')
 sext16_Instr.addBehavior(IncrementPC, 'execute')
-sext16_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0x6666, 'GPR[3]' : 0xffff, 'PC' : 0x0}, {'GPR[3]': 0x00006666, 'PC' : 0x4})
-sext16_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0xabcd7777, 'GPR[3]' : 0xffff, 'PC' : 0x0}, {'GPR[3]': 0x00007777, 'PC' : 0x4})
-sext16_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0xabcd8777, 'GPR[3]' : 0xffff, 'PC' : 0x0}, {'GPR[3]': 0xffff8777, 'PC' : 0x4})
+sext16_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0x6666, 'GPR[3]' : 0xffff, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x00006666, 'PC' : 0x4})
+sext16_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0xabcd7777, 'GPR[3]' : 0xffff, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x00007777, 'PC' : 0x4})
+sext16_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0xabcd8777, 'GPR[3]' : 0xffff, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffff8777, 'PC' : 0x4})
 isa.addInstruction(sext16_Instr)
 
 #SEXT8
@@ -1512,9 +1643,9 @@ sext8_Instr = trap.Instruction('SEXT8', True)
 sext8_Instr.setMachineCode(unary_oper, {'opcode0': [1,0,0,1,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0]}, 'TODO')
 sext8_Instr.setCode(opCode,'execute')
 sext8_Instr.addBehavior(IncrementPC, 'execute')
-sext8_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0x6666, 'GPR[3]' : 0xffff, 'PC' : 0x0}, {'GPR[3]': 0x00000066, 'PC' : 0x4})
-sext8_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0xabcd7777, 'GPR[3]' : 0xffff, 'PC' : 0x0}, {'GPR[3]': 0x00000077, 'PC' : 0x4})
-sext8_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0xabcd7787, 'GPR[3]' : 0xffff, 'PC' : 0x0}, {'GPR[3]': 0xffffff87, 'PC' : 0x4})
+sext8_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0x6666, 'GPR[3]' : 0xffff, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x00000066, 'PC' : 0x4})
+sext8_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0xabcd7777, 'GPR[3]' : 0xffff, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x00000077, 'PC' : 0x4})
+sext8_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0xabcd7787, 'GPR[3]' : 0xffff, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffff87, 'PC' : 0x4})
 isa.addInstruction(sext8_Instr)
 
 #SRA
@@ -1579,8 +1710,8 @@ xor_Instr = trap.Instruction('XOR', True)
 xor_Instr.setMachineCode(oper_reg, {'opcode0': [1,0,0,0,1,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 xor_Instr.setCode(opCode,'execute')
 xor_Instr.addBehavior(IncrementPC, 'execute')
-xor_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0, 'GPR[2]': 0, 'GPR[3]': 0xffffffff, 'PC':0x0}, {'GPR[3]': 0, 'PC':4})
-xor_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0, 'GPR[2]': 1, 'GPR[3]': 0xffffffff, 'PC':0x0}, {'GPR[3]': 1, 'PC':4})
+xor_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0, 'GPR[2]': 0, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0, 'PC':4})
+xor_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0, 'GPR[2]': 1, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 1, 'PC':4})
 isa.addInstruction(xor_Instr)
 
 #XORI (LOGICAL)
@@ -1595,6 +1726,6 @@ xori_Instr = trap.Instruction('XORI', True)
 xori_Instr.setMachineCode(oper_imm, {'opcode': [1,0,1,0,1,0]}, 'TODO')
 xori_Instr.setCode(opCode,'execute')
 xori_Instr.addBehavior(IncrementPC, 'execute')
-xori_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0}, {'GPR[1]': 0,  'GPR[3]': 0xffffffff, 'PC':0x0}, {'GPR[3]': 0, 'PC':4})
-xori_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 1}, {'GPR[1]': 0,  'GPR[3]': 0xffffffff, 'PC':0x0}, {'GPR[3]': 1, 'PC':4})
+xori_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0}, {'GPR[1]': 0,  'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0, 'PC':4})
+xori_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 1}, {'GPR[1]': 0,  'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 1, 'PC':4})
 isa.addInstruction(xori_Instr)

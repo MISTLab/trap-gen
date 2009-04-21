@@ -55,8 +55,15 @@ return bitSeq;
 SignExtend_method = trap.HelperMethod('SignExtend', opCode, 'execute')
 SignExtend_method.setSignature(('BIT<32>'), [('bitSeq', 'BIT<32>'), cxx_writer.writer_code.Parameter('bitSeq_length', cxx_writer.writer_code.uintType)])
 
-# Normal PC increment
+# PC increment
 opCode = cxx_writer.writer_code.Code("""
-PC += 4;
+if (TARGET == 0xffffffff) {
+	PC = PC + 4;
+} else {
+	PC = TARGET;
+	TARGET = 0xffffffff;
+}
 """)
 IncrementPC = trap.HelperOperation('IncrementPC', opCode, inline = False)
+
+

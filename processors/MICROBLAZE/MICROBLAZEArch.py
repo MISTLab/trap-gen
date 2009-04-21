@@ -117,6 +117,19 @@ processor.addRegister(pid)
 
 # PVRs registers. Do we have to describe these registers too?
 
+#Now, we declare some fake registers.
+
+#IMMREG register is useful in order to describe the IMM instruction.
+immreg = trap.Register('IMMREG', 32)
+immreg.setDefaultValue(0x00000000)
+processor.addRegister(immreg)
+
+#TARGET register is useful to modelize all the instruction with a delay slot.
+target = trap.Register('TARGET', 32)
+target.setDefaultValue(0xffffffff)
+processor.addRegister(target)
+
+
 # At first, we simply define a pipeline with a single stage.
 # All the operations of the instruction will be executed in this stage.
 executeStage = trap.PipeStage('execute')
