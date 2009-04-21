@@ -54,10 +54,6 @@ except ImportError:
 import MICROBLAZEIsa
 
 # Lets now start building the processor
-#~ processor = trap.Processor('ARM7TDMI', version = '0.1', systemc = True, instructionCache = True, fastFetch = True)
-#~ processor.setLittleEndian() #little endian
-#~ processor.setWordsize(4, 8) #4 bytes per word, 8 bits per byte
-#~ processor.setISA(ARMIsa.isa) #lets set the instruction set
 processor = trap.Processor('MICROBLAZE', version = '0.1', systemc = False, instructionCache = True, fastFetch = True)
 processor.setBigEndian() #big endian
 processor.setWordsize(4, 8) #4 bytes per word, 8 bits per byte
@@ -66,65 +62,60 @@ processor.setISA(MICROBLAZEIsa.isa) #lets set the instruction set
 # Ok, now we move to the description of more complicated processor
 # resources
 
-# A registry bank of 30 registers each one 32 bits wide:
+# A registry bank of 32 registers each one 32 bits wide:
 # they are the normal registers and the banked one. In particular:
 
 # TODO: general description of each register
 #GPR = General Purpouse Registers
-regBank = trap.RegisterBank('GPR', 30, 32) #GPR is the name, 30 registers of 32 bits
+regBank = trap.RegisterBank('GPR', 32, 32) #GPR is the name, 32 registers of 32 bits
 processor.addRegBank(regBank)
 
-# A registry bank of 18 special purpouse registers each one 32 bits wide
-#maybe we don't have to use a bit mask for this register bank
-#spsrBitMask = {'N': (31, 31), 'Z': (30, 30), 'C': (29, 29), 'V': (28, 28), 'I': (7, 7), 'F': (6, 6), 'mode': (0, 3)}
-#~ sprBank = trap.RegisterBank('SPR', 18, 32)
-#~ processor.addRegBank(sprBank)
-
-#~ msrBitMask = {'BE': (31,31), 'IE': (30,30), 'C': (29,29), 'BIP': (28,28), 'FSL': (27,27), 'ICE': (26,26), 'DZ': (25,25), 'DCE': (24,24), 'EE': (23,23), 'EIP': (22,22), 'PVR': (21,21), 'UM': (20,20), 'UMS': (19,19), 'VM': (18,18), 'VMS': (17,17), 'CC': (0,0)}
-#~ MSR = trap.AliasRegister('MSR', 'SPR[1]',msrBitMask)
-#~ processor.addAliasReg(MSR)
-
-#~ ESR = trap.AliasRegister('ESR', 'SPR[5]')
-#~ processor.addAliasReg(ESR)
-#~ EAR = trap.AliasRegister('EAR', 'SPR[3]')
-#~ processor.addAliasReg(EAR)
-#~ FSR = trap.AliasRegister('FSR', 'SPR[7]')
-#~ processor.addAliasReg(FSR)
-# very strange register :)
-#~ PVRx = trap.AliasRegister('PVR', 'SPR[8192+x]')
-#~ processor.addAliasReg(PVRx)
-#~ BTR = trap.AliasRegister('BTR', 'SPR[11]')
-#~ processor.addAliasReg(BTR)
-#~ PC = trap.AliasRegister('PC', 'SPR[0]')
-#~ PC.setDefaultValue(('ENTRY_POINT',8))
-#~ processor.addAliasReg(PC)
-
 # We define each special register as a single isolated register
-# PC = SPR[0]
+# PC = SPR[0x0000]
 pc = trap.Register('PC',32)
 pc.setDefaultValue(('ENTRY_POINT',8))
 processor.addRegister(pc)
 
-# MSR = SPR[1]
+# MSR = SPR[0x0001]
 msrBitMask = {'BE': (31,31), 'IE': (30,30), 'C': (29,29), 'BIP': (28,28), 'FSL': (27,27), 'ICE': (26,26), 'DZ': (25,25), 'DCE': (24,24), 'EE': (23,23), 'EIP': (22,22), 'PVR': (21,21), 'UM': (20,20), 'UMS': (19,19), 'VM': (18,18), 'VMS': (17,17), 'CC': (0,0)}
 msr = trap.Register('MSR', 32, msrBitMask)
 processor.addRegister(msr)
 
-# ESR = SPR[5]
-esr = trap.Register('ESR', 32)
-processor.addRegister(esr)
-
-# EAR = SPR[3]
+# EAR = SPR[0x0003]
 ear = trap.Register('EAR', 32)
 processor.addRegister(ear)
 
-# FSR = SPR[7]
-fsr = trap.Register('FSR', 32)
-processor.addRegister(fsr)
+# ESR = SPR[0x0005]
+esrBitMask = {'DS': (19,19), 'W': (20,20), 'S': (21,21), 'Rx': (22,26), 'EC': (27,31)}
+esr = trap.Register('ESR', 32, esrBitMask)
+processor.addRegister(esr)
 
-# BTR = SPR[11]
+# BTR = SPR[0x000b]
 btr = trap.Register('BTR', 32)
 processor.addRegister(btr)
+
+# FSR = SPR[0x0007]
+fsrBitMask = {'IO': (27,27), 'DZ': (28,28), 'OF': (29,29), 'UF': (30,30), 'DO': (31,31)}
+fsr = trap.Register('FSR', 32, fsrBitMask)
+processor.addRegister(fsr)
+
+# EDR = SPR[0x000d]
+edr = trap.Register('EDR', 32)
+processor.addRegister(edr)
+
+# PID = SPR[0x1000]
+pidBitMask = {'PID': (24,31)}
+pid = trap.Register('PID', 32)
+processor.addRegister(pid)
+
+# ZPR = SPR[0x1001]
+# TLBLO = SPR[0x1003]
+# TLBHI = SPR[0x1004]
+# TLBX = SPR[0x1002]
+# TLBSX = SPR[0x1005]
+# These registers are used only by the MMU: for the moment, we can ignore them!
+
+# PVRs registers. Do we have to describe these registers too?
 
 # At first, we simply define a pipeline with a single stage.
 # All the operations of the instruction will be executed in this stage.
@@ -134,8 +125,7 @@ processor.addPipeStage(executeStage)
 # Here we declare a memory for the MB (with size = 10MB)
 processor.setMemory('dataMem', 10*1024*1024)
 
-# The offset is '0', because we have a pipeline with a single stage.
-# (I'm not sure about this)
+# Here we set the register from which we will fetch the next instruction
 processor.setFetchRegister('PC', 0)
 
 # Finally we can dump the processor on file

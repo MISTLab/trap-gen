@@ -919,56 +919,122 @@ isa.addInstruction(imm_Instr)
 #LOAD family
 #LBU
 opCode = cxx_writer.writer_code.Code("""
-
+int addr = (int)ra + (int)rb;
+rd = dataMem.read_byte(addr);
+rd &= 0x000000ff;
 """)
 lbu_Instr = trap.Instruction('LBU', True)
 lbu_Instr.setMachineCode(oper_reg, {'opcode0': [1,1,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 lbu_Instr.setCode(opCode,'execute')
+lbu_Instr.addBehavior(IncrementPC, 'execute')
+lbu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x20, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0}, {'GPR[3]': 0xff, 'PC' : 0x4})
+lbu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x21, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0}, {'GPR[3]': 0x44, 'PC' : 0x4})
+lbu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x21, 'GPR[3]' : 0x123456cd, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0}, {'GPR[3]': 0xff, 'PC' : 0x4})
 isa.addInstruction(lbu_Instr)
 
 #LBUI
 opCode = cxx_writer.writer_code.Code("""
-
+int addr = (int)ra + SignExtend(imm,16);
+rd = dataMem.read_byte(addr);
+rd &= 0x000000ff;
 """)
 lbui_Instr = trap.Instruction('LBUI', True)
 lbui_Instr.setMachineCode(oper_imm, {'opcode': [1,1,1,0,0,0]}, 'TODO')
 lbui_Instr.setCode(opCode,'execute')
+lbui_Instr.addBehavior(IncrementPC, 'execute')
+lbui_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x20}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0}, {'GPR[3]': 0xff, 'PC' : 0x4})
+lbui_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0}, {'GPR[3]': 0x44, 'PC' : 0x4})
+lbui_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456cd, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0}, {'GPR[3]': 0xff, 'PC' : 0x4})
 isa.addInstruction(lbui_Instr)
 
 #LHU
 opCode = cxx_writer.writer_code.Code("""
-
+int addr = (int)ra + (int)rb;
+if ( (addr & 0x00000001) != 0 ) {
+	ESR[key_EC] = 0x1;
+	ESR[key_W] = 0x0;
+	ESR[key_S] = 0x0;
+	ESR[key_Rx] = rd_bit; /* the value that identifies rd */
+} else {
+	rd = dataMem.read_half(addr);
+	rd &= 0x0000ffff;
+}
 """)
 lhu_Instr = trap.Instruction('LHU', True)
 lhu_Instr.setMachineCode(oper_reg, {'opcode0': [1,1,0,0,0,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 lhu_Instr.setCode(opCode,'execute')
+lhu_Instr.addBehavior(IncrementPC, 'execute')
+lhu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x20, 'GPR[3]' : 0x1111, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0x0000ff44, 'PC' : 0x4, 'ESR': 0x0})
+lhu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x21, 'GPR[3]' : 0x1111, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0x1111, 'PC' : 0x4, 'ESR': 0x80D00000})
+lhu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x22, 'GPR[3]' : 0x1111, 'dataMem[0x32]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0x0000ff44, 'PC' : 0x4, 'ESR': 0x0})
+lhu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x13, 'GPR[2]' : 0x21, 'GPR[3]' : 0x1111, 'dataMem[0x34]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0x0000ff44, 'PC' : 0x4, 'ESR': 0x0})
 isa.addInstruction(lhu_Instr)
 
 #LHUI
 opCode = cxx_writer.writer_code.Code("""
-
+int addr = (int)ra + SignExtend(imm,16);
+if ( (addr & 0x00000001) != 0 ) {
+	ESR[key_EC] = 0x1;
+	ESR[key_W] = 0x0;
+	ESR[key_S] = 0x0;
+	ESR[key_Rx] = rd_bit; /* the value that identifies rd */
+} else {
+	rd = dataMem.read_half(addr);
+	rd &= 0x0000ffff;
+}
 """)
 lhui_Instr = trap.Instruction('LHUI', True)
 lhui_Instr.setMachineCode(oper_imm, {'opcode': [1,1,1,0,0,1]}, 'TODO')
 lhui_Instr.setCode(opCode,'execute')
+lhui_Instr.addBehavior(IncrementPC, 'execute')
+lhui_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x20}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x1111, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0x0000ff44, 'PC' : 0x4, 'ESR': 0x0})
+lhui_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x1111, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0x1111, 'PC' : 0x4, 'ESR': 0x80D00000})
+lhui_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x22}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x1111, 'dataMem[0x32]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0x0000ff44, 'PC' : 0x4, 'ESR': 0x0})
+lhui_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x13, 'GPR[3]' : 0x1111, 'dataMem[0x34]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0x0000ff44, 'PC' : 0x4, 'ESR': 0x0})
 isa.addInstruction(lhui_Instr)
 
 #LW
 opCode = cxx_writer.writer_code.Code("""
-
+int addr = (int)ra + (int)rb;
+if ( (addr & 0x00000003) != 0 ) {
+	ESR[key_EC] = 0x1;
+	ESR[key_W] = 0x1;
+	ESR[key_S] = 0x0;
+	ESR[key_Rx] = rd_bit; /* the value that identifies rd */
+} else {
+	rd = dataMem.read_word(addr);
+}
 """)
 lw_Instr = trap.Instruction('LW', True)
 lw_Instr.setMachineCode(oper_reg, {'opcode0': [1,1,0,0,1,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 lw_Instr.setCode(opCode,'execute')
+lw_Instr.addBehavior(IncrementPC, 'execute')
+lw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x20, 'GPR[3]' : 0x1111, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0xff445566, 'PC' : 0x4, 'ESR': 0x0})
+lw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x21, 'GPR[3]' : 0x1111, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0x1111, 'PC' : 0x4, 'ESR': 0x80D00000})
+lw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x22, 'GPR[3]' : 0x1111, 'dataMem[0x32]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0x1111, 'PC' : 0x4, 'ESR': 0x80D00000})
+lw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x13, 'GPR[2]' : 0x21, 'GPR[3]' : 0x1111, 'dataMem[0x34]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0xff445566, 'PC' : 0x4, 'ESR': 0x0})
 isa.addInstruction(lw_Instr)
 
 #LWI
 opCode = cxx_writer.writer_code.Code("""
-
+int addr = (int)ra + SignExtend(imm,16);
+if ( (addr & 0x00000003) != 0 ) {
+	ESR[key_EC] = 0x1;
+	ESR[key_W] = 0x1;
+	ESR[key_S] = 0x0;
+	ESR[key_Rx] = rd_bit; /* the value that identifies rd */
+} else {
+	rd = dataMem.read_word(addr);
+}
 """)
 lwi_Instr = trap.Instruction('LWI', True)
 lwi_Instr.setMachineCode(oper_imm, {'opcode': [1,1,1,0,1,0]}, 'TODO')
 lwi_Instr.setCode(opCode,'execute')
+lwi_Instr.addBehavior(IncrementPC, 'execute')
+lwi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x20}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x1111, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0xff445566, 'PC' : 0x4, 'ESR': 0x0})
+lwi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x1111, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0x1111, 'PC' : 0x4, 'ESR': 0x80D00000})
+lwi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x22}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x1111, 'dataMem[0x32]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0x1111, 'PC' : 0x4, 'ESR': 0x80D00000})
+lwi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x13, 'GPR[3]' : 0x1111, 'dataMem[0x34]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'GPR[3]' : 0xff445566, 'PC' : 0x4, 'ESR': 0x0})
 isa.addInstruction(lwi_Instr)
 
 #MFS
@@ -1072,29 +1138,51 @@ isa.addInstruction(ori_Instr)
 
 #PCMPBF
 opCode = cxx_writer.writer_code.Code("""
-
+if ( ((int)rb & 0xff000000) == ((int)ra & 0xff000000) )
+	rd = 0x1;
+else if ( ((int)rb & 0x00ff0000) == ((int)ra & 0x00ff0000) )
+	rd = 0x2;
+else if ( ((int)rb & 0x0000ff00) == ((int)ra & 0x0000ff00) )
+	rd = 0x3;
+else if ( ((int)rb & 0x000000ff) == ((int)ra & 0x000000ff) )
+	rd = 0x4;
+else
+	rd = 0x0;
 """)
 pcmpbf_Instr = trap.Instruction('PCMPBF', True)
 pcmpbf_Instr.setMachineCode(oper_reg, {'opcode0': [1,0,0,0,0,0], 'opcode1': [1,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 pcmpbf_Instr.setCode(opCode,'execute')
+pcmpbf_Instr.addBehavior(IncrementPC, 'execute')
+pcmpbf_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0xffffffff, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x0, 'PC':0x4})
+pcmpbf_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0x12ffffff, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x1, 'PC':0x4})
+pcmpbf_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0xff34ffff, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x2, 'PC':0x4})
+pcmpbf_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0xfffffeff, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x3, 'PC':0x4})
+pcmpbf_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0xffffffdc, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x4, 'PC':0x4})
+pcmpbf_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0xff34ffdc, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x2, 'PC':0x4})
 isa.addInstruction(pcmpbf_Instr)
 
 #PCMPEQ
 opCode = cxx_writer.writer_code.Code("""
-
+rd = ((int)rb == (int)ra);
 """)
 pcmpeq_Instr = trap.Instruction('PCMPEQ', True)
 pcmpeq_Instr.setMachineCode(oper_reg, {'opcode0': [1,0,0,0,1,0], 'opcode1': [1,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 pcmpeq_Instr.setCode(opCode,'execute')
+pcmpeq_Instr.addBehavior(IncrementPC, 'execute')
+pcmpeq_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0x1234fedc, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x1, 'PC':0x4})
+pcmpeq_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0xffffffff, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x0, 'PC':0x4})
 isa.addInstruction(pcmpeq_Instr)
 
 #PCMPNE
 opCode = cxx_writer.writer_code.Code("""
-
+rd = ((int)rb != (int)ra);
 """)
 pcmpne_Instr = trap.Instruction('PCMPNE', True)
 pcmpne_Instr.setMachineCode(oper_reg, {'opcode0': [1,0,0,0,1,1], 'opcode1': [1,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 pcmpne_Instr.setCode(opCode,'execute')
+pcmpne_Instr.addBehavior(IncrementPC, 'execute')
+pcmpne_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0x1234fedc, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x0, 'PC':0x4})
+pcmpne_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x1234fedc, 'GPR[2]': 0xffffffff, 'GPR[3]': 0xfffff, 'PC':0x0}, {'GPR[3]': 0x1, 'PC':0x4})
 isa.addInstruction(pcmpne_Instr)
 
 #PUT / PUTD
@@ -1214,73 +1302,152 @@ isa.addInstruction(rtsd_Instr)
 #STORE instruction family
 #SB
 opCode = cxx_writer.writer_code.Code("""
-
+int addr = (int)ra + (int)rb;
+dataMem.write_byte(addr, (unsigned char)(rd & 0x000000ff));
 """)
 sb_Instr = trap.Instruction('SB', True)
 sb_Instr.setMachineCode(oper_reg, {'opcode0': [1,1,0,1,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 sb_Instr.setCode(opCode,'execute')
+sb_Instr.addBehavior(IncrementPC, 'execute')
+sb_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x20, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0}, {'dataMem[0x30]': 0xab445566, 'PC' : 0x4})
+sb_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x21, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0}, {'dataMem[0x30]': 0xffab5566, 'PC' : 0x4})
+sb_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x21, 'GPR[3]' : 0x123456ab, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0}, {'dataMem[0x31]': 0xab445566, 'PC' : 0x4})
 isa.addInstruction(sb_Instr)
 
 #SBI
 opCode = cxx_writer.writer_code.Code("""
-
+int addr = (int)ra + SignExtend(imm,16);
+dataMem.write_byte(addr, (unsigned char)(rd & 0x000000ff));
 """)
 sbi_Instr = trap.Instruction('SBI', True)
 sbi_Instr.setMachineCode(oper_imm, {'opcode': [1,1,1,1,0,0]}, 'TODO')
 sbi_Instr.setCode(opCode,'execute')
+sbi_Instr.addBehavior(IncrementPC, 'execute')
+sbi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x20}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0}, {'dataMem[0x30]': 0xab445566, 'PC' : 0x4})
+sbi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0}, {'dataMem[0x30]': 0xffab5566, 'PC' : 0x4})
+sbi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0}, {'dataMem[0x31]': 0xab445566, 'PC' : 0x4})
 isa.addInstruction(sbi_Instr)
 
 #SH
 opCode = cxx_writer.writer_code.Code("""
-
+int addr = (int)ra + (int)rb;
+if ( ( addr & 0x00000001 ) != 0 ) {
+	ESR[key_EC] = 0x1;
+	ESR[key_W] = 0x0;
+	ESR[key_S] = 0x1;
+	ESR[key_Rx] = rd_bit; /* the value that identifies rd */
+} else {
+	dataMem.write_half(addr, (unsigned int)(rd & 0x0000ffff));
+}
 """)
 sh_Instr = trap.Instruction('SH', True)
 sh_Instr.setMachineCode(oper_reg, {'opcode0': [1,1,0,1,0,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 sh_Instr.setCode(opCode,'execute')
+sh_Instr.addBehavior(IncrementPC, 'execute')
+sh_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x20, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x30]': 0x56ab5566, 'PC' : 0x4, 'ESR': 0x0})
+sh_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x21, 'GPR[3]' : 0x123456ab, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x31]': 0xff445566, 'PC' : 0x4, 'ESR': 0x80D00000})
+sh_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x22, 'GPR[3]' : 0x123456ab, 'dataMem[0x32]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x32]': 0x56ab5566, 'PC' : 0x4, 'ESR': 0x0})
+sh_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x13, 'GPR[2]' : 0x21, 'GPR[3]' : 0x123456ab, 'dataMem[0x34]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x34]': 0x56ab5566, 'PC' : 0x4, 'ESR': 0x0})
 isa.addInstruction(sh_Instr)
 
 #SHI
 opCode = cxx_writer.writer_code.Code("""
-
+int addr = (int)ra + SignExtend(imm,16);
+if ( ( addr & 0x00000001 ) != 0 ) {
+	ESR[key_EC] = 0x1;
+	ESR[key_W] = 0x0;
+	ESR[key_S] = 0x1;
+	ESR[key_Rx] = rd_bit; /* the value that identifies rd */
+} else {
+	dataMem.write_half(addr, (unsigned int)(rd & 0x0000ffff));
+}
 """)
 shi_Instr = trap.Instruction('SHI', True)
 shi_Instr.setMachineCode(oper_imm, {'opcode': [1,1,1,1,0,1]}, 'TODO')
 shi_Instr.setCode(opCode,'execute')
+shi_Instr.addBehavior(IncrementPC, 'execute')
+shi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x20}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x30]': 0x56ab5566, 'PC' : 0x4, 'ESR': 0x0})
+shi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x31]': 0xff445566, 'PC' : 0x4, 'ESR': 0x80D00000})
+shi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x22}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x32]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x32]': 0x56ab5566, 'PC' : 0x4, 'ESR': 0x0})
+shi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x13, 'GPR[3]' : 0x123456ab, 'dataMem[0x34]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x34]': 0x56ab5566, 'PC' : 0x4, 'ESR': 0x0})
 isa.addInstruction(shi_Instr)
 
 #SW
 opCode = cxx_writer.writer_code.Code("""
-
+int addr = (int)ra + (int)rb;
+if ( ( addr & 0x00000003 ) != 0 ) {
+	ESR[key_EC] = 0x1;
+	ESR[key_W] = 0x1;
+	ESR[key_S] = 0x1;
+	ESR[key_Rx] = rd_bit; /* the value that identifies rd */
+} else {
+	dataMem.write_word(addr, (unsigned int)(rd));
+}
 """)
 sw_Instr = trap.Instruction('SW', True)
 sw_Instr.setMachineCode(oper_reg, {'opcode0': [1,1,0,1,1,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 sw_Instr.setCode(opCode,'execute')
+sw_Instr.addBehavior(IncrementPC, 'execute')
+sw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x20, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x30]': 0x123456ab, 'PC' : 0x4, 'ESR': 0x0})
+sw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x21, 'GPR[3]' : 0x123456ab, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x31]': 0xff445566, 'PC' : 0x4, 'ESR': 0x80D00000})
+sw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x22, 'GPR[3]' : 0x123456ab, 'dataMem[0x32]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x32]': 0xff445566, 'PC' : 0x4, 'ESR': 0x80D00000})
+sw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x13, 'GPR[2]' : 0x21, 'GPR[3]' : 0x123456ab, 'dataMem[0x34]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x34]': 0x123456ab, 'PC' : 0x4, 'ESR': 0x0})
 isa.addInstruction(sw_Instr)
 
 #SWI
 opCode = cxx_writer.writer_code.Code("""
+int addr = (int)ra + SignExtend(imm,16);
+if ( ( addr & 0x00000003 ) != 0 ) {
+	ESR[key_EC] = 0x1;
+	ESR[key_W] = 0x1;
+	ESR[key_S] = 0x1;
+	ESR[key_Rx] = rd_bit; /* the value that identifies rd */
+} else {
+	dataMem.write_word(addr, (unsigned int)(rd));
+}
 """)
 swi_Instr = trap.Instruction('SWI', True)
 swi_Instr.setMachineCode(oper_imm, {'opcode': [1,1,1,1,1,0]}, 'TODO')
 swi_Instr.setCode(opCode,'execute')
+swi_Instr.addBehavior(IncrementPC, 'execute')
+swi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x20}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x30]': 0x123456ab, 'PC' : 0x4, 'ESR': 0x0})
+swi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x31]': 0xff445566, 'PC' : 0x4, 'ESR': 0x80D00000})
+swi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x22}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x123456ab, 'dataMem[0x32]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x32]': 0xff445566, 'PC' : 0x4, 'ESR': 0x80D00000})
+swi_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x13, 'GPR[3]' : 0x123456ab, 'dataMem[0x34]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0}, {'dataMem[0x34]': 0x123456ab, 'PC' : 0x4, 'ESR': 0x0})
 isa.addInstruction(swi_Instr)
 
 #SEXT16
 opCode = cxx_writer.writer_code.Code("""
-
+if ( ( (int)ra & 0x00008000 ) != 0) {
+	rd = (int)ra | 0xffff0000;
+} else {
+	rd = (int)ra & 0x0000ffff;
+}
 """)
 sext16_Instr = trap.Instruction('SEXT16', True)
 sext16_Instr.setMachineCode(unary_oper, {'opcode0': [1,0,0,1,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1]}, 'TODO')
 sext16_Instr.setCode(opCode,'execute')
+sext16_Instr.addBehavior(IncrementPC, 'execute')
+sext16_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0x6666, 'GPR[3]' : 0xffff, 'PC' : 0x0}, {'GPR[3]': 0x00006666, 'PC' : 0x4})
+sext16_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0xabcd7777, 'GPR[3]' : 0xffff, 'PC' : 0x0}, {'GPR[3]': 0x00007777, 'PC' : 0x4})
+sext16_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0xabcd8777, 'GPR[3]' : 0xffff, 'PC' : 0x0}, {'GPR[3]': 0xffff8777, 'PC' : 0x4})
 isa.addInstruction(sext16_Instr)
 
 #SEXT8
 opCode = cxx_writer.writer_code.Code("""
-
+if ( ( (int)ra & 0x00000080 ) != 0) {
+	rd = (int)ra | 0xffffff00;
+} else {
+	rd = (int)ra & 0x000000ff;
+}
 """)
 sext8_Instr = trap.Instruction('SEXT8', True)
 sext8_Instr.setMachineCode(unary_oper, {'opcode0': [1,0,0,1,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0]}, 'TODO')
 sext8_Instr.setCode(opCode,'execute')
+sext8_Instr.addBehavior(IncrementPC, 'execute')
+sext8_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0x6666, 'GPR[3]' : 0xffff, 'PC' : 0x0}, {'GPR[3]': 0x00000066, 'PC' : 0x4})
+sext8_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0xabcd7777, 'GPR[3]' : 0xffff, 'PC' : 0x0}, {'GPR[3]': 0x00000077, 'PC' : 0x4})
+sext8_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0xabcd7787, 'GPR[3]' : 0xffff, 'PC' : 0x0}, {'GPR[3]': 0xffffff87, 'PC' : 0x4})
 isa.addInstruction(sext8_Instr)
 
 #SRA
@@ -1312,20 +1479,26 @@ isa.addInstruction(srl_Instr)
 
 #WDC
 opCode = cxx_writer.writer_code.Code("""
-
+/* This instruction is related to the Cache. Since we don't have
+   Cache in our model, we simply ignore the implementation of 
+   this instruction. */
 """)
 wdc_Instr = trap.Instruction('WDC', True)
 wdc_Instr.setMachineCode(cache_oper, {'opcode0': [1,0,0,1,0,0], 'opcode1': [0,0,0,0,1,1,0,0,1,0,0]}, 'TODO')
 wdc_Instr.setCode(opCode,'execute')
+wdc_Instr.addBehavior(IncrementPC, 'execute')
 isa.addInstruction(wdc_Instr)
 
 #WIC
 opCode = cxx_writer.writer_code.Code("""
-
+/* This instruction is related to the Cache. Since we don't have
+   Cache in our model, we simply ignore the implementation of 
+   this instruction. */
 """)
 wic_Instr = trap.Instruction('WIC', True)
 wic_Instr.setMachineCode(cache_oper, {'opcode0': [1,0,0,1,0,0], 'opcode1': [0,0,0,0,1,1,0,1,0,0,0]}, 'TODO')
 wic_Instr.setCode(opCode,'execute')
+wic_Instr.addBehavior(IncrementPC, 'execute')
 isa.addInstruction(wic_Instr)
 
 #XOR
