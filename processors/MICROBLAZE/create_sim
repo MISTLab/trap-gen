@@ -3,8 +3,8 @@
 #The purpouse of this script is the automation of the simulator creation.
 #If all previous steps end correctly, the script runs the tests.
 
-SYSTEMC_PATH=/usr/lib/systemc
-TLM_INCLUDE_PATH=/usr/lib/TLM/include
+SYSTEMC_PATH=/home/dimi/Scrivania/HIGHproject/download/systemc/
+TLM_INCLUDE_PATH=/home/dimi/Scrivania/HIGHproject/download/TLM-2008-06-09/include/
 COUNT=1
 TOTAL=4
 
@@ -30,14 +30,14 @@ cd processor
 
 clear && echo "step $COUNT/$TOTAL: processor/waf configure --with-systemc=$SYSTEMC_PATH --with-tlm=$TLM_INCLUDE_PATH"
 sleep 2
-waf configure --with-systemc=$SYSTEMC_PATH --with-tlm=$TLM_INCLUDE_PATH
+./waf configure --with-systemc=$SYSTEMC_PATH --with-tlm=$TLM_INCLUDE_PATH
 COUNT=$((COUNT+1))
 echo "COMPLETED!"
 sleep 1
 
 clear && echo "step $COUNT/$TOTAL: processor/waf"
 sleep 2
-waf
+./waf
 COUNT=$((COUNT+1))
 echo "COMPLETED!"
 sleep 1
