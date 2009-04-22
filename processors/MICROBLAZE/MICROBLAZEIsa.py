@@ -1289,13 +1289,7 @@ isa.addInstruction(mulhsu_Instr)
 
 #MULI
 opCode = cxx_writer.writer_code.Code("""
-//This code doesn't work:
-//rd = (int) ( ra *((int)imm));
-//---------------------------------
-int signedImm=(int) imm;
-if ( (signedImm & 0x00008000) != 0)
-	signedImm= signedImm | 0xffff0000; 
-rd = (int) ra * signedImm;
+rd = (int)ra * (int)SignExtend(imm, 16);
 """)
 muli_Instr = trap.Instruction('MULI', True)
 muli_Instr.setMachineCode(oper_imm, {'opcode': [0,1,1,0,0,0]}, 'TODO')
@@ -1310,27 +1304,28 @@ isa.addInstruction(muli_Instr)
 
 #OR
 opCode = cxx_writer.writer_code.Code("""
-rd = (unsigned int) (((unsigned int)ra) || ((unsigned int)rb));
+rd = (unsigned int) (((unsigned int)ra) | ((unsigned int)rb));
 """)
 or_Instr = trap.Instruction('OR', True)
 or_Instr.setMachineCode(oper_reg, {'opcode0': [1,0,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 or_Instr.setCode(opCode,'execute')
 or_Instr.addBehavior(IncrementPC, 'execute')
 or_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0, 'GPR[2]': 0, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0, 'PC':4})
-or_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 2, 'GPR[2]': 0, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 1, 'PC':4})
+or_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 2, 'GPR[2]': 0, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 2, 'PC':4})
 isa.addInstruction(or_Instr)
 
 #ORI
 opCode = cxx_writer.writer_code.Code("""
-rd = (int)(((int) ra) || ((int)imm));
+rd = (int)ra | (int)SignExtend(imm, 16);
 """)
 ori_Instr = trap.Instruction('ORI', True)
 ori_Instr.setMachineCode(oper_imm, {'opcode': [1,0,1,0,0,0]}, 'TODO')
 ori_Instr.setCode(opCode,'execute')
 ori_Instr.addBehavior(IncrementPC, 'execute')
 ori_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0}, {'GPR[1]': 0,  'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0, 'PC':4})
-ori_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0}, {'GPR[1]': 2,  'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 1, 'PC':4})
-ori_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x8000}, {'GPR[1]': 0x80000000,  'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 1, 'PC':4})
+ori_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0}, {'GPR[1]': 2,  'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 2, 'PC':4})
+ori_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0xf000}, {'GPR[1]': 0,  'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xfffff000, 'PC':4})
+ori_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0xffff}, {'GPR[1]': 0,  'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffffff, 'PC':4})
 isa.addInstruction(ori_Instr)
 
 
@@ -1699,33 +1694,28 @@ wic_Instr.setCode(opCode,'execute')
 wic_Instr.addBehavior(IncrementPC, 'execute')
 isa.addInstruction(wic_Instr)
 
-#XOR (LOGICAL)
-opCode = cxx_writer.writer_code.Code("""
-if (ra==rb)
-	rd=(int)0;
-else
-	rd=(int)1;
-""")
-xor_Instr = trap.Instruction('XOR', True)
-xor_Instr.setMachineCode(oper_reg, {'opcode0': [1,0,0,0,1,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
-xor_Instr.setCode(opCode,'execute')
-xor_Instr.addBehavior(IncrementPC, 'execute')
-xor_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0, 'GPR[2]': 0, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0, 'PC':4})
-xor_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0, 'GPR[2]': 1, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 1, 'PC':4})
-isa.addInstruction(xor_Instr)
 
-#XORI (LOGICAL)
-opCode = cxx_writer.writer_code.Code("""
-unsigned int extendedImm=(unsigned int)imm;
-if (ra==extendedImm)
-	rd=(int)0;
-else
-	rd=(int)1;
-""")
-xori_Instr = trap.Instruction('XORI', True)
-xori_Instr.setMachineCode(oper_imm, {'opcode': [1,0,1,0,1,0]}, 'TODO')
-xori_Instr.setCode(opCode,'execute')
-xori_Instr.addBehavior(IncrementPC, 'execute')
-xori_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0}, {'GPR[1]': 0,  'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0, 'PC':4})
-xori_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 1}, {'GPR[1]': 0,  'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 1, 'PC':4})
+#XOR (LOGICAL)
+opCode = cxx_writer.writer_code.Code("""
+rd=(unsigned int)(((unsigned int)ra) ^ ((unsigned int)rb));
+""")
+xor_Instr = trap.Instruction('XOR', True)
+xor_Instr.setMachineCode(oper_reg, {'opcode0': [1,0,0,0,1,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
+xor_Instr.setCode(opCode,'execute')
+xor_Instr.addBehavior(IncrementPC, 'execute')
+xor_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 3, 'GPR[2]': 0, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x3, 'PC':4})
+xor_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 5, 'GPR[2]': 5, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0, 'PC':4})
+isa.addInstruction(xor_Instr)
+
+#XORI (LOGICAL)
+opCode = cxx_writer.writer_code.Code("""
+unsigned int extendedImm=(unsigned int)imm;
+rd=(unsigned int)(extendedImm ^ ((unsigned int) ra));
+""")
+xori_Instr = trap.Instruction('XORI', True)
+xori_Instr.setMachineCode(oper_imm, {'opcode': [1,0,1,0,1,0]}, 'TODO')
+xori_Instr.setCode(opCode,'execute')
+xori_Instr.addBehavior(IncrementPC, 'execute')
+xori_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0}, {'GPR[1]': 3,  'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x3, 'PC':4})
+xori_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 5}, {'GPR[1]': 5,  'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0, 'PC':4})
 isa.addInstruction(xori_Instr)
