@@ -143,7 +143,7 @@ template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryLT: publi
 
     //Method used to directly write a word into memory; it is mainly used to load the
     //application program into memory
-    void write_byte(const unsigned int & address, const unsigned char & datum){
+    void write_byte_dbg(const unsigned int & address, const unsigned char & datum){
         if(address >= this->size){
             THROW_ERROR("Address " << std::hex << std::showbase << address << " out of memory");
         }

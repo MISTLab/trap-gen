@@ -1005,7 +1005,7 @@ def getCPPMemoryIf(self, model):
         swapEndianessCode = '#ifdef LITTLE_ENDIAN_BO\n'
     else:
         swapEndianessCode = '#ifdef BIG_ENDIAN_BO\n'
-    swapEndianessCode += 'this->swapEndianess(datum);\n#endif'
+    swapEndianessCode += 'this->swapEndianess(datum);\n#endif\n'
     if self.isBigEndian:
         swapDEndianessCode = '#ifdef LITTLE_ENDIAN_BO\n'
     else:
@@ -2225,6 +2225,20 @@ def getCPPExternalPorts(self, model):
     archHWordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize/2) + '>')
     archByteType = resolveBitType('BIT<' + str(self.byteSize) + '>')
 
+    if self.isBigEndian:
+        swapDEndianessCode = '#ifdef LITTLE_ENDIAN_BO\n'
+    else:
+        swapDEndianessCode = '#ifdef BIG_ENDIAN_BO\n'
+    swapDEndianessCode += str(archWordType) + ' datum1 = (' + str(archWordType) + ')(datum);\nthis->swapEndianess(datum1);\n'
+    swapDEndianessCode += str(archWordType) + ' datum2 = (' + str(archWordType) + ')(datum >> ' + str(self.wordSize*self.byteSize) + ');\nthis->swapEndianess(datum2);\n'
+    swapDEndianessCode += 'datum = datum1 | (((' + str(archDWordType) + ')datum2) << ' + str(self.wordSize*self.byteSize) + ');\n#endif\n'
+
+    if self.isBigEndian:
+        swapEndianessCode = '#ifdef LITTLE_ENDIAN_BO\n'
+    else:
+        swapEndianessCode = '#ifdef BIG_ENDIAN_BO\n'
+    swapEndianessCode += 'this->swapEndianess(datum);\n#endif\n'
+
     tlmPortElements = []
 
     MemoryToolsIfType = cxx_writer.writer_code.TemplateType('MemoryToolsIf', [str(archWordType)], 'ToolsIf.hpp')
@@ -2311,9 +2325,9 @@ def getCPPExternalPorts(self, model):
         tlmPortElements.append(cxx_writer.writer_code.Attribute('end_response_event', cxx_writer.writer_code.sc_eventType, 'pri'))
 
     if model.endswith('LT'):
-        readCode = """ data = 0;
+        readCode = """ datum = 0;
             if (this->dmi_ptr_valid){
-                memcpy(&data, this->dmi_data.get_dmi_ptr() - this->dmi_data.get_start_address() + address, sizeof(data));
+                memcpy(&datum, this->dmi_data.get_dmi_ptr() - this->dmi_data.get_start_address() + address, sizeof(datum));
                 this->quantKeeper.inc(this->dmi_data.get_read_latency());
             }
             else{
@@ -2321,8 +2335,8 @@ def getCPPExternalPorts(self, model):
                 tlm::tlm_generic_payload trans;
                 trans.set_address(address);
                 trans.set_read();
-                trans.set_data_ptr(reinterpret_cast<unsigned char*>(&data));
-                trans.set_data_length(sizeof(data));
+                trans.set_data_ptr(reinterpret_cast<unsigned char*>(&datum));
+                trans.set_data_length(sizeof(datum));
                 trans.set_byte_enable_ptr(0);
                 trans.set_dmi_allowed(false);
                 trans.set_response_status( tlm::TLM_INCOMPLETE_RESPONSE );
@@ -2344,12 +2358,12 @@ def getCPPExternalPorts(self, model):
             //is turned
             """
     else:
-        readCode = """ data = 0;
+        readCode = """ datum = 0;
         tlm::tlm_generic_payload trans;
         trans.set_address(address);
         trans.set_read();
-        trans.set_data_ptr(reinterpret_cast<unsigned char*>(&data));
-        trans.set_data_length(sizeof(data));
+        trans.set_data_ptr(reinterpret_cast<unsigned char*>(&datum));
+        trans.set_data_length(sizeof(datum));
         trans.set_byte_enable_ptr(0);
         trans.set_dmi_allowed(false);
         trans.set_response_status(tlm::TLM_INCOMPLETE_RESPONSE);
@@ -2386,36 +2400,22 @@ def getCPPExternalPorts(self, model):
         }
         wait(this->end_response_event);
         """
-    if self.isBigEndian:
-        readCode += '#ifdef LITTLE_ENDIAN_BO\n'
-    else:
-        readCode += '#ifdef BIG_ENDIAN_BO\n'
-    readCode += """swapEndianess(data);
-        #endif
-        return data;
-        """
     addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
-    readBody = cxx_writer.writer_code.Code(readMemAliasCode + str(archDWordType) + readCode)
+    readBody = cxx_writer.writer_code.Code(readMemAliasCode + str(archDWordType) + readCode + swapDEndianessCode)
     readBody.addInclude('utils.hpp')
     readBody.addInclude('tlm.h')
     readDecl = cxx_writer.writer_code.Method('read_dword', readBody, archDWordType, 'pu', [addressParam], inline = True, noException = True)
     tlmPortElements.append(readDecl)
-    readBody = cxx_writer.writer_code.Code(readMemAliasCode + str(archWordType) + readCode)
+    readBody = cxx_writer.writer_code.Code(readMemAliasCode + str(archWordType) + readCode + swapEndianessCode)
     readDecl = cxx_writer.writer_code.Method('read_word', readBody, archWordType, 'pu', [addressParam], inline = True, noException = True)
     tlmPortElements.append(readDecl)
-    readBody = cxx_writer.writer_code.Code(readMemAliasCode + str(archHWordType) + readCode)
+    readBody = cxx_writer.writer_code.Code(readMemAliasCode + str(archHWordType) + readCode + swapEndianessCode)
     readDecl = cxx_writer.writer_code.Method('read_half', readBody, archHWordType, 'pu', [addressParam], noException = True)
     tlmPortElements.append(readDecl)
     readBody = cxx_writer.writer_code.Code(readMemAliasCode + str(archByteType) + readCode)
     readDecl = cxx_writer.writer_code.Method('read_byte', readBody, archByteType, 'pu', [addressParam], noException = True)
     tlmPortElements.append(readDecl)
-    if self.isBigEndian:
-        writeCode = '#ifdef LITTLE_ENDIAN_BO\n'
-    else:
-        writeCode = '#ifdef BIG_ENDIAN_BO\n'
-    writeCode += """swapEndianess(datum);
-        #endif
-        """
+    writeCode = ''
     if model.endswith('LT'):
         writeCode += """if(this->dmi_ptr_valid){
                 memcpy(this->dmi_data.get_dmi_ptr() - this->dmi_data.get_start_address() + address, &datum, sizeof(datum));
@@ -2487,16 +2487,16 @@ def getCPPExternalPorts(self, model):
         }
         wait(this->end_response_event);
         """
-    writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkWatchPointCode + writeCode)
+    writeBody = cxx_writer.writer_code.Code(swapDEndianessCode + writeMemAliasCode + checkWatchPointCode + writeCode)
     datumParam = cxx_writer.writer_code.Parameter('datum', archDWordType)
     writeDecl = cxx_writer.writer_code.Method('write_dword', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], inline = True, noException = True)
     tlmPortElements.append(writeDecl)
-    writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkWatchPointCode + writeCode)
+    writeBody = cxx_writer.writer_code.Code(swapEndianessCode + writeMemAliasCode + checkWatchPointCode + writeCode)
     datumParam = cxx_writer.writer_code.Parameter('datum', archWordType)
     writeDecl = cxx_writer.writer_code.Method('write_word', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], inline = True, noException = True)
     tlmPortElements.append(writeDecl)
     datumParam = cxx_writer.writer_code.Parameter('datum', archHWordType)
-    writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkWatchPointCode + writeCode)
+    writeBody = cxx_writer.writer_code.Code(swapEndianessCode + writeMemAliasCode + checkWatchPointCode + writeCode)
     writeDecl = cxx_writer.writer_code.Method('write_half', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
     tlmPortElements.append(writeDecl)
     datumParam = cxx_writer.writer_code.Parameter('datum', archByteType)
@@ -2508,59 +2508,44 @@ def getCPPExternalPorts(self, model):
         trans.set_address(address);
         trans.set_read();
         """
-    readCode2 = """trans.set_data_ptr(reinterpret_cast<unsigned char *>(&data));
+    readCode2 = """trans.set_data_ptr(reinterpret_cast<unsigned char *>(&datum));
         this->initSocket->transport_dbg(trans);
         //Now the code for endianess conversion: the processor is always modeled
         //with the host endianess; in case they are different, the endianess
         //is turned
         """
-    if self.isBigEndian:
-        readCode2 += '#ifdef LITTLE_ENDIAN_BO\n'
-    else:
-        readCode2 += '#ifdef BIG_ENDIAN_BO\n'
-    readCode2 += """swapEndianess(datum);
-    #endif
-    return data;
-    """
     addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
-    readBody = cxx_writer.writer_code.Code(readMemAliasCode + readCode1 + 'trans.set_data_length(' + str(self.wordSize*2) + ');\n' + str(archDWordType) + ' data = 0;\n' + readCode2)
+    readBody = cxx_writer.writer_code.Code(readMemAliasCode + readCode1 + 'trans.set_data_length(' + str(self.wordSize*2) + ');\n' + str(archDWordType) + ' datum = 0;\n' + readCode2 + swapDEndianessCode + 'return datum;')
     readBody.addInclude('utils.hpp')
     readBody.addInclude('tlm.h')
     readDecl = cxx_writer.writer_code.Method('read_dword_dbg', readBody, archDWordType, 'pu', [addressParam], noException = True)
     tlmPortElements.append(readDecl)
-    readBody = cxx_writer.writer_code.Code(readMemAliasCode + readCode1 + 'trans.set_data_length(' + str(self.wordSize) + ');\n' + str(archWordType) + ' data = 0;\n' + readCode2)
+    readBody = cxx_writer.writer_code.Code(readMemAliasCode + readCode1 + 'trans.set_data_length(' + str(self.wordSize) + ');\n' + str(archWordType) + ' datum = 0;\n' + readCode2 + swapEndianessCode + 'return datum;')
     readDecl = cxx_writer.writer_code.Method('read_word_dbg', readBody, archWordType, 'pu', [addressParam], noException = True)
     tlmPortElements.append(readDecl)
-    readBody = cxx_writer.writer_code.Code(readMemAliasCode + readCode1 + 'trans.set_data_length(' + str(self.wordSize/2) + ');\n' + str(archHWordType) + ' data = 0;\n' + readCode2)
+    readBody = cxx_writer.writer_code.Code(readMemAliasCode + readCode1 + 'trans.set_data_length(' + str(self.wordSize/2) + ');\n' + str(archHWordType) + ' datum = 0;\n' + readCode2 + swapEndianessCode + 'return datum;')
     readDecl = cxx_writer.writer_code.Method('read_half_dbg', readBody, archHWordType, 'pu', [addressParam], noException = True)
     tlmPortElements.append(readDecl)
-    readBody = cxx_writer.writer_code.Code(readMemAliasCode + readCode1 + 'trans.set_data_length(1);\n' + str(archByteType) + ' data = 0;\n' + readCode2)
+    readBody = cxx_writer.writer_code.Code(readMemAliasCode + readCode1 + 'trans.set_data_length(1);\n' + str(archByteType) + ' datum = 0;\n' + readCode2)
     readDecl = cxx_writer.writer_code.Method('read_byte_dbg', readBody, archByteType, 'pu', [addressParam], noException = True)
     tlmPortElements.append(readDecl)
-    if self.isBigEndian:
-        writeCode1 = '#ifdef LITTLE_ENDIAN_BO\n'
-    else:
-        writeCode1 = '#ifdef BIG_ENDIAN_BO\n'
-    writeCode1 += """swapEndianess(datum);
-        #endif
-        """
-    writeCode1 += """tlm::tlm_generic_payload trans;
+    writeCode1 = """tlm::tlm_generic_payload trans;
         trans.set_address(address);
         trans.set_write();
         """
     writeCode2 = """trans.set_data_ptr((unsigned char *)&datum);
         this->initSocket->transport_dbg(trans);
         """
-    writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + writeCode1 + 'trans.set_data_length(' + str(self.wordSize*2) + ');\n' + writeCode2)
+    writeBody = cxx_writer.writer_code.Code(swapDEndianessCode + writeMemAliasCode + writeCode1 + 'trans.set_data_length(' + str(self.wordSize*2) + ');\n' + writeCode2)
     datumParam = cxx_writer.writer_code.Parameter('datum', archDWordType)
     writeDecl = cxx_writer.writer_code.Method('write_dword_dbg', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
     tlmPortElements.append(writeDecl)
-    writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + writeCode1 + 'trans.set_data_length(' + str(self.wordSize) + ');\n' + writeCode2)
+    writeBody = cxx_writer.writer_code.Code(swapEndianessCode + writeMemAliasCode + writeCode1 + 'trans.set_data_length(' + str(self.wordSize) + ');\n' + writeCode2)
     datumParam = cxx_writer.writer_code.Parameter('datum', archWordType)
     writeDecl = cxx_writer.writer_code.Method('write_word_dbg', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
     tlmPortElements.append(writeDecl)
     datumParam = cxx_writer.writer_code.Parameter('datum', archHWordType)
-    writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + writeCode1 + 'trans.set_data_length(' + str(self.wordSize/2) + ');\n' + writeCode2)
+    writeBody = cxx_writer.writer_code.Code(swapEndianessCode + writeMemAliasCode + writeCode1 + 'trans.set_data_length(' + str(self.wordSize/2) + ');\n' + writeCode2)
     writeDecl = cxx_writer.writer_code.Method('write_half_dbg', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
     tlmPortElements.append(writeDecl)
     datumParam = cxx_writer.writer_code.Parameter('datum', archByteType)

@@ -565,7 +565,7 @@ class Processor:
                 # Single register or alias: I check that it exists
                 if not self.isRegExisting(memAliasReg.alias):
                     raise Exception('Register ' + memAliasReg.alias + ' indicated in memory alias for address ' + memAliasReg.address)
-        if self.memory[3]:
+        if self.memory and self.memory[3]:
             index = extractRegInterval(self.memory[3])
             if index:
                 # I'm aliasing part of a register bank or another alias:
