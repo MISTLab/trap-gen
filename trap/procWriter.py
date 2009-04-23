@@ -2225,6 +2225,17 @@ def getCPPExternalPorts(self, model):
     archHWordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize/2) + '>')
     archByteType = resolveBitType('BIT<' + str(self.byteSize) + '>')
 
+    tlmPortElements = []
+
+    MemoryToolsIfType = cxx_writer.writer_code.TemplateType('MemoryToolsIf', [str(archWordType)], 'ToolsIf.hpp')
+    tlmPortElements.append(cxx_writer.writer_code.Attribute('debugger', MemoryToolsIfType.makePointer(), 'pri'))
+    setDebuggerBody = cxx_writer.writer_code.Code('this->debugger = debugger;')
+    tlmPortElements.append(cxx_writer.writer_code.Method('setDebugger', setDebuggerBody, cxx_writer.writer_code.voidType, 'pu', [cxx_writer.writer_code.Parameter('debugger', MemoryToolsIfType.makePointer())]))
+    checkWatchPointCode = """if(this->debugger != NULL){
+        this->debugger->notifyAddress(address, sizeof(datum));
+    }
+    """
+
     memIfType = cxx_writer.writer_code.Type('MemoryInterface', 'memory.hpp')
     tlm_dmiType = cxx_writer.writer_code.Type('tlm::tlm_dmi', 'tlm.h')
     TLMMemoryType = cxx_writer.writer_code.Type('TLMMemory')
@@ -2247,7 +2258,6 @@ def getCPPExternalPorts(self, model):
         readMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\nreturn this->' + alias.alias + ';\n}\n'
         writeMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n this->' + alias.alias + ' = datum;\nreturn;\n}\n'
 
-    tlmPortElements = []
     emptyBody = cxx_writer.writer_code.Code('')
 
     if model.endswith('AT'):
@@ -2477,20 +2487,20 @@ def getCPPExternalPorts(self, model):
         }
         wait(this->end_response_event);
         """
-    writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + writeCode)
+    writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkWatchPointCode + writeCode)
     datumParam = cxx_writer.writer_code.Parameter('datum', archDWordType)
     writeDecl = cxx_writer.writer_code.Method('write_dword', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], inline = True, noException = True)
     tlmPortElements.append(writeDecl)
-    writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + writeCode)
+    writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkWatchPointCode + writeCode)
     datumParam = cxx_writer.writer_code.Parameter('datum', archWordType)
     writeDecl = cxx_writer.writer_code.Method('write_word', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], inline = True, noException = True)
     tlmPortElements.append(writeDecl)
     datumParam = cxx_writer.writer_code.Parameter('datum', archHWordType)
-    writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + writeCode)
+    writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkWatchPointCode + writeCode)
     writeDecl = cxx_writer.writer_code.Method('write_half', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
     tlmPortElements.append(writeDecl)
     datumParam = cxx_writer.writer_code.Parameter('datum', archByteType)
-    writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + writeCode)
+    writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkWatchPointCode + writeCode)
     writeDecl = cxx_writer.writer_code.Method('write_byte', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
     tlmPortElements.append(writeDecl)
 

@@ -51,8 +51,12 @@
 ///with memory
 template<class addressType> class MemoryToolsIf{
     public:
+    #ifndef NDEBUG
     virtual void notifyAddress(addressType address, unsigned int size) throw() = 0;
-    virtual ~MemoryToolsIf();
+    #else
+    virtual void notifyAddress(addressType address, unsigned int size) = 0;
+    #endif
+    virtual ~MemoryToolsIf(){}
 };
 
 ///Base class for all the tools (profilers, debugger, etc...)

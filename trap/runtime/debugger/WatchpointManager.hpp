@@ -109,7 +109,7 @@ template <class AddressType> class WatchpointManager{
                 return false;
         }
         for(unsigned int i = 0; i < length; i++){
-            this->watchpoints.erase(address + is);
+            this->watchpoints.erase(address + i);
         }
         return true;
     }
@@ -126,7 +126,7 @@ template <class AddressType> class WatchpointManager{
         for(unsigned int i = 0; i < size; i++){
             typename template_map<AddressType, Watchpoint<AddressType> >::iterator foundWatchPoint = this->watchpoints.find(address + i);
             if(foundWatchPoint != this->lastWatch)
-                return &(*foundWatchPoint);
+                return &(foundWatchPoint->second);
         }
         return NULL;
     }

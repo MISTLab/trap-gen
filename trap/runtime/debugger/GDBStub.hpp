@@ -656,7 +656,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
 
     bool recvIntr(){
         this->breakManager.clearAllBreaks();
-        this->breakManager.clearAllWatchs();
+        this->watchManager.clearAllWatchs();
         this->step = 0;
         this->isConnected = false;
         return true;
@@ -862,9 +862,9 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
 
     ///Method called whenever a particular address is written into memory
     #ifndef NDEBUG
-    inline void notifyAddress(addressType address, unsigned int size) throw(){
+    inline void notifyAddress(issueWidth address, unsigned int size) throw(){
     #else
-    inline void notifyAddress(addressType address, unsigned int size){
+    inline void notifyAddress(issueWidth address, unsigned int size){
     #endif
         if(this->watchEnabled && this->watchManager.hasWatchpoint(address, size)){
             this->watchReached = this->watchManager.getWatchPoint(address, size);
