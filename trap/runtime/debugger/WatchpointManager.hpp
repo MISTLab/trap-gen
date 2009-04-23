@@ -40,8 +40,8 @@
  *
 \***************************************************************************/
 
-#ifndef BREAKPOINTMANAGER_HPP
-#define BREAKPOINTMANAGER_HPP
+#ifndef WATCHPOINTMANAGER_HPP
+#define WATCHPOINTMANAGER_HPP
 
 #include <iostream>
 #include <vector>
@@ -70,55 +70,69 @@
 #endif
 #endif
 
-template <class AddressType> struct Breakpoint{
-    enum Type{MEM_break=0, HW_break, WRITE_break, READ_break, ACCESS_break};
+template <class AddressType> struct Watchpoint{
+    enum Type{WRITE_watch, READ_watch, ACCESS_watch};
     AddressType address;
     unsigned int length;
     Type type;
 };
 
-template <class AddressType> class BreakpointManager{
+template <class AddressType> class WatchpointManager{
   private:
-    template_map<AddressType, Breakpoint<AddressType> > breakpoints;
-    typename template_map<AddressType, Breakpoint<AddressType> >::iterator lastBreak;
+    template_map<AddressType, Watchpoint<AddressType> > watchpoints;
+    typename template_map<AddressType, Watchpoint<AddressType> >::iterator lastWatch;
   public:
-    BreakpointManager(){
-        this->lastBreak = this->breakpoints.end();
+    WatchpointManager(){
+        this->lastWatch = this->watchpoints.end();
     }
     //Eliminates all the breakpoints
-    void clearAllBreaks(){
-        this->breakpoints.clear();
+    void clearAllWatchs(){
+        this->watchpoints.clear();
     }
-    bool addBreakpoint(typename Breakpoint<AddressType>::Type type, AddressType address, unsigned int length){
-        if(this->breakpoints.find(address) != this->lastBreak)
-            return false;
-        this->breakpoints[address].address = address;
-        this->breakpoints[address].length = length;
-        this->breakpoints[address].type = type;
-        this->lastBreak = this->breakpoints.end();
+    bool addWatchpoint(typename Watchpoint<AddressType>::Type type, AddressType address, unsigned int length){
+        for(unsigned int i = 0; i < length; i++){
+            if(this->watchpoints.find(address + i) != this->lastWatch)
+                return false;
+        }
+        for(unsigned int i = 0; i < length; i++){
+            this->watchpoints[address + i].address = address;
+            this->watchpoints[address + i].length = length;
+            this->watchpoints[address + i].type = type;
+        }
+        this->lastWatch = this->watchpoints.end();
         return true;
     }
 
-    bool removeBreakpoint(AddressType address){
-        if(this->breakpoints.find(address) == this->lastBreak)
-            return false;
-        this->breakpoints.erase(address);
+    bool removeWatchpoint(AddressType address, unsigned int length){
+        for(unsigned int i = 0; i < length; i++){
+            if(this->watchpoints.find(address + i) != this->lastWatch)
+                return false;
+        }
+        for(unsigned int i = 0; i < length; i++){
+            this->watchpoints.erase(address + is);
+        }
         return true;
     }
 
-    bool hasBreakpoint(AddressType address){
-        return this->breakpoints.find(address) != this->lastBreak;
+    inline bool hasWatchpoint(AddressType address, unsigned int size) const throw(){
+        for(unsigned int i = 0; i < size; i++){
+            if(this->watchpoints.find(address + i) != this->lastWatch)
+                return true;
+        }
+        return false;
     }
 
-    Breakpoint<AddressType> * getBreakPoint(AddressType address){
-        if(this->breakpoints.find(address) == this->lastBreak)
-            return NULL;
-        else
-            return &(this->breakpoints[address]);
+    Watchpoint<AddressType> * getWatchPoint(AddressType address, unsigned int size) throw(){
+        for(unsigned int i = 0; i < size; i++){
+            typename template_map<AddressType, Watchpoint<AddressType> >::iterator foundWatchPoint = this->watchpoints.find(address + i);
+            if(foundWatchPoint != this->lastWatch)
+                return &(*foundWatchPoint);
+        }
+        return NULL;
     }
 
-    template_map<AddressType, Breakpoint<AddressType> > & getBreakpoints(){
-        return this->breakpoints;
+    template_map<AddressType, Watchpoint<AddressType> > & getWatchpoints() throw(){
+        return this->watchpoints;
     }
 };
 

@@ -71,7 +71,7 @@
 #endif
 
 template <class AddressType> struct Breakpoint{
-    enum Type{MEM_break=0, HW_break, WRITE_break, READ_break, ACCESS_break};
+    enum Type{MEM_break=0, HW_break};
     AddressType address;
     unsigned int length;
     Type type;
@@ -88,6 +88,7 @@ template <class AddressType> class BreakpointManager{
     //Eliminates all the breakpoints
     void clearAllBreaks(){
         this->breakpoints.clear();
+        this->lastBreak = this->breakpoints.end();
     }
     bool addBreakpoint(typename Breakpoint<AddressType>::Type type, AddressType address, unsigned int length){
         if(this->breakpoints.find(address) != this->lastBreak)
@@ -103,21 +104,22 @@ template <class AddressType> class BreakpointManager{
         if(this->breakpoints.find(address) == this->lastBreak)
             return false;
         this->breakpoints.erase(address);
+        this->lastBreak = this->breakpoints.end();
         return true;
     }
 
-    bool hasBreakpoint(AddressType address){
+    inline bool hasBreakpoint(AddressType address) const throw(){
         return this->breakpoints.find(address) != this->lastBreak;
     }
 
-    Breakpoint<AddressType> * getBreakPoint(AddressType address){
+    Breakpoint<AddressType> * getBreakPoint(AddressType address) throw(){
         if(this->breakpoints.find(address) == this->lastBreak)
             return NULL;
         else
             return &(this->breakpoints[address]);
     }
 
-    template_map<AddressType, Breakpoint<AddressType> > & getBreakpoints(){
+    template_map<AddressType, Breakpoint<AddressType> > & getBreakpoints() throw(){
         return this->breakpoints;
     }
 };

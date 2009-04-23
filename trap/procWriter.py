@@ -991,7 +991,7 @@ def getCPPMemoryIf(self, model):
     aliasAttrs = []
     aliasParams = []
     aliasInit = []
-    MemoryToolsIfType = cxx_writer.writer_code.Type('MemoryToolsIf', 'ToolsIf.hpp')
+    MemoryToolsIfType = cxx_writer.writer_code.TemplateType('MemoryToolsIf', [str(archWordType)], 'ToolsIf.hpp')
     for alias in self.memAlias:
         aliasAttrs.append(cxx_writer.writer_code.Attribute(alias.alias, resourceType[alias.alias].makeRef(), 'pri'))
         aliasParams.append(cxx_writer.writer_code.Parameter(alias.alias, resourceType[alias.alias].makeRef()))
@@ -1016,8 +1016,8 @@ def getCPPMemoryIf(self, model):
 
     memoryElements.append(cxx_writer.writer_code.Attribute('debugger', MemoryToolsIfType.makePointer(), 'pri'))
     setDebuggerBody = cxx_writer.writer_code.Code('this->debugger = debugger;')
-    memoryElements.append(cxx_writer.writer_code.Method('setDebugger', setDebuggerBody, cxx_writer.writer_code.voidType, 'pu', cxx_writer.writer_code.Parameter('debugger', MemoryToolsIfType.makePointer())))
-    checkWhatchPointCode = """if(this->debugger != NULL){
+    memoryElements.append(cxx_writer.writer_code.Method('setDebugger', setDebuggerBody, cxx_writer.writer_code.voidType, 'pu', [cxx_writer.writer_code.Parameter('debugger', MemoryToolsIfType.makePointer())]))
+    checkWatchPointCode = """if(this->debugger != NULL){
         this->debugger->notifyAddress(address, sizeof(datum));
     }
     """
@@ -1066,7 +1066,7 @@ def getCPPMemoryIf(self, model):
         memoryElements.append(sizeAttribute)
         memoryElements += aliasAttrs
         localMemDecl = cxx_writer.writer_code.ClassDeclaration('LocalMemory', memoryElements, [memoryIfDecl.getType()])
-        constructorBody = cxx_writer.writer_code.Code('this->memory = new char[size];')
+        constructorBody = cxx_writer.writer_code.Code('this->memory = new char[size];\nthis->debugger = NULL;')
         constructorParams = [cxx_writer.writer_code.Parameter('size', cxx_writer.writer_code.uintType)]
         publicMemConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams + aliasParams, ['size(size)'] + aliasInit)
         localMemDecl.addConstructor(publicMemConstr)
@@ -1195,6 +1195,7 @@ this->dumpFile.write((char *)&dumpInfo, sizeof(MemAccessType));
         pcRegInit = [self.memory[3] + '(' + self.memory[3] + ')']
         localMemDecl = cxx_writer.writer_code.ClassDeclaration('LocalMemory', memoryElements, [memoryIfDecl.getType()])
         constructorBody = cxx_writer.writer_code.Code("""this->memory = new char[size];
+            this->debugger = NULL;
             this->dumpFile.open("memoryDump.dmp", ios::out | ios::binary | ios::ate);
             if(!this->dumpFile){
                 THROW_EXCEPTION("Error in opening file memoryDump.dmp for writing");

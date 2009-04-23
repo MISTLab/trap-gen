@@ -72,11 +72,12 @@
 #include "ToolsIf.hpp"
 
 #include "BreakpointManager.hpp"
+#include "WatchpointManager.hpp"
 #include "GDBConnectionManager.hpp"
 
 template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public MemoryToolsIf<issueWidth>, public sc_module{
   private:
-    enum stopType {BREAK_stop=0, STEP_stop, SEG_stop, TIMEOUT_stop, PAUSED_stop, UNK_stop};
+    enum stopType {BREAK_stop=0, WATCH_stop, STEP_stop, SEG_stop, TIMEOUT_stop, PAUSED_stop, UNK_stop};
     ///Thread used to send and receive responses with the GDB debugger
     struct GDBThread{
         GDBStub<issueWidth> &gdbStub;
@@ -87,8 +88,9 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
                     gdbStub.step = 2;
                 }
                 else{
-                    //First of all I have to perform some cleanup
+                    //Error: First of all I have to perform some cleanup
                     gdbStub.breakManager.clearAllBreaks();
+                    gdbStub.watchManager.clearAllWatchs();
                     gdbStub.step = 0;
                     gdbStub.isConnected = false;
                     break;
@@ -104,13 +106,19 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     ABIIf<issueWidth> &processorInstance;
     ///Handles the breakpoints which have been set in the system
     BreakpointManager<issueWidth> breakManager;
+    ///Handles the watchpoints which have been set in the system
+    WatchpointManager<issueWidth> watchManager;
     ///Determines whether the processor has to halt as a consequence of a
     ///step command
     unsigned int step;
     ///Keeps track of the last breakpoint encountered by this processor
     Breakpoint<issueWidth> * breakReached;
-    ///Specifies whether the watchpoints and breakpoints are enabled or not
+    ///Keeps track of the last watchpoint encountered by this processor
+    Watchpoint<issueWidth> * watchReached;
+    ///Specifies whether the breakpoints are enabled or not
     bool breakEnabled;
+    ///Specifies whether the watchpoints are enabled or not
+    bool watchEnabled;
     ///Specifies whether GDB server side killed the simulation
     bool isKilled;
     ///In case we decided to run the simulation only for a limited ammount of time
@@ -145,9 +153,11 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     #endif
         if(this->breakEnabled && this->breakManager.hasBreakpoint(address)){
             this->breakReached = this->breakManager.getBreakPoint(address);
-            if(breakReached == NULL){
+            #ifndef NDEBUG
+            if(this->breakReached == NULL){
                 THROW_EXCEPTION("I stopped because of a breakpoint, but no breakpoint was found");
             }
+            #endif
             this->setStopped(BREAK_stop);
         }
     }
@@ -201,6 +211,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
         }
         //Disabling break and watch points
         this->breakEnabled = false;
+        this->watchEnabled = false;
         this->awakeGDB(stopReason);
         //pausing simulation
 /*        if(stopReason != TIMEOUT && stopReason !=  PAUSED){
@@ -221,43 +232,46 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
                 this->connManager.sendResponse(response);
             break;}
             case BREAK_stop:{
-                //Here I have to determine the case of the breakpoint: it may be a normal
-                //breakpoint placed on an instruction or it may be a watch on a variable
+                #ifndef NDEBUG
                 if(this->breakReached == NULL){
                     THROW_EXCEPTION("I stopped because of a breakpoint, but it is NULL");
                 }
+                #endif
 
-                if(this->breakReached->type == Breakpoint<issueWidth>::HW_break ||
-                            this->breakReached->type == Breakpoint<issueWidth>::MEM_break){
-                    GDBResponse response;
-                    response.type = GDBResponse::S_rsp;
-                    response.payload = SIGTRAP;
-                    this->connManager.sendResponse(response);
+                GDBResponse response;
+                response.type = GDBResponse::S_rsp;
+                response.payload = SIGTRAP;
+                this->connManager.sendResponse(response);
+            break;}
+            case WATCH_stop:{
+                #ifndef NDEBUG
+                if(this->watchReached == NULL){
+                    THROW_EXCEPTION("I stopped because of a breakpoint, but it is NULL");
                 }
-                else{
-                    GDBResponse response;
-                    response.type = GDBResponse::T_rsp;
-                    response.payload = SIGTRAP;
-                    std::pair<std::string, unsigned int> info;
-                    info.second = this->breakReached->address;
-                    switch(this->breakReached->type){
-                        case Breakpoint<issueWidth>::WRITE_break:
-                            info.first = "watch";
-                        break;
-                        case Breakpoint<issueWidth>::READ_break:
-                            info.first = "rwatch";
-                        break;
-                        case Breakpoint<issueWidth>::ACCESS_break:
-                            info.first = "awatch";
-                        break;
-                        default:
-                            info.first = "none";
-                        break;
-                    }
-                    response.size = sizeof(issueWidth);
-                    response.info.push_back(info);
-                    this->connManager.sendResponse(response);
+                #endif
+
+                GDBResponse response;
+                response.type = GDBResponse::T_rsp;
+                response.payload = SIGTRAP;
+                std::pair<std::string, unsigned int> info;
+                info.second = this->watchReached->address;
+                switch(this->watchReached->type){
+                    case Watchpoint<issueWidth>::WRITE_watch:
+                        info.first = "watch";
+                    break;
+                    case Watchpoint<issueWidth>::READ_watch:
+                        info.first = "rwatch";
+                    break;
+                    case Watchpoint<issueWidth>::ACCESS_watch:
+                        info.first = "awatch";
+                    break;
+                    default:
+                        info.first = "none";
+                    break;
                 }
+                response.size = sizeof(issueWidth);
+                response.info.push_back(info);
+                this->connManager.sendResponse(response);
             break;}
             case SEG_stop:{
                 //An error has occurred during processor execution (illelgal instruction, reading out of memory, ...);
@@ -411,11 +425,11 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
             break;
             case GDBRequest::z_req:
                 //z request: breakpoint/watch removal
-                return this->removeBreakpoint(req);
+                return this->removeBreakWatch(req);
             break;
             case GDBRequest::Z_req:
                 //z request: breakpoint/watch addition
-                return this->addBreakpoint(req);
+                return this->addBreakWatch(req);
             break;
             case GDBRequest::INTR_req:
                 //received an iterrupt from GDB: I pause simulation and signal GDB that I stopped
@@ -426,6 +440,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
                 this->isConnected = false;
                 this->resumeExecution();
                 this->breakEnabled = false;
+                this->watchEnabled = false;
                 return false;
             break;
             default:
@@ -439,6 +454,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     void resumeExecution(){
         //I'm going to restart execution, so I can again enable watch and break points
         this->breakEnabled = true;
+        this->watchEnabled = true;
         this->simStartTime = sc_time_stamp().to_double();
         //this->gdbPausedEvent.notify_all();
         if(this->timeToGo > 0){
@@ -519,6 +535,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     bool detach(GDBRequest &req){
         //First of all I have to perform some cleanup
         this->breakManager.clearAllBreaks();
+        this->watchManager.clearAllWatchs();
         //Finally I can send a positive response
         GDBResponse resp;
         resp.type = GDBResponse::OK_rsp;
@@ -527,6 +544,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
         this->isConnected = false;
         this->resumeExecution();
         this->breakEnabled = false;
+        this->watchEnabled = false;
         return false;
     }
 
@@ -613,16 +631,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
             }
         }
         else{
-            rsp.type = GDBResponse::ERROR_rsp;        //First of all I have to perform some cleanup
-        this->breakManager.clearAllBreaks();
-        //Finally I can send a positive response
-        GDBResponse resp;
-        resp.type = GDBResponse::OK_rsp;
-        this->connManager.sendResponse(resp);
-        this->step = 0;
-        this->resumeExecution();
-        this->isConnected = false;
-
+            rsp.type = GDBResponse::ERROR_rsp;
         }
         this->connManager.sendResponse(rsp);
         return true;
@@ -647,20 +656,15 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
 
     bool recvIntr(){
         this->breakManager.clearAllBreaks();
+        this->breakManager.clearAllWatchs();
         this->step = 0;
         this->isConnected = false;
         return true;
     }
 
-    bool addBreakpoint(GDBRequest &req){
+    bool addBreakWatch(GDBRequest &req){
         GDBResponse resp;
         switch(req.value){
-            /*case 0:
-                if(this->breakManager.addBreakpoint(Breakpoint<issueWidth>::MEM, req.address, req.length))
-                resp.type = GDBResponse::OK;
-                else
-                resp.type = GDBResponse::ERROR;
-            break;*/
             case 0:
             case 1:
                 if(this->breakManager.addBreakpoint(Breakpoint<issueWidth>::HW_break, req.address, req.length))
@@ -669,19 +673,19 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
                     resp.type = GDBResponse::ERROR_rsp;
             break;
             case 2:
-                if(this->breakManager.addBreakpoint(Breakpoint<issueWidth>::WRITE_break, req.address, req.length))
+                if(this->watchManager.addWatchpoint(Watchpoint<issueWidth>::WRITE_watch, req.address, req.length))
                     resp.type = GDBResponse::OK_rsp;
                 else
                     resp.type = GDBResponse::ERROR_rsp;
             break;
             case 3:
-                if(this->breakManager.addBreakpoint(Breakpoint<issueWidth>::READ_break, req.address, req.length))
+                if(this->watchManager.addWatchpoint(Watchpoint<issueWidth>::READ_watch, req.address, req.length))
                     resp.type = GDBResponse::OK_rsp;
                 else
                     resp.type = GDBResponse::ERROR_rsp;
             break;
             case 4:
-                if(this->breakManager.addBreakpoint(Breakpoint<issueWidth>::ACCESS_break, req.address, req.length))
+                if(this->watchManager.addWatchpoint(Watchpoint<issueWidth>::ACCESS_watch, req.address, req.length))
                     resp.type = GDBResponse::OK_rsp;
                 else
                     resp.type = GDBResponse::ERROR_rsp;
@@ -694,9 +698,9 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
         return true;
     }
 
-    bool removeBreakpoint(GDBRequest &req){
+    bool removeBreakWatch(GDBRequest &req){
         GDBResponse resp;
-        if(this->breakManager.removeBreakpoint(req.address))
+        if(this->breakManager.removeBreakpoint(req.address) or this->watchManager.removeWatchpoint(req.address, req.length))
             resp.type = GDBResponse::OK_rsp;
         else
             resp.type = GDBResponse::ERROR_rsp;
@@ -811,7 +815,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     SC_HAS_PROCESS(GDBStub);
     GDBStub(ABIIf<issueWidth> &processorInstance) :
                     sc_module("debugger"), connManager(processorInstance.matchEndian()), processorInstance(processorInstance),
-                step(0), breakReached(NULL), breakEnabled(true), isKilled(false), timeout(false), isConnected(false),
+                step(0), breakReached(NULL), breakEnabled(true), watchEnabled(true), isKilled(false), timeout(false), isConnected(false),
                 timeToGo(0), timeToJump(0), simStartTime(0), firstRun(true){
         SC_METHOD(pauseMethod);
         sensitive << this->pauseEvent;
@@ -842,21 +846,35 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     }
     ///Method called at every cycle from the processor's main loop
     bool newIssue(const issueWidth &curPC, const void *curInstr) throw(){
-        if(this->firstRun){
-            this->firstRun = false;
-            this->breakEnabled = false;
-            while(this->waitForRequest())
-                ;
-        }
-        else{
+        if(!this->firstRun){
             this->checkStep();
             this->checkBreakpoint(curPC);
+        }
+        else{
+            this->firstRun = false;
+            this->breakEnabled = false;
+            this->watchEnabled = false;
+            while(this->waitForRequest())
+                ;
         }
         return false;
     }
 
     ///Method called whenever a particular address is written into memory
+    #ifndef NDEBUG
     inline void notifyAddress(addressType address, unsigned int size) throw(){
+    #else
+    inline void notifyAddress(addressType address, unsigned int size){
+    #endif
+        if(this->watchEnabled && this->watchManager.hasWatchpoint(address, size)){
+            this->watchReached = this->watchManager.getWatchPoint(address, size);
+            #ifndef NDEBUG
+            if(this->watchReached == NULL){
+                THROW_EXCEPTION("I stopped because of a watchpoint, but no watchpoint was found");
+            }
+            #endif
+            this->setStopped(WATCH_stop);
+        }
     }
 };
 

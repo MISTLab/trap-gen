@@ -14,4 +14,4 @@ def build(bld):
     obj.name = 'debugger'
     obj.target = 'debugger'
     obj.install_path = None
-    bld.install_files('${PREFIX}/include', 'GDBStub.hpp GDBConnectionManager.hpp BreakpointManager.hpp')
+    bld.install_files('${PREFIX}/include', 'GDBStub.hpp GDBConnectionManager.hpp BreakpointManager.hpp WatchpointManager.hpp')
