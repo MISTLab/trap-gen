@@ -45,6 +45,16 @@
 
 #include <vector>
 
+///Base class for the tools which need to interact with memory,
+///i.e. to be called for every write operation which happens in
+///memory. Note that only one tool at a time can interact
+///with memory
+template<class addressType> class MemoryToolsIf{
+    public:
+    virtual void notifyAddress(addressType address, unsigned int size) throw() = 0;
+    virtual ~MemoryToolsIf();
+};
+
 ///Base class for all the tools (profilers, debugger, etc...)
 template<class issueWidth> class ToolsIf{
     public:

@@ -74,7 +74,7 @@
 #include "BreakpointManager.hpp"
 #include "GDBConnectionManager.hpp"
 
-template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc_module{
+template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public MemoryToolsIf<issueWidth>, public sc_module{
   private:
     enum stopType {BREAK_stop=0, STEP_stop, SEG_stop, TIMEOUT_stop, PAUSED_stop, UNK_stop};
     ///Thread used to send and receive responses with the GDB debugger
@@ -847,14 +847,16 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public sc
             this->breakEnabled = false;
             while(this->waitForRequest())
                 ;
-/*            boost::mutex::scoped_lock lk(this->global_mutex);
-            this->gdbPausedEvent.wait(lk);*/
         }
         else{
             this->checkStep();
             this->checkBreakpoint(curPC);
         }
         return false;
+    }
+
+    ///Method called whenever a particular address is written into memory
+    inline void notifyAddress(addressType address, unsigned int size) throw(){
     }
 };
 

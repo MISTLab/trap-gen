@@ -752,6 +752,8 @@ class Processor:
         # the code of the simulator
         print ('\tCREATING IMPLEMENTATION FOR PROCESSOR MODEL --> ' + self.name)
         print ('\t\tChecking the consistency of the specification')
+        if ('funcAT' in models or 'accAT' in models or 'accLT' in models) and not self.tlmPorts:
+            raise Exception('Only the creation of the funcLT model is suported without defining TLM ports. Please specify at least one')
         self.isa.computeCoding()
         self.isa.checkCoding()
         self.checkAliases()
