@@ -115,7 +115,9 @@ processor.addRegister(pid)
 # TLBSX = SPR[0x1005]
 # These registers are used only by the MMU: for the moment, we can ignore them!
 
-# PVRs registers. Do we have to describe these registers too?
+# PVRs registers. Do we have to describe these registers too? (They are used in the mfs instruction)
+regBank = trap.RegisterBank('PVR',12,32);
+processor.addRegBank(regBank);
 
 #Now, we declare some fake registers.
 

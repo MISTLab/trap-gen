@@ -104,12 +104,10 @@ imm_code = trap.MachineCode([('opcode', 6), ('zero', 5), ('zero', 5),('imm', 16)
 #MFS code
 mfs_code = trap.MachineCode([('opcode', 6), ('rd', 5), ('zero', 5), ('sel', 2), ('rs', 14)])
 mfs_code.setVarField('rd', ('GPR', 0), 'out')
-mfs_code.setVarField('rs', ('GPR', 0), 'in')
 mfs_code.setBitfield('sel', [1,0])
 
 #MTS code
 mts_code = trap.MachineCode([('opcode', 6), ('zero', 5), ('ra', 5), ('sel', 2), ('rs', 14)])
-mts_code.setVarField('rs', ('GPR', 0), 'out')
 mts_code.setVarField('ra', ('GPR', 0), 'in')
 mts_code.setBitfield('sel', [1,1])
 
