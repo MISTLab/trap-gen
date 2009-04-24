@@ -109,15 +109,28 @@ pid = trap.Register('PID', 32)
 processor.addRegister(pid)
 
 # ZPR = SPR[0x1001]
-# TLBLO = SPR[0x1003]
-# TLBHI = SPR[0x1004]
-# TLBX = SPR[0x1002]
-# TLBSX = SPR[0x1005]
-# These registers are used only by the MMU: for the moment, we can ignore them!
+zpr = trap.Register('ZPR',32)
+processor.addRegister(zpr)
 
-# PVRs registers. Do we have to describe these registers too? (They are used in the mfs instruction)
-regBank = trap.RegisterBank('PVR',12,32);
-processor.addRegBank(regBank);
+# TLBLO = SPR[0x1003]
+tlblo = trap.Register('TLBLO',32)
+processor.addRegister(tlblo)
+
+# TLBHI = SPR[0x1004]
+tlbhi = trap.Register('TLBHI',32)
+processor.addRegister(tlbhi)
+
+# TLBX = SPR[0x1002]
+tlbx = trap.Register('TLBX',32)
+processor.addRegister(tlbx)
+
+# TLBSX = SPR[0x1005]
+tlbsx = trap.Register('TLBSX',32)
+processor.addRegister(tlbsx)
+
+# PVRs registers.
+pvrBank = trap.RegisterBank('PVR',12,32);
+processor.addRegBank(pvrBank);
 
 #Now, we declare some fake registers.
 
@@ -130,7 +143,6 @@ processor.addRegister(immreg)
 target = trap.Register('TARGET', 32)
 target.setDefaultValue(0xffffffff)
 processor.addRegister(target)
-
 
 # At first, we simply define a pipeline with a single stage.
 # All the operations of the instruction will be executed in this stage.

@@ -66,15 +66,22 @@ if (TARGET == 0xffffffff) {
 """)
 IncrementPC = trap.HelperOperation('IncrementPC', opCode, inline = False)
 
-#this function doesn't work very well for the moment.
 opCode = cxx_writer.writer_code.Code("""
-	if ( IMMREG == 0x0 ) {  /* No IMM instruction */
-		imm_value = (int)SignExtend(imm,16);
-	} else {	/* IMM instruction */
+	if ( IMMREG & 0x80000000 ) {  /* IMM instruction */
 		imm_value = ((int)imm & 0x0000ffff) + (int)(IMMREG << 16);
-	}
+		IMMREG &= 0x7fffffff;
+	} else {	/* No IMM instruction */
+		imm_value = (int)SignExtend(imm,16);
+	} 
+	
+	
 """)
 IMM_handler = trap.HelperOperation('IMM_handler', opCode)
 IMM_handler.addInstuctionVar(('imm_value', 'BIT<32>'))
 IMM_handler.addUserInstructionElement('imm')
+
+opCode = cxx_writer.writer_code.Code("""
+	IMMREG &= 0x7fffffff;
+""")
+IMM_reset = trap.HelperOperation('IMM_reset', opCode)
 
