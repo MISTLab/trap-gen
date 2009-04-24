@@ -1021,20 +1021,44 @@ isa.addInstruction(fsqrt_Instr)
 
 #IDIV
 opCode = cxx_writer.writer_code.Code("""
-
+if (ra==0){
+	rd=(int)0;
+	MSR[key_DZ]=1;
+	ESR[key_EC]=0x5;
+	//EXCEPTION
+}
+else{
+	rd=(int) (((int)rb)/((int)ra));
+}
 """)
 idiv_Instr = trap.Instruction('IDIV', True)
 idiv_Instr.setMachineCode(oper_reg, {'opcode0': [0,1,0,0,1,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
 idiv_Instr.setCode(opCode,'execute')
+idiv_Instr.addBehavior(IncrementPC, 'execute')
+idiv_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x20, 'GPR[3]' : 0x123456ab, 'PC' : 0x0, 'TARGET':0xffffffff,'MSR':0,'ESR':0}, {'GPR[3]': 0x2, 'PC' : 0x4})
+idiv_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x2, 'GPR[2]' : 0xfffffffe, 'GPR[3]' : 0x123456ab, 'PC' : 0x0, 'TARGET':0xffffffff,'MSR':0,'ESR':0}, {'GPR[3]': 0xffffffff, 'PC' : 0x4})
+idiv_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0, 'GPR[2]' : 0x20, 'GPR[3]' : 0x123456ab, 'PC' : 0x0, 'TARGET':0xffffffff,'MSR':0,'ESR':0}, {'GPR[3]': 0, 'PC' : 0x4,'MSR':0x02000000,'ESR':0x28000000})
 isa.addInstruction(idiv_Instr)
 
 #IDIVU
 opCode = cxx_writer.writer_code.Code("""
-
+if (ra==0){
+	rd=(unsigned int)0;
+	MSR[key_DZ]=1;
+	ESR[key_EC]=0x5;
+	//EXCEPTION
+}
+else{
+	rd=(unsigned int) (((unsigned int)rb)/((unsigned int)ra));
+}
 """)
 idivu_Instr = trap.Instruction('IDIVU', True)
 idivu_Instr.setMachineCode(oper_reg, {'opcode0': [0,1,0,0,1,0], 'opcode1': [0,0,0,0,0,0,0,0,0,1,0]}, 'TODO')
 idivu_Instr.setCode(opCode,'execute')
+idivu_Instr.addBehavior(IncrementPC, 'execute')
+idivu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x20, 'GPR[3]' : 0x123456ab, 'PC' : 0x0, 'TARGET':0xffffffff,'MSR':0,'ESR':0}, {'GPR[3]': 0x2, 'PC' : 0x4})
+idivu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x2, 'GPR[2]' : 0xfffffffe, 'GPR[3]' : 0x123456ab, 'PC' : 0x0, 'TARGET':0xffffffff,'MSR':0,'ESR':0}, {'GPR[3]': 0x7fffffff, 'PC' : 0x4})
+idivu_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0, 'GPR[2]' : 0x20, 'GPR[3]' : 0x123456ab, 'PC' : 0x0, 'TARGET':0xffffffff,'MSR':0,'ESR':0}, {'GPR[3]': 0, 'PC' : 0x4,'MSR':0x02000000,'ESR':0x28000000})
 isa.addInstruction(idivu_Instr)
 
 #IMM
@@ -1172,20 +1196,72 @@ isa.addInstruction(lwi_Instr)
 
 #MFS
 opCode = cxx_writer.writer_code.Code("""
-
+switch (rs){
+	case 0x0000:
+		rd=PC;
+		break;
+	case 0x0001:
+		rd=MSR;
+		break;
+	case 0x0003:
+		rd=EAR;
+		break;
+	case 0x0005:
+		rd=ESR;
+		break;
+	case 0x0007:
+		rd=FSR;
+		break;
+	case 0x000b:
+		rd=BTR;
+		break;
+	case 0x000d:
+		rd=EDR;
+		break;
+	case 0x1000:
+		rd=PID;
+		break;
+	case 0x1001:
+		//		rd=ZPR;
+		break;
+	case 0x1002:
+		//		rd=TLBX;
+		break;
+	case 0x1003:
+		//		rd=TLBO;
+		break;
+	case 0x1004:
+		//		rd=TLBHI;
+		break;
+};
+if (rs>=0x2000 && rs <=0x200b){
+	rd=PVR[rs-0x2000];
+}
 """)
 mfs_Instr = trap.Instruction('MFS', True)
 mfs_Instr.setMachineCode(mfs_code, {'opcode': [1,0,0,1,0,1]}, 'TODO')
 mfs_Instr.setCode(opCode,'execute')
+mfs_Instr.addBehavior(IncrementPC, 'execute')
+mfs_Instr.addTest({'rd': 1, 'rs': 0x0001}, {'GPR[1]' : 0x13, 'PC' : 0x0,'MSR': 0xabcd, 'TARGET':0xffffffff}, {'GPR[1]' : 0xabcd, 'PC' : 0x4})
+mfs_Instr.addTest({'rd': 1, 'rs': 0x2001}, {'GPR[1]' : 0x13, 'PC' : 0x0,'PVR[1]': 0xabcd, 'TARGET':0xffffffff}, {'GPR[1]' : 0xabcd, 'PC' : 0x4})
 isa.addInstruction(mfs_Instr)
 
 #MSRCLR
 opCode = cxx_writer.writer_code.Code("""
-
+if (MSR[key_UM] == 1 && imm15 != 0x1000 ){
+	ESR[key_EC]=0x7;
+	//EXCEPTION
+}
+else{
+	rd=MSR;
+	MSR &= ((unsigned int)imm15);
+}
 """)
 msrclr_Instr = trap.Instruction('MSRCLR', True)
 msrclr_Instr.setMachineCode(msr_oper, {'opcode0': [1,0,0,1,0,1], 'opcode1': [0,0,0,0,1,0]}, 'TODO')
 msrclr_Instr.setCode(opCode,'execute')
+msrclr_Instr.addBehavior(IncrementPC, 'execute')
+msrclr_Instr.addTest({'rd': 1, 'imm15': 0x1000}, {'GPR[1]' : 0x13, 'PC' : 0x0,'MSR': 0xffffffff, 'TARGET':0xffffffff}, {'GPR[1]' : 0xffffffff, 'PC' : 0x4, 'MSR': 0xdfffffff})
 isa.addInstruction(msrclr_Instr)
 
 #MSRSET
@@ -1687,29 +1763,44 @@ isa.addInstruction(sext8_Instr)
 
 #SRA
 opCode = cxx_writer.writer_code.Code("""
-
+rd=ra>>1;
+rd |= (ra & 0x80000000);
+MSR[key_C] = ra%2;
 """)
 sra_Instr = trap.Instruction('SRA', True)
 sra_Instr.setMachineCode(unary_oper, {'opcode0': [1,0,0,1,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]}, 'TODO')
 sra_Instr.setCode(opCode,'execute')
+sra_Instr.addBehavior(IncrementPC, 'execute')
+sra_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0x40000001,'MSR': 0, 'GPR[3]' : 0xffff, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x20000000, 'MSR': 0x20000000, 'PC' : 0x4})
+sra_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0xc0000000,'MSR': 0, 'GPR[3]' : 0xffff, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xe0000000, 'MSR': 0, 'PC' : 0x4})
 isa.addInstruction(sra_Instr)
 
 #SRC
 opCode = cxx_writer.writer_code.Code("""
-
+rd=ra>>1;
+rd |= (MSR[key_C]? 0x80000000 : 0);
+MSR[key_C]=ra%2;
 """)
 src_Instr = trap.Instruction('SRC', True)
 src_Instr.setMachineCode(unary_oper, {'opcode0': [1,0,0,1,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1]}, 'TODO')
 src_Instr.setCode(opCode,'execute')
+src_Instr.addBehavior(IncrementPC, 'execute')
+src_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0x40000000,'MSR': 0x20000000, 'GPR[3]' : 0xffff, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xa0000000, 'MSR': 0x00000000, 'PC' : 0x4})
+src_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0xc0000001,'MSR': 0x00000000, 'GPR[3]' : 0xffff, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x60000000, 'MSR': 0x20000000, 'PC' : 0x4})
 isa.addInstruction(src_Instr)
 
 #SRL
 opCode = cxx_writer.writer_code.Code("""
-
+rd=ra>>1;
+rd &= 0x7fffffff;
+MSR[key_C]=ra%2;
 """)
 srl_Instr = trap.Instruction('SRL', True)
 srl_Instr.setMachineCode(unary_oper, {'opcode0': [1,0,0,1,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1]}, 'TODO')
 srl_Instr.setCode(opCode,'execute')
+srl_Instr.addBehavior(IncrementPC, 'execute')
+srl_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0x40000000,'MSR': 0x20000000, 'GPR[3]' : 0xffff, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x20000000, 'MSR': 0x00000000, 'PC' : 0x4})
+srl_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0xc0000001,'MSR': 0x20000000, 'GPR[3]' : 0xffff, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x60000000, 'MSR': 0x20000000, 'PC' : 0x4})
 isa.addInstruction(srl_Instr)
 
 #WDC
