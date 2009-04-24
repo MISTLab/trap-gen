@@ -59,9 +59,11 @@ SignExtend_method.setSignature(('BIT<32>'), [('bitSeq', 'BIT<32>'), cxx_writer.w
 opCode = cxx_writer.writer_code.Code("""
 if (TARGET == 0xffffffff) {
 	PC = PC + 4;
+	DSFLAG = 0x0;
 } else {
 	PC = TARGET;
 	TARGET = 0xffffffff;
+	DSFLAG = 0x1;
 }
 """)
 IncrementPC = trap.HelperOperation('IncrementPC', opCode, inline = False)

@@ -144,6 +144,11 @@ target = trap.Register('TARGET', 32)
 target.setDefaultValue(0xffffffff)
 processor.addRegister(target)
 
+#DSFLAG bit is a flag that indicates if the current instruction is in a delay slot.
+dsflag = trap.Register('DSFLAG', 1)
+dsflag.setDefaultValue(0x0)
+processor.addRegister(dsflag)
+
 # At first, we simply define a pipeline with a single stage.
 # All the operations of the instruction will be executed in this stage.
 executeStage = trap.PipeStage('execute')

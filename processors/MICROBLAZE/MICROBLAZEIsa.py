@@ -1129,6 +1129,7 @@ IMMREG |= 0x80000000;
 imm_Instr = trap.Instruction('IMM', True)
 imm_Instr.setMachineCode(imm_code, {'opcode': [1,0,1,1,0,0]}, 'TODO')
 imm_Instr.setCode(opCode,'execute')
+imm_Instr.addBehavior(IMM_reset, 'execute')
 imm_Instr.addBehavior(IncrementPC, 'execute')
 imm_Instr.addTest({'imm': 0x8bcd}, {'IMMREG' : 0x00000000,'PC' : 0x0, 'TARGET':0xffffffff}, {'IMMREG' : 0x80008bcd, 'PC' : 0x4})
 imm_Instr.addTest({'imm': 0x7bcd}, {'IMMREG' : 0x00000000,'PC' : 0x0, 'TARGET':0xffffffff}, {'IMMREG' : 0x80007bcd, 'PC' : 0x4})
@@ -1219,10 +1220,23 @@ isa.addInstruction(lhui_Instr)
 opCode = cxx_writer.writer_code.Code("""
 int addr = (int)ra + (int)rb;
 if ( (addr & 0x00000003) != 0 ) {
+	ESR[key_DS] = DSFLAG ? 0x1 : 0x0;
+	if ( ESR[key_DS] ) {
+		BTR = PC; /* In this moment, TARGET value is in PC */
+		GPR[17] = 0xffffffff;
+	} else {
+		GPR[17] = PC; /* In this moment, PC points to the NEXT instruction */		
+	}
+	PC = 0x00000020;
+	MSR[key_EE] = 0x0; MSR[key_EIP] = 0x1;
+	MSR[key_UMS] = MSR[key_UM]; MSR[key_UM] = 0x0;
+	MSR[key_VMS] = MSR[key_VMS]; MSR[key_VM] = 0x0;
+	
 	ESR[key_EC] = 0x1;
 	ESR[key_W] = 0x1;
 	ESR[key_S] = 0x0;
 	ESR[key_Rx] = rd_bit; /* the value that identifies rd */
+	EAR = (int)rd;
 } else {
 	rd = dataMem.read_word(addr);
 }
@@ -1233,9 +1247,10 @@ lw_Instr.setCode(opCode,'execute')
 lw_Instr.addBehavior(IMM_reset, 'execute')
 lw_Instr.addBehavior(IncrementPC, 'execute')
 lw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x20, 'GPR[3]' : 0x1111, 'dataMem[0x30]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'GPR[3]' : 0xff445566, 'PC' : 0x4, 'ESR': 0x0})
-lw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x21, 'GPR[3]' : 0x1111, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'GPR[3]' : 0x1111, 'PC' : 0x4, 'ESR': 0x08d00000})
-lw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x22, 'GPR[3]' : 0x1111, 'dataMem[0x32]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'GPR[3]' : 0x1111, 'PC' : 0x4, 'ESR': 0x08d00000})
+lw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x21, 'GPR[3]' : 0x1111, 'dataMem[0x31]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'GPR[3]' : 0x1111, 'PC' : 0x20, 'ESR': 0x08d00000})
+lw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x22, 'GPR[3]' : 0x1111, 'dataMem[0x32]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'GPR[3]' : 0x1111, 'PC' : 0x20, 'ESR': 0x08d00000})
 lw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x13, 'GPR[2]' : 0x21, 'GPR[3]' : 0x1111, 'dataMem[0x34]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0xffffffff}, {'GPR[3]' : 0xff445566, 'PC' : 0x4, 'ESR': 0x0})
+lw_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]' : 0x10, 'GPR[2]' : 0x21, 'GPR[3]' : 0x1111, 'dataMem[0x34]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0x500000}, {'GPR[3]' : 0x1111, 'PC' : 0x20, 'ESR': 0x08d80000})
 isa.addInstruction(lw_Instr)
 
 #LWI
@@ -1726,7 +1741,11 @@ opCode = cxx_writer.writer_code.Code("""
 if ( MSR[key_UM] == 1 ) {
 	ESR[key_EC] = 0x1c;
 } else {
-	TARGET = (int)ra + (int)imm_value;
+	if (ESR[key_DS] ) {
+		TARGET = BTR;	
+	} else {
+		TARGET = (int)ra + (int)imm_value;
+	}
 	MSR[key_EE] = 0x1;
 	MSR[key_EIP] = 0x0;
 	MSR[key_UM] = MSR[key_UMS];
