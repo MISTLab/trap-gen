@@ -196,9 +196,9 @@ processor.setFetchRegister('PC', -4)
 
 # Lets now add details about the processor interconnection (i.e. memory ports,
 # interrupt ports, pins, etc.)
-processor.addTLMPort('instrMem', True)
-processor.addTLMPort('dataMem')
-#processor.setMemory('dataMem', 10*1024*1024)
+#processor.addTLMPort('instrMem', True)
+#processor.addTLMPort('dataMem')
+processor.setMemory('dataMem', 10*1024*1024)
 #processor.setMemory('dataMem', 10*1024*1024, True, 'PC')
 
 # Now lets add the interrupt ports: TODO
@@ -278,9 +278,9 @@ processor.setABI(abi)
 # Finally we can dump the processor on file
 #processor.write(folder = 'processor', models = ['funcLT'], dumpDecoderName = 'decoder.dot')
 #processor.write(folder = 'processor', models = ['funcLT'], trace = True)
-#processor.write(folder = 'processor', models = ['funcLT'])
+processor.write(folder = 'processor', models = ['funcLT'])
 #processor.write(folder = 'processor', models = ['funcAT'], trace = True)
-processor.write(folder = 'processor', models = ['funcAT'])
+#processor.write(folder = 'processor', models = ['funcAT'])
 #processor.write(folder = 'processor', models = ['funcAT', 'funcLT'])
 #processor.write(folder = 'processor', models = ['accAT'])
 #processor.write(folder = 'processor', models = ['accAT','funcLT'], trace = True)

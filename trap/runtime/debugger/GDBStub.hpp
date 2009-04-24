@@ -46,6 +46,11 @@
  * from the linux kernel (sparc-stub.c) and from ac_gdb.H in the ArchC sources
  */
 
+
+//// **** TODO:  it seeems that watchpoints are completely ignored ... :-(
+//// **** TODO:  sometimes segmentation fault when GDB is closed while the program is
+//still running; it seems there is a race condition with the GDB thread...
+
 #ifndef GDBSTUB_HPP
 #define GDBSTUB_HPP
 
@@ -444,6 +449,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
                 return false;
             break;
             default:
+                std::cerr << "executing an empty action" << std::endl;
                 return this->emptyAction(req);
             break;
         }
@@ -456,7 +462,6 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
         this->breakEnabled = true;
         this->watchEnabled = true;
         this->simStartTime = sc_time_stamp().to_double();
-        //this->gdbPausedEvent.notify_all();
         if(this->timeToGo > 0){
             this->pauseEvent.notify(sc_time(this->timeToGo, SC_PS));
         }
@@ -536,12 +541,12 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
         //First of all I have to perform some cleanup
         this->breakManager.clearAllBreaks();
         this->watchManager.clearAllWatchs();
+        this->step = 0;
+        this->isConnected = false;
         //Finally I can send a positive response
         GDBResponse resp;
         resp.type = GDBResponse::OK_rsp;
         this->connManager.sendResponse(resp);
-        this->step = 0;
-        this->isConnected = false;
         this->resumeExecution();
         this->breakEnabled = false;
         this->watchEnabled = false;
@@ -663,6 +668,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     }
 
     bool addBreakWatch(GDBRequest &req){
+        std::cerr << "reuest type " << req.value << "adding wathc/breakpoint address=" << std::hex << std::showbase << req.address << " length=" << req.length << std::endl;
         GDBResponse resp;
         switch(req.value){
             case 0:
@@ -866,6 +872,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     #else
     inline void notifyAddress(issueWidth address, unsigned int size){
     #endif
+        std::cerr << "checking address " << std::hex << std::showbase << address << " size: " << size << std::endl;
         if(this->watchEnabled && this->watchManager.hasWatchpoint(address, size)){
             this->watchReached = this->watchManager.getWatchPoint(address, size);
             #ifndef NDEBUG

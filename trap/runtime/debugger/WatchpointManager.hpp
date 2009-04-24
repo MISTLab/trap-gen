@@ -88,12 +88,15 @@ template <class AddressType> class WatchpointManager{
     //Eliminates all the breakpoints
     void clearAllWatchs(){
         this->watchpoints.clear();
+        this->lastWatch = this->watchpoints.end();
     }
     bool addWatchpoint(typename Watchpoint<AddressType>::Type type, AddressType address, unsigned int length){
+        std::cerr << "inside add method watchpoint for address " << std::hex << std::showbase << address << " length: " << length << std::endl;
         for(unsigned int i = 0; i < length; i++){
             if(this->watchpoints.find(address + i) != this->lastWatch)
                 return false;
         }
+        std::cerr << "adding watchpoint for address " << std::hex << std::showbase << address << " length: " << length << std::endl;
         for(unsigned int i = 0; i < length; i++){
             this->watchpoints[address + i].address = address;
             this->watchpoints[address + i].length = length;
@@ -111,6 +114,7 @@ template <class AddressType> class WatchpointManager{
         for(unsigned int i = 0; i < length; i++){
             this->watchpoints.erase(address + i);
         }
+        this->lastWatch = this->watchpoints.end();
         return true;
     }
 

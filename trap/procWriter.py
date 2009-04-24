@@ -1027,7 +1027,7 @@ def getCPPMemoryIf(self, model):
         addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
         readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + '\n' + str(archDWordType) + ' datum = *(' + str(archDWordType.makePointer()) + ')(this->memory + (unsigned long)address);\n' + swapDEndianessCode + '\nreturn datum;')
         readBody.addInclude('utils.hpp')
-        readDecl = cxx_writer.writer_code.Method('read_dword', readBody, archDWordType, 'pu', [addressParam], const = len(self.tlmPorts) == 0, inline = True, noException = True)
+        readDecl = cxx_writer.writer_code.Method('read_dword', readBody, archDWordType, 'pu', [addressParam], const = len(self.tlmPorts) == 0, noException = True)
         memoryElements.append(readDecl)
         readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + '\n' + str(archWordType) + ' datum = *(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address);\n' + swapEndianessCode + '\nreturn datum;')
         readBody.addInclude('utils.hpp')
@@ -1042,7 +1042,7 @@ def getCPPMemoryIf(self, model):
         addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
         writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + checkWatchPointCode + '\n' + swapDEndianessCode + '\n*(' + str(archDWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
         datumParam = cxx_writer.writer_code.Parameter('datum', archDWordType)
-        writeDecl = cxx_writer.writer_code.Method('write_dword', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], inline = True, noException = True)
+        writeDecl = cxx_writer.writer_code.Method('write_dword', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
         memoryElements.append(writeDecl)
         writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + checkWatchPointCode + '\n' + swapEndianessCode + '\n*(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
         datumParam = cxx_writer.writer_code.Parameter('datum', archWordType)
@@ -1079,7 +1079,7 @@ def getCPPMemoryIf(self, model):
         addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
         readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + '\n' + str(archDWordType) + ' datum = *(' + str(archDWordType.makePointer()) + ')(this->memory + (unsigned long)address);\n' + swapDEndianessCode + '\nreturn datum;')
         readBody.addInclude('utils.hpp')
-        readDecl = cxx_writer.writer_code.Method('read_dword', readBody, archDWordType, 'pu', [addressParam], const = len(self.tlmPorts) == 0, inline = True, noException = True)
+        readDecl = cxx_writer.writer_code.Method('read_dword', readBody, archDWordType, 'pu', [addressParam], const = len(self.tlmPorts) == 0, noException = True)
         memoryElements.append(readDecl)
         readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + '\n' + str(archWordType) + ' datum = *(' + str(archWordType.makePointer()) + ')(this->memory + (unsigned long)address);\n' + swapEndianessCode + '\nreturn datum;')
         readBody.addInclude('utils.hpp')
@@ -1108,7 +1108,7 @@ for(int i = 0; i < """ + str(self.wordSize*2) + """; i++){
         writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + checkWatchPointCode + '\n' + swapDEndianessCode + '\n*(' + str(archDWordType.makePointer()) + ')(this->memory + (unsigned long)address) = datum;' + dumpCode)
         writeBody.addInclude('memAccessType.hpp')
         datumParam = cxx_writer.writer_code.Parameter('datum', archDWordType)
-        writeDecl = cxx_writer.writer_code.Method('write_dword', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], inline = True, noException = True)
+        writeDecl = cxx_writer.writer_code.Method('write_dword', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
         memoryElements.append(writeDecl)
         dumpCode = 'MemAccessType dumpInfo;\n'
         if not self.systemc and not model.startswith('acc') and not model.endswith('AT'):
@@ -2233,10 +2233,14 @@ def getCPPExternalPorts(self, model):
     swapDEndianessCode += str(archWordType) + ' datum2 = (' + str(archWordType) + ')(datum >> ' + str(self.wordSize*self.byteSize) + ');\nthis->swapEndianess(datum2);\n'
     swapDEndianessCode += 'datum = datum1 | (((' + str(archDWordType) + ')datum2) << ' + str(self.wordSize*self.byteSize) + ');\n#endif\n'
 
+    swapEndianessCode = """//Now the code for endianess conversion: the processor is always modeled
+            //with the host endianess; in case they are different, the endianess
+            //is turned
+            """
     if self.isBigEndian:
-        swapEndianessCode = '#ifdef LITTLE_ENDIAN_BO\n'
+        swapEndianessCode += '#ifdef LITTLE_ENDIAN_BO\n'
     else:
-        swapEndianessCode = '#ifdef BIG_ENDIAN_BO\n'
+        swapEndianessCode += '#ifdef BIG_ENDIAN_BO\n'
     swapEndianessCode += 'this->swapEndianess(datum);\n#endif\n'
 
     tlmPortElements = []
@@ -2353,9 +2357,6 @@ def getCPPExternalPorts(self, model):
                 //Now lets keep track of time
                 this->quantKeeper.set(delay);
             }
-            //Now the code for endianess conversion: the processor is always modeled
-            //with the host endianess; in case they are different, the endianess
-            //is turned
             """
     else:
         readCode = """ datum = 0;
@@ -2401,18 +2402,18 @@ def getCPPExternalPorts(self, model):
         wait(this->end_response_event);
         """
     addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
-    readBody = cxx_writer.writer_code.Code(readMemAliasCode + str(archDWordType) + readCode + swapDEndianessCode)
+    readBody = cxx_writer.writer_code.Code(readMemAliasCode + str(archDWordType) + readCode + swapDEndianessCode + '\nreturn datum;')
     readBody.addInclude('utils.hpp')
     readBody.addInclude('tlm.h')
-    readDecl = cxx_writer.writer_code.Method('read_dword', readBody, archDWordType, 'pu', [addressParam], inline = True, noException = True)
+    readDecl = cxx_writer.writer_code.Method('read_dword', readBody, archDWordType, 'pu', [addressParam], noException = True)
     tlmPortElements.append(readDecl)
-    readBody = cxx_writer.writer_code.Code(readMemAliasCode + str(archWordType) + readCode + swapEndianessCode)
+    readBody = cxx_writer.writer_code.Code(readMemAliasCode + str(archWordType) + readCode + swapEndianessCode + '\nreturn datum;')
     readDecl = cxx_writer.writer_code.Method('read_word', readBody, archWordType, 'pu', [addressParam], inline = True, noException = True)
     tlmPortElements.append(readDecl)
-    readBody = cxx_writer.writer_code.Code(readMemAliasCode + str(archHWordType) + readCode + swapEndianessCode)
+    readBody = cxx_writer.writer_code.Code(readMemAliasCode + str(archHWordType) + readCode + swapEndianessCode + '\nreturn datum;')
     readDecl = cxx_writer.writer_code.Method('read_half', readBody, archHWordType, 'pu', [addressParam], noException = True)
     tlmPortElements.append(readDecl)
-    readBody = cxx_writer.writer_code.Code(readMemAliasCode + str(archByteType) + readCode)
+    readBody = cxx_writer.writer_code.Code(readMemAliasCode + str(archByteType) + readCode + '\nreturn datum;')
     readDecl = cxx_writer.writer_code.Method('read_byte', readBody, archByteType, 'pu', [addressParam], noException = True)
     tlmPortElements.append(readDecl)
     writeCode = ''
@@ -2489,7 +2490,7 @@ def getCPPExternalPorts(self, model):
         """
     writeBody = cxx_writer.writer_code.Code(swapDEndianessCode + writeMemAliasCode + checkWatchPointCode + writeCode)
     datumParam = cxx_writer.writer_code.Parameter('datum', archDWordType)
-    writeDecl = cxx_writer.writer_code.Method('write_dword', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], inline = True, noException = True)
+    writeDecl = cxx_writer.writer_code.Method('write_dword', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
     tlmPortElements.append(writeDecl)
     writeBody = cxx_writer.writer_code.Code(swapEndianessCode + writeMemAliasCode + checkWatchPointCode + writeCode)
     datumParam = cxx_writer.writer_code.Parameter('datum', archWordType)
@@ -2562,7 +2563,7 @@ def getCPPExternalPorts(self, model):
     tlmPortInit.append('sc_module(portName)')
     initSockAttr = cxx_writer.writer_code.Attribute('initSocket', tlminitsocketType, 'pu')
     tlmPortElements.append(initSockAttr)
-    constructorCode = ''
+    constructorCode = 'this->debugger = NULL;\n'
     if model.endswith('LT'):
         quantumKeeperType = cxx_writer.writer_code.Type('tlm_utils::tlm_quantumkeeper', 'tlm_utils/tlm_quantumkeeper.h')
         quantumKeeperAttribute = cxx_writer.writer_code.Attribute('quantKeeper', quantumKeeperType.makeRef(), 'pri')
@@ -3344,6 +3345,8 @@ def getMainCode(self, model):
     boost::program_options::variables_map vm;
     boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
     boost::program_options::notify(vm);
+
+    std::cerr << std::endl;
 
     // Checking that the parameters are correctly specified
     if(vm.count("help") != 0){

@@ -85,11 +85,13 @@ template <class AddressType> class BreakpointManager{
     BreakpointManager(){
         this->lastBreak = this->breakpoints.end();
     }
+
     //Eliminates all the breakpoints
     void clearAllBreaks(){
         this->breakpoints.clear();
         this->lastBreak = this->breakpoints.end();
     }
+
     bool addBreakpoint(typename Breakpoint<AddressType>::Type type, AddressType address, unsigned int length){
         if(this->breakpoints.find(address) != this->lastBreak)
             return false;
