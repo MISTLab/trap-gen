@@ -1091,7 +1091,7 @@ else{
 }
 """)
 idiv_Instr = trap.Instruction('IDIV', True)
-idiv_Instr.setMachineCode(oper_reg, {'opcode0': [0,1,0,0,1,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
+idiv_Instr.setMachineCode(oper_reg, {'opcode0': [0,1,0,0,1,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, ('idiv r', '%rd', ' r', '%ra', ' r', '%rb'))
 idiv_Instr.setCode(opCode,'execute')
 idiv_Instr.addBehavior(IMM_reset, 'execute')
 idiv_Instr.addBehavior(IncrementPC, 'execute')
@@ -1113,7 +1113,7 @@ else{
 }
 """)
 idivu_Instr = trap.Instruction('IDIVU', True)
-idivu_Instr.setMachineCode(oper_reg, {'opcode0': [0,1,0,0,1,0], 'opcode1': [0,0,0,0,0,0,0,0,0,1,0]}, 'TODO')
+idivu_Instr.setMachineCode(oper_reg, {'opcode0': [0,1,0,0,1,0], 'opcode1': [0,0,0,0,0,0,0,0,0,1,0]}, ('idivu r', '%rd', ' r', '%ra', ' r', '%rb'))
 idivu_Instr.setCode(opCode,'execute')
 idivu_Instr.addBehavior(IMM_reset, 'execute')
 idivu_Instr.addBehavior(IncrementPC, 'execute')
@@ -1129,7 +1129,7 @@ IMMREG |= 0x80000000;
 /* We set the MSB bit: this indicate that the register's content is valid */
 """)
 imm_Instr = trap.Instruction('IMM', True)
-imm_Instr.setMachineCode(imm_code, {'opcode': [1,0,1,1,0,0]}, 'TODO')
+imm_Instr.setMachineCode(imm_code, {'opcode': [1,0,1,1,0,0]}, ('imm', ' ', '%imm')
 imm_Instr.setCode(opCode,'execute')
 imm_Instr.addBehavior(IMM_reset, 'execute')
 imm_Instr.addBehavior(IncrementPC, 'execute')
@@ -1145,7 +1145,7 @@ rd = dataMem.read_byte(addr);
 rd &= 0x000000ff;
 """)
 lbu_Instr = trap.Instruction('LBU', True)
-lbu_Instr.setMachineCode(oper_reg, {'opcode0': [1,1,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
+lbu_Instr.setMachineCode(oper_reg, {'opcode0': [1,1,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, ('lbu r', '%rd', ' r', '%ra', ' r', '%rb'))
 lbu_Instr.setCode(opCode,'execute')
 lbu_Instr.addBehavior(IMM_reset, 'execute')
 lbu_Instr.addBehavior(IncrementPC, 'execute')
@@ -1161,7 +1161,7 @@ rd = dataMem.read_byte(addr);
 rd &= 0x000000ff;
 """)
 lbui_Instr = trap.Instruction('LBUI', True)
-lbui_Instr.setMachineCode(oper_imm, {'opcode': [1,1,1,0,0,0]}, 'TODO')
+lbui_Instr.setMachineCode(oper_imm, {'opcode': [1,1,1,0,0,0]}, ('lbui r', '%rd', ' r', '%ra', ' ', '%imm'))
 lbui_Instr.setCode(opCode,'execute')
 lbui_Instr.addBehavior(IMM_handler, 'execute')
 lbui_Instr.addBehavior(IncrementPC, 'execute')
@@ -1181,7 +1181,7 @@ if ( (addr & 0x00000001) != 0 ) {
 }
 """)
 lhu_Instr = trap.Instruction('LHU', True)
-lhu_Instr.setMachineCode(oper_reg, {'opcode0': [1,1,0,0,0,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
+lhu_Instr.setMachineCode(oper_reg, {'opcode0': [1,1,0,0,0,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, ('lhu r', '%rd', ' r', '%ra', ' r', '%rb'))
 lhu_Instr.setCode(opCode,'execute')
 lhu_Instr.addBehavior(IMM_reset, 'execute')
 lhu_Instr.addBehavior(IncrementPC, 'execute')
@@ -1203,7 +1203,7 @@ if ( (addr & 0x00000001) != 0 ) {
 }
 """)
 lhui_Instr = trap.Instruction('LHUI', True)
-lhui_Instr.setMachineCode(oper_imm, {'opcode': [1,1,1,0,0,1]}, 'TODO')
+lhui_Instr.setMachineCode(oper_imm, {'opcode': [1,1,1,0,0,1]}, ('lhui r', '%rd', ' r', '%ra', ' ', '%imm'))
 lhui_Instr.setCode(opCode,'execute')
 lhui_Instr.addBehavior(IMM_handler, 'execute')
 lhui_Instr.addBehavior(IncrementPC, 'execute')
@@ -1224,7 +1224,7 @@ if ( (addr & 0x00000003) != 0 ) {
 }
 """)
 lw_Instr = trap.Instruction('LW', True)
-lw_Instr.setMachineCode(oper_reg, {'opcode0': [1,1,0,0,1,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
+lw_Instr.setMachineCode(oper_reg, {'opcode0': [1,1,0,0,1,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, ('lw r', '%rd', ' r', '%ra', ' r', '%rb'))
 lw_Instr.setCode(opCode,'execute')
 lw_Instr.addBehavior(IMM_reset, 'execute')
 lw_Instr.addBehavior(IncrementPC, 'execute')
@@ -1245,7 +1245,7 @@ if ( (addr & 0x00000003) != 0 ) {
 }
 """)
 lwi_Instr = trap.Instruction('LWI', True)
-lwi_Instr.setMachineCode(oper_imm, {'opcode': [1,1,1,0,1,0]}, 'TODO')
+lwi_Instr.setMachineCode(oper_imm, {'opcode': [1,1,1,0,1,0]}, ('lwi r', '%rd', ' r', '%ra', ' ', '%imm'))
 lwi_Instr.setCode(opCode,'execute')
 lwi_Instr.addBehavior(IMM_handler, 'execute')
 lwi_Instr.addBehavior(IncrementPC, 'execute')
@@ -1417,7 +1417,7 @@ long long res = ( (long long)(int)rb * (long long)(int)ra );
 rd = (unsigned int) res;
 """)
 mul_Instr = trap.Instruction('MUL', True)
-mul_Instr.setMachineCode(oper_reg, {'opcode0': [0,1,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
+mul_Instr.setMachineCode(oper_reg, {'opcode0': [0,1,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, ('mul r', '%rd', ' r', '%ra', ' r', '%rb'))
 mul_Instr.setCode(opCode,'execute')
 mul_Instr.addBehavior(IMM_reset, 'execute')
 mul_Instr.addBehavior(IncrementPC, 'execute')
@@ -1436,7 +1436,7 @@ res>>=32;
 rd = (unsigned int) res;
 """)
 mulh_Instr = trap.Instruction('MULH', True)
-mulh_Instr.setMachineCode(oper_reg, {'opcode0': [0,1,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,1]}, 'TODO')
+mulh_Instr.setMachineCode(oper_reg, {'opcode0': [0,1,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,1]}, ('mulh r', '%rd', ' r', '%ra', ' r', '%rb'))
 mulh_Instr.setCode(opCode,'execute')
 mulh_Instr.addBehavior(IMM_reset, 'execute')
 mulh_Instr.addBehavior(IncrementPC, 'execute')
@@ -1454,7 +1454,7 @@ res>>=32;
 rd = (unsigned int) res;
 """)
 mulhu_Instr = trap.Instruction('MULHU', True)
-mulhu_Instr.setMachineCode(oper_reg, {'opcode0': [0,1,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,1,1]}, 'TODO')
+mulhu_Instr.setMachineCode(oper_reg, {'opcode0': [0,1,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,1,1]}, ('mulhu r', '%rd', ' r', '%ra', ' r', '%rb'))
 mulhu_Instr.setCode(opCode,'execute')
 mulhu_Instr.addBehavior(IMM_reset, 'execute')
 mulhu_Instr.addBehavior(IncrementPC, 'execute')
@@ -1471,7 +1471,7 @@ res>>=32;
 rd = (unsigned int) res;
 """)
 mulhsu_Instr = trap.Instruction('MULHSU', True)
-mulhsu_Instr.setMachineCode(oper_reg, {'opcode0': [0,1,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,1,0]}, 'TODO')
+mulhsu_Instr.setMachineCode(oper_reg, {'opcode0': [0,1,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,1,0]}, ('mulhsu r', '%rd', ' r', '%ra', ' r', '%rb'))
 mulhsu_Instr.setCode(opCode,'execute')
 mulhsu_Instr.addBehavior(IMM_reset, 'execute')
 mulhsu_Instr.addBehavior(IncrementPC, 'execute')
@@ -1488,7 +1488,7 @@ opCode = cxx_writer.writer_code.Code("""
 rd = (int)ra * (int)imm_value;
 """)
 muli_Instr = trap.Instruction('MULI', True)
-muli_Instr.setMachineCode(oper_imm, {'opcode': [0,1,1,0,0,0]}, 'TODO')
+muli_Instr.setMachineCode(oper_imm, {'opcode': [0,1,1,0,0,0]}, ('muli r', '%rd', ' r', '%ra', ' ', '%imm'))
 muli_Instr.setCode(opCode,'execute')
 muli_Instr.addBehavior(IMM_handler, 'execute')
 muli_Instr.addBehavior(IncrementPC, 'execute')
@@ -1504,7 +1504,7 @@ opCode = cxx_writer.writer_code.Code("""
 rd = (unsigned int) (((unsigned int)ra) | ((unsigned int)rb));
 """)
 or_Instr = trap.Instruction('OR', True)
-or_Instr.setMachineCode(oper_reg, {'opcode0': [1,0,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
+or_Instr.setMachineCode(oper_reg, {'opcode0': [1,0,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, ('or r', '%rd', ' r', '%ra', ' r', '%rb'))
 or_Instr.setCode(opCode,'execute')
 or_Instr.addBehavior(IMM_reset, 'execute')
 or_Instr.addBehavior(IncrementPC, 'execute')
@@ -1517,7 +1517,7 @@ opCode = cxx_writer.writer_code.Code("""
 rd = (int)ra | (int)imm_value;
 """)
 ori_Instr = trap.Instruction('ORI', True)
-ori_Instr.setMachineCode(oper_imm, {'opcode': [1,0,1,0,0,0]}, 'TODO')
+ori_Instr.setMachineCode(oper_imm, {'opcode': [1,0,1,0,0,0]}, ('ori r', '%rd', ' r', '%ra', ' ', '%imm'))
 ori_Instr.setCode(opCode,'execute')
 ori_Instr.addBehavior(IMM_handler, 'execute')
 ori_Instr.addBehavior(IncrementPC, 'execute')
@@ -1541,7 +1541,7 @@ else
 	rd = 0x0;
 """)
 pcmpbf_Instr = trap.Instruction('PCMPBF', True)
-pcmpbf_Instr.setMachineCode(oper_reg, {'opcode0': [1,0,0,0,0,0], 'opcode1': [1,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
+pcmpbf_Instr.setMachineCode(oper_reg, {'opcode0': [1,0,0,0,0,0], 'opcode1': [1,0,0,0,0,0,0,0,0,0,0]}, ('pcmpbf r', '%rd', ' r', '%ra', ' r', '%rb'))
 pcmpbf_Instr.setCode(opCode,'execute')
 pcmpbf_Instr.addBehavior(IMM_reset, 'execute')
 pcmpbf_Instr.addBehavior(IncrementPC, 'execute')
@@ -1558,7 +1558,7 @@ opCode = cxx_writer.writer_code.Code("""
 rd = ((int)rb == (int)ra);
 """)
 pcmpeq_Instr = trap.Instruction('PCMPEQ', True)
-pcmpeq_Instr.setMachineCode(oper_reg, {'opcode0': [1,0,0,0,1,0], 'opcode1': [1,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
+pcmpeq_Instr.setMachineCode(oper_reg, {'opcode0': [1,0,0,0,1,0], 'opcode1': [1,0,0,0,0,0,0,0,0,0,0]}, ('pcmpeq r', '%rd', ' r', '%ra', ' r', '%rb'))
 pcmpeq_Instr.setCode(opCode,'execute')
 pcmpeq_Instr.addBehavior(IMM_reset, 'execute')
 pcmpeq_Instr.addBehavior(IncrementPC, 'execute')
@@ -1571,7 +1571,7 @@ opCode = cxx_writer.writer_code.Code("""
 rd = ((int)rb != (int)ra);
 """)
 pcmpne_Instr = trap.Instruction('PCMPNE', True)
-pcmpne_Instr.setMachineCode(oper_reg, {'opcode0': [1,0,0,0,1,1], 'opcode1': [1,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
+pcmpne_Instr.setMachineCode(oper_reg, {'opcode0': [1,0,0,0,1,1], 'opcode1': [1,0,0,0,0,0,0,0,0,0,0]}, ('pcmpne r', '%rd', ' r', '%ra', ' r', '%rb'))
 pcmpne_Instr.setCode(opCode,'execute')
 pcmpne_Instr.addBehavior(IMM_reset, 'execute')
 pcmpne_Instr.addBehavior(IncrementPC, 'execute')
@@ -1590,7 +1590,7 @@ MSR[key_C]=((ra^rb^(int)(result >> 1)) & 0x80000000) == 0;
 rd=(int)result;
 """)
 rsub_Instr = trap.Instruction('RSUB', True)
-rsub_Instr.setMachineCode(oper_reg, {'opcode0': [0,0,0,0,0,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
+rsub_Instr.setMachineCode(oper_reg, {'opcode0': [0,0,0,0,0,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, ('rsub r', '%rd', ' r', '%ra', ' r', '%rb'))
 rsub_Instr.setCode(opCode,'execute')
 rsub_Instr.addBehavior(IMM_reset, 'execute')
 rsub_Instr.addBehavior(IncrementPC, 'execute')
@@ -1604,7 +1604,7 @@ MSR[key_C]=((ra^rb^(int)(result >> 1)) & 0x80000000) == 0;
 rd=(int)result;
 """)
 rsubc_Instr = trap.Instruction('RSUBC', True)
-rsubc_Instr.setMachineCode(oper_reg, {'opcode0': [0,0,0,0,1,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
+rsubc_Instr.setMachineCode(oper_reg, {'opcode0': [0,0,0,0,1,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, ('rsubc r', '%rd', ' r', '%ra', ' r', '%rb'))
 rsubc_Instr.setCode(opCode,'execute')
 rsubc_Instr.addBehavior(IMM_reset, 'execute')
 rsubc_Instr.addBehavior(IncrementPC, 'execute')
@@ -1616,7 +1616,7 @@ opCode = cxx_writer.writer_code.Code("""
 rd=(int)(((int)rb) + ((int)(~ra))+1);
 """)
 rsubk_Instr = trap.Instruction('RSUBK', True)
-rsubk_Instr.setMachineCode(oper_reg, {'opcode0': [0,0,0,1,0,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
+rsubk_Instr.setMachineCode(oper_reg, {'opcode0': [0,0,0,1,0,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, ('rsubk r', '%rd', ' r', '%ra', ' r', '%rb'))
 rsubk_Instr.setCode(opCode,'execute')
 rsubk_Instr.addBehavior(IMM_reset, 'execute')
 rsubk_Instr.addBehavior(IncrementPC, 'execute')
@@ -1628,7 +1628,7 @@ opCode = cxx_writer.writer_code.Code("""
 rd=(int)(((int)rb) + ((int)(~ra))+MSR[key_C]);
 """)
 rsubkc_Instr = trap.Instruction('RSUBKC', True)
-rsubkc_Instr.setMachineCode(oper_reg, {'opcode0': [0,0,0,1,1,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
+rsubkc_Instr.setMachineCode(oper_reg, {'opcode0': [0,0,0,1,1,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, ('rsubkc r', '%rd', ' r', '%ra', ' r', '%rb'))
 rsubkc_Instr.setCode(opCode,'execute')
 rsubkc_Instr.addBehavior(IMM_reset, 'execute')
 rsubkc_Instr.addBehavior(IncrementPC, 'execute')
@@ -1686,7 +1686,7 @@ if ( MSR[key_UM] == 1 ) {
 }
 """)
 rtbd_Instr = trap.Instruction('RTBD','True')
-rtbd_Instr.setMachineCode(branch_cond_imm, {'opcode0': [1,0,1,1,0,1], 'opcode1': [1,0,0,1,0]}, 'TODO')
+rtbd_Instr.setMachineCode(branch_cond_imm, {'opcode0': [1,0,1,1,0,1], 'opcode1': [1,0,0,1,0]}, ('rtbd r', '%ra', ' ', '%imm'));
 rtbd_Instr.setCode(opCode,'execute')
 rtbd_Instr.addBehavior(IMM_handler, 'execute')
 rtbd_Instr.addTest({'ra': 1, 'imm':0x20}, {'GPR[1]': 0x50, 'PC':0x500000, 'MSR' : 0x0}, {'PC':0x500004, 'TARGET':0x70, 'MSR': 0x0})
@@ -1707,7 +1707,7 @@ if ( MSR[key_UM] == 1 ) {
 }
 """)
 rtid_Instr = trap.Instruction('RTID','True')
-rtid_Instr.setMachineCode(branch_cond_imm, {'opcode0': [1,0,1,1,0,1], 'opcode1': [1,0,0,0,1]}, 'TODO')
+rtid_Instr.setMachineCode(branch_cond_imm, {'opcode0': [1,0,1,1,0,1], 'opcode1': [1,0,0,0,1]}, ('rtid r', '%ra', ' ', '%imm'))
 rtid_Instr.setCode(opCode,'execute')
 rtid_Instr.addBehavior(IMM_handler, 'execute')
 rtid_Instr.addTest({'ra': 1, 'imm':0x20}, {'GPR[1]': 0x50, 'PC':0x500000, 'MSR' : 0x0}, {'PC':0x500004, 'TARGET':0x70, 'MSR': 0x40000000})
@@ -1735,7 +1735,7 @@ if ( MSR[key_UM] == 1 ) {
 }
 """)
 rted_Instr = trap.Instruction('RTED','True')
-rted_Instr.setMachineCode(branch_cond_imm, {'opcode0': [1,0,1,1,0,1], 'opcode1': [1,0,1,0,0]}, 'TODO')
+rted_Instr.setMachineCode(branch_cond_imm, {'opcode0': [1,0,1,1,0,1], 'opcode1': [1,0,1,0,0]}, ('rted r', '%ra', ' ', '%imm'))
 rted_Instr.setCode(opCode,'execute')
 rted_Instr.addBehavior(IMM_handler, 'execute')
 rted_Instr.addTest({'ra': 1, 'imm':0x20}, {'GPR[1]': 0x50, 'PC':0x500000, 'MSR' : 0x0}, {'PC':0x500004, 'TARGET':0x70, 'MSR': 0x00800000, 'TARGET':0x70})
@@ -1750,7 +1750,7 @@ TARGET = (int)ra + (int)imm_value;
 PC = PC + 4;
 """)
 rtsd_Instr = trap.Instruction('RTSD','True')
-rtsd_Instr.setMachineCode(branch_cond_imm, {'opcode0': [1,0,1,1,0,1], 'opcode1': [1,0,0,0,0]}, 'TODO')
+rtsd_Instr.setMachineCode(branch_cond_imm, {'opcode0': [1,0,1,1,0,1], 'opcode1': [1,0,0,0,0]}, ('rtsd r', '%ra', ' ', '%imm'))
 rtsd_Instr.setCode(opCode,'execute')
 rtsd_Instr.addBehavior(IMM_handler, 'execute')
 rtid_Instr.addTest({'ra': 1, 'imm':0x20}, {'GPR[1]': 0x50, 'PC':0x500000, 'MSR' : 0x0, 'TARGET': 0xffffffff}, {'PC':0x500004, 'TARGET':0x70, 'MSR': 0x40000000})
@@ -1764,7 +1764,7 @@ int addr = (int)ra + (int)rb;
 dataMem.write_byte(addr, (unsigned char)(rd & 0x000000ff));
 """)
 sb_Instr = trap.Instruction('SB', True)
-sb_Instr.setMachineCode(oper_reg, {'opcode0': [1,1,0,1,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
+sb_Instr.setMachineCode(oper_reg, {'opcode0': [1,1,0,1,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, ('sb r', '%rd', ' r', '%ra', ' r', '%rb'))
 sb_Instr.setCode(opCode,'execute')
 sb_Instr.addBehavior(IMM_reset, 'execute')
 sb_Instr.addBehavior(IncrementPC, 'execute')
@@ -1779,7 +1779,7 @@ int addr = (int)ra + (int)imm_value;
 dataMem.write_byte(addr, (unsigned char)(rd & 0x000000ff));
 """)
 sbi_Instr = trap.Instruction('SBI', True)
-sbi_Instr.setMachineCode(oper_imm, {'opcode': [1,1,1,1,0,0]}, 'TODO')
+sbi_Instr.setMachineCode(oper_imm, {'opcode': [1,1,1,1,0,0]}, ('sbi r', '%rd', ' r', '%ra', ' ', '%imm'))
 sbi_Instr.setCode(opCode,'execute')
 sbi_Instr.addBehavior(IMM_handler, 'execute')
 sbi_Instr.addBehavior(IncrementPC, 'execute')
@@ -1798,7 +1798,7 @@ if ( ( addr & 0x00000001 ) != 0 ) {
 }
 """)
 sh_Instr = trap.Instruction('SH', True)
-sh_Instr.setMachineCode(oper_reg, {'opcode0': [1,1,0,1,0,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
+sh_Instr.setMachineCode(oper_reg, {'opcode0': [1,1,0,1,0,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, ('sh r', '%rd', ' r', '%ra', ' r', '%rb'))
 sh_Instr.setCode(opCode,'execute')
 sh_Instr.addBehavior(IMM_reset, 'execute')
 sh_Instr.addBehavior(IncrementPC, 'execute')
@@ -1819,7 +1819,7 @@ if ( ( addr & 0x00000001 ) != 0 ) {
 }
 """)
 shi_Instr = trap.Instruction('SHI', True)
-shi_Instr.setMachineCode(oper_imm, {'opcode': [1,1,1,1,0,1]}, 'TODO')
+shi_Instr.setMachineCode(oper_imm, {'opcode': [1,1,1,1,0,1]}, ('shi r', '%rd', ' r', '%ra', ' ', '%imm'))
 shi_Instr.setCode(opCode,'execute')
 shi_Instr.addBehavior(IMM_handler, 'execute')
 shi_Instr.addBehavior(IncrementPC, 'execute')
@@ -1840,7 +1840,7 @@ if ( ( addr & 0x00000003 ) != 0 ) {
 }
 """)
 sw_Instr = trap.Instruction('SW', True)
-sw_Instr.setMachineCode(oper_reg, {'opcode0': [1,1,0,1,1,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
+sw_Instr.setMachineCode(oper_reg, {'opcode0': [1,1,0,1,1,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, ('sw r', '%rd', ' r', '%ra', ' r', '%rb'))
 sw_Instr.setCode(opCode,'execute')
 sw_Instr.addBehavior(IMM_reset, 'execute')
 sw_Instr.addBehavior(IncrementPC, 'execute')
@@ -1861,7 +1861,7 @@ if ( ( addr & 0x00000003 ) != 0 ) {
 }
 """)
 swi_Instr = trap.Instruction('SWI', True)
-swi_Instr.setMachineCode(oper_imm, {'opcode': [1,1,1,1,1,0]}, 'TODO')
+swi_Instr.setMachineCode(oper_imm, {'opcode': [1,1,1,1,1,0]}, ('swi r', '%rd', ' r', '%ra', ' ', '%imm'))
 swi_Instr.setCode(opCode,'execute')
 swi_Instr.addBehavior(IMM_handler, 'execute')
 swi_Instr.addBehavior(IncrementPC, 'execute')
@@ -1881,7 +1881,7 @@ if ( ( (int)ra & 0x00008000 ) != 0) {
 }
 """)
 sext16_Instr = trap.Instruction('SEXT16', True)
-sext16_Instr.setMachineCode(unary_oper, {'opcode0': [1,0,0,1,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1]}, 'TODO')
+sext16_Instr.setMachineCode(unary_oper, {'opcode0': [1,0,0,1,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1]}, ('sext16 r', '%rd', ' r', '%ra'))
 sext16_Instr.setCode(opCode,'execute')
 sext16_Instr.addBehavior(IMM_reset, 'execute')
 sext16_Instr.addBehavior(IncrementPC, 'execute')
@@ -1899,7 +1899,7 @@ if ( ( (int)ra & 0x00000080 ) != 0) {
 }
 """)
 sext8_Instr = trap.Instruction('SEXT8', True)
-sext8_Instr.setMachineCode(unary_oper, {'opcode0': [1,0,0,1,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0]}, 'TODO')
+sext8_Instr.setMachineCode(unary_oper, {'opcode0': [1,0,0,1,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0]}, ('sext8 r', '%rd', ' r', '%ra'))
 sext8_Instr.setCode(opCode,'execute')
 sext8_Instr.addBehavior(IMM_reset, 'execute')
 sext8_Instr.addBehavior(IncrementPC, 'execute')
@@ -1915,7 +1915,7 @@ rd |= (ra & 0x80000000);
 MSR[key_C] = ra%2;
 """)
 sra_Instr = trap.Instruction('SRA', True)
-sra_Instr.setMachineCode(unary_oper, {'opcode0': [1,0,0,1,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]}, 'TODO')
+sra_Instr.setMachineCode(unary_oper, {'opcode0': [1,0,0,1,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]}, ('sra r', '%rd', ' r', '%ra'))
 sra_Instr.setCode(opCode,'execute')
 sra_Instr.addBehavior(IMM_reset, 'execute')
 sra_Instr.addBehavior(IncrementPC, 'execute')
@@ -1930,7 +1930,7 @@ rd |= (MSR[key_C]? 0x80000000 : 0);
 MSR[key_C]=ra%2;
 """)
 src_Instr = trap.Instruction('SRC', True)
-src_Instr.setMachineCode(unary_oper, {'opcode0': [1,0,0,1,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1]}, 'TODO')
+src_Instr.setMachineCode(unary_oper, {'opcode0': [1,0,0,1,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1]}, ('src r', '%rd', ' r', '%ra'))
 src_Instr.setCode(opCode,'execute')
 src_Instr.addBehavior(IMM_reset, 'execute')
 src_Instr.addBehavior(IncrementPC, 'execute')
@@ -1945,7 +1945,7 @@ rd &= 0x7fffffff;
 MSR[key_C]=ra%2;
 """)
 srl_Instr = trap.Instruction('SRL', True)
-srl_Instr.setMachineCode(unary_oper, {'opcode0': [1,0,0,1,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1]}, 'TODO')
+srl_Instr.setMachineCode(unary_oper, {'opcode0': [1,0,0,1,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1]}, ('srl r', '%rd', ' r', '%ra'))
 srl_Instr.setCode(opCode,'execute')
 srl_Instr.addBehavior(IMM_reset, 'execute')
 srl_Instr.addBehavior(IncrementPC, 'execute')
@@ -1960,7 +1960,7 @@ opCode = cxx_writer.writer_code.Code("""
    this instruction. */
 """)
 wdc_Instr = trap.Instruction('WDC', True)
-wdc_Instr.setMachineCode(cache_oper, {'opcode0': [1,0,0,1,0,0], 'opcode1': [0,0,0,0,1,1,0,0,1,0,0]}, 'TODO')
+wdc_Instr.setMachineCode(cache_oper, {'opcode0': [1,0,0,1,0,0], 'opcode1': [0,0,0,0,1,1,0,0,1,0,0]}, ('wdc r', '%ra', ' r', '%rb'))
 wdc_Instr.setCode(opCode,'execute')
 wdc_Instr.addBehavior(IMM_reset, 'execute')
 wdc_Instr.addBehavior(IncrementPC, 'execute')
@@ -1973,7 +1973,7 @@ opCode = cxx_writer.writer_code.Code("""
    this instruction. */
 """)
 wic_Instr = trap.Instruction('WIC', True)
-wic_Instr.setMachineCode(cache_oper, {'opcode0': [1,0,0,1,0,0], 'opcode1': [0,0,0,0,1,1,0,1,0,0,0]}, 'TODO')
+wic_Instr.setMachineCode(cache_oper, {'opcode0': [1,0,0,1,0,0], 'opcode1': [0,0,0,0,1,1,0,1,0,0,0]}, ('wic r', '%ra', ' r', '%rb'))
 wic_Instr.setCode(opCode,'execute')
 wic_Instr.addBehavior(IMM_reset, 'execute')
 wic_Instr.addBehavior(IncrementPC, 'execute')
@@ -1985,7 +1985,7 @@ opCode = cxx_writer.writer_code.Code("""
 rd = (int)ra ^ (int)rb;
 """)
 xor_Instr = trap.Instruction('XOR', True)
-xor_Instr.setMachineCode(oper_reg, {'opcode0': [1,0,0,0,1,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, 'TODO')
+xor_Instr.setMachineCode(oper_reg, {'opcode0': [1,0,0,0,1,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, ('xor r', '%rd', ' r', '%ra', ' r', '%rb'))
 xor_Instr.setCode(opCode,'execute')
 xor_Instr.addBehavior(IMM_reset, 'execute')
 xor_Instr.addBehavior(IncrementPC, 'execute')
@@ -1998,7 +1998,7 @@ opCode = cxx_writer.writer_code.Code("""
 rd = (int)ra ^ (int)imm_value;
 """)
 xori_Instr = trap.Instruction('XORI', True)
-xori_Instr.setMachineCode(oper_imm, {'opcode': [1,0,1,0,1,0]}, 'TODO')
+xori_Instr.setMachineCode(oper_imm, {'opcode': [1,0,1,0,1,0]}, ('xori r', '%rd', ' r', '%ra', ' ', '%imm'))
 xori_Instr.setCode(opCode,'execute')
 xori_Instr.addBehavior(IMM_handler, 'execute')
 xori_Instr.addBehavior(IncrementPC, 'execute')
