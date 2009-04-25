@@ -87,3 +87,41 @@ opCode = cxx_writer.writer_code.Code("""
 """)
 IMM_reset = trap.HelperOperation('IMM_reset', opCode)
 
+opCode = cxx_writer.writer_code.Code("""
+	ESR[key_DS] = DSFLAG ? 0x1 : 0x0;
+	if ( ESR[key_DS] ) {
+		BTR = PC; /* In this moment, TARGET value is in PC */
+		GPR[17] = 0xffffffff;
+	} else {
+		GPR[17] = PC; /* In this moment, PC points to the NEXT instruction */		
+	}
+	PC = 0x00000020;
+	MSR[key_EE] = 0x0; MSR[key_EIP] = 0x1;
+	MSR[key_UMS] = MSR[key_UM]; MSR[key_UM] = 0x0;
+	MSR[key_VMS] = MSR[key_VMS]; MSR[key_VM] = 0x0;
+	
+	ESR[key_EC] = 0x1;
+	ESR[key_W] = W_value;
+	ESR[key_S] = S_value;
+	ESR[key_Rx] = rd_bit_value; /* the value that identifies rd */
+	EAR = addr;
+""")
+handleMemoryException_method = trap.HelperMethod('handleMemoryException', opCode, 'execute')
+handleMemoryException_method.setSignature(parameters = [cxx_writer.writer_code.Parameter('W_value', cxx_writer.writer_code.uintType), cxx_writer.writer_code.Parameter('S_value', cxx_writer.writer_code.uintType), cxx_writer.writer_code.Parameter('rd_bit_value', cxx_writer.writer_code.uintType), cxx_writer.writer_code.Parameter('addr', cxx_writer.writer_code.uintType)])
+
+opCode = cxx_writer.writer_code.Code("""
+	ESR[key_DS] = DSFLAG ? 0x1 : 0x0;
+	if ( ESR[key_DS] ) {
+		BTR = PC; /* In this moment, TARGET value is in PC */
+		GPR[17] = 0xffffffff;
+	} else {
+		GPR[17] = PC; /* In this moment, PC points to the NEXT instruction */		
+	}
+	PC = 0x00000020;
+	MSR[key_EE] = 0x0; MSR[key_EIP] = 0x1;
+	MSR[key_UMS] = MSR[key_UM]; MSR[key_UM] = 0x0;
+	MSR[key_VMS] = MSR[key_VMS]; MSR[key_VM] = 0x0;
+	
+	ESR[key_EC] = 0x1c;
+""")
+handleUserPermissionException_method = trap.HelperMethod('handleUserPermissionException', opCode, 'execute')
