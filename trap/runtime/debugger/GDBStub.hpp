@@ -70,6 +70,7 @@
 #include <boost/thread/condition.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "utils.hpp"
 
@@ -93,12 +94,14 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
                     gdbStub.step = 2;
                 }
                 else{
-                    std::cerr << "GDB thread, interrupt in the connection manager" << std::endl;
                     //Error: First of all I have to perform some cleanup
-                    gdbStub.breakManager.clearAllBreaks();
-                    gdbStub.watchManager.clearAllWatchs();
-                    gdbStub.step = 0;
-                    gdbStub.isConnected = false;
+                    if(!gdbStub.isKilled){
+                        boost::mutex::scoped_lock lk(gdbStub.cleanupMutex);
+                        gdbStub.breakManager.clearAllBreaks();
+                        gdbStub.watchManager.clearAllWatchs();
+                        gdbStub.step = 0;
+                        gdbStub.isConnected = false;
+                    }
                     break;
                 }
             }
@@ -148,6 +151,8 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     bool isConnected;
     ///Specifies that the first run is being made
     bool firstRun;
+    ///Mutex controlling the cleanup of GDB status
+    boost::mutex cleanupMutex;
 
     /********************************************************************/
     ///Checks if a breakpoint is present at the current address and
@@ -169,16 +174,20 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     }
     ///Checks if execution must be stopped because of a step command
     inline void checkStep() throw(){
-        if(this->step == 1)
+        if(this->step == 1){
             this->step++;
+        }
         else if(this->step == 2){
+            std::cerr << "doing step" << std::endl;
             this->step = 0;
             if(this->timeout){
                 this->timeout = false;
                 this->setStopped(TIMEOUT_stop);
             }
-            else
+            else{
+                std::cerr << "stopping in step" << std::endl;
                 this->setStopped(STEP_stop);
+            }
         }
     }
 
@@ -220,10 +229,6 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
         this->watchEnabled = false;
         this->awakeGDB(stopReason);
         //pausing simulation
-/*        if(stopReason != TIMEOUT && stopReason !=  PAUSED){
-            boost::mutex::scoped_lock lk(this->global_mutex);
-            this->gdbPausedEvent.wait(lk);
-        }*/
         while(this->waitForRequest())
             ;
     }
@@ -322,18 +327,20 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
             }
             response.type = GDBResponse::OUTPUT_rsp;
             if(error){
-                response.message = "Program Ended With an Error\n";
+                response.message = "\nProgram Ended With an Error\n";
             }
             else
-                response.message = "Program Correctly Ended\n";
+                response.message = "\nProgram Correctly Ended\n";
             this->connManager.sendResponse(response);
 
             //Now I really communicate to GDB that the program ended
             response.type = GDBResponse::W_rsp;
             if(error)
                 response.payload = SIGABRT;
-            else
-                response.payload = SIGQUIT;
+            else{
+                extern int exitValue;
+                response.payload = exitValue;
+            }
             this->connManager.sendResponse(response);
         }
     }
@@ -345,38 +352,47 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
         GDBRequest req = connManager.processRequest();
         switch(req.type){
             case GDBRequest::QUEST_req:
+                std::cerr << "QUEST_req" << std::endl;
                 //? request: it asks the target the reason why it halted
                 return this->reqStopReason();
             break;
             case GDBRequest::EXCL_req:
+                std::cerr << "EXCL_req" << std::endl;
                 // ! request: it asks if extended mode is supported
                 return this->emptyAction(req);
             break;
             case GDBRequest::c_req:
+                std::cerr << "c_req" << std::endl;
                 //c request: Continue command
-                return this->cont(req);
+                return this->cont(req.address);
             break;
             case GDBRequest::C_req:
+                std::cerr << "C_req" << std::endl;
                 //C request: Continue with signal command, currently not supported
                 return this->emptyAction(req);
             break;
             case GDBRequest::D_req:
+                std::cerr << "D_req" << std::endl;
                 //D request: disconnection from the remote target
                 return this->detach(req);
             break;
             case GDBRequest::g_req:
+                std::cerr << "g_req" << std::endl;
                 //g request: read general register
                 return this->readRegisters();
             break;
             case GDBRequest::G_req:
+                std::cerr << "G_req" << std::endl;
                 //G request: write general register
                 return this->writeRegisters(req);
             break;
             case GDBRequest::H_req:
+                std::cerr << "H_req" << std::endl;
                 //H request: multithreading stuff, not currently supported
                 return this->emptyAction(req);
             break;
             case GDBRequest::i_req:
+                std::cerr << "i_req" << std::endl;
                 //i request: single clock cycle step; currently it is not supported
                 //since it requires advancing systemc by a specified ammont of
                 //time equal to the clock cycle (or one of its multiple) and I still
@@ -385,64 +401,122 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
                 return this->emptyAction(req);
             break;
             case GDBRequest::I_req:
+                std::cerr << "I_req" << std::endl;
                 //i request: signal and single clock cycle step
                 return this->emptyAction(req);
             break;
             case GDBRequest::k_req:
+                std::cerr << "k_req" << std::endl;
                 //i request: kill application: I simply call the sc_stop method
                 return this->killApp();
             break;
             case GDBRequest::m_req:
+                std::cerr << "m_req" << std::endl;
                 //m request: read memory
                 return this->readMemory(req);
             break;
             case GDBRequest::M_req:
             case GDBRequest::X_req:
+                std::cerr << "X_req" << std::endl;
                 //M request: write memory
                 return this->writeMemory(req);
             break;
             case GDBRequest::p_req:
+                std::cerr << "p_req" << std::endl;
                 //p request: register read
                 return this->readRegister(req);
             break;
             case GDBRequest::P_req:
+                std::cerr << "P_req" << std::endl;
                 //P request: register write
                 return this->writeRegister(req);
             break;
             case GDBRequest::q_req:
+                std::cerr << "q_req" << std::endl;
                 //P request: register write
                 return this->genericQuery(req);
             break;
             case GDBRequest::s_req:
+                std::cerr << "s_req" << std::endl;
                 //s request: single step
-                return this->doStep(req);
+                return this->doStep(req.address);
             break;
             case GDBRequest::S_req:
+                std::cerr << "S_req" << std::endl;
                 //S request: single step with signal
                 return this->emptyAction(req);
             break;
             case GDBRequest::t_req:
+                std::cerr << "t_req" << std::endl;
                 //t request: backward search: currently not supported
                 return this->emptyAction(req);
             break;
             case GDBRequest::T_req:
+                std::cerr << "T_req" << std::endl;
                 //T request: thread stuff: currently not supported
                 return this->emptyAction(req);
             break;
+            case GDBRequest::v_req:{
+                std::cerr << "v_req" << std::endl;
+                //Note that I support only the vCont packets; in particular, the only
+                //supported actions are continue and stop
+                std::size_t foundCont = req.command.find("Cont");
+                if(foundCont == std::string::npos){
+                    return this->emptyAction(req);
+                }
+                if(req.command.find_last_of('?') == (req.command.size() - 1)){
+                    // Query of the supported commands: I support only the
+                    // c, and s commands
+                    return this->vContQuery(req);
+                }
+                else{
+                    req.command = req.command.substr(foundCont + 5);
+                    std::vector<std::string> lineElements;
+                    boost::split( lineElements, req.command, boost::is_any_of(";"));
+                    // Actual continue/step command; note that I should have only
+                    // one element in the vCont command (since only one thread is supported)
+                    if(lineElements.size() != 1){
+                        std::cerr << "There are " << lineElements.size() << " elements in the vcont packet " << req.command << std::endl;
+                        GDBResponse resp;
+                        resp.type = GDBResponse::ERROR_rsp;
+                        this->connManager.sendResponse(resp);
+                        return true;
+                    }
+                    // Here I check whether I have to issue a continue or a step command
+                    if(lineElements[0][0] == 'c'){
+                        std::cerr << "continuing" << std::endl;
+                        return this->cont();
+                    }
+                    else if(lineElements[0][0] == 's'){
+                        std::cerr << "stepping" << std::endl;
+                        return this->doStep();
+                    }
+                    else{
+                        std::cerr << "Error, the vCont packet is " << req.command << std::endl;
+                        GDBResponse resp;
+                        resp.type = GDBResponse::ERROR_rsp;
+                        this->connManager.sendResponse(resp);
+                        return true;
+                    }
+                }
+            break;}
             case GDBRequest::z_req:
+                std::cerr << "z_req" << std::endl;
                 //z request: breakpoint/watch removal
                 return this->removeBreakWatch(req);
             break;
             case GDBRequest::Z_req:
+                std::cerr << "Z_req" << std::endl;
                 //z request: breakpoint/watch addition
                 return this->addBreakWatch(req);
             break;
             case GDBRequest::INTR_req:
+                std::cerr << "INTR_req" << std::endl;
                 //received an iterrupt from GDB: I pause simulation and signal GDB that I stopped
                 return this->recvIntr();
             break;
             case GDBRequest::ERROR_req:
-                std::cerr << "Error in the connection with the GDB debugger, connection will be terminated" << std::endl;
+                std::cerr << "ERROR_req" << std::endl;
                 this->isConnected = false;
                 this->resumeExecution();
                 this->breakEnabled = false;
@@ -450,7 +524,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
                 return false;
             break;
             default:
-                std::cerr << "executing an empty action" << std::endl;
+                std::cerr << "default" << std::endl;
                 return this->emptyAction(req);
             break;
         }
@@ -475,6 +549,17 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     bool emptyAction(GDBRequest &req){
         GDBResponse resp;
         resp.type = GDBResponse::NOT_SUPPORTED_rsp;
+        this->connManager.sendResponse(resp);
+        return true;
+    }
+
+    /// Queries the supported vCont commands; only the c and s commands
+    /// are supported
+    bool vContQuery(GDBRequest &req){
+        GDBResponse resp;
+        resp.type = GDBResponse::CONT_rsp;
+        resp.data.push_back('c');
+        resp.data.push_back('s');
         this->connManager.sendResponse(resp);
         return true;
     }
@@ -525,9 +610,9 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
         return true;
     }
 
-    bool cont(GDBRequest &req){
-        if(req.address != 0){
-            this->processorInstance.setPC(req.address);
+    bool cont(unsigned int address = 0){
+        if(address != 0){
+            this->processorInstance.setPC(address);
         }
 
         //Now, I have to restart SystemC, since the processor
@@ -539,7 +624,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     }
 
     bool detach(GDBRequest &req){
-        std::cerr << "detaching the application" << std::endl;
+        boost::mutex::scoped_lock lk(this->cleanupMutex);
         //First of all I have to perform some cleanup
         this->breakManager.clearAllBreaks();
         this->watchManager.clearAllWatchs();
@@ -645,17 +730,19 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     }
 
     bool killApp(){
-        std::cerr << "killing the application" << std::endl;
+        std::cerr << "killing the app" << std::endl;
         this->isKilled = true;
         sc_stop();
         wait();
         return true;
     }
 
-    bool doStep(GDBRequest &req){
-        if(req.address != 0){
-            this->processorInstance.setPC(req.address);
+    bool doStep(unsigned int address = 0){
+        if(address != 0){
+            this->processorInstance.setPC(address);
         }
+
+        std::cerr << "in do step command" << std::endl;
 
         this->step = 1;
         this->resumeExecution();
@@ -663,7 +750,8 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     }
 
     bool recvIntr(){
-        std::cerr << "received interrupt" << std::endl;
+        std::cerr << "receiving interrupt: pausing simulation" << std::endl;
+        boost::mutex::scoped_lock lk(this->cleanupMutex);
         this->breakManager.clearAllBreaks();
         this->watchManager.clearAllWatchs();
         this->step = 0;
@@ -833,19 +921,24 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
 
         end_module();
     }
+
     ///Method used to pause simulation
     void pauseMethod(){
         this->step = 2;
         this->timeout = true;
     }
+
     ///Overloading of the end_of_simulation method; it can be used to execute methods
     ///at the end of the simulation
     void end_of_simulation(){
+        std::cerr << "signaling end of simulation" << std::endl;
         if(this->isConnected){
             this->isKilled = false;
             this->signalProgramEnd();
+            this->isKilled = true;
         }
     }
+
     ///Starts the connection with the GDB client
     void initialize(unsigned int port = 1500){
         this->connManager.initialize(port);
@@ -854,6 +947,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
         //be done in a new thread.
         this->startThread();
     }
+
     ///Method called at every cycle from the processor's main loop
     bool newIssue(const issueWidth &curPC, const void *curInstr) throw(){
         if(!this->firstRun){

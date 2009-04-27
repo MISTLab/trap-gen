@@ -71,6 +71,7 @@
 #include "GDBConnectionManager.hpp"
 
 GDBConnectionManager::GDBConnectionManager(bool endianess) : endianess(endianess), killed(false){
+    this->socket = NULL;
     this->HexMap['0'] = 0;
     this->HexMap['1'] = 1;
     this->HexMap['2'] = 2;
@@ -96,9 +97,9 @@ GDBConnectionManager::GDBConnectionManager(bool endianess) : endianess(endianess
 }
 
 GDBConnectionManager::~GDBConnectionManager(){
-/*   if(this->socket != NULL && !this->killed){
+   if(this->socket != NULL && !this->killed){
       delete this->socket;
-   }*/
+   }
 }
 
 ///Creates a socket connection waiting on the specified port;
@@ -181,6 +182,12 @@ void GDBConnectionManager::sendResponse(GDBResponse &response){
         std::vector<char>::iterator dataIter, dataEnd;
         for(dataIter = response.data.begin(), dataEnd = response.data.end(); dataIter != dataEnd; dataIter++)
             payload += this->toHexString((unsigned char)*dataIter, 2);
+        break;}
+        case GDBResponse::CONT_rsp:{
+            std::vector<char>::iterator dataIter, dataEnd;
+            for(dataIter = response.data.begin(), dataEnd = response.data.end(); dataIter != dataEnd; dataIter++){
+                payload += ';' + *dataIter;
+            }
         break;}
         default:{
         break;}
@@ -312,6 +319,7 @@ GDBRequest GDBConnectionManager::processRequest(){
     //Now I have do decode the payload and transform it into the real packet
     char payType = payload[0];
     payload = payload.substr(1);
+    std::cerr << payType << std::endl;
     switch(payType){
         case '!':{
             req.type = GDBRequest::EXCL_req;
@@ -322,6 +330,7 @@ GDBRequest GDBConnectionManager::processRequest(){
         case 'c':{
             req.type = GDBRequest::c_req;
             if(payload.size() > 0){
+                std::cerr << "I have to continue from address "  << std::endl;
                 req.address = this->toIntNum(payload);
             }
             else
@@ -480,6 +489,10 @@ GDBRequest GDBConnectionManager::processRequest(){
             req.type = GDBRequest::T_req;
             req.value = this->toIntNum(payload);
         break;}
+        case 'v':{
+            req.type = GDBRequest::v_req;
+            req.command = payload;
+        break;}
         case 'X':{
             req.type = GDBRequest::X_req;
             std::string::size_type sepIndex = payload.find(',');
@@ -543,8 +556,8 @@ bool GDBConnectionManager::checkInterrupt(){
     do{
         this->socket->read_some(boost::asio::buffer(&recivedChar, 1), asioError);
         if(asioError == boost::asio::error::eof){
-            std::cerr << "received interrupt in check interrupt" << std::endl;
             this->recvdChars.push_back('\x0');
+            this->emptyQueueCond.notify_all();
             this->killed = true;
             return false;
         }
@@ -552,13 +565,15 @@ bool GDBConnectionManager::checkInterrupt(){
             this->recvdChars.push_back(recivedChar);
             this->emptyQueueCond.notify_all();
         }
-    }while((recivedChar & 0x7f) != 0x03);
+        //std::cerr << recivedChar << "- hex form -" << std::hex << std::showbase << (unsigned int)recivedChar << std::endl;
+    }while((recivedChar & 0x7f) != 0x03 && !this->killed);
+    //std::cerr << "returned since an interrupt was encountered" << std::endl;
     if(this->killed){
-        std::cerr << "is killed in check interrupt" << std::endl;
         return false;
     }
-    else
+    else{
         return true;
+    }
 }
 
 ///Reads a character from the queue of ready characters

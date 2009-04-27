@@ -98,6 +98,7 @@ template <class AddressType> class WatchpointManager{
         }
         std::cerr << "adding watchpoint for address " << std::hex << std::showbase << address << " length: " << length << std::endl;
         for(unsigned int i = 0; i < length; i++){
+            std::cerr << "Adding " << std::hex << std::showbase << address + i << std::endl;
             this->watchpoints[address + i].address = address;
             this->watchpoints[address + i].length = length;
             this->watchpoints[address + i].type = type;
@@ -107,10 +108,14 @@ template <class AddressType> class WatchpointManager{
     }
 
     bool removeWatchpoint(AddressType address, unsigned int length){
+        std::cerr << "removing watchpoint for address " << std::hex << std::showbase << address << " length: " << length << std::endl;
         for(unsigned int i = 0; i < length; i++){
-            if(this->watchpoints.find(address + i) != this->lastWatch)
+            if(this->watchpoints.find(address + i) == this->lastWatch){
+                std::cerr << "not found watchpoint at address " << std::hex << std::showbase << address + i << std::endl;
                 return false;
+            }
         }
+        std::cerr << "going to remove " << std::hex << std::showbase << address << " length: " << length << std::endl;
         for(unsigned int i = 0; i < length; i++){
             this->watchpoints.erase(address + i);
         }
@@ -119,6 +124,7 @@ template <class AddressType> class WatchpointManager{
     }
 
     inline bool hasWatchpoint(AddressType address, unsigned int size) const throw(){
+        std::cerr << "looking for watchpoint " << std::hex << std::showbase << address << std::endl;
         for(unsigned int i = 0; i < size; i++){
             if(this->watchpoints.find(address + i) != this->lastWatch)
                 return true;

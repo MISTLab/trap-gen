@@ -108,3 +108,4 @@ std::map<std::string,  std::string> OSEmulatorBase::env;
 std::map<std::string, int> OSEmulatorBase::sysconfmap;
 std::vector<std::string> OSEmulatorBase::programArgs;
 unsigned int OSEmulatorBase::heapPointer = 0;
+int exitValue = 0;
