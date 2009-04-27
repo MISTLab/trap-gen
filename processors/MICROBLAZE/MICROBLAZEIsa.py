@@ -1006,11 +1006,11 @@ isa.addInstruction(cmpu_Instr)
 #FADD
 opCode = cxx_writer.writer_code.Code("""
 unsigned int ira=(unsigned int)ra;
-float fra=  *( (float*)( (char*)(&ira) ) );
+float fra=  *( (float*)( (void*)(&ira) ) );
 unsigned int irb=(unsigned int)rb;
-float frb= *( (float*)( (char*)(&irb) ) );
+float frb= *( (float*)( (void*)(&irb) ) );
 float fres=fra+frb;
-unsigned int res= *( (int*)( (char*)(&fres) ) );
+unsigned int res= *( (int*)( (void*)(&fres) ) );
 //if isDnz(ra) or isDnz(rb):
 if ( (ira & 0x7f800000 == 0 && ira & 0x007fffff != 0) || ( irb & 0x7f800000 == 0 && irb & 0x007fffff != 0 )){ 
 	rd=(unsigned int)0xffc00000;
@@ -1044,14 +1044,14 @@ else if (
 }
 //else if isDnz (ra+rb):
 else if(res & 0x7f800000 == 0 && res & 0x007fffff != 0){
-	rd=(unsigned int) res & 0x80000000;
+	rd=(unsigned int) res & 0x80000000 == 0x80000000;
 	FSR[key_UF]=1;
 	ESR[key_EC]=0x0c;
 	//EXCEPTION
 }
 //else if isNaN(ra+rb):
 else if (res & 0x7f800000 == 0x7f800000 && res & 0x007fffff !=0){
-	rd=(unsigned int) res & 0x80000000;
+	rd=(unsigned int) res & 0x80000000 == 0x80000000;
 	FSR[key_OF]=1;
 	ESR[key_EC]=0x0c;
 	//EXCEPTION
@@ -1071,11 +1071,11 @@ isa.addInstruction(fadd_Instr)
 #FRSUB
 opCode = cxx_writer.writer_code.Code("""
 unsigned int ira=(unsigned int)ra;
-float fra=  *( (float*)( (char*)(&ira) ) );
+float fra=  *( (float*)( (void*)(&ira) ) );
 unsigned int irb=(unsigned int)rb;
-float frb= *( (float*)( (char*)(&irb) ) );
+float frb= *( (float*)( (void*)(&irb) ) );
 float fres=frb-fra;
-unsigned int res= *( (int*)( (char*)(&fres) ) );
+unsigned int res= *( (int*)( (void*)(&fres) ) );
 //if isDnz(ra) or isDnz(rb):
 if ( (ira & 0x7f800000 == 0 && ira & 0x007fffff != 0) || ( irb & 0x7f800000 == 0 && irb & 0x007fffff != 0 )){ 
 	rd=(unsigned int)0xffc00000;
@@ -1109,14 +1109,14 @@ else if (
 }
 //else if isDnz (rb-ra):
 else if(res & 0x7f800000 == 0 && res & 0x007fffff != 0){
-	rd=(unsigned int) res & 0x80000000;
+	rd=(unsigned int) res & 0x80000000 == 0x80000000;
 	FSR[key_UF]=1;
 	ESR[key_EC]=0x0c;
 	//EXCEPTION
 }
 //else if isNaN(rb-ra):
 else if (res & 0x7f800000 == 0x7f800000 && res & 0x007fffff !=0){
-	rd=(unsigned int) res & 0x80000000;
+	rd=(unsigned int) res & 0x80000000 == 0x80000000;
 	FSR[key_OF]=1;
 	ESR[key_EC]=0x0c;
 	//EXCEPTION
@@ -1135,20 +1135,142 @@ isa.addInstruction(frsub_Instr)
 
 #FMUL
 opCode = cxx_writer.writer_code.Code("""
-
+unsigned int ira=(unsigned int)ra;
+float fra=  *( (float*)( (void*)(&ira) ) );
+unsigned int irb=(unsigned int)rb;
+float frb= *( (float*)( (void*)(&irb) ) );
+float fres=frb * fra;
+unsigned int res= *( (int*)( (void*)(&fres) ) );
+//if isDnz(ra) or isDnz(rb):
+if ( (ira & 0x7f800000 == 0 && ira & 0x007fffff != 0) || ( irb & 0x7f800000 == 0 && irb & 0x007fffff != 0 )){ 
+	rd=(unsigned int)0xffc00000;
+	FSR[key_DO]=1;
+	ESR[key_EC]=0x0c;
+	//EXCEPTION
+}
+//else if isSigNan(ra) or isSigNaN(rb) or (isZero(ra) and isInfinite(rb)) or (isInfinite(ra) and isZero(rb)):
+else if (	(ira & 0x7f800000 == 0x7f800000 && ira & 0x007fffff !=0 && ira & 0x00400000 == 0) ||
+		(irb & 0x7f800000 == 0x7f800000 && irb & 0x007fffff !=0 && irb & 0x00400000 == 0) ||
+		(
+			(ira & 0x7f800000 == 0 && ira & 0x007fffff == 0) &&
+			(irb & 0x7f800000 == 0x7f800000 && irb & 0x007fffff == 0)
+		) ||
+		(
+			(ira & 0x7f800000 == 0x7f800000 && ira & 0x007fffff == 0) &&
+			(irb & 0x7f800000 == 0 && irb & 0x007fffff == 0)
+		)
+	){
+	rd=(unsigned int)0xffc00000;
+	FSR[key_IO]=1;
+	ESR[key_EC]=0x0c;
+	//EXCEPTION
+}
+//else if isQuietNaN(ra) or isQuietNaN(rb):
+else if (
+		(ira & 0x7f800000 == 0x7f800000 && ira & 0x007fffff !=0 && ira & 0x00400000 == 0x00400000) ||
+		(irb & 0x7f800000 == 0x7f800000 && irb & 0x007fffff !=0 && irb & 0x00400000 == 0x00400000)
+	){
+	rd=(unsigned int)0xffc00000;
+}
+//else if isDnz (rb*ra):
+else if(res & 0x7f800000 == 0 && res & 0x007fffff != 0){
+	rd=(unsigned int) res & 0x80000000 == 0x80000000;
+	FSR[key_UF]=1;
+	ESR[key_EC]=0x0c;
+	//EXCEPTION
+}
+//else if isNaN(rb*ra):
+else if (res & 0x7f800000 == 0x7f800000 && res & 0x007fffff !=0){
+	rd=(unsigned int) res & 0x80000000 == 0x80000000;
+	FSR[key_OF]=1;
+	ESR[key_EC]=0x0c;
+	//EXCEPTION
+}
+else {
+	rd=(unsigned int)res;
+}
 """)
 fmul_Instr = trap.Instruction('FMUL', True)
 fmul_Instr.setMachineCode(oper_reg, {'opcode0': [0,1,0,1,1,0], 'opcode1': [0,0,1,0,0,0,0,0,0,0,0]}, 'TODO')
 fmul_Instr.setCode(opCode,'execute')
+fmul_Instr.addBehavior(IMM_reset, 'execute')
+fmul_Instr.addBehavior(IncrementPC, 'execute')
+fmul_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xc073c6a8, 'GPR[2]': 0xc0800000, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x4173c6a8, 'PC':0x4})
 isa.addInstruction(fmul_Instr)
 
 #FDIV
 opCode = cxx_writer.writer_code.Code("""
-
+unsigned int ira=(unsigned int)ra;
+float fra=  *( (float*)( (void*)(&ira) ) );
+unsigned int irb=(unsigned int)rb;
+float frb= *( (float*)( (void*)(&irb) ) );
+float fres=frb / fra;
+unsigned int res= *( (int*)( (void*)(&fres) ) );
+//if isDnz(ra) or isDnz(rb):
+if ( (ira & 0x7f800000 == 0 && ira & 0x007fffff != 0) || ( irb & 0x7f800000 == 0 && irb & 0x007fffff != 0 )){ 
+	rd=(unsigned int)0xffc00000;
+	FSR[key_DO]=1;
+	ESR[key_EC]=0x0c;
+	//EXCEPTION
+}
+//else if isSigNan(ra) or isSigNaN(rb) or (isZero(ra) and isZero(rb)) or (isInfinite(ra) and isInfinite(rb)):
+else if (	(ira & 0x7f800000 == 0x7f800000 && ira & 0x007fffff !=0 && ira & 0x00400000 == 0) ||
+		(irb & 0x7f800000 == 0x7f800000 && irb & 0x007fffff !=0 && irb & 0x00400000 == 0) ||
+		(
+			(ira & 0x7f800000 == 0 && ira & 0x007fffff == 0) &&
+			(irb & 0x7f800000 == 0 && irb & 0x007fffff == 0)
+			
+		) ||
+		(
+			(ira & 0x7f800000 == 0x7f800000 && ira & 0x007fffff == 0) &&
+			(irb & 0x7f800000 == 0x7f800000 && irb & 0x007fffff == 0)
+		)
+	){
+	rd=(unsigned int)0xffc00000;
+	FSR[key_IO]=1;
+	ESR[key_EC]=0x0c;
+	//EXCEPTION
+}
+//else if isZero(ra) and not isInfinite(rb):
+else if ( 
+		(ira & 0x7f800000 == 0 && ira & 0x007fffff == 0) && 
+		( ! ( irb & 0x7f800000 == 0x7f800000 && irb & 0x007fffff == 0 )) ){
+	rd =(unsigned int) res & 0x80000000 == 0x80000000;
+	FSR[key_DZ]=1;
+	ESR[key_EC]=0x0c;
+	//EXCEPTION
+}
+//else if isQuietNaN(ra) or isQuietNaN(rb):
+else if (
+		(ira & 0x7f800000 == 0x7f800000 && ira & 0x007fffff !=0 && ira & 0x00400000 == 0x00400000) ||
+		(irb & 0x7f800000 == 0x7f800000 && irb & 0x007fffff !=0 && irb & 0x00400000 == 0x00400000)
+	){
+	rd=(unsigned int)0xffc00000;
+}
+//else if isDnz (rb/ra):
+else if(res & 0x7f800000 == 0 && res & 0x007fffff != 0){
+	rd=(unsigned int) res & 0x80000000 == 0x80000000;
+	FSR[key_UF]=1;
+	ESR[key_EC]=0x0c;
+	//EXCEPTION
+}
+//else if isNaN(rb/ra):
+else if (res & 0x7f800000 == 0x7f800000 && res & 0x007fffff !=0){
+	rd=(unsigned int) res & 0x80000000 == 0x80000000;
+	FSR[key_OF]=1;
+	ESR[key_EC]=0x0c;
+	//EXCEPTION
+}
+else {
+	rd=(unsigned int)res;
+}
 """)
 fdiv_Instr = trap.Instruction('FDIV', True)
 fdiv_Instr.setMachineCode(oper_reg, {'opcode0': [0,1,0,1,1,0], 'opcode1': [0,0,1,1,0,0,0,0,0,0,0]}, 'TODO')
 fdiv_Instr.setCode(opCode,'execute')
+fdiv_Instr.addBehavior(IMM_reset, 'execute')
+fdiv_Instr.addBehavior(IncrementPC, 'execute')
+fdiv_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xc07a1cac, 'GPR[2]': 0xc0000000, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x3f030368, 'PC':0x4})
 isa.addInstruction(fdiv_Instr)
 
 #FCMP
@@ -1162,11 +1284,16 @@ isa.addInstruction(fcmp_Instr)
 
 #FLT
 opCode = cxx_writer.writer_code.Code("""
-
+int ira=(int)ra;
+float frd=(float)ira;
+rd=*((int*) ((void*)(&frd)));
 """)
 flt_Instr = trap.Instruction('FLT', True)
 flt_Instr.setMachineCode(float_unary, {'opcode0': [0,1,0,1,1,0], 'opcode1': [0,1,0,1,0,0,0,0,0,0,0]}, 'TODO')
 flt_Instr.setCode(opCode,'execute')
+flt_Instr.addBehavior(IMM_reset, 'execute')
+flt_Instr.addBehavior(IncrementPC, 'execute')
+flt_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]': 0xfffffffd, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xc0400000, 'PC':0x4})
 isa.addInstruction(flt_Instr)
 
 #FINT
