@@ -543,6 +543,7 @@ bool GDBConnectionManager::checkInterrupt(){
     do{
         this->socket->read_some(boost::asio::buffer(&recivedChar, 1), asioError);
         if(asioError == boost::asio::error::eof){
+            std::cerr << "received interrupt in check interrupt" << std::endl;
             this->recvdChars.push_back('\x0');
             this->killed = true;
             return false;
@@ -552,8 +553,10 @@ bool GDBConnectionManager::checkInterrupt(){
             this->emptyQueueCond.notify_all();
         }
     }while((recivedChar & 0x7f) != 0x03);
-    if(this->killed)
+    if(this->killed){
+        std::cerr << "is killed in check interrupt" << std::endl;
         return false;
+    }
     else
         return true;
 }

@@ -93,6 +93,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
                     gdbStub.step = 2;
                 }
                 else{
+                    std::cerr << "GDB thread, interrupt in the connection manager" << std::endl;
                     //Error: First of all I have to perform some cleanup
                     gdbStub.breakManager.clearAllBreaks();
                     gdbStub.watchManager.clearAllWatchs();
@@ -538,6 +539,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     }
 
     bool detach(GDBRequest &req){
+        std::cerr << "detaching the application" << std::endl;
         //First of all I have to perform some cleanup
         this->breakManager.clearAllBreaks();
         this->watchManager.clearAllWatchs();
@@ -643,6 +645,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     }
 
     bool killApp(){
+        std::cerr << "killing the application" << std::endl;
         this->isKilled = true;
         sc_stop();
         wait();
@@ -660,6 +663,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     }
 
     bool recvIntr(){
+        std::cerr << "received interrupt" << std::endl;
         this->breakManager.clearAllBreaks();
         this->watchManager.clearAllWatchs();
         this->step = 0;
