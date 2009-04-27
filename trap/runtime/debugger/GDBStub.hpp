@@ -46,6 +46,7 @@
  * from the linux kernel (sparc-stub.c) and from ac_gdb.H in the ArchC sources
  * In order to debug the remote protocol (as a help in the development of this
  * stub, issue the "set debug remote 1" command in GDB)
+ * "set remotelogfile file" logs all the remote communication on the specified file
  */
 
 
