@@ -3,93 +3,49 @@
 #The purpouse of this script is the automation of the simulator creation.
 #If all previous steps end correctly, the script runs the tests.
 
-# if you specify 'clear' as a parameter, the script will delete the processor dir.
-
 SYSTEMC_PATH=/home/dimi/Scrivania/HIGHproject/download/systemc/
 TLM_INCLUDE_PATH=/home/dimi/Scrivania/HIGHproject/download/TLM-2008-06-09/include/
-
-#SYSTEMC_PATH=/usr/lib/systemc
-#TLM_INCLUDE_PATH=/usr/lib/TLM/include
-
-COUNT=0
+COUNT=1
 TOTAL=4
-CLEAR=0
 
-if [[ ! -z $1 && $1 == "clear" ]]
-then
-	CLEAR=1
-fi
+echo "WARNING: You have to run this script from the MICROBLAZE directory."
+sleep 2
 
-pwd | grep "MICROBLAZE" &> /dev/null
-if [[ $? == 1 ]]
-then
-	echo "You have to run this script from the MICROBLAZE directory."
-	exit 1
-fi
-
-if [ -d processor && CLEAR==1]
+if [ -d processor ]
 then
 	rm -r processor
-	echo "I'm deleting old processor dir."
-	sleep 1
+	echo "I've deleted old processor dir."
+	sleep 2
 fi
 
-COUNT=$((COUNT+1))
+	
 clear && echo "step $COUNT/$TOTAL: python MICROBLAZEArch.py"
-python MICROBLAZEArch.py | tee log
-tail -n 3 log | grep "Created in folder processor" > /dev/null
-if [[ $? == 1 ]]
-then
-	echo "The previous step has encountered some problems."
-	beep -f 300 -l 400 -r 3
-	exit 1
-else
-	echo "COMPLETED!"
-fi
+sleep 2
+python MICROBLAZEArch.py
+COUNT=$((COUNT+1))
+echo "COMPLETED!"
+sleep 1
 
-rm log &> /dev/null
 cd processor
 
-COUNT=$((COUNT+1))
 clear && echo "step $COUNT/$TOTAL: processor/waf configure --with-systemc=$SYSTEMC_PATH --with-tlm=$TLM_INCLUDE_PATH"
-waf configure --with-systemc=$SYSTEMC_PATH --with-tlm=$TLM_INCLUDE_PATH 2>&1 | tee log
-tail -n 3 log | grep "finished successfully" > /dev/null
-if [[ $? == 1 ]]
-then
-	echo "The previous step has encountered some problems."
-	beep -f 300 -l 400 -r 3
-	exit 1
-else
-	echo "COMPLETED!"
-fi
-
+sleep 2
+./waf configure --with-systemc=$SYSTEMC_PATH --with-tlm=$TLM_INCLUDE_PATH
 COUNT=$((COUNT+1))
+echo "COMPLETED!"
+sleep 1
+
 clear && echo "step $COUNT/$TOTAL: processor/waf"
-waf 2>&1 | tee log
-tail -n 3 log | grep "finished successfully" > /dev/null
-if [[ $? == 1 ]]
-then
-	echo "The previous step has encountered some problems."
-	beep -f 300 -l 400 -r 3
-	exit 1
-else
-	echo "COMPLETED!"
-fi
-
+sleep 2
+./waf
 COUNT=$((COUNT+1))
+echo "COMPLETED!"
+sleep 1
+
 clear && echo "step $COUNT/$TOTAL: tests. In God we trust :)"
-_build_/default/funcLT/tests/tests 2>&1 | tee log
-tail -n 3 log | grep "No errors detected" > /dev/null
-if [[ $? == 1 ]]
-then
-	echo "The previous step has encountered some problems."
-	beep -f 300 -l 400 -r 3
-	exit 1
-else
-	echo "COMPLETED!"
-	echo "Nice work! You should feel extremely satisfied. :)"
-	beep -f 329.6 -l 111 -n -l 111 -f 440 -n -f 544.4 -l 111 -n -f 659.2 -l 166 -n -f 1 -l 88 -n -f 544.4 -l 88 -n -f 659.2 -l 333
-fi
+sleep 2
+_build_/default/funcLT/tests/tests
+sleep 1
 
-rm log &> /dev/null
-
+echo "If all steps are completed without errors, you should feel extremely satisfied. :)"
+beep -f 1500 -r 3
