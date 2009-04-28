@@ -63,7 +63,7 @@
  * High level repesentation of a GDB request packet
  */
 struct GDBRequest{
-    enum Type {QUEST_req=0, EXCL_req, c_req, C_req, D_req, g_req, G_req, H_req, i_req, I_req, k_req, m_req, M_req, p_req, P_req, q_req, s_req, S_req, t_req, T_req, X_req, z_req, Z_req, UNK_req, ERROR_req, INTR_req};
+    enum Type {QUEST_req=0, EXCL_req, c_req, C_req, D_req, g_req, G_req, H_req, i_req, I_req, k_req, m_req, M_req, p_req, P_req, q_req, s_req, S_req, t_req, T_req, v_req, X_req, z_req, Z_req, UNK_req, ERROR_req, INTR_req};
     Type type;
     unsigned int address;
     unsigned int length;
@@ -88,7 +88,7 @@ struct GDBRequest{
  * High level repesentation of a GDB response packet
  */
 struct GDBResponse{
-    enum Type {S_rsp=0, T_rsp, W_rsp, X_rsp, OUTPUT_rsp, OK_rsp, ERROR_rsp, MEM_READ_rsp, REG_READ_rsp, NOT_SUPPORTED_rsp};
+    enum Type {S_rsp=0, T_rsp, W_rsp, X_rsp, OUTPUT_rsp, OK_rsp, ERROR_rsp, MEM_READ_rsp, REG_READ_rsp, CONT_rsp, NOT_SUPPORTED_rsp};
     Type type;
     unsigned int payload;
     std::string message;

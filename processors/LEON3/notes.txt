@@ -1,3 +1,5 @@
+-- Check the delay of the Y register ... is there a delay? or a not? do we have a stall? I have seen that we should nave the delay otherwise nothing works
+
 -- Check the how the WIM register is managed in the real OS (LEON bsp??): how is it initialized?
 
 --  PROGRAM COUNTER: IS IT THE CASE OF EXPLORING THE POSSIBILITY OF MAKING IT A NORMAL non-offset REGISTER???

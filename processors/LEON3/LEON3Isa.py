@@ -2097,7 +2097,7 @@ if(exception){
 }
 """)
 udiv_imm_Instr = trap.Instruction('UDIV_imm', True, frequency = 5)
-udiv_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 1, 1, 1, 0]}, ('udiv', ' r', '%rs1', ' ', '%simm13', '%rd'))
+udiv_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 1, 1, 1, 0]}, ('udiv', ' r', '%rs1', ' ', '%simm13', ' r', '%rd'))
 udiv_imm_Instr.setCode(opCodeRegsImm, 'regs')
 udiv_imm_Instr.setCode(opCodeExecU, 'execute')
 udiv_imm_Instr.setCode(opCodeTrap, 'exception')
@@ -2111,7 +2111,7 @@ udiv_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
 udiv_imm_Instr.addSpecialRegister('Ybp', 'in')
 isa.addInstruction(udiv_imm_Instr)
 udiv_reg_Instr = trap.Instruction('UDIV_reg', True, frequency = 5)
-udiv_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 1, 1, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('udiv', ' r', '%rs1', ' r', '%rs2', '%rd'))
+udiv_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 1, 1, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('udiv', ' r', '%rs1', ' r', '%rs2', ' r', '%rd'))
 udiv_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 udiv_reg_Instr.setCode(opCodeExecU, 'execute')
 udiv_reg_Instr.setCode(opCodeTrap, 'exception')
@@ -2773,12 +2773,16 @@ isa.addInstruction(writeASR_imm_Instr)
 # ############################TODO: With respect to exceptions, the program counter appears to be written immediately:
 # this means that exceptions has to see the new value of the program counter ####################################
 opCodeXorR = cxx_writer.writer_code.Code("""
-result = rs1 ^ rs2;
+// Note how we filter writes to EF and EC fields since we do not
+// have neither a co-processor nor the FPU
+result = ((rs1 ^ rs2) & 0x00FFCFFF) | 0xF3000000;
 supervisorException = (PSR[key_S] == 0);
 illegalCWP = (result & 0x0000001f) >= NUM_REG_WIN;
 """)
 opCodeXorI = cxx_writer.writer_code.Code("""
-result = rs1 ^ SignExtend(simm13, 13);
+// Note how we filter writes to EF and EC fields since we do not
+// have neither a co-processor nor the FPU
+result = ((rs1 ^ SignExtend(simm13, 13)) & 0x00FFCFFF) | 0xF3000000;
 supervisorException = (PSR[key_S] == 0);
 illegalCWP = (result & 0x0000001f) >= NUM_REG_WIN;
 """)
@@ -2906,8 +2910,10 @@ opCode = cxx_writer.writer_code.Code("""
 flush_reg_Instr = trap.Instruction('FLUSH_reg', True, frequency = 5)
 flush_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 0, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('flush r', '%rs1', '+r', '%rs2'))
 flush_reg_Instr.setCode(opCode, 'execute')
+flush_reg_Instr.addBehavior(IncrementPC, 'fetch')
 isa.addInstruction(flush_reg_Instr)
 flush_imm_Instr = trap.Instruction('FLUSH_imm', True, frequency = 5)
 flush_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 0, 1, 1]}, ('flush r', '%rs1', '+', '%simm13'))
 flush_imm_Instr.setCode(opCode, 'execute')
+flush_imm_Instr.addBehavior(IncrementPC, 'fetch')
 isa.addInstruction(flush_imm_Instr)

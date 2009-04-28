@@ -735,7 +735,7 @@ def getCPPClasses(self, processor, model, trace):
                 printTraceCode += '#define ' + aliasB.name + ' ' + aliasB.name + '_' + processor.pipes[-1].name + '\n'
             printTraceCode += '\n'
 
-        if not processor.systemc and not model.startswith('acc'):
+        if not processor.systemc and not model.startswith('acc') and not model.endswith('AT'):
             printTraceCode += 'std::cerr << \"Simulated time \" << std::dec << this->totalCycles << std::endl;\n'
         else:
             printTraceCode += 'std::cerr << \"Simulated time \" << sc_time_stamp().to_double();\n'
