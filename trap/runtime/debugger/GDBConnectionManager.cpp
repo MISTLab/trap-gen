@@ -330,7 +330,6 @@ GDBRequest GDBConnectionManager::processRequest(){
         case 'c':{
             req.type = GDBRequest::c_req;
             if(payload.size() > 0){
-                std::cerr << "I have to continue from address "  << std::endl;
                 req.address = this->toIntNum(payload);
             }
             else

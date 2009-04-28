@@ -2108,7 +2108,8 @@ def getCPPIf(self, model):
     ifClassElements.append(setArgsMethod)
     maxGDBId = 0
     readGDBRegBody = 'switch(gdbId){\n'
-    for reg, gdbId in self.abi.regCorrespondence.items():
+    sortedGDBRegs = sorted(self.abi.regCorrespondence.items(), lambda x,y: cmp(x[1], y[1]))
+    for reg, gdbId in sortedGDBRegs:
         if gdbId > maxGDBId:
             maxGDBId = gdbId
         readGDBRegBody += 'case ' + str(gdbId) + ':{\n'
@@ -2122,11 +2123,11 @@ def getCPPIf(self, model):
     readGDBRegParam = cxx_writer.writer_code.Parameter('gdbId', cxx_writer.writer_code.uintType.makeRef().makeConst())
     readGDBRegMethod = cxx_writer.writer_code.Method('readGDBReg', readGDBRegCode, wordType, 'pu', [readGDBRegParam], noException = True, const = True)
     ifClassElements.append(readGDBRegMethod)
-    nGDBRegsCode = cxx_writer.writer_code.Code('return ' + str(maxGDBId) + ';')
+    nGDBRegsCode = cxx_writer.writer_code.Code('return ' + str(maxGDBId + 1) + ';')
     nGDBRegsMethod = cxx_writer.writer_code.Method('nGDBRegs', nGDBRegsCode, cxx_writer.writer_code.uintType, 'pu', noException = True, const = True)
     ifClassElements.append(nGDBRegsMethod)
     setGDBRegBody = 'switch(gdbId){\n'
-    for reg, gdbId in self.abi.regCorrespondence.items():
+    for reg, gdbId in sortedGDBRegs:
         setGDBRegBody += 'case ' + str(gdbId) + ':{\n'
         setGDBRegBody += reg + '.immediateWrite(newValue'
         setGDBRegBody += ');\nbreak;}\n'

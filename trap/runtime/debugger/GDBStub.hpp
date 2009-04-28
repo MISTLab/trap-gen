@@ -181,14 +181,12 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
             this->step++;
         }
         else if(this->step == 2){
-            std::cerr << "doing step" << std::endl;
             this->step = 0;
             if(this->timeout){
                 this->timeout = false;
                 this->setStopped(TIMEOUT_stop);
             }
             else{
-                std::cerr << "stopping in step" << std::endl;
                 this->setStopped(STEP_stop);
             }
         }
@@ -355,47 +353,38 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
         GDBRequest req = connManager.processRequest();
         switch(req.type){
             case GDBRequest::QUEST_req:
-                std::cerr << "QUEST_req" << std::endl;
                 //? request: it asks the target the reason why it halted
                 return this->reqStopReason();
             break;
             case GDBRequest::EXCL_req:
-                std::cerr << "EXCL_req" << std::endl;
                 // ! request: it asks if extended mode is supported
                 return this->emptyAction(req);
             break;
             case GDBRequest::c_req:
-                std::cerr << "c_req" << std::endl;
                 //c request: Continue command
                 return this->cont(req.address);
             break;
             case GDBRequest::C_req:
-                std::cerr << "C_req" << std::endl;
                 //C request: Continue with signal command, currently not supported
                 return this->emptyAction(req);
             break;
             case GDBRequest::D_req:
-                std::cerr << "D_req" << std::endl;
                 //D request: disconnection from the remote target
                 return this->detach(req);
             break;
             case GDBRequest::g_req:
-                std::cerr << "g_req" << std::endl;
                 //g request: read general register
                 return this->readRegisters();
             break;
             case GDBRequest::G_req:
-                std::cerr << "G_req" << std::endl;
                 //G request: write general register
                 return this->writeRegisters(req);
             break;
             case GDBRequest::H_req:
-                std::cerr << "H_req" << std::endl;
                 //H request: multithreading stuff, not currently supported
                 return this->emptyAction(req);
             break;
             case GDBRequest::i_req:
-                std::cerr << "i_req" << std::endl;
                 //i request: single clock cycle step; currently it is not supported
                 //since it requires advancing systemc by a specified ammont of
                 //time equal to the clock cycle (or one of its multiple) and I still
@@ -404,63 +393,51 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
                 return this->emptyAction(req);
             break;
             case GDBRequest::I_req:
-                std::cerr << "I_req" << std::endl;
                 //i request: signal and single clock cycle step
                 return this->emptyAction(req);
             break;
             case GDBRequest::k_req:
-                std::cerr << "k_req" << std::endl;
                 //i request: kill application: I simply call the sc_stop method
                 return this->killApp();
             break;
             case GDBRequest::m_req:
-                std::cerr << "m_req" << std::endl;
                 //m request: read memory
                 return this->readMemory(req);
             break;
             case GDBRequest::M_req:
             case GDBRequest::X_req:
-                std::cerr << "X_req" << std::endl;
                 //M request: write memory
                 return this->writeMemory(req);
             break;
             case GDBRequest::p_req:
-                std::cerr << "p_req" << std::endl;
                 //p request: register read
                 return this->readRegister(req);
             break;
             case GDBRequest::P_req:
-                std::cerr << "P_req" << std::endl;
                 //P request: register write
                 return this->writeRegister(req);
             break;
             case GDBRequest::q_req:
-                std::cerr << "q_req" << std::endl;
                 //P request: register write
                 return this->genericQuery(req);
             break;
             case GDBRequest::s_req:
-                std::cerr << "s_req" << std::endl;
                 //s request: single step
                 return this->doStep(req.address);
             break;
             case GDBRequest::S_req:
-                std::cerr << "S_req" << std::endl;
                 //S request: single step with signal
                 return this->emptyAction(req);
             break;
             case GDBRequest::t_req:
-                std::cerr << "t_req" << std::endl;
                 //t request: backward search: currently not supported
                 return this->emptyAction(req);
             break;
             case GDBRequest::T_req:
-                std::cerr << "T_req" << std::endl;
                 //T request: thread stuff: currently not supported
                 return this->emptyAction(req);
             break;
             case GDBRequest::v_req:{
-                std::cerr << "v_req" << std::endl;
                 //Note that I support only the vCont packets; in particular, the only
                 //supported actions are continue and stop
                 std::size_t foundCont = req.command.find("Cont");
@@ -479,7 +456,6 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
                     // Actual continue/step command; note that I should have only
                     // one element in the vCont command (since only one thread is supported)
                     if(lineElements.size() != 1){
-                        std::cerr << "There are " << lineElements.size() << " elements in the vcont packet " << req.command << std::endl;
                         GDBResponse resp;
                         resp.type = GDBResponse::ERROR_rsp;
                         this->connManager.sendResponse(resp);
@@ -487,15 +463,12 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
                     }
                     // Here I check whether I have to issue a continue or a step command
                     if(lineElements[0][0] == 'c'){
-                        std::cerr << "continuing" << std::endl;
                         return this->cont();
                     }
                     else if(lineElements[0][0] == 's'){
-                        std::cerr << "stepping" << std::endl;
                         return this->doStep();
                     }
                     else{
-                        std::cerr << "Error, the vCont packet is " << req.command << std::endl;
                         GDBResponse resp;
                         resp.type = GDBResponse::ERROR_rsp;
                         this->connManager.sendResponse(resp);
@@ -504,22 +477,18 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
                 }
             break;}
             case GDBRequest::z_req:
-                std::cerr << "z_req" << std::endl;
                 //z request: breakpoint/watch removal
                 return this->removeBreakWatch(req);
             break;
             case GDBRequest::Z_req:
-                std::cerr << "Z_req" << std::endl;
                 //z request: breakpoint/watch addition
                 return this->addBreakWatch(req);
             break;
             case GDBRequest::INTR_req:
-                std::cerr << "INTR_req" << std::endl;
                 //received an iterrupt from GDB: I pause simulation and signal GDB that I stopped
                 return this->recvIntr();
             break;
             case GDBRequest::ERROR_req:
-                std::cerr << "ERROR_req" << std::endl;
                 this->isConnected = false;
                 this->resumeExecution();
                 this->breakEnabled = false;
@@ -527,7 +496,6 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
                 return false;
             break;
             default:
-                std::cerr << "default" << std::endl;
                 return this->emptyAction(req);
             break;
         }
@@ -733,7 +701,6 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     }
 
     bool killApp(){
-        std::cerr << "killing the app" << std::endl;
         this->isKilled = true;
         sc_stop();
         wait();
@@ -745,15 +712,12 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
             this->processorInstance.setPC(address);
         }
 
-        std::cerr << "in do step command" << std::endl;
-
         this->step = 1;
         this->resumeExecution();
         return false;
     }
 
     bool recvIntr(){
-        std::cerr << "receiving interrupt: pausing simulation" << std::endl;
         boost::mutex::scoped_lock lk(this->cleanupMutex);
         this->breakManager.clearAllBreaks();
         this->watchManager.clearAllWatchs();
@@ -763,7 +727,6 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     }
 
     bool addBreakWatch(GDBRequest &req){
-        std::cerr << "reuest type " << req.value << "adding wathc/breakpoint address=" << std::hex << std::showbase << req.address << " length=" << req.length << std::endl;
         GDBResponse resp;
         switch(req.value){
             case 0:
@@ -934,7 +897,6 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     ///Overloading of the end_of_simulation method; it can be used to execute methods
     ///at the end of the simulation
     void end_of_simulation(){
-        std::cerr << "signaling end of simulation" << std::endl;
         if(this->isConnected){
             this->isKilled = false;
             this->signalProgramEnd();
@@ -973,7 +935,6 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     #else
     inline void notifyAddress(issueWidth address, unsigned int size){
     #endif
-        std::cerr << "checking address " << std::hex << std::showbase << address << " size: " << size << std::endl;
         if(this->watchEnabled && this->watchManager.hasWatchpoint(address, size)){
             this->watchReached = this->watchManager.getWatchPoint(address, size);
             #ifndef NDEBUG
