@@ -1,0 +1,15 @@
+In order to compile the tests run the command:
+CC=your_compiler CFLAGS=your_cflags make
+remember to specify -DBIG_TARGET among the cflags in case you want to test
+a big endian processor. For example, for the LEON3 processor:
+CC=/home/luke/cross/sparc/bin/sparc-elf-gcc CFLAGS="-DBIG_TARGET -specs=osemu.specs" make
+
+Once compiled, to run the tests execute:
+SIMULATOR=your_simulator make test
+for exmple:
+SIMULATOR=/home/luke/temp/processor/_build_/default/funcLT/funcLT make test
+
+After tests execution you shall get a list of the failed tests. Note that all the output
+written to standard error from the tests is written to a file called testName.trace (where
+testName is the name of the test which failed). In case tracing is enabled in the processor,
+this file contains also the output of the tracing process.

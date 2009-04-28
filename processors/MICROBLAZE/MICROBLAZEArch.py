@@ -165,7 +165,7 @@ processor.setMemory('dataMem', 10*1024*1024)
 processor.setFetchRegister('PC', 0)
 
 #TODO: remove the FAKE register ASAP!
-abi = trap.ABI('GPR[3-4]', 'GPR[5-10]', 'PC', 'GPR[15]', 'GPR[1]','FAKE')
+abi = trap.ABI('GPR[3-4]', 'GPR[5-10]', 'PC', 'GPR[15]', 'GPR[1]')
 abi.setOffset('PC', 0)
 abi.addMemory('dataMem')
 processor.setABI(abi)

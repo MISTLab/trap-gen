@@ -60,6 +60,7 @@ class ExecLoader{
     ///to be loaded; at the same time it fills the programData
     ///array
     void loadProgramData();
+    std::string getMatchingFormats (char **p);
   public:
     ///Initializes the loader of executable files by creating
     ///the corresponding bfd image of the executable file

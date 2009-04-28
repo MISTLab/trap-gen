@@ -116,7 +116,7 @@ void GDBConnectionManager::initialize(unsigned int port){
     }
     catch(...){
         this->killed = true;
-        THROW_EXCEPTION("Error during the creation of the connection on port " + boost::lexical_cast<std::string>(port));
+        THROW_ERROR("Error during the creation of the connection on port " + boost::lexical_cast<std::string>(port));
     }
 }
 

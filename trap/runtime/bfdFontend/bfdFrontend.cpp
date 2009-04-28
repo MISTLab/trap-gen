@@ -84,7 +84,7 @@ BFDFrontend & BFDFrontend::getInstance(std::string fileName){
         if(fileName != "")
             BFDFrontend::curInstance = new BFDFrontend(fileName);
         else
-            THROW_EXCEPTION("An instance of BFDFrontend does not exists yet, so the file name of the binary image must be specified");
+            THROW_ERROR("An instance of BFDFrontend does not exists yet, so the file name of the binary image must be specified");
     }
     return *BFDFrontend::curInstance;
 }
@@ -95,14 +95,14 @@ BFDFrontend::BFDFrontend(std::string binaryName){
 
     bfd_init();
     this->execImage = bfd_openr(binaryName.c_str(), "default");
-    if(execImage == NULL){
-        THROW_EXCEPTION("Error in reading input file " << binaryName << " --> " << bfd_errmsg(bfd_get_error()));
+    if(this->execImage == NULL){
+        THROW_ERROR("Error in reading input file " << binaryName << " --> " << bfd_errmsg(bfd_get_error()));
     }
-    if (bfd_check_format (execImage, bfd_archive)){
-        THROW_EXCEPTION("Error in reading input file " << binaryName << " --> The input file is an archive; executable file required");
+    if (bfd_check_format (this->execImage, bfd_archive)){
+        THROW_ERROR("Error in reading input file " << binaryName << " --> The input file is an archive; executable file required");
     }
-    if (!bfd_check_format_matches (execImage, bfd_object, &matching)){
-        THROW_EXCEPTION("Error in reading input file " << binaryName << " --> The input file is not an object file or the target is ambiguous -- " << this->getMatchingFormats(matching));
+    if (!bfd_check_format_matches (this->execImage, bfd_object, &matching)){
+        THROW_ERROR("Error in reading input file " << binaryName << " --> The input file is not an object file or the target is ambiguous -- " << this->getMatchingFormats(matching));
     }
 
     this->wordsize = bfd_get_arch_size(this->execImage)/(8*bfd_octets_per_byte(this->execImage));
@@ -140,21 +140,21 @@ BFDFrontend::BFDFrontend(std::string binaryName){
     this->execName = bfd_get_filename(this->execImage);
 
     if(!(bfd_get_file_flags (this->execImage) & HAS_SYMS)){
-        THROW_EXCEPTION("There are no symbols in file " << bfd_get_filename(this->execImage));
+        THROW_ERROR("There are no symbols in file " << bfd_get_filename(this->execImage));
     }
     int storage = bfd_get_symtab_upper_bound(this->execImage);
     if (storage < 0){
-        THROW_EXCEPTION("Error in getting symbol table upper bound -- " << bfd_get_filename(this->execImage) << " --> " << bfd_errmsg(bfd_get_error()));
+        THROW_ERROR("Error in getting symbol table upper bound -- " << bfd_get_filename(this->execImage) << " --> " << bfd_errmsg(bfd_get_error()));
     }
     if(storage != 0)
         this->sy = (asymbol **)malloc (storage);
     if (this->sy == NULL){
-        THROW_EXCEPTION("Error in allocating space for symbol storage -- " << bfd_get_filename(this->execImage));
+        THROW_ERROR("Error in allocating space for symbol storage -- " << bfd_get_filename(this->execImage));
     }
     long symcount = 0;
     symcount = bfd_canonicalize_symtab (this->execImage, this->sy);
     if (symcount < 0){
-        THROW_EXCEPTION("Error in getting symbol count -- " << bfd_get_filename(this->execImage) << " --> " << bfd_errmsg(bfd_get_error()));
+        THROW_ERROR("Error in getting symbol count -- " << bfd_get_filename(this->execImage) << " --> " << bfd_errmsg(bfd_get_error()));
     }
 
     //Now I call the various functions which extract all the necessary information form the BFD
@@ -171,7 +171,7 @@ BFDFrontend::BFDFrontend(std::string binaryName){
     if(this->execImage != NULL){
         if(!bfd_close_all_done(this->execImage)){
             //An Error has occurred; lets see what it is
-            THROW_EXCEPTION("Error in closing the binary parser --> " << bfd_errmsg(bfd_get_error()));
+            THROW_ERROR("Error in closing the binary parser --> " << bfd_errmsg(bfd_get_error()));
         }
         this->execImage = NULL;
     }
@@ -181,7 +181,7 @@ BFDFrontend::~BFDFrontend(){
     if(this->execImage != NULL){
         if(!bfd_close_all_done(this->execImage)){
             //An Error has occurred; lets see what it is
-            THROW_EXCEPTION("Error in closing the binary parser --> " << bfd_errmsg(bfd_get_error()));
+            THROW_ERROR("Error in closing the binary parser --> " << bfd_errmsg(bfd_get_error()));
         }
         this->execImage = NULL;
     }
@@ -253,7 +253,7 @@ void BFDFrontend::readSyms(){
     bfd_byte *from = NULL, *fromend = NULL;
     store = bfd_make_empty_symbol(this->execImage);
     if(store == NULL){
-        THROW_EXCEPTION("Error in allocating space for symbols -- " << bfd_get_filename(this->execImage) << " --> " << bfd_errmsg(bfd_get_error()));
+        THROW_ERROR("Error in allocating space for symbols -- " << bfd_get_filename(this->execImage) << " --> " << bfd_errmsg(bfd_get_error()));
     }
     from = (bfd_byte *) minisyms;
     fromend = from + symcount * size;
@@ -263,7 +263,7 @@ void BFDFrontend::readSyms(){
 
         sym = bfd_minisymbol_to_symbol (this->execImage, 0, from, store);
         if (sym == NULL){
-            THROW_EXCEPTION("Error in while getting symbol from file -- " << bfd_get_filename(this->execImage) << " --> " << bfd_errmsg(bfd_get_error()));
+            THROW_ERROR("Error in while getting symbol from file -- " << bfd_get_filename(this->execImage) << " --> " << bfd_errmsg(bfd_get_error()));
         }
         bfd_get_symbol_info (this->execImage, sym, &syminfo);
 
@@ -294,10 +294,12 @@ unsigned int BFDFrontend::getBinaryEnd(){
 
 std::string BFDFrontend::getMatchingFormats (char **p){
     std::string match = "";
-    while (*p){
-        match += *p;
-        *p++;
-        match += " ";
+    if(p != NULL){
+        while (*p){
+            match += *p;
+            *p++;
+            match += " ";
+        }
     }
     return match;
 }
