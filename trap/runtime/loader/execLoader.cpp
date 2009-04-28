@@ -63,13 +63,13 @@ ExecLoader::ExecLoader(std::string fileName){
     this->execImage = bfd_openr(fileName.c_str(), "default");
     if(this->execImage == NULL){
         //An error has occurred,  lets see what it is
-        THROW_EXCEPTION("Error in reading input file " << fileName << " --> " << bfd_errmsg(bfd_get_error()));
+        THROW_ERROR("Error in reading input file " << fileName << " --> " << bfd_errmsg(bfd_get_error()));
     }
     if (bfd_check_format (this->execImage, bfd_archive)){
-        THROW_EXCEPTION("Error in reading input file " << fileName << " --> The input file is an archive; executable file required");
+        THROW_ERROR("Error in reading input file " << fileName << " --> The input file is an archive; executable file required");
     }
     if (!bfd_check_format_matches (this->execImage, bfd_object, &matching)){
-        THROW_EXCEPTION("Error in reading input file " << fileName << " --> The input file is not an object file");
+        THROW_ERROR("Error in reading input file " << fileName << " --> The input file is not an object file or the target is ambiguous -- " << this->getMatchingFormats(matching));
     }
     this->loadProgramData();
 }
@@ -78,7 +78,7 @@ ExecLoader::~ExecLoader(){
     if(this->execImage != NULL){
         if(!bfd_close_all_done(this->execImage)){
             //An Error has occurred; lets see what it is
-            THROW_EXCEPTION("Error in closing the binary parser --> " << bfd_errmsg(bfd_get_error()));
+            THROW_ERROR("Error in closing the binary parser --> " << bfd_errmsg(bfd_get_error()));
         }
     }
     if(this->programData != NULL){
@@ -88,31 +88,31 @@ ExecLoader::~ExecLoader(){
 
 unsigned int ExecLoader::getProgStart(){
     if(this->execImage == NULL){
-        THROW_EXCEPTION("The binary parser not yet correcly created");
+        THROW_ERROR("The binary parser not yet correcly created");
     }
     return bfd_get_start_address(this->execImage);
 }
 
 unsigned int ExecLoader::getProgDim(){
     if(this->execImage == NULL){
-        THROW_EXCEPTION("The binary parser not yet correcly created");
+        THROW_ERROR("The binary parser not yet correcly created");
     }
     return this->progDim;
 }
 
 unsigned char * ExecLoader::getProgData(){
     if(this->execImage == NULL){
-        THROW_EXCEPTION("The binary parser not yet correcly created");
+        THROW_ERROR("The binary parser not yet correcly created");
     }
     if(this->programData == NULL){
-        THROW_EXCEPTION("The program data was not correcly computed");
+        THROW_ERROR("The program data was not correcly computed");
     }
     return this->programData;
 }
 
 unsigned int ExecLoader::getDataStart(){
     if(this->execImage == NULL){
-        THROW_EXCEPTION("The binary parser not yet correcly created");
+        THROW_ERROR("The binary parser not yet correcly created");
     }
     return this->dataStart;
 }
@@ -158,4 +158,16 @@ void ExecLoader::loadProgramData(){
     for(memBeg = memMap.begin(),  memEnd = memMap.end(); memBeg != memEnd; memBeg++){
         this->programData[memBeg->first - this->dataStart] = memBeg->second;
     }
+}
+
+std::string ExecLoader::getMatchingFormats (char **p){
+    std::string match = "";
+    if(p != NULL){
+        while (*p){
+            match += *p;
+            *p++;
+            match += " ";
+        }
+    }
+    return match;
 }

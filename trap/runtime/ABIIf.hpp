@@ -44,6 +44,7 @@
 #define ABIIF_HPP
 
 #include <vector>
+#include "utils.hpp"
 
 template<class regWidth> class ABIIf{
     public:
@@ -62,14 +63,26 @@ template<class regWidth> class ABIIf{
         this->setPC(this->readLR());
     }
     virtual bool isLittleEndian() const throw() = 0;
-    virtual regWidth readLR() const throw() = 0;
-    virtual void setLR( const regWidth & newValue ) throw() = 0;
+    virtual regWidth readLR() const throw(){
+        THROW_ERROR("The LR register is not defined in the processor ABI");
+    }
+    virtual void setLR( const regWidth & newValue ) throw(){
+        THROW_ERROR("The LR register is not defined in the processor ABI");
+    }
     virtual regWidth readPC() const throw() = 0;
     virtual void setPC( const regWidth & newValue ) throw() = 0;
-    virtual regWidth readSP() const throw() = 0;
-    virtual void setSP( const regWidth & newValue ) throw() = 0;
-    virtual regWidth readFP() const throw() = 0;
-    virtual void setFP( const regWidth & newValue ) throw() = 0;
+    virtual regWidth readSP() const throw(){
+        THROW_ERROR("The SP register is not defined in the processor ABI");
+    }
+    virtual void setSP( const regWidth & newValue ) throw(){
+        THROW_ERROR("The SP register is not defined in the processor ABI");
+    }
+    virtual regWidth readFP() const throw(){
+        THROW_ERROR("The FP register is not defined in the processor ABI");
+    }
+    virtual void setFP( const regWidth & newValue ) throw(){
+        THROW_ERROR("The FP register is not defined in the processor ABI");
+    }
     virtual regWidth readRetVal() const throw() = 0;
     virtual void setRetVal( const regWidth & newValue ) throw() = 0;
     virtual std::vector< regWidth > readArgs() const throw() = 0;

@@ -55,3 +55,9 @@ TRAP is mainly composed of three folders:
 
 TRAP depends on the NetworkX (https://networkx.lanl.gov/wiki) package for the creation and representation of the decoding tree
 (see decoder.py for more details).
+
+In order to build libraries for windows on MinGW, cross-compiling the boost libraries is needed; this
+can be accomplished with the "bjam --user-config=user-config.jam --toolset=gcc link=static --prefix=/usr/i686-mingw32/usr/"
+command, where the content of the user-config.jam file is "using gcc : : i686-mingw32-gcc : ;"
+
+Maybe this command line is better: "bjam --user-config=user-config.jam --toolset=gcc link=static --prefix=/usr/i686-mingw32/usr/ threading=multi threadapi=win32"
