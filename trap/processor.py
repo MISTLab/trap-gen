@@ -656,6 +656,11 @@ class Processor:
     def checkABI(self):
         # checks that the registers specified for the ABI interface
         # refer to existing registers
+        index = extractRegInterval(self.abi.retVal)
+        if index:
+            regBound = self.abi.retVal[self.abi.retVal.find('['):self.abi.retVal.find(']')]
+            if '-' in regBound:
+                raise Exception('Only a single register can be specified in the ABI for the return value')
         toCheck = [self.abi.retVal, self.abi.PC]
         if self.abi.LR:
             toCheck.append(self.abi.LR)

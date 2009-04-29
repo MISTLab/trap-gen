@@ -435,7 +435,8 @@ template<class wordSize> class _exitSysCall : public SyscallCB<wordSize>{
     bool operator()(){
         this->processorInstance.preCall();
         extern int exitValue;
-        exitValue = (int)this->processorInstance.readRetVal();
+        std::vector< wordSize > callArgs = this->processorInstance.readArgs();
+        exitValue = (int)callArgs[0];
         std::cout << std::endl << "Program exited with value " << exitValue << std::endl << std::endl;
         if(sc_is_running()){
             sc_stop();
