@@ -73,7 +73,7 @@ processor.addRegBank(regBank)
 # We define each special register as a single isolated register
 # PC = SPR[0x0000]
 pc = trap.Register('PC',32)
-pc.setDefaultValue(('ENTRY_POINT',8))
+pc.setDefaultValue(('ENTRY_POINT',0x0))
 processor.addRegister(pc)
 
 # MSR = SPR[0x0001]
@@ -149,10 +149,6 @@ dsflag = trap.Register('DSFLAG', 1)
 dsflag.setDefaultValue(0x0)
 processor.addRegister(dsflag)
 
-#FAKE: this register will be removed soon.
-fake = trap.Register('FAKE',32)
-processor.addRegister(fake)
-
 # At first, we simply define a pipeline with a single stage.
 # All the operations of the instruction will be executed in this stage.
 executeStage = trap.PipeStage('execute')
@@ -164,7 +160,6 @@ processor.setMemory('dataMem', 10*1024*1024)
 # Here we set the register from which we will fetch the next instruction
 processor.setFetchRegister('PC', 0)
 
-#TODO: remove the FAKE register ASAP!
 abi = trap.ABI('GPR[3-4]', 'GPR[5-10]', 'PC', 'GPR[15]', 'GPR[1]')
 abi.setOffset('PC', 0)
 abi.addMemory('dataMem')
@@ -172,8 +167,8 @@ processor.setABI(abi)
 
 # Finally we can dump the processor on file
 #processor.write(folder = 'processor', models = ['funcLT'], dumpDecoderName = 'decoder.dot')
-#processor.write(folder = 'processor', models = ['funcLT'], trace = True)
-processor.write(folder = 'processor', models = ['funcLT'])
+processor.write(folder = 'processor', models = ['funcLT'], trace = True)
+#processor.write(folder = 'processor', models = ['funcLT'])
 #processor.write(folder = 'processor', models = ['funcAT'], trace = True)
 #processor.write(folder = 'processor', models = ['accAT', 'funcLT'])
 #processor.write(folder = 'processor', models = ['accAT'])
