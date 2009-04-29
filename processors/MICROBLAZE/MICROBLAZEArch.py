@@ -70,10 +70,19 @@ processor.setISA(MICROBLAZEIsa.isa) #lets set the instruction set
 regBank = trap.RegisterBank('GPR', 32, 32) #GPR is the name, 32 registers of 32 bits
 processor.addRegBank(regBank)
 
+
+#WARNING If we use an alias in this way, we obtain a segmentation
+# fault when we try to use the simulator
+
+# We define an alias for the stack pointer (SP <-> GPR[1])
+#~ sp = trap.AliasRegister('SP', 'GPR[1]')
+#~ sp.setDefaultValue(50000)
+#~ processor.addAliasReg(sp)
+
 # We define each special register as a single isolated register
 # PC = SPR[0x0000]
 pc = trap.Register('PC',32)
-pc.setDefaultValue(('ENTRY_POINT',0x0))
+pc.setDefaultValue('ENTRY_POINT')
 processor.addRegister(pc)
 
 # MSR = SPR[0x0001]
@@ -148,6 +157,13 @@ processor.addRegister(target)
 dsflag = trap.Register('DSFLAG', 1)
 dsflag.setDefaultValue(0x0)
 processor.addRegister(dsflag)
+
+#This is the worst thing that a programmer can do.
+#We have to delete this register ASAP.
+#SET
+set = trap.Register('SET', 32)
+set.setDefaultValue(0x80000000)
+processor.addRegister(set)
 
 # At first, we simply define a pipeline with a single stage.
 # All the operations of the instruction will be executed in this stage.

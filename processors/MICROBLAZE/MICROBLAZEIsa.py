@@ -1453,8 +1453,13 @@ lhui_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x13, 'GPR[3]' :
 lhui_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x1111, 'dataMem[0x34]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0x500000}, {'GPR[3]' : 0x1111, 'PC' : 0x20, 'ESR': 0x08c80000, 'BTR':0x500000, 'EAR': 0x31})
 isa.addInstruction(lhui_Instr)
 
+#WARNING: the SET/GPR[1] trick must be deleted!
 #LW
 opCode = cxx_writer.writer_code.Code("""
+if ( SET & 0x80000000 ) {
+	SET = 0x00000000;
+	GPR[1] = 500000;
+}
 int addr = (int)ra + (int)rb;
 if ( (addr & 0x00000003) != 0 ) {
 	handleMemoryException(0x1,0x0,rd_bit,addr);
