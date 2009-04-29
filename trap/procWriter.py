@@ -1223,6 +1223,8 @@ def getCPPProc(self, model, trace):
     if self.abi:
         interfaceType = cxx_writer.writer_code.Type(self.name + '_ABIIf', 'interface.hpp')
     ToolsManagerType = cxx_writer.writer_code.TemplateType('ToolsManager', [fetchWordType], 'ToolsIf.hpp')
+    IntructionType = cxx_writer.writer_code.Type('Instruction', 'instructions.hpp')
+    IntructionTypePtr = IntructionType.makePointer()
     processorElements = []
     codeString = ''
 
@@ -1330,7 +1332,7 @@ def getCPPProc(self, model, trace):
             """
         if self.instructionCache and self.fastFetch:
             codeString += fetchCode
-        codeString += """int instrId = decoder.decode(bitString);
+        codeString += """int instrId = this->decoder.decode(bitString);
         Instruction * instr = Processor::INSTRUCTIONS[instrId];
         """
         codeString += """instr->setParams(bitString);
@@ -1510,6 +1512,18 @@ def getCPPProc(self, model, trace):
         resetOpTemp.appendCode('//user-defined initialization\nthis->beginOp();\n')
     resetOpMethod = cxx_writer.writer_code.Method('resetOp', resetOpTemp, cxx_writer.writer_code.voidType, 'pu')
     processorElements.append(resetOpMethod)
+    # Method for external instruction decoding
+    decodeCode = cxx_writer.writer_code.Code("""int instrId = this->decoder.decode(bitString);
+            if(instrId >= 0){
+                Instruction * instr = Processor::INSTRUCTIONS[instrId];
+                instr->setParams(bitString);
+                return instr;
+            }
+            return NULL;
+    """)
+    decodeParams = [cxx_writer.writer_code.Parameter('bitString', fetchWordType)]
+    decodeMethod = cxx_writer.writer_code.Method('decode', decodeCode, IntructionTypePtr, 'pu', decodeParams)
+    processorElements.append(decodeMethod)
     # Now I declare the end of elaboration method, called by systemc just before starting the simulation
     endElabCode = cxx_writer.writer_code.Code('this->resetOp();')
     endElabMethod = cxx_writer.writer_code.Method('end_of_elaboration', endElabCode, cxx_writer.writer_code.voidType, 'pu')
@@ -1842,8 +1856,6 @@ def getCPPProc(self, model, trace):
     if self.abi:
         bodyInits += 'this->abiIf = new ' + str(interfaceType) + '(' + abiIfInit + ');\n'
 
-    IntructionType = cxx_writer.writer_code.Type('Instruction', 'instructions.hpp')
-    IntructionTypePtr = IntructionType.makePointer()
     instructionsAttribute = cxx_writer.writer_code.Attribute('INSTRUCTIONS',
                             IntructionTypePtr.makePointer(), 'pri', True, 'NULL')
     processorElements.append(instructionsAttribute)
@@ -3326,28 +3338,33 @@ def getMainCode(self, model):
         ("help,h", "produces the help message")
     """
     if self.abi:
-        code += """
-            ("debugger,d", "activates the use of the software debugger")
+        code += """("debugger,d", "activates the use of the software debugger")
         """
     if self.systemc or model.startswith('acc') or model.endswith('AT'):
         code += """("frequency,f", boost::program_options::value<double>(), "processor clock frequency specified in MHz [Default 1MHz]")
         """
     code += """("application,a", boost::program_options::value<std::string>(), "application to be executed on the simulator")
+               ("disassembler,i", "prints the disassembly of the application")
             """
     if self.abi:
-        code += """
-            ("arguments,r", boost::program_options::value<std::string>(), "command line arguments (if any) of the application being simulated")
+        code += """("arguments,r", boost::program_options::value<std::string>(), "command line arguments (if any) of the application being simulated")
             ("environment,e", boost::program_options::value<std::string>(), "environmental variables (if any) which can be accesses by the application being simulated")
             ("sysconf,s", boost::program_options::value<std::string>(), "configuration information (if any) which can be accesses by the application being simulated")
         """
-    code += """
-    ;
-
-    boost::program_options::variables_map vm;
-    boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
-    boost::program_options::notify(vm);
+    code += """;
 
     std::cerr << std::endl;
+
+    boost::program_options::variables_map vm;
+    try{
+        boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
+    }
+    catch(...){
+        std::cerr << "ERROR in parsing the command line parametrs" << std::endl << std::endl;
+        std::cerr << desc << std::endl;
+        return -1;
+    }
+    boost::program_options::notify(vm);
 
     // Checking that the parameters are correctly specified
     if(vm.count("help") != 0){
@@ -3414,6 +3431,18 @@ def getMainCode(self, model):
     unsigned char * programData = loader.getProgData();
     for(unsigned int i = 0; i < loader.getProgDim(); i++){
         """ + instrMemName + """.write_byte_dbg(loader.getDataStart() + i, programData[i]);
+    }
+    if(vm.count("disassembler") != 0){
+        std:cout << "Entry Point: " << std::hex << std::showbase << loader.getProgStart() << std::endl << std::endl;
+        for(unsigned int i = 0; i < loader.getProgDim(); i+= """ + str(self.wordSize) + """){
+            Instruction * curInstr = procInst.decode(""" + instrMemName + """.read_word_dbg(loader.getDataStart() + i));
+            std::cout << std::hex << std::showbase << loader.getDataStart() + i << ":    " << """ + instrMemName + """.read_word_dbg(loader.getDataStart() + i);
+            if(curInstr != NULL){
+                 std::cout << "    " << curInstr->getMnemonic();
+            }
+            std::cout << std::endl;
+        }
+        return 0;
     }
     //Finally I can set the processor variables
     procInst.ENTRY_POINT = loader.getProgStart();
@@ -3542,6 +3571,7 @@ def getMainCode(self, model):
     else:
         mainCode.addInclude('MemoryAT.hpp')
     mainCode.addInclude('processor.hpp')
+    mainCode.addInclude('instructions.hpp')
     mainCode.addInclude('utils.hpp')
     mainCode.addInclude('systemc.h')
     mainCode.addInclude('execLoader.hpp')
