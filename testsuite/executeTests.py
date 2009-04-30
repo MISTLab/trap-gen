@@ -9,6 +9,7 @@ if __name__ == "__main__":
         print 'Error, simulator executable file ' + sys.argv[1] + ' does not exists'
     failedBenchs = {}
     for test in sys.argv[2:]:
+        #test = test + '.gdb'
         shellCommandString = 'ulimit -t 120  && ' + sys.argv[1] + ' -a ' + test + ' 2>' + test + '.trace'
         try:
             import subprocess

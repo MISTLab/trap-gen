@@ -68,6 +68,7 @@ processor.setISA(MICROBLAZEIsa.isa) #lets set the instruction set
 # TODO: general description of each register
 #GPR = General Purpouse Registers
 regBank = trap.RegisterBank('GPR', 32, 32) #GPR is the name, 32 registers of 32 bits
+regBank.setDefaultValue(10*1024*1024, 1)
 processor.addRegBank(regBank)
 
 
@@ -176,7 +177,7 @@ processor.setMemory('dataMem', 10*1024*1024)
 # Here we set the register from which we will fetch the next instruction
 processor.setFetchRegister('PC', 0)
 
-abi = trap.ABI('GPR[3-4]', 'GPR[5-10]', 'PC', 'GPR[15]', 'GPR[1]')
+abi = trap.ABI('GPR[3]', 'GPR[5-10]', 'PC', 'GPR[15]', 'GPR[1]')
 abi.setOffset('PC', 0)
 abi.addMemory('dataMem')
 processor.setABI(abi)
