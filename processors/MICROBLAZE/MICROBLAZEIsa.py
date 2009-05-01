@@ -1456,10 +1456,6 @@ isa.addInstruction(lhui_Instr)
 #WARNING: the SET/GPR[1] trick must be deleted!
 #LW
 opCode = cxx_writer.writer_code.Code("""
-if ( SET & 0x80000000 ) {
-	SET = 0x00000000;
-	GPR[1] = 500000;
-}
 int addr = (int)ra + (int)rb;
 if ( (addr & 0x00000003) != 0 ) {
 	handleMemoryException(0x1,0x0,rd_bit,addr);
