@@ -99,6 +99,12 @@ add_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffffffff, 'GPR[2]': 
 add_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff000000, 'GPR[2]': 0x80000000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x7f000000, 'PC':0x4, 'MSR':0x20000000})
 add_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0x50}, {'GPR[3]': 10, 'PC':0x50, 'MSR':0x00000000, 'TARGET':0xffffffff})
 add_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0x50, 'IMMREG': 0x8000abcd}, {'GPR[3]': 10, 'PC':0x50, 'MSR':0x00000000, 'TARGET':0xffffffff, 'IMMREG': 0x0000abcd})
+add_Instr.addTest({'rd': 1, 'ra': 1, 'rb': 1}, {'GPR[1]': 4, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[1]': 8, 'PC':0x4, 'MSR':0x00000000})
+add_Instr.addTest({'rd': 1, 'ra': 1, 'rb': 1}, {'GPR[1]': 4, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[1]': 8, 'PC':0x4, 'MSR':0x00000000})
+add_Instr.addTest({'rd': 1, 'ra': 1, 'rb': 1}, {'GPR[1]': 0x7fffffff, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[1]': 0xfffffffe, 'PC':0x4, 'MSR':0x0})
+add_Instr.addTest({'rd': 1, 'ra': 1, 'rb': 1}, {'GPR[1]': 0xffffffff, 'PC':0x0, 'MSR':0x0, 'TARGET':0xffffffff}, {'GPR[1]': 0xfffffffe, 'PC':0x4, 'MSR':0x20000000})
+add_Instr.addTest({'rd': 1, 'ra': 1, 'rb': 1}, {'GPR[1]': 0xff000000, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[1]': 0xfe000000, 'PC':0x4, 'MSR':0x20000000})
+add_Instr.addTest({'rd': 1, 'ra': 1, 'rb': 1}, {'GPR[1]': 0xfffffffe, 'PC':0x0, 'MSR':0x0, 'TARGET':0xffffffff}, {'GPR[1]': 0xfffffffc, 'PC':0x4, 'MSR':0x20000000})
 isa.addInstruction(add_Instr)
 
 # ADDC
@@ -121,6 +127,12 @@ addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x7fffffff, 'GPR[2]':
 addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffffffff, 'GPR[2]': 0x4, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x4, 'PC':0x4, 'MSR':0x20000000})
 addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xff000000, 'GPR[2]': 0x80000000, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x7f000001, 'PC':0x4, 'MSR':0x20000000})
 addc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfffffffe, 'GPR[2]': 0x00000001, 'GPR[3]': 0xfffff, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[3]': 0x00000000, 'PC':0x4, 'MSR':0x20000000})
+addc_Instr.addTest({'rd': 1, 'ra': 1, 'rb': 1}, {'GPR[1]': 4, 'PC':0x0, 'MSR':0x00000000, 'TARGET':0xffffffff}, {'GPR[1]': 8, 'PC':0x4, 'MSR':0x00000000})
+addc_Instr.addTest({'rd': 1, 'ra': 1, 'rb': 1}, {'GPR[1]': 4, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[1]': 9, 'PC':0x4, 'MSR':0x00000000})
+addc_Instr.addTest({'rd': 1, 'ra': 1, 'rb': 1}, {'GPR[1]': 0x7fffffff, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[1]': 0xffffffff, 'PC':0x4, 'MSR':0x0})
+addc_Instr.addTest({'rd': 1, 'ra': 1, 'rb': 1}, {'GPR[1]': 0xffffffff, 'PC':0x0, 'MSR':0x0, 'TARGET':0xffffffff}, {'GPR[1]': 0xfffffffe, 'PC':0x4, 'MSR':0x20000000})
+addc_Instr.addTest({'rd': 1, 'ra': 1, 'rb': 1}, {'GPR[1]': 0xff000000, 'PC':0x0, 'MSR':0x20000000, 'TARGET':0xffffffff}, {'GPR[1]': 0xfe000001, 'PC':0x4, 'MSR':0x20000000})
+addc_Instr.addTest({'rd': 1, 'ra': 1, 'rb': 1}, {'GPR[1]': 0xfffffffe, 'PC':0x0, 'MSR':0x0, 'TARGET':0xffffffff}, {'GPR[1]': 0xfffffffc, 'PC':0x4, 'MSR':0x20000000})
 isa.addInstruction(addc_Instr)
 
 # ADDK
@@ -164,7 +176,7 @@ isa.addInstruction(addkc_Instr)
 #ADDI instruction family
 #ADDI
 opCode = cxx_writer.writer_code.Code("""
-long long result = (long long)((int)ra) + ((long long)(int)imm_value);
+long long result = (long long)((long long)((int)ra) + ((long long)(int)imm_value));
 MSR[key_C] = ((ra^imm_value^(unsigned int)(result >> 1)) & 0x80000000) != 0;
 rd = (int)result;
 """)
@@ -183,7 +195,7 @@ isa.addInstruction(addi_Instr)
 
 #ADDIC
 opCode = cxx_writer.writer_code.Code("""
-long long result = (long long)((int)ra) + ((long long)(int)imm_value) + (long long)MSR[key_C];
+long long result = (long long)((long long)((int)ra) + ((long long)(int)imm_value) + (long long)MSR[key_C]);
 MSR[key_C] = ((ra^imm_value^(unsigned int)(result >> 1)) & 0x80000000) != 0;
 rd = (int)result;
 """)
@@ -242,6 +254,8 @@ and_Instr.setCode(opCode,'execute')
 and_Instr.addBehavior(IMM_reset, 'execute')
 and_Instr.addBehavior(IncrementPC, 'execute')
 and_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xffcc8844, 'GPR[2]': 0x66666666, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x66440044, 'PC':0x4})
+and_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xafb548ae, 'GPR[2]': 0x158aad87, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x5800886, 'PC':0x4})
+and_Instr.addTest({'rd': 1, 'ra': 1, 'rb': 1}, {'GPR[1]': 0xab88cd77, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[1]': 0xab88cd77, 'PC':0x4})
 isa.addInstruction(and_Instr)
 
 #ANDI
@@ -970,7 +984,7 @@ if ((int)ra > (int) rb) {
 } else {
 	result &= 0x7fffffff;
 }
-rd = result;
+rd = (int)result;
 """)
 cmp_Instr = trap.Instruction('CMP', True)
 cmp_Instr.setMachineCode(oper_reg, {'opcode0': [0,0,0,1,0,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,1]}, ('cmp r', '%rd', ' r', '%ra', ' r', '%rb'))
@@ -995,7 +1009,7 @@ if ((unsigned int)ra > (unsigned int) rb) {
 } else {
 	result &= 0x7fffffff;
 }
-rd = result;
+rd = (int)result;
 """)
 cmpu_Instr = trap.Instruction('CMPU', True)
 cmpu_Instr.setMachineCode(oper_reg, {'opcode0': [0,0,0,1,0,1], 'opcode1': [0,0,0,0,0,0,0,0,0,1,1]}, ('cmpu r', '%rd', ' r', '%ra', ' r', '%rb'))
@@ -1464,7 +1478,6 @@ lhui_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x13, 'GPR[3]' :
 lhui_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0x21}, {'GPR[1]' : 0x10, 'GPR[3]' : 0x1111, 'dataMem[0x34]': 0xff445566, 'PC' : 0x0, 'ESR': 0x0, 'TARGET':0x500000}, {'GPR[3]' : 0x1111, 'PC' : 0x20, 'ESR': 0x08c80000, 'BTR':0x500000, 'EAR': 0x31})
 isa.addInstruction(lhui_Instr)
 
-#WARNING: the SET/GPR[1] trick must be deleted!
 #LW
 opCode = cxx_writer.writer_code.Code("""
 int addr = (int)ra + (int)rb;
@@ -1665,7 +1678,7 @@ isa.addInstruction(mts_Instr)
 #MUL
 opCode = cxx_writer.writer_code.Code("""
 long long res = ( (long long)(int)rb * (long long)(int)ra );
-rd = (unsigned int) res;
+rd = (int) res;
 """)
 mul_Instr = trap.Instruction('MUL', True)
 mul_Instr.setMachineCode(oper_reg, {'opcode0': [0,1,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, ('mul r', '%rd', ' r', '%ra', ' r', '%rb'))
@@ -1678,13 +1691,14 @@ mul_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x10000001, 'GPR[2]': 
 mul_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xefffffff, 'GPR[2]': 0x100, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffff00, 'PC':0x4})
 mul_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x10000001, 'GPR[2]': 0xffffff00, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffff00, 'PC':0x4})
 mul_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xefffffff, 'GPR[2]': 0xffffff00, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x100, 'PC':0x4})
+mul_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x5faadada, 'GPR[2]': 0x38ff0ccc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xed8e9db8, 'PC':0x4})
 isa.addInstruction(mul_Instr)
 
 #MULH
 opCode = cxx_writer.writer_code.Code("""
 long long res = (long long) ( ( (long long)(int)ra) * ( (long long)(int)rb )   );
 res>>=32;
-rd = (unsigned int) res;
+rd = (int) res;
 """)
 mulh_Instr = trap.Instruction('MULH', True)
 mulh_Instr.setMachineCode(oper_reg, {'opcode0': [0,1,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,1]}, ('mulh r', '%rd', ' r', '%ra', ' r', '%rb'))
@@ -1696,11 +1710,12 @@ mulh_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfffffffc, 'GPR[2]':
 mulh_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x10000001, 'GPR[2]': 0x10, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x1, 'PC':0x4})
 mulh_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xefffffff, 'GPR[2]': 0x100, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffffef, 'PC':0x4})
 mulh_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xefffffff, 'GPR[2]': 0xffffff00, 'GPR[3]': 0xffffffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x10, 'PC':0x4})
+mulh_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0x5faadada, 'GPR[2]': 0x38ff0ccc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x154cafd7, 'PC':0x4})
 isa.addInstruction(mulh_Instr)
 
 #MULHU
 opCode = cxx_writer.writer_code.Code("""
-unsigned long long res = (  (unsigned long long)ra *  (unsigned long long) rb );
+unsigned long long res = (  (unsigned long long)(unsigned int)ra *  (unsigned long long)(unsigned int)rb );
 res>>=32;
 rd = (unsigned int) res;
 """)
@@ -1717,7 +1732,7 @@ isa.addInstruction(mulhu_Instr)
 
 #MULHSU
 opCode = cxx_writer.writer_code.Code("""
-long long res = (long long)(int)ra * (unsigned long long) rb;
+long long res = (long long)(int)ra * (unsigned long long)(unsigned int) rb;
 res>>=32;
 rd = (unsigned int) res;
 """)
@@ -1736,7 +1751,8 @@ isa.addInstruction(mulhsu_Instr)
 
 #MULI
 opCode = cxx_writer.writer_code.Code("""
-rd = (int)ra * (int)imm_value;
+long long res = (int)ra * (int)imm_value;
+rd = (int) res;
 """)
 muli_Instr = trap.Instruction('MULI', True)
 muli_Instr.setMachineCode(oper_imm, {'opcode': [0,1,1,0,0,0]}, ('muli r', '%rd', ' r', '%ra', ' ', '%imm'))
@@ -1752,7 +1768,7 @@ isa.addInstruction(muli_Instr)
 
 #OR
 opCode = cxx_writer.writer_code.Code("""
-rd = (unsigned int) (((unsigned int)ra) | ((unsigned int)rb));
+rd =  (int)ra | (int)rb;
 """)
 or_Instr = trap.Instruction('OR', True)
 or_Instr.setMachineCode(oper_reg, {'opcode0': [1,0,0,0,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, ('or r', '%rd', ' r', '%ra', ' r', '%rb'))
@@ -1836,9 +1852,10 @@ isa.addInstruction(pcmpne_Instr)
 #RSUB instruction family
 #RSUB
 opCode = cxx_writer.writer_code.Code("""
-long long result=(long long)(((long long)(int)rb) + (~((long long)((int)ra)))+1);
-/*MSR[key_C]=((ra^rb^(unsigned int)(result >> 1)) & 0x80000000) == 0;*/
-MSR[key_C]=((  (~((int)ra)+1)   ^rb^(unsigned int)(result >> 1)) & 0x80000000) == 0;
+int a = (int)ra;
+int b = (int)rb;
+long long result = (long long)( (long long)b + ~((long long)a) + 1);
+MSR[key_C] = (( (~a + 1)^b^(unsigned int)(result >> 1)) & 0x80000000) != 0;
 rd=(int)result;
 """)
 rsub_Instr = trap.Instruction('RSUB', True)
@@ -1847,13 +1864,18 @@ rsub_Instr.setCode(opCode,'execute')
 rsub_Instr.addBehavior(IMM_reset, 'execute')
 rsub_Instr.addBehavior(IncrementPC, 'execute')
 rsub_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'MSR':0, 'GPR[1]': 0xffffffff, 'GPR[2]': 0xffffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x0, 'PC':0x4,'MSR': 0x20000000})
+rsub_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'MSR':0x20000000, 'GPR[1]': 0x5, 'GPR[2]': 0x3, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xfffffffe, 'PC':0x4,'MSR': 0})
+rsub_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'MSR':0, 'GPR[1]': 0x3, 'GPR[2]': 0x5, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x2, 'PC':0x4,'MSR': 0x20000000})
+rsub_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'MSR':0, 'GPR[1]': 0x1, 'GPR[2]': 0xfffffffe, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xfffffffd, 'PC':0x4,'MSR': 0x20000000})
+rsub_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'MSR':0x20000000, 'GPR[1]': 0xfffffffe, 'GPR[2]': 0x1, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x3, 'PC':0x4,'MSR': 0x0})
 isa.addInstruction(rsub_Instr)
 
 # RSUBC
 opCode = cxx_writer.writer_code.Code("""
-long long result=(long long)(((long long)rb) +(~((long long)((int)ra)))+MSR[key_C]);
-/*MSR[key_C]=((ra^rb^(unsigned int)(result >> 1)) & 0x80000000) == 0;*/
-MSR[key_C]=(( (~((int)ra)+1)   ^rb^(unsigned int)(result >> 1)) & 0x80000000) == 0;
+int a = (int)ra;
+int b = (int)rb;
+long long result = (long long)( (long long)b + ~((long long)a) + (int)MSR[key_C]);
+MSR[key_C] = (( (~a + MSR[key_C])^b^(unsigned int)(result >> 1)) & 0x80000000) != 0;
 rd=(int)result;
 """)
 rsubc_Instr = trap.Instruction('RSUBC', True)
@@ -1861,12 +1883,18 @@ rsubc_Instr.setMachineCode(oper_reg, {'opcode0': [0,0,0,0,1,1], 'opcode1': [0,0,
 rsubc_Instr.setCode(opCode,'execute')
 rsubc_Instr.addBehavior(IMM_reset, 'execute')
 rsubc_Instr.addBehavior(IncrementPC, 'execute')
-rsubc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'MSR':0, 'GPR[1]': 0xffffffff, 'GPR[2]': 0xffffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffffff, 'PC':0x4,'MSR': 0x20000000})
+rsubc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'MSR':0, 'GPR[1]': 0xffffffff, 'GPR[2]': 0xffffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffffff, 'PC':0x4,'MSR': 0x0})
+rsubc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'MSR':0x20000000, 'GPR[1]': 0x5, 'GPR[2]': 0x3, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xfffffffe, 'PC':0x4,'MSR': 0})
+rsubc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'MSR':0, 'GPR[1]': 0x3, 'GPR[2]': 0x5, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x1, 'PC':0x4,'MSR': 0x20000000})
+rsubc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'MSR':0x20000000, 'GPR[1]': 0x1, 'GPR[2]': 0xfffffffe, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xfffffffd, 'PC':0x4,'MSR': 0x20000000})
+rsubc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'MSR':0, 'GPR[1]': 0xfffffffe, 'GPR[2]': 0x1, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x2, 'PC':0x4,'MSR': 0x0})
 isa.addInstruction(rsubc_Instr)
 
 # RSUBK
 opCode = cxx_writer.writer_code.Code("""
-rd=(int)(((int)rb) + ~((int)ra) + 1);
+int a = (int)ra;
+int b = (int)rb;
+rd = (int)(b + ~a + 1);
 """)
 rsubk_Instr = trap.Instruction('RSUBK', True)
 rsubk_Instr.setMachineCode(oper_reg, {'opcode0': [0,0,0,1,0,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, ('rsubk r', '%rd', ' r', '%ra', ' r', '%rb'))
@@ -1874,11 +1902,17 @@ rsubk_Instr.setCode(opCode,'execute')
 rsubk_Instr.addBehavior(IMM_reset, 'execute')
 rsubk_Instr.addBehavior(IncrementPC, 'execute')
 rsubk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'MSR':0, 'GPR[1]': 0xffffffff, 'GPR[2]': 0xffffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x0, 'PC':0x4,'MSR': 0})
+rsubk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'MSR':0x20000000, 'GPR[1]': 0x5, 'GPR[2]': 0x3, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xfffffffe, 'PC':0x4,'MSR': 0x20000000})
+rsubk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'MSR':0, 'GPR[1]': 0x3, 'GPR[2]': 0x5, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x2, 'PC':0x4,'MSR': 0})
+rsubk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'MSR':0, 'GPR[1]': 0x1, 'GPR[2]': 0xfffffffe, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xfffffffd, 'PC':0x4,'MSR': 0})
+rsubk_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'MSR':0x20000000, 'GPR[1]': 0xfffffffe, 'GPR[2]': 0x1, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x3, 'PC':0x4,'MSR': 0x20000000})
 isa.addInstruction(rsubk_Instr)
 
 # RSUBKC
 opCode = cxx_writer.writer_code.Code("""
-rd=(int)(((int)rb) + ~((int)ra) + MSR[key_C]);
+int a = (int)ra;
+int b = (int)rb;
+rd = (int)(b + ~a + MSR[key_C]);
 """)
 rsubkc_Instr = trap.Instruction('RSUBKC', True)
 rsubkc_Instr.setMachineCode(oper_reg, {'opcode0': [0,0,0,1,1,1], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0]}, ('rsubkc r', '%rd', ' r', '%ra', ' r', '%rb'))
@@ -1886,14 +1920,19 @@ rsubkc_Instr.setCode(opCode,'execute')
 rsubkc_Instr.addBehavior(IMM_reset, 'execute')
 rsubkc_Instr.addBehavior(IncrementPC, 'execute')
 rsubkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'MSR':0, 'GPR[1]': 0xffffffff, 'GPR[2]': 0xffffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffffff, 'PC':0x4,'MSR': 0})
+rsubkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'MSR':0x20000000, 'GPR[1]': 0x5, 'GPR[2]': 0x3, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xfffffffe, 'PC':0x4,'MSR': 0x20000000})
+rsubkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'MSR':0, 'GPR[1]': 0x3, 'GPR[2]': 0x5, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x1, 'PC':0x4,'MSR': 0})
+rsubkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'MSR':0x20000000, 'GPR[1]': 0x1, 'GPR[2]': 0xfffffffe, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xfffffffd, 'PC':0x4,'MSR': 0x20000000})
+rsubkc_Instr.addTest({'rd': 3, 'ra': 1, 'rb': 2}, {'MSR':0, 'GPR[1]': 0xfffffffe, 'GPR[2]': 0x1, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x2, 'PC':0x4,'MSR': 0})
 isa.addInstruction(rsubkc_Instr)
 
 #RSUBI instruction family
 #RSUBI
 opCode = cxx_writer.writer_code.Code("""
-long long result=(long long)(((long long)imm_value) + (~((long long)((int)ra)))+1);
-/*MSR[key_C]=((ra^imm_value^(unsigned int)(result >> 1)) & 0x80000000) == 0;*/
-MSR[key_C]=(( (~((int)ra)+1)   ^imm_value^(unsigned int)(result >> 1)) & 0x80000000) == 0;
+int a = (int)ra;
+int imm = (int)imm_value;
+long long result = (long long) ( ((long long)imm) + ~((long long)a) + 1);
+MSR[key_C] = ( ((~a + 1)^imm^(unsigned int)(result >> 1)) & 0x80000000) != 0;
 rd=(int)result;
 """)
 rsubi_Instr = trap.Instruction('RSUBI', True)
@@ -1901,14 +1940,20 @@ rsubi_Instr.setMachineCode(oper_imm, {'opcode': [0,0,1,0,0,1]}, 'TODO')
 rsubi_Instr.setCode(opCode,'execute')
 rsubi_Instr.addBehavior(IMM_handler, 'execute')
 rsubi_Instr.addBehavior(IncrementPC, 'execute')
-rsubi_Instr.addTest({'rd': 3, 'ra': 1, 'imm':0xffff}, {'IMMREG': 0x8000ffff, 'MSR':0, 'GPR[1]': 0xffffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0, 'PC':0x4,'MSR': 0})
+rsubi_Instr.addTest({'rd': 3, 'ra': 1, 'imm':0x3}, {'MSR':0, 'GPR[1]': 0x4, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffffff, 'PC':0x4,'MSR': 0x0})
+rsubi_Instr.addTest({'rd': 3, 'ra': 1, 'imm':0xfffd}, {'MSR':0, 'GPR[1]': 3, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': -6, 'PC':0x4,'MSR': 0x20000000})
+rsubi_Instr.addTest({'rd': 3, 'ra': 1, 'imm':0xfffd}, {'MSR':0x20000000, 'GPR[1]': 3, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': -6, 'PC':0x4,'MSR': 0x20000000})
+rsubi_Instr.addTest({'rd': 3, 'ra': 1, 'imm':0x1234}, {'IMMREG': 0x8000abcd, 'MSR':0, 'GPR[1]': 0x88888888, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x234489ac, 'PC':0x4,'MSR': 0x20000000})
+rsubi_Instr.addTest({'rd': 3, 'ra': 1, 'imm':0xffff}, {'IMMREG': 0x8000ffff, 'MSR':0x0, 'GPR[1]': 0xffffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0, 'PC':0x4,'MSR': 0x20000000})
+rsubi_Instr.addTest({'rd': 3, 'ra': 1, 'imm':0xffff}, {'IMMREG': 0x8000ffff, 'MSR':0x20000000, 'GPR[1]': 0xffffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0, 'PC':0x4,'MSR': 0x20000000})
 isa.addInstruction(rsubi_Instr)
 
 #RSUBIC
 opCode = cxx_writer.writer_code.Code("""
-long long result=(long long)(((long long)imm_value) + (~((long long)((int)ra))) + MSR[key_C]);
-/*MSR[key_C]=((ra^imm_value^(unsigned int)(result >> 1)) & 0x80000000) == 0;*/
-MSR[key_C]=(( (~((int)ra)+1)   ^imm_value^(unsigned int)(result >> 1)) & 0x80000000) == 0;
+int a = (int)ra;
+int imm = (int)imm_value;
+long long result = (long long) ( ((long long)imm) + ~((long long)a) + (int)MSR[key_C]);
+MSR[key_C] = ( ((~a + MSR[key_C])^imm^(unsigned int)(result >> 1)) & 0x80000000) != 0;
 rd=(int)result;
 """)
 rsubic_Instr = trap.Instruction('RSUBIC', True)
@@ -1916,31 +1961,50 @@ rsubic_Instr.setMachineCode(oper_imm, {'opcode': [0,0,1,0,1,1]}, 'TODO')
 rsubic_Instr.setCode(opCode,'execute')
 rsubic_Instr.addBehavior(IMM_handler, 'execute')
 rsubic_Instr.addBehavior(IncrementPC, 'execute')
-rsubic_Instr.addTest({'rd': 3, 'ra': 1, 'imm':0xffff}, {'MSR':0, 'GPR[1]': 0xffffffff,'IMMREG':0x8000ffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffffff, 'PC':0x4,'MSR': 0x20000000})
+rsubic_Instr.addTest({'rd': 3, 'ra': 1, 'imm':0x3}, {'MSR':0x0, 'GPR[1]': 0x4, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xfffffffe, 'PC':0x4,'MSR': 0x0})
+rsubic_Instr.addTest({'rd': 3, 'ra': 1, 'imm':0xfffd}, {'MSR':0x0, 'GPR[1]': 3, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': -7, 'PC':0x4,'MSR': 0x20000000})
+rsubic_Instr.addTest({'rd': 3, 'ra': 1, 'imm':0xfffd}, {'MSR':0x20000000, 'GPR[1]': 3, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': -6, 'PC':0x4,'MSR': 0x20000000})
+rsubic_Instr.addTest({'rd': 3, 'ra': 1, 'imm':0x1234}, {'IMMREG': 0x8000abcd, 'MSR':0, 'GPR[1]': 0x88888888, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x234489ab, 'PC':0x4,'MSR': 0x20000000})
+rsubic_Instr.addTest({'rd': 3, 'ra': 1, 'imm':0xffff}, {'IMMREG': 0x8000ffff, 'MSR':0x0, 'GPR[1]': 0xffffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffffff, 'PC':0x4,'MSR': 0x00000000})
+rsubic_Instr.addTest({'rd': 3, 'ra': 1, 'imm':0xffff}, {'IMMREG': 0x8000ffff, 'MSR':0x20000000, 'GPR[1]': 0xffffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0, 'PC':0x4,'MSR': 0x20000000})
 isa.addInstruction(rsubic_Instr)
 
 #RSUBIK
 opCode = cxx_writer.writer_code.Code("""
-rd=(int)(((int)imm_value) + ~((int)ra) + 1);
+int a = (int)ra;
+int imm = (int)imm_value;
+rd=(int)(imm + ~a + 1);
 """)
 rsubik_Instr = trap.Instruction('RSUBIK', True)
 rsubik_Instr.setMachineCode(oper_imm, {'opcode': [0,0,1,1,0,1]}, 'TODO')
 rsubik_Instr.setCode(opCode,'execute')
 rsubik_Instr.addBehavior(IMM_handler, 'execute')
 rsubik_Instr.addBehavior(IncrementPC, 'execute')
-rsubik_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0xffff}, {'IMMREG': 0x8000ffff, 'MSR':0, 'GPR[1]': 0xffffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x0, 'PC':0x4,'MSR': 0})
+rsubik_Instr.addTest({'rd': 3, 'ra': 1, 'imm':0x3}, {'MSR':0, 'GPR[1]': 0x4, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffffff, 'PC':0x4,'MSR': 0x0})
+rsubik_Instr.addTest({'rd': 3, 'ra': 1, 'imm':0xfffd}, {'MSR':0, 'GPR[1]': 3, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': -6, 'PC':0x4,'MSR': 0x0})
+rsubik_Instr.addTest({'rd': 3, 'ra': 1, 'imm':0xfffd}, {'MSR':0x20000000, 'GPR[1]': 3, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': -6, 'PC':0x4,'MSR': 0x20000000})
+rsubik_Instr.addTest({'rd': 3, 'ra': 1, 'imm':0x1234}, {'IMMREG': 0x8000abcd, 'MSR':0x0, 'GPR[1]': 0x88888888, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x234489ac, 'PC':0x4,'MSR': 0x0})
+rsubik_Instr.addTest({'rd': 3, 'ra': 1, 'imm':0xffff}, {'IMMREG': 0x8000ffff, 'MSR':0x0, 'GPR[1]': 0xffffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0, 'PC':0x4,'MSR': 0x0})
+rsubik_Instr.addTest({'rd': 3, 'ra': 1, 'imm':0xffff}, {'IMMREG': 0x8000ffff, 'MSR':0x20000000, 'GPR[1]': 0xffffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0, 'PC':0x4,'MSR': 0x20000000})
 isa.addInstruction(rsubik_Instr)
 
 #RSUBIKC
 opCode = cxx_writer.writer_code.Code("""
-rd=(int)(((int)imm_value) + ~((int)ra) + MSR[key_C]);
+int a = (int)ra;
+int imm = (int)imm_value;
+rd=(int)(imm + ~a + (int)MSR[key_C]);
 """)
 rsubikc_Instr = trap.Instruction('RSUBIKC', True)
 rsubikc_Instr.setMachineCode(oper_imm, {'opcode': [0,0,1,1,1,1]}, 'TODO')
 rsubikc_Instr.setCode(opCode,'execute')
 rsubikc_Instr.addBehavior(IMM_handler, 'execute')
 rsubikc_Instr.addBehavior(IncrementPC, 'execute')
-rsubikc_Instr.addTest({'rd': 3, 'ra': 1, 'imm': 0xffff}, {'IMMREG': 0X8000ffff, 'MSR':0, 'GPR[1]': 0xffffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffffff, 'PC':0x4,'MSR': 0})
+rsubikc_Instr.addTest({'rd': 3, 'ra': 1, 'imm':0x3}, {'MSR':0x0, 'GPR[1]': 0x4, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xfffffffe, 'PC':0x4,'MSR': 0x0})
+rsubikc_Instr.addTest({'rd': 3, 'ra': 1, 'imm':0xfffd}, {'MSR':0x0, 'GPR[1]': 3, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': -7, 'PC':0x4,'MSR': 0x0})
+rsubikc_Instr.addTest({'rd': 3, 'ra': 1, 'imm':0xfffd}, {'MSR':0x20000000, 'GPR[1]': 3, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': -6, 'PC':0x4,'MSR': 0x20000000})
+rsubikc_Instr.addTest({'rd': 3, 'ra': 1, 'imm':0x1234}, {'IMMREG': 0x8000abcd, 'MSR':0x0, 'GPR[1]': 0x88888888, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x234489ab, 'PC':0x4,'MSR': 0x0})
+rsubikc_Instr.addTest({'rd': 3, 'ra': 1, 'imm':0xffff}, {'IMMREG': 0x8000ffff, 'MSR':0x0, 'GPR[1]': 0xffffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffffff, 'PC':0x4,'MSR': 0x0})
+rsubikc_Instr.addTest({'rd': 3, 'ra': 1, 'imm':0xffff}, {'IMMREG': 0x8000ffff, 'MSR':0x20000000, 'GPR[1]': 0xffffffff, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0, 'PC':0x4,'MSR': 0x20000000})
 isa.addInstruction(rsubikc_Instr)
 
 #RETURN instruction family
@@ -1987,7 +2051,6 @@ rtid_Instr.addTest({'ra': 1, 'imm':0x20}, {'GPR[1]': 0x50, 'PC':0x500000, 'MSR' 
 isa.addInstruction(rtid_Instr)
 
 #RTED
-#TODO: handle correctly exceptions: see page 59 of the reference
 opCode = cxx_writer.writer_code.Code("""
 if ( MSR[key_UM] == 1 ) {
 	handleUserPermissionException();
@@ -2145,11 +2208,13 @@ isa.addInstruction(swi_Instr)
 
 #SEXT16
 opCode = cxx_writer.writer_code.Code("""
+int result;
 if ( ( (int)ra & 0x00008000 ) != 0) {
-	rd = (int)ra | 0xffff0000;
+	result = (int)ra | 0xffff0000;
 } else {
-	rd = (int)ra & 0x0000ffff;
+	result = (int)ra & 0x0000ffff;
 }
+rd = (int)result;
 """)
 sext16_Instr = trap.Instruction('SEXT16', True)
 sext16_Instr.setMachineCode(unary_oper, {'opcode0': [1,0,0,1,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1]}, ('sext16 r', '%rd', ' r', '%ra'))
@@ -2163,11 +2228,13 @@ isa.addInstruction(sext16_Instr)
 
 #SEXT8
 opCode = cxx_writer.writer_code.Code("""
+int result;
 if ( ( (int)ra & 0x00000080 ) != 0) {
-	rd = (int)ra | 0xffffff00;
+	result = (int)ra | 0xffffff00;
 } else {
-	rd = (int)ra & 0x000000ff;
+	result = (int)ra & 0x000000ff;
 }
+rd = (int)result;
 """)
 sext8_Instr = trap.Instruction('SEXT8', True)
 sext8_Instr.setMachineCode(unary_oper, {'opcode0': [1,0,0,1,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0]}, ('sext8 r', '%rd', ' r', '%ra'))
@@ -2181,13 +2248,14 @@ isa.addInstruction(sext8_Instr)
 
 #SRA
 opCode = cxx_writer.writer_code.Code("""
-rd = ((int)ra)>>1;
+int result = ((int)ra)>>1;
 if ((int)ra & 0x80000000) {
-	rd |= 0x80000000;
+	result |= 0x80000000;
 } else {
-	rd &= 0x7fffffff;
+	result &= 0x7fffffff;
 }
 MSR[key_C]= ((int)ra & 0x00000001) ? 0x1 : 0x0;
+rd = (int)result;
 """)
 sra_Instr = trap.Instruction('SRA', True)
 sra_Instr.setMachineCode(unary_oper, {'opcode0': [1,0,0,1,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]}, ('sra r', '%rd', ' r', '%ra'))
@@ -2196,17 +2264,22 @@ sra_Instr.addBehavior(IMM_reset, 'execute')
 sra_Instr.addBehavior(IncrementPC, 'execute')
 sra_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0x40000001,'MSR': 0, 'GPR[3]' : 0xffff, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x20000000, 'MSR': 0x20000000, 'PC' : 0x4})
 sra_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0xc0000000,'MSR': 0, 'GPR[3]' : 0xffff, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xe0000000, 'MSR': 0, 'PC' : 0x4})
+sra_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0x70000000,'MSR': 0, 'GPR[3]' : 0xffff, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x38000000, 'MSR': 0, 'PC' : 0x4})
+sra_Instr.addTest({'rd': 1, 'ra': 1}, {'GPR[1]' : 0x40000001,'MSR': 0, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[1]': 0x20000000, 'MSR': 0x20000000, 'PC' : 0x4})
+sra_Instr.addTest({'rd': 1, 'ra': 1}, {'GPR[1]' : 0xc0000000,'MSR': 0, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[1]': 0xe0000000, 'MSR': 0, 'PC' : 0x4})
+sra_Instr.addTest({'rd': 1, 'ra': 1}, {'GPR[1]' : 0x70000000,'MSR': 0, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[1]': 0x38000000, 'MSR': 0, 'PC' : 0x4})
 isa.addInstruction(sra_Instr)
 
 #SRC
 opCode = cxx_writer.writer_code.Code("""
-rd=((int)ra)>>1;
+int result = ((int)ra)>>1;
 if (MSR[key_C]) {
-	rd |= 0x80000000;
+	result |= 0x80000000;
 } else {
-	rd &= 0x7fffffff;
+	result &= 0x7fffffff;
 }
 MSR[key_C]= ((int)ra & 0x00000001) ? 0x1 : 0x0;
+rd = (int) result;
 """)
 src_Instr = trap.Instruction('SRC', True)
 src_Instr.setMachineCode(unary_oper, {'opcode0': [1,0,0,1,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1]}, ('src r', '%rd', ' r', '%ra'))
@@ -2214,15 +2287,23 @@ src_Instr.setCode(opCode,'execute')
 src_Instr.addBehavior(IMM_reset, 'execute')
 src_Instr.addBehavior(IncrementPC, 'execute')
 src_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0x40000000,'MSR': 0x20000000, 'GPR[3]' : 0xffff, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xa0000000, 'MSR': 0x00000000, 'PC' : 0x4})
+src_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0x40000000,'MSR': 0x00000000, 'GPR[3]' : 0xffff, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x20000000, 'MSR': 0x00000000, 'PC' : 0x4})
 src_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0x40000001,'MSR': 0x20000000, 'GPR[3]' : 0xffff, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xa0000000, 'MSR': 0x20000000, 'PC' : 0x4})
+src_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0x40000001,'MSR': 0x00000000, 'GPR[3]' : 0xffff, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x20000000, 'MSR': 0x20000000, 'PC' : 0x4})
 src_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0xc0000001,'MSR': 0x00000000, 'GPR[3]' : 0xffff, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x60000000, 'MSR': 0x20000000, 'PC' : 0x4})
+src_Instr.addTest({'rd': 1, 'ra': 1}, {'GPR[1]' : 0x40000000,'MSR': 0x20000000, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[1]': 0xa0000000, 'MSR': 0x00000000, 'PC' : 0x4})
+src_Instr.addTest({'rd': 1, 'ra': 1}, {'GPR[1]' : 0x40000000,'MSR': 0x00000000, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[1]': 0x20000000, 'MSR': 0x00000000, 'PC' : 0x4})
+src_Instr.addTest({'rd': 1, 'ra': 1}, {'GPR[1]' : 0x40000001,'MSR': 0x20000000, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[1]': 0xa0000000, 'MSR': 0x20000000, 'PC' : 0x4})
+src_Instr.addTest({'rd': 1, 'ra': 1}, {'GPR[1]' : 0x40000001,'MSR': 0x00000000, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[1]': 0x20000000, 'MSR': 0x20000000, 'PC' : 0x4})
+src_Instr.addTest({'rd': 1, 'ra': 1}, {'GPR[1]' : 0xc0000001,'MSR': 0x00000000, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[1]': 0x60000000, 'MSR': 0x20000000, 'PC' : 0x4})
 isa.addInstruction(src_Instr)
 
 #SRL
 opCode = cxx_writer.writer_code.Code("""
-rd=((int)ra)>>1;
-rd &= 0x7fffffff;
+int result = ((int)ra)>>1;
+result &= 0x7fffffff;
 MSR[key_C]= ((int)ra & 0x00000001) ? 0x1 : 0x0;
+rd = (int) result;
 """)
 srl_Instr = trap.Instruction('SRL', True)
 srl_Instr.setMachineCode(unary_oper, {'opcode0': [1,0,0,1,0,0], 'opcode1': [0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1]}, ('srl r', '%rd', ' r', '%ra'))
@@ -2232,6 +2313,9 @@ srl_Instr.addBehavior(IncrementPC, 'execute')
 srl_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0x40000000,'MSR': 0x20000000, 'GPR[3]' : 0xffff, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x20000000, 'MSR': 0x00000000, 'PC' : 0x4})
 srl_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0x40000000,'MSR': 0x00000000, 'GPR[3]' : 0xffff, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x20000000, 'MSR': 0x00000000, 'PC' : 0x4})
 srl_Instr.addTest({'rd': 3, 'ra': 1}, {'GPR[1]' : 0xc0000001,'MSR': 0x20000000, 'GPR[3]' : 0xffff, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0x60000000, 'MSR': 0x20000000, 'PC' : 0x4})
+srl_Instr.addTest({'rd': 1, 'ra': 1}, {'GPR[1]' : 0x40000000,'MSR': 0x20000000, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[1]': 0x20000000, 'MSR': 0x00000000, 'PC' : 0x4})
+srl_Instr.addTest({'rd': 1, 'ra': 1}, {'GPR[1]' : 0x40000000,'MSR': 0x00000000, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[1]': 0x20000000, 'MSR': 0x00000000, 'PC' : 0x4})
+srl_Instr.addTest({'rd': 1, 'ra': 1}, {'GPR[1]' : 0xc0000001,'MSR': 0x20000000, 'PC' : 0x0, 'TARGET':0xffffffff}, {'GPR[1]': 0x60000000, 'MSR': 0x20000000, 'PC' : 0x4})
 isa.addInstruction(srl_Instr)
 
 #WDC
@@ -2262,7 +2346,6 @@ isa.addInstruction(wic_Instr)
 
 #XOR
 opCode = cxx_writer.writer_code.Code("""
-//rd=(unsigned int)(((unsigned int)ra) ^ ((unsigned int)rb));
 rd = (int)ra ^ (int)rb;
 """)
 xor_Instr = trap.Instruction('XOR', True)
