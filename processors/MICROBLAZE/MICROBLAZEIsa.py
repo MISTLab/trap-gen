@@ -1936,7 +1936,7 @@ MSR[key_C] = ( ((~a + 1)^imm^(unsigned int)(result >> 1)) & 0x80000000) != 0;
 rd=(int)result;
 """)
 rsubi_Instr = trap.Instruction('RSUBI', True)
-rsubi_Instr.setMachineCode(oper_imm, {'opcode': [0,0,1,0,0,1]}, 'TODO')
+rsubi_Instr.setMachineCode(oper_imm, {'opcode': [0,0,1,0,0,1]}, ('rsubi r', '%rd', ' r', '%ra', ' ', '%imm'))
 rsubi_Instr.setCode(opCode,'execute')
 rsubi_Instr.addBehavior(IMM_handler, 'execute')
 rsubi_Instr.addBehavior(IncrementPC, 'execute')
@@ -1957,7 +1957,7 @@ MSR[key_C] = ( ((~a + MSR[key_C])^imm^(unsigned int)(result >> 1)) & 0x80000000)
 rd=(int)result;
 """)
 rsubic_Instr = trap.Instruction('RSUBIC', True)
-rsubic_Instr.setMachineCode(oper_imm, {'opcode': [0,0,1,0,1,1]}, 'TODO')
+rsubic_Instr.setMachineCode(oper_imm, {'opcode': [0,0,1,0,1,1]}, ('rsubic r', '%rd', ' r', '%ra', ' ', '%imm'))
 rsubic_Instr.setCode(opCode,'execute')
 rsubic_Instr.addBehavior(IMM_handler, 'execute')
 rsubic_Instr.addBehavior(IncrementPC, 'execute')
@@ -1976,7 +1976,7 @@ int imm = (int)imm_value;
 rd=(int)(imm + ~a + 1);
 """)
 rsubik_Instr = trap.Instruction('RSUBIK', True)
-rsubik_Instr.setMachineCode(oper_imm, {'opcode': [0,0,1,1,0,1]}, 'TODO')
+rsubik_Instr.setMachineCode(oper_imm, {'opcode': [0,0,1,1,0,1]}, ('rsubik r', '%rd', ' r', '%ra', ' ', '%imm'))
 rsubik_Instr.setCode(opCode,'execute')
 rsubik_Instr.addBehavior(IMM_handler, 'execute')
 rsubik_Instr.addBehavior(IncrementPC, 'execute')
@@ -1995,7 +1995,7 @@ int imm = (int)imm_value;
 rd=(int)(imm + ~a + (int)MSR[key_C]);
 """)
 rsubikc_Instr = trap.Instruction('RSUBIKC', True)
-rsubikc_Instr.setMachineCode(oper_imm, {'opcode': [0,0,1,1,1,1]}, 'TODO')
+rsubikc_Instr.setMachineCode(oper_imm, {'opcode': [0,0,1,1,1,1]}, ('rsubikc r', '%rd', ' r', '%ra', ' ', '%imm'))
 rsubikc_Instr.setCode(opCode,'execute')
 rsubikc_Instr.addBehavior(IMM_handler, 'execute')
 rsubikc_Instr.addBehavior(IncrementPC, 'execute')

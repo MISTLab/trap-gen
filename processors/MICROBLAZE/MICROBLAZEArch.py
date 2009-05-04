@@ -164,6 +164,7 @@ processor.setFetchRegister('PC', 0)
 abi = trap.ABI('GPR[3]', 'GPR[5-10]', 'PC', 'GPR[15]', 'GPR[1]')
 abi.setOffset('PC', 0)
 abi.addMemory('dataMem')
+abi.addVarRegsCorrespondence({'GPR[0-31]': (0,31), 'PC': 32, 'MSR': 33, 'EAR': 34, 'ESR': 35, 'FSR': 36})
 abi.returnCall([('PC', 'GPR[15]', 8)])
 processor.setABI(abi)
 
