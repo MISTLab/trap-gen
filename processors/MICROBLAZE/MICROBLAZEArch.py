@@ -65,10 +65,12 @@ processor.setISA(MICROBLAZEIsa.isa) #lets set the instruction set
 # A registry bank of 32 registers each one 32 bits wide:
 # they are the normal registers and the banked one. In particular:
 
+memorySize = 5*1024*1024
+
 # TODO: general description of each register
 #GPR = General Purpouse Registers
 regBank = trap.RegisterBank('GPR', 32, 32) #GPR is the name, 32 registers of 32 bits
-regBank.setDefaultValue(5*1024*1024, 1)
+regBank.setDefaultValue(memorySize - 16, 1)
 processor.addRegBank(regBank)
 
 # We define each special register as a single isolated register
@@ -156,7 +158,7 @@ executeStage = trap.PipeStage('execute')
 processor.addPipeStage(executeStage)
 
 # Here we declare a memory for the MB (with size = 10MB)
-processor.setMemory('dataMem', 10*1024*1024)
+processor.setMemory('dataMem', memorySize)
 
 # Here we set the register from which we will fetch the next instruction
 processor.setFetchRegister('PC', 0)
