@@ -240,7 +240,7 @@ class Folder:
                 if not self.mainFile:
                     printOnFile('    obj = bld.new_task_gen(\'cxx\', \'program\')', wscriptFile)
                 else:
-                    printOnFile('    obj = bld.new_task_gen(\'cxx\', \'objects\')', wscriptFile)
+                    printOnFile('    obj = bld.new_task_gen(\'cxx\')', wscriptFile)
                 printOnFile('    obj.source=\"\"\"', wscriptFile)
                 for codeFile in self.codeFiles:
                     if self.mainFile != codeFile.name:

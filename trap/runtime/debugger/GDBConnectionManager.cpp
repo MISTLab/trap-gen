@@ -319,7 +319,6 @@ GDBRequest GDBConnectionManager::processRequest(){
     //Now I have do decode the payload and transform it into the real packet
     char payType = payload[0];
     payload = payload.substr(1);
-    std::cerr << payType << std::endl;
     switch(payType){
         case '!':{
             req.type = GDBRequest::EXCL_req;

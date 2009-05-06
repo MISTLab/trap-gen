@@ -38,3 +38,8 @@ int dup2(int oldfd, int newfd){
     _exit(-1);
     return -1;
 }
+
+long sysconf(int name){
+    _exit(-1);
+    return -1;
+}
