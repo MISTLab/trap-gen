@@ -72,7 +72,7 @@ struct GDBRequest{
     int value;
     std::string command;
     std::string extension;
-    std::vector<char> data;
+    std::vector<unsigned char> data;
     GDBRequest(){
         address = 0;
         length = 0;
