@@ -1,3 +1,8 @@
+-- Interrupts: we need to establish a protocol for asserting/deasserting interrupts: I would say that the address
+of the request can be the interrupt line and the contents (0 or 1 asserting/deasserting)!!
+
+-- SVT: how do we takle into account single vector trapping in the interrupts??
+
 -- Check the delay of the Y register ... is there a delay? or a not? do we have a stall? I have seen that we should nave the delay otherwise nothing works
 
 -- Check the how the WIM register is managed in the real OS (LEON bsp??): how is it initialized?

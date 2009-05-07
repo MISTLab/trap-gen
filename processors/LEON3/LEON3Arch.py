@@ -204,24 +204,24 @@ processor.setMemory('dataMem', 10*1024*1024)
 # Now lets add the interrupt ports: TODO
 # It PSR[ET] == 0 I do not do anything; else
 # I check the interrupt level, if == 15 or > PSR[PIL] I service the interrupt,
-# otherwise I put it in a queue. The interrupt level depends on the interrupt line
-# (actually I can have an external interrupt controller and a complex input line
-# or a simple interrupt controller and just an input signal)
+# The interrupt level is carried by the value at the interrupt port
 # Otherwise it is treated like a normal exception, to I jump to the
 # TBR: we can use a routine for this ...
-# TODO: do we check for exceptions in the fetch or exception stage???
-# TODO: SVT (Single vector trapping) must be configurable in the ASR[17]
-# and we also have to behave accordingly when interrupts are found
-irq = trap.Interrupt('IRQ', priority = 0)
-irq.setOperation('/*TODO*/', """
-Using the current interrupt request level (IRL) we
-jump to the TBR (using also the request level to
-complete the TBR address)
-it pst[et] == 0 we ignore the request
-We postpone the interrupt for later processing
-in case the IRL > psr[pil] or IRL == 15
-//TODO""")
-#processor.addIrq(irq)
+# At the end I have to acknowledge the interrupt, by writing on the ack
+# port.
+irqPort = trap.Interrupt('IRQ', 32)
+irqPort.setOperation("""//Basically, what I have to do when
+//an interrupt arrives is very simple: we check that interrupts
+//are enabled and that the the processor can take this interrupt
+//(valid interrupt level). The we simply raise an exception and
+//acknowledge the IRQ on the irqAck port.
+""")
+#processor.addIrq(irqPort)
+
+# I also need to add the external port which is used to acknowledge
+# the interrupt
+irqAckPin = trap.Pins('irqAck', 32, inbound = False)
+#processor.addPin(irqAckPin)
 
 # Now it is time to add the pipeline stages
 fetchStage = trap.PipeStage('fetch')

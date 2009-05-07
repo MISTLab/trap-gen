@@ -745,6 +745,10 @@ class Processor:
         # Returns the code implementing the interrupt ports
         return procWriter.getGetIRQPorts(self)
 
+    def getGetPINPorts(self):
+        # Returns the code implementing the PIN ports
+        return procWriter.getGetPINPorts(self)
+
     def getGetPipelineStages(self, trace):
         # Returns the code implementing the pipeline stages
         return procWriter.getGetPipelineStages(self, trace)
@@ -832,6 +836,7 @@ class Processor:
             MemClass = self.getCPPMemoryIf(model)
             ExternalIf = self.getCPPExternalPorts(model)
             IRQClasses = self.getGetIRQPorts()
+            PINClasses = self.getGetPINPorts()
             ISAClasses = self.isa.getCPPClasses(self, model, trace)
             # Ok, now that we have all the classes it is time to write
             # them to file
@@ -884,12 +889,20 @@ class Processor:
             headFileExt = cxx_writer.writer_code.FileDumper('externalPorts.hpp', True)
             implFileExt.addMember(ExternalIf)
             headFileExt.addMember(ExternalIf)
-            implFileIRQ = cxx_writer.writer_code.FileDumper('irqPorts.cpp', False)
-            implFileIRQ.addInclude('irqPorts.hpp')
-            headFileIRQ = cxx_writer.writer_code.FileDumper('irqPorts.hpp', True)
-            for i in IRQClasses:
-                implFileIRQ.addMember(i)
-                headFileIRQ.addMember(i)
+            if IRQClasses:
+                implFileIRQ = cxx_writer.writer_code.FileDumper('irqPorts.cpp', False)
+                implFileIRQ.addInclude('irqPorts.hpp')
+                headFileIRQ = cxx_writer.writer_code.FileDumper('irqPorts.hpp', True)
+                for i in IRQClasses:
+                    implFileIRQ.addMember(i)
+                    headFileIRQ.addMember(i)
+            if PINClasses:
+                implFilePIN = cxx_writer.writer_code.FileDumper('externalPins.cpp', False)
+                implFilePIN.addInclude('externalPins.hpp')
+                headFilePIN = cxx_writer.writer_code.FileDumper('externalPins.hpp', True)
+                for i in PINClasses:
+                    implFilePIN.addMember(i)
+                    headFilePIN.addMember(i)
             mainFile = cxx_writer.writer_code.FileDumper('main.cpp', False)
             mainFile.addMember(self.getMainCode(model))
 
@@ -950,8 +963,12 @@ class Processor:
             curFolder.addCode(implFileMem)
             curFolder.addHeader(headFileExt)
             curFolder.addCode(implFileExt)
-            curFolder.addHeader(headFileIRQ)
-            curFolder.addCode(implFileIRQ)
+            if IRQClasses:
+                curFolder.addHeader(headFileIRQ)
+                curFolder.addCode(implFileIRQ)
+            if PINClasses:
+                curFolder.addHeader(headFilePIN)
+                curFolder.addCode(implFilePIN)
             curFolder.addCode(mainFile)
             curFolder.setMain(mainFile.name)
             curFolder.create()
@@ -1053,38 +1070,36 @@ class Coprocessor:
         self.isa[name] = (idBits, functionName)
 
 class Interrupt:
-    """Specifies an interrupt port for the processor. It is identified by
-    (a) name (b) edge or level triggered (c) if systemC port or TLM
-    port will be used (d) if rising edge or active on high or low level
-    (e) also a priority is associated to the interrupt;
-    the higher priprity have precedence over low priorities.
+    """Specifies an interrupt port for the processor.
     Note that I will render both systemc and TLM ports as systemc
     signals: there is a check interrupts routine which will be
     called every cycle, in which the user can check the IRQs and
     take the appropriate actions. The signal will be automatically
     raised, lowered etc... depending whether edge triggered, level etc.."""
-    def __init__(self, name, tlm = True, level = True, high = True, priority = 0):
+    def __init__(self, name, portWidth, tlm = True, priority = 0):
         self.name = name
         self.tlm = tlm
-        self.level = level
-        self.high = high
+        self.portWidth = portWidth
         self.priority = priority
         self.condition = ''
         self.operation = None
 
-    def setOperation(self, condition, operation):
+    def setOperation(self, operation, condition = ''):
         self.condition = condition
         self.operation = operation
 
 class Pins:
-    """Custom pins; checking them or writing to them is responsibility of
+    """Custom pins; checking them or writing to them is responsibility ofnon
     the programmer. They are identified by (a) name (b) type. They are
-    rendered with systemc ports"""
-    def __init__(self, name, type):
+    rendered with systemc or TLM ports. The type of the port should also
+    be specified, as is the direction"""
+    def __init__(self, name, portWidth, inbound = True, systemc = False):
         # Note how the type of the must be of class cxx_writer.Type; a
         # systemc port using this type as a template will be created
         self.name = name
-        self.type = type
+        self.portWidth = portWidth
+        self.systemc = systemc
+        self.inbound = inbound
 
 class ABI:
     """Defines the ABI for the processor: this is necessary both for

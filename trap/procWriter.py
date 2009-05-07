@@ -2618,7 +2618,7 @@ def getGetIRQPorts(self):
             else:
                 hasSysC = True
 
-    # Lets now create the ports:
+    # Lets now create the port classes:
     classes = []
     if hasTLM:
         # TLM ports: I declare a normal TLM slave
