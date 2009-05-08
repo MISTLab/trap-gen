@@ -122,3 +122,13 @@ long sysconf(int name){
 void _exit(int exitVal){
     _exit(exitVal);
 }
+
+int utimes(const char *filename, const struct timeval times[2]){
+    _exit(-1);
+    return -1;
+}
+
+int lstat(const char *path, struct stat *buf){
+    _exit(-1);
+    return -1;
+}

@@ -256,6 +256,17 @@ template<class issueWidth, int stageOffset> class OSEmulatorCA : public ToolsIf<
         registered |= this->register_syscall("_stat", *z);
         if(!registered)
             delete z;
+        lstatSysCall<issueWidth> *A = new lstatSysCall<issueWidth>(this->processorInstance);
+        registered = this->register_syscall("lstat", *A);
+        registered |= this->register_syscall("_lstat", *A);
+        if(!registered)
+            delete A;
+        utimesSysCall<issueWidth> *B = new utimesSysCall<issueWidth>(this->processorInstance);
+        registered = this->register_syscall("utimes", *B);
+        registered |= this->register_syscall("_utimes", *B);
+        if(!registered)
+            delete B;
+
         mainSysCall<issueWidth> * mainCallBack = new mainSysCall<issueWidth>(this->processorInstance);
         if(!this->register_syscall("main", *mainCallBack))
             THROW_EXCEPTION("Fatal Error, unable to find main function in current application");

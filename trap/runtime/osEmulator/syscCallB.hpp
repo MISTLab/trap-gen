@@ -522,6 +522,24 @@ template<class wordSize> class randomSysCall : public SyscallCB<wordSize>{
     }
 };
 
+template<class wordSize> class utimesSysCall : public SyscallCB<wordSize>{
+    public:
+    utimesSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    bool operator()(){
+        THROW_EXCEPTION("utimes syscall still have to be completed");
+        return true;
+    }
+};
+
+template<class wordSize> class lstatSysCall : public SyscallCB<wordSize>{
+    public:
+    lstatSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    bool operator()(){
+        THROW_EXCEPTION("lstat syscall still have to be completed");
+        return true;
+    }
+};
+
 template<class wordSize> class getpidSysCall : public SyscallCB<wordSize>{
     public:
     getpidSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
