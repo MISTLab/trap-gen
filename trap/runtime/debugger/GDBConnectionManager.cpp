@@ -319,7 +319,6 @@ GDBRequest GDBConnectionManager::processRequest(){
     //Now I have do decode the payload and transform it into the real packet
     char payType = payload[0];
     payload = payload.substr(1);
-    std::cerr << payType << std::endl;
     switch(payType){
         case '!':{
             req.type = GDBRequest::EXCL_req;
@@ -358,7 +357,7 @@ GDBRequest GDBConnectionManager::processRequest(){
             std::string::iterator payIter, payIterEnd;
             for(payIter = payload.begin(), payIterEnd = payload.end();
                                         payIter != payIterEnd; payIter++){
-                std::string buf = "" + *payIter;
+                std::string buf(1, *payIter);
                 payIter++;
                 buf += *payIter;
                 req.data.push_back((unsigned char)this->toIntNum(buf));
@@ -417,7 +416,7 @@ GDBRequest GDBConnectionManager::processRequest(){
             //Now it is time to read the content of memory
             std::string::iterator dataIter, dataIterEnd;
             for(dataIter = temp.begin(), dataIterEnd = temp.end(); dataIter != dataIterEnd; dataIter++){
-                std::string buf = "" + *dataIter;
+                std::string buf(1, *dataIter);
                 dataIter++;
                 buf += *dataIter;
                 req.data.push_back((unsigned char)this->toIntNum(buf));
@@ -492,7 +491,7 @@ GDBRequest GDBConnectionManager::processRequest(){
             req.type = GDBRequest::v_req;
             req.command = payload;
         break;}
-        case 'X':{
+/*        case 'X':{
             req.type = GDBRequest::X_req;
             std::string::size_type sepIndex = payload.find(',');
             std::string::size_type sepIndex2 = payload.find(':');
@@ -511,7 +510,7 @@ GDBRequest GDBConnectionManager::processRequest(){
             //Now I check that the length of the buffer is the specified one
             if(req.data.size() != req.length)
                 std::cerr << __PRETTY_FUNCTION__ << ": error in the X message: different length of bytes" << std::endl;
-        break;}
+        break;}*/
         case 'z':{
             req.type = GDBRequest::z_req;
             std::string::size_type sepIndex = payload.find(',');

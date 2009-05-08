@@ -97,11 +97,10 @@ def configure(conf):
             conf.fatal('CC or CXX environment variables not defined: Error, is the compiler correctly detected?')
 
         result = os.popen(compilerExecutable + ' -print-search-dirs')
-        curLine = result.readline()
-        while curLine.find('libraries: =') == -1:
-            curLine = result.readline()
+        searchDirs = []
+        gccLines = result.readlines()
+        for curLine in gccLines:
             startFound = curLine.find('libraries: =')
-            searchDirs = []
             if startFound != -1:
                 curLine = curLine[startFound + 12:-1]
                 searchDirs_ = curLine.split(':')

@@ -405,7 +405,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
                 return this->readMemory(req);
             break;
             case GDBRequest::M_req:
-            case GDBRequest::X_req:
+//            case GDBRequest::X_req:
                 //M request: write memory
                 return this->writeMemory(req);
             break;
@@ -569,7 +569,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
 
         for(unsigned int i = 0; i < req.length; i++){
             try{
-                unsigned char memContent = this->processorInstance.readMem(req.address + i);
+                unsigned char memContent = this->processorInstance.readCharMem(req.address + i);
                 this->valueToBytes(rsp.data, memContent);
             }
             catch(...){
@@ -659,10 +659,11 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     bool writeMemory(GDBRequest &req){
         bool error = false;
         unsigned int bytes = 0;
-        std::vector<char>::iterator dataIter, dataEnd;
+        std::vector<unsigned char>::iterator dataIter, dataEnd;
         for(dataIter = req.data.begin(), dataEnd = req.data.end(); dataIter != dataEnd; dataIter++){
             try{
-                this->processorInstance.writeMem(req.address + bytes, *dataIter);
+                this->processorInstance.writeCharMem(req.address + bytes, *dataIter);
+                std::cerr << std::hex << std::showbase << "Writing in memory " << (unsigned int)*dataIter << " at address " << req.address + bytes << std::endl;
                 bytes++;
             }
             catch(...){
@@ -851,8 +852,8 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
 
     ///Separates the bytes which form an integer value and puts them
     ///into an array of bytes
-    template <class ValueType> void valueToBytes(std::vector<char> &byteHolder, ValueType value){
-        if(this->processorInstance.matchEndian()){
+    template <class ValueType> void valueToBytes(std::vector<char> &byteHolder, ValueType value, bool ConvertEndian = true){
+        if(this->processorInstance.matchEndian() || !ConvertEndian){
             for(unsigned int i = 0; i < sizeof(ValueType); i++){
                 byteHolder.push_back((char)((value & (0x0FF << 8*i)) >> 8*i));
             }
@@ -865,7 +866,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     }
 
     ///Converts a vector of bytes into a vector of integer values
-    void bytesToValue(std::vector<char> &byteHolder, std::vector<issueWidth> &values){
+    void bytesToValue(std::vector<unsigned char> &byteHolder, std::vector<issueWidth> &values){
         for(unsigned int i = 0; i < byteHolder.size(); i += sizeof(issueWidth)){
             issueWidth buf = 0;
             for(unsigned int k = 0; k < sizeof(issueWidth); k++){
