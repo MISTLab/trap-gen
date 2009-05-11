@@ -1243,11 +1243,11 @@ def getCPPProc(self, model, trace):
             if irqPort != orderedIrqList[0]:
                 codeString += 'else '
             codeString += 'if('
-            if not irqPort.high:
-                codeString += '!'
-            codeString += irqPort.name
             if(irqPort.condition):
-                codeString += ' && (' + irqPort.condition + ')'
+                codeString += '('
+            codeString += irqPort.name + ' != -1'
+            if(irqPort.condition):
+                codeString += ') && (' + irqPort.condition + ')'
             codeString += '){\n'
             codeString += irqPort.operation + '\n}\n'
 
@@ -2609,32 +2609,36 @@ def getCPPExternalPorts(self, model):
 def getGetIRQPorts(self):
     # Returns the classes implementing the interrupt ports; there can
     # be two different kind of ports: systemc based or TLM based
-    hasTLM = False
-    hasSysC = False
+    TLMWidth = []
+    SyscWidth = []
     for i in self.irqs:
         if i.operation:
             if i.tlm:
-                hasTLM = True
+                if not i.portWidth in TLMWidth:
+                    TLMWidth.append(i.portWidth)
             else:
-                hasSysC = True
+                if not i.portWidth in SyscWidth:
+                    SyscWidth.append(i.portWidth)
 
-    # Lets now create the port classes:
+
+    # Lets now create the potyrt classes:
     classes = []
-    if hasTLM:
+    for width in TLMWidth:
         # TLM ports: I declare a normal TLM slave
-        tlmsocketType = cxx_writer.writer_code.TemplateType('tlm_utils::simple_target_socket', ['IntrTLMPort'], 'tlm_utils/simple_target_socket.h')
+        tlmsocketType = cxx_writer.writer_code.TemplateType('tlm_utils::multi_passthrough_target_socket', ['IntrTLMPort', str(width)], 'tlm_utils/multi_passthrough_target_socket.h')
         payloadType = cxx_writer.writer_code.Type('tlm::tlm_generic_payload', 'tlm.h')
         tlmPortElements = []
 
         blockTransportCode = """tlm::tlm_command cmd = trans.get_command();
             unsigned char* ptr = trans.get_data_ptr();
+            sc_dt::uint64 adr = trans.get_address();
             if(*ptr == 0){
                 //Lower the interrupt
-                this->irqSignal = false;
+                this->irqSignal = -1;
             }
             else{
                 //Raise the interrupt
-                this->irqSignal = true;
+                this->irqSignal = adr;
             }
             trans.set_response_status(tlm::TLM_OK_RESPONSE);
         """
@@ -2643,45 +2647,56 @@ def getGetIRQPorts(self):
         delayParam = cxx_writer.writer_code.Parameter('delay', cxx_writer.writer_code.sc_timeType.makeRef())
         blockTransportDecl = cxx_writer.writer_code.Method('b_transport', blockTransportBody, cxx_writer.writer_code.voidType, 'pu', [payloadParam, delayParam])
         tlmPortElements.append(blockTransportDecl)
+        nblockTransportCode = """THROW_EXCEPTION("Method not yet implemented");
+        """
+        nblockTransportBody = cxx_writer.writer_code.Code(nblockTransportCode)
+        phaseParam = cxx_writer.writer_code.Parameter('phase', cxx_writer.writer_code.Type('tlm::tlm_phase').makeRef())
+        nblockTransportDecl = cxx_writer.writer_code.Method('nb_transport_fw', nblockTransportBody, cxx_writer.writer_code.voidType, 'pu', [payloadParam, phaseParam, delayParam])
+        tlmPortElements.append(nblockTransportDecl)
+
         socketAttr = cxx_writer.writer_code.Attribute('socket', tlmsocketType, 'pu')
         tlmPortElements.append(socketAttr)
-        irqSignalAttr = cxx_writer.writer_code.Attribute('irqSignal', cxx_writer.writer_code.boolType.makeRef(), 'pu')
+        from isa import resolveBitType
+        widthType = resolveBitType('BIT<' + str(width) + '>')
+        irqSignalAttr = cxx_writer.writer_code.Attribute('irqSignal', widthType.makeRef(), 'pu')
         tlmPortElements.append(irqSignalAttr)
         constructorCode = ''
         tlmPortInit = []
         constructorParams = []
         constructorParams.append(cxx_writer.writer_code.Parameter('portName', cxx_writer.writer_code.sc_module_nameType))
-        constructorParams.append(cxx_writer.writer_code.Parameter('irqSignal', cxx_writer.writer_code.boolType.makeRef()))
+        constructorParams.append(cxx_writer.writer_code.Parameter('irqSignal', widthType.makeRef()))
         tlmPortInit.append('sc_module(portName)')
         tlmPortInit.append('irqSignal(irqSignal)')
         constructorCode += 'this->socket.register_b_transport(this, &IntrTLMPort::b_transport);\n'
-        irqPortDecl = cxx_writer.writer_code.ClassDeclaration('IntrTLMPort', tlmPortElements, [cxx_writer.writer_code.sc_moduleType])
+        constructorCode += 'this->socket.register_transport_dbg(this, &IntrTLMPort::b_transport);\n'
+        constructorCode += 'this->socket.register_nb_transport_fw(this, &IntrTLMPort::nb_transport_fw);\n'
+        irqPortDecl = cxx_writer.writer_code.ClassDeclaration('IntrTLMPort_' + str(width), tlmPortElements, [cxx_writer.writer_code.sc_moduleType])
         constructorBody = cxx_writer.writer_code.Code(constructorCode + 'end_module();')
         publicExtPortConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, tlmPortInit)
         irqPortDecl.addConstructor(publicExtPortConstr)
         classes.append(irqPortDecl)
-    if hasSysC:
-        # SystemC ports: I simply have a method listening for a signal; depending on the triggering type, wither
-        # wait on edge, level ... and raise or lower the boolean variable accordingly
-        boolSignalType = cxx_writer.writer_code.TemplateType('sc_signal', [cxx_writer.writer_code.boolType], 'systemc.h')
+    for width in SyscWidth:
+        # SystemC ports: I simply have a method listening for a signal; note that in order to lower the interrupt,
+        # the signal has to be equal to 0
+        widthSignalType = cxx_writer.writer_code.TemplateType('sc_signal', [widthType], 'systemc.h')
         systemcPortElements = []
         sensitiveMethodCode = 'this->irqSignal = this->recvIntr.read();'
         sensitiveMethodBody = cxx_writer.writer_code.Code(sensitiveMethodCode)
         sensitiveMethodDecl = cxx_writer.writer_code.Method('irqRecvMethod', sensitiveMethodBody, cxx_writer.writer_code.voidType, 'pu')
         systemcPortElements.append(sensitiveMethodDecl)
-        signalAttr = cxx_writer.writer_code.Attribute('recvIntr', boolSignalType, 'pu')
+        signalAttr = cxx_writer.writer_code.Attribute('recvIntr', widthSignalType, 'pu')
         systemcPortElements.append(signalAttr)
-        irqSignalAttr = cxx_writer.writer_code.Attribute('irqSignal', cxx_writer.writer_code.boolType.makeRef(), 'pu')
+        irqSignalAttr = cxx_writer.writer_code.Attribute('irqSignal', widthType.makeRef(), 'pu')
         tlmPortElements.append(irqSignalAttr)
         constructorCode = ''
         tlmPortInit = []
         constructorParams = []
         constructorParams.append(cxx_writer.writer_code.Parameter('portName', cxx_writer.writer_code.sc_module_nameType))
-        constructorParams.append(cxx_writer.writer_code.Parameter('irqSignal', cxx_writer.writer_code.boolType.makeRef()))
+        constructorParams.append(cxx_writer.writer_code.Parameter('irqSignal', widthType.makeRef()))
         tlmPortInit.append('sc_module(portName)')
         tlmPortInit.append('irqSignal(irqSignal)')
         constructorCode += 'SC_METHOD();\nsensitive << this->recvIntr;\n'
-        irqPortDecl = cxx_writer.writer_code.ClassDeclaration('IntrSysCPort', systemcPortElements, [cxx_writer.writer_code.sc_moduleType])
+        irqPortDecl = cxx_writer.writer_code.ClassDeclaration('IntrSysCPort_' + str(width), systemcPortElements, [cxx_writer.writer_code.sc_moduleType])
         constructorBody = cxx_writer.writer_code.Code(constructorCode + 'end_module();')
         publicExtPortConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, tlmPortInit)
         irqPortDecl.addConstructor(publicExtPortConstr)
@@ -3305,6 +3320,20 @@ def getGetPipelineStages(self, trace):
         pipeCodeElements.append(curPipeDecl)
 
     return pipeCodeElements
+
+def getGetPINPorts(self).
+    # Returns the code implementing pins for communication with external world.
+    # there are both incoming and outgoing external ports. For the outgoing
+    # I simply have to declare the port class (like memory ports), for the
+    # incoming I also have to specify the operation which has to be performed
+    # when the port is triggered (they are like interrupt ports)
+    toDeclarePorts = []
+    for port in self.pins.
+        if port.inbound:
+            toDeclarePorts.append(port)
+        else:
+            # I have to declare a new port only if there is not yet another
+            # port with same width and it is systemc or tlm.
 
 def getTestMainCode(self):
     # Returns the code for the file which contains the main

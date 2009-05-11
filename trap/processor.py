@@ -1093,13 +1093,19 @@ class Pins:
     the programmer. They are identified by (a) name (b) type. They are
     rendered with systemc or TLM ports. The type of the port should also
     be specified, as is the direction"""
-    def __init__(self, name, portWidth, inbound = True, systemc = False):
+    def __init__(self, name, portWidth, inbound = False, systemc = False):
         # Note how the type of the must be of class cxx_writer.Type; a
         # systemc port using this type as a template will be created
         self.name = name
         self.portWidth = portWidth
         self.systemc = systemc
         self.inbound = inbound
+        self.operation = None
+
+    def setOperation(self, operation):
+        if not self.inbound:
+            raise Exception('Error, port ' + self.name + ' is out-going, so not operation can be specified')
+        self.operation = operation
 
 class ABI:
     """Defines the ABI for the processor: this is necessary both for
