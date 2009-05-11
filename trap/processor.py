@@ -455,7 +455,7 @@ class Processor:
         self.irqs.append(irq)
 
     def addPin(self, pin):
-        for i in pins:
+        for i in self.pins:
             if i.name == pin.name:
                 raise Exception('An external pin with name ' + i.name + ' already exists in processor ' + self.name)
         self.pins.append(pin)
@@ -1092,7 +1092,9 @@ class Pins:
     """Custom pins; checking them or writing to them is responsibility ofnon
     the programmer. They are identified by (a) name (b) type. They are
     rendered with systemc or TLM ports. The type of the port should also
-    be specified, as is the direction"""
+    be specified, as is the direction. For outgoing TLM ports, the requested
+    type and the content of the payload are insignificant and only the
+    address is important"""
     def __init__(self, name, portWidth, inbound = False, systemc = False):
         # Note how the type of the must be of class cxx_writer.Type; a
         # systemc port using this type as a template will be created

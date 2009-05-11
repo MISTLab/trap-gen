@@ -1250,6 +1250,8 @@ def getCPPProc(self, model, trace):
                 codeString += ') && (' + irqPort.condition + ')'
             codeString += '){\n'
             codeString += irqPort.operation + '\n}\n'
+        if self.irqs:
+            codeString += 'else{\n'
 
         fetchCode = str(fetchWordType) + ' bitString = this->'
         # Now I have to check what is the fetch: if there is a TLM port or
@@ -1381,6 +1383,8 @@ def getCPPProc(self, model, trace):
                 Processor::INSTRUCTIONS[instrId] = instr->replicate();
             }
             """
+        if self.irqs:
+            codeString += '}\n'
         if self.externalClock:
             codeString += 'this->waitCycles += numCycles;\n'
         elif len(self.tlmPorts) > 0 and model.endswith('LT'):
@@ -1868,16 +1872,33 @@ def getCPPProc(self, model, trace):
                             cxx_writer.writer_code.intType, 'pri', True, '0')
     processorElements.append(numProcAttribute)
 
+    # Iterrupt ports
     for irqPort in self.irqs:
         if irqPort.tlm:
-            irqPortType = cxx_writer.writer_code.Type('IntrTLMPort', 'irqPorts.hpp')
+            irqPortType = cxx_writer.writer_code.Type('IntrTLMPort_' + str(irqPort.portWidth), 'irqPorts.hpp')
         else:
-            irqPortType = cxx_writer.writer_code.Type('IntrSysCPort', 'irqPorts.hpp')
-        irqSignalAttr = cxx_writer.writer_code.Attribute(irqPort.name, cxx_writer.writer_code.boolType, 'pri')
+            irqPortType = cxx_writer.writer_code.Type('IntrSysCPort_' + str(irqPort.portWidth), 'irqPorts.hpp')
+        irqWidthType = resolveBitType('BIT<' + str(irqPort.portWidth) + '>')
+        irqSignalAttr = cxx_writer.writer_code.Attribute(irqPort.name, irqWidthType, 'pri')
         irqPortAttr = cxx_writer.writer_code.Attribute(irqPort.name + '_port', irqPortType, 'pu')
         processorElements.append(irqSignalAttr)
         processorElements.append(irqPortAttr)
         initElements.append(irqPort.name + '_port(\"' + irqPort.name + '_IRQ\", ' + irqPort.name + ')')
+    # Generic PIN ports
+    for pinPort in self.pins:
+        pinPortName = 'Pin'
+        if pinPort.systemc:
+            pinPortName += 'SysC_'
+        else:
+            pinPortName += 'TLM_'
+        if pinPort.inbound:
+            pinPortName += 'in_'
+        else:
+            pinPortName += 'out_'
+        pinPortType = cxx_writer.writer_code.Type(pinPortName + str(pinPort.portWidth), 'externalPins.hpp')
+        pinPortAttr = cxx_writer.writer_code.Attribute(pinPort.name, pinPortType, 'pu')
+        processorElements.append(pinPortAttr)
+        initElements.append(pinPort.name + '(\"' + pinPort.name + '_PIN\")')
 
     if model.startswith('acc'):
         # I have to instantiate the pipeline and its stages ...
@@ -2229,9 +2250,8 @@ def getCPPIf(self, model):
 def getCPPExternalPorts(self, model):
     if len(self.tlmPorts) == 0:
         return None
-    # creates the processor external ports used for the
-    # communication with the external world (the memory port
-    # is not among this ports, it is treated separately)
+    # creates the processor external TLM ports used for the
+    # communication with the external world
     from isa import resolveBitType
     archDWordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize*2) + '>')
     archWordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>')
@@ -2625,7 +2645,7 @@ def getGetIRQPorts(self):
     classes = []
     for width in TLMWidth:
         # TLM ports: I declare a normal TLM slave
-        tlmsocketType = cxx_writer.writer_code.TemplateType('tlm_utils::multi_passthrough_target_socket', ['IntrTLMPort', str(width)], 'tlm_utils/multi_passthrough_target_socket.h')
+        tlmsocketType = cxx_writer.writer_code.TemplateType('tlm_utils::multi_passthrough_target_socket', ['IntrTLMPort_' + str(width), str(width), 'tlm::tlm_base_protocol_types', 1, 'sc_core::SC_ZERO_OR_MORE_BOUND'], 'tlm_utils/multi_passthrough_target_socket.h')
         payloadType = cxx_writer.writer_code.Type('tlm::tlm_generic_payload', 'tlm.h')
         tlmPortElements = []
 
@@ -2643,15 +2663,23 @@ def getGetIRQPorts(self):
             trans.set_response_status(tlm::TLM_OK_RESPONSE);
         """
         blockTransportBody = cxx_writer.writer_code.Code(blockTransportCode)
+        tagParam = cxx_writer.writer_code.Parameter('tag', cxx_writer.writer_code.intType)
         payloadParam = cxx_writer.writer_code.Parameter('trans', payloadType.makeRef())
         delayParam = cxx_writer.writer_code.Parameter('delay', cxx_writer.writer_code.sc_timeType.makeRef())
-        blockTransportDecl = cxx_writer.writer_code.Method('b_transport', blockTransportBody, cxx_writer.writer_code.voidType, 'pu', [payloadParam, delayParam])
+        blockTransportDecl = cxx_writer.writer_code.Method('b_transport', blockTransportBody, cxx_writer.writer_code.voidType, 'pu', [tagParam, payloadParam, delayParam])
         tlmPortElements.append(blockTransportDecl)
+
+        debugTransportBody = cxx_writer.writer_code.Code(blockTransportCode + 'return trans.get_data_length();')
+        debugTransportDecl = cxx_writer.writer_code.Method('transport_dbg', debugTransportBody, cxx_writer.writer_code.uintType, 'pu', [tagParam, payloadParam])
+        tlmPortElements.append(debugTransportDecl)
+
         nblockTransportCode = """THROW_EXCEPTION("Method not yet implemented");
         """
         nblockTransportBody = cxx_writer.writer_code.Code(nblockTransportCode)
+        nblockTransportBody.addInclude('utils.hpp')
+        sync_enumType = cxx_writer.writer_code.Type('tlm::tlm_sync_enum', 'tlm.h')
         phaseParam = cxx_writer.writer_code.Parameter('phase', cxx_writer.writer_code.Type('tlm::tlm_phase').makeRef())
-        nblockTransportDecl = cxx_writer.writer_code.Method('nb_transport_fw', nblockTransportBody, cxx_writer.writer_code.voidType, 'pu', [payloadParam, phaseParam, delayParam])
+        nblockTransportDecl = cxx_writer.writer_code.Method('nb_transport_fw', nblockTransportBody, sync_enumType, 'pu', [tagParam, payloadParam, phaseParam, delayParam])
         tlmPortElements.append(nblockTransportDecl)
 
         socketAttr = cxx_writer.writer_code.Attribute('socket', tlmsocketType, 'pu')
@@ -2667,9 +2695,10 @@ def getGetIRQPorts(self):
         constructorParams.append(cxx_writer.writer_code.Parameter('irqSignal', widthType.makeRef()))
         tlmPortInit.append('sc_module(portName)')
         tlmPortInit.append('irqSignal(irqSignal)')
-        constructorCode += 'this->socket.register_b_transport(this, &IntrTLMPort::b_transport);\n'
-        constructorCode += 'this->socket.register_transport_dbg(this, &IntrTLMPort::b_transport);\n'
-        constructorCode += 'this->socket.register_nb_transport_fw(this, &IntrTLMPort::nb_transport_fw);\n'
+        tlmPortInit.append('socket(portName)')
+        constructorCode += 'this->socket.register_b_transport(this, &IntrTLMPort_' + str(width) + '::b_transport);\n'
+        constructorCode += 'this->socket.register_transport_dbg(this, &IntrTLMPort_' + str(width) + '::transport_dbg);\n'
+        constructorCode += 'this->socket.register_nb_transport_fw(this, &IntrTLMPort_' + str(width) + '::nb_transport_fw);\n'
         irqPortDecl = cxx_writer.writer_code.ClassDeclaration('IntrTLMPort_' + str(width), tlmPortElements, [cxx_writer.writer_code.sc_moduleType])
         constructorBody = cxx_writer.writer_code.Code(constructorCode + 'end_module();')
         publicExtPortConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, tlmPortInit)
@@ -3321,19 +3350,100 @@ def getGetPipelineStages(self, trace):
 
     return pipeCodeElements
 
-def getGetPINPorts(self).
+def getGetPINPorts(self):
     # Returns the code implementing pins for communication with external world.
     # there are both incoming and outgoing external ports. For the outgoing
     # I simply have to declare the port class (like memory ports), for the
     # incoming I also have to specify the operation which has to be performed
     # when the port is triggered (they are like interrupt ports)
-    toDeclarePorts = []
-    for port in self.pins.
+    if len(self.pins) == 0:
+        return None
+
+    alreadyDecl = []
+    inboundSysCPorts = []
+    outboundSysCPorts = []
+    inboundTLMPorts = []
+    outboundTLMPorts = []
+    for port in self.pins:
         if port.inbound:
-            toDeclarePorts.append(port)
+            # I add all the inbound ports since there is an action specified for each
+            # of them. In order to correctly execute the specified action the
+            # port needs to have references to all the architectural elements
+            if port.systemc:
+                inboundSysCPorts.append(port)
+            else:
+                inboundTLMPorts.append(port)
         else:
             # I have to declare a new port only if there is not yet another
             # port with same width and it is systemc or tlm.
+            if not (str(port.portWidth) + '_' + str(port.systemc)) in alreadyDecl:
+                if port.systemc:
+                    outboundSysCPorts.append(port)
+                else:
+                    outboundTLMPorts.append(port)
+                alreadyDecl.append(str(port.portWidth) + '_' + str(self.systemc))
+
+    pinClasses = []
+    # Now I have to actually declare the ports; I declare only
+    # blocking interfaces
+    # outgoing
+    for port in outboundTLMPorts:
+        pinPortElements = []
+
+        tlm_dmiType = cxx_writer.writer_code.Type('tlm::tlm_dmi', 'tlm.h')
+        PinPortType = cxx_writer.writer_code.Type('PinTLM_out_' + str(port.portWidth))
+        tlminitsocketType = cxx_writer.writer_code.TemplateType('tlm_utils::simple_initiator_socket', [PinPortType, port.portWidth], 'tlm_utils/simple_initiator_socket.h')
+        payloadType = cxx_writer.writer_code.Type('tlm::tlm_generic_payload', 'tlm.h')
+        pinPortInit = []
+        constructorParams = []
+
+        sendPINBody = cxx_writer.writer_code.Code("""tlm::tlm_generic_payload trans;
+        sc_time delay;
+        trans.set_address(address);
+        trans.set_write();
+        trans.set_data_ptr((unsigned char*)&datum);
+        trans.set_data_length(sizeof(datum));
+        trans.set_byte_enable_ptr(0);
+        trans.set_dmi_allowed(false);
+        trans.set_response_status(tlm::TLM_INCOMPLETE_RESPONSE);
+        this->initSocket->b_transport(trans, delay);
+
+        if(trans.is_response_error()){
+            std::string errorStr("Error from b_transport, response status = " + trans.get_response_string());
+            SC_REPORT_ERROR("TLM-2", errorStr.c_str());
+        }
+        """)
+        sendPINBody.addInclude('utils.hpp')
+        sendPINBody.addInclude('tlm.h')
+        from isa import resolveBitType
+        PINWidthType = resolveBitType('BIT<' + str(port.portWidth) + '>')
+        addressParam = cxx_writer.writer_code.Parameter('address', PINWidthType.makeRef().makeConst())
+        datumParam = cxx_writer.writer_code.Parameter('datum', PINWidthType)
+        sendPINDecl = cxx_writer.writer_code.Method('send_pin_req', sendPINBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
+        pinPortElements.append(sendPINDecl)
+
+        constructorParams.append(cxx_writer.writer_code.Parameter('portName', cxx_writer.writer_code.sc_module_nameType))
+        pinPortInit.append('sc_module(portName)')
+        initSockAttr = cxx_writer.writer_code.Attribute('initSocket', tlminitsocketType, 'pu')
+        pinPortElements.append(initSockAttr)
+
+        pinPortDecl = cxx_writer.writer_code.ClassDeclaration('PinTLM_out_' + str(port.portWidth), pinPortElements, [cxx_writer.writer_code.sc_moduleType])
+        constructorBody = cxx_writer.writer_code.Code('end_module();')
+        publicPINPortConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, pinPortInit)
+        pinPortDecl.addConstructor(publicPINPortConstr)
+        pinClasses.append(pinPortDecl)
+
+    for port in outboundSysCPorts:
+        raise Exception('outbound SystemC ports not yet supported')
+
+    # incoming
+    for port in inboundTLMPorts:
+        raise Exception('inbound TLM ports not yet supported')
+
+    for port in inboundSysCPorts:
+        raise Exception('inbound SystemC ports not yet supported')
+
+    return pinClasses
 
 def getTestMainCode(self):
     # Returns the code for the file which contains the main

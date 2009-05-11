@@ -216,12 +216,12 @@ irqPort.setOperation("""//Basically, what I have to do when
 //(valid interrupt level). The we simply raise an exception and
 //acknowledge the IRQ on the irqAck port.
 """)
-#processor.addIrq(irqPort)
+processor.addIrq(irqPort)
 
 # I also need to add the external port which is used to acknowledge
 # the interrupt
 irqAckPin = trap.Pins('irqAck', 32, inbound = False)
-#processor.addPin(irqAckPin)
+processor.addPin(irqAckPin)
 
 # Now it is time to add the pipeline stages
 fetchStage = trap.PipeStage('fetch')
