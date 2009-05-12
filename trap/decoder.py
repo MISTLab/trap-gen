@@ -41,6 +41,13 @@ except:
     traceback.print_exc()
     raise Exception('Error occurred during the import of module networkx, required for the creation of the decoder. Please correctly install the module, at least version 0.36 required')
 
+try:
+    nxVersion = float(NX.__version__)
+except:
+    import traceback
+    traceback.print_exc()
+    raise Exception('Error while determining the version of module networkx, try changing version, at least 0.36 required (newest non-development versions are usually ok)')
+
 def expandPatterns(curPattern, genericPattern, tablePattern):
     # taken in input the current pattern and the generic one,
     # it computes all the possible combinations of the pattern
@@ -260,7 +267,7 @@ class decoderCreator:
                 self.instrSub[instr.id] = instr.subInstructions
                 self.instrId[instr.id] = (revBitstring, float(instr.frequency)/float(self.totalCount))
                 self.instrPattern.append((revBitstring, float(instr.frequency)/float(self.totalCount)))
-        if float(NX.__version__) < 0.99:
+        if nxVersion < 0.99:
             self.decodingTree = NX.XDiGraph()
         else:
             self.decodingTree = NX.DiGraph()
@@ -293,7 +300,7 @@ class decoderCreator:
                 return '// Non-valid pattern\nreturn ' + str(self.instrNum) + ';\n'
         if self.decodingTree.out_degree(subtree) != 2:
             raise Exception('subtree ' + str(subtree) + ' should have two out edges, while it has ' + str(self.decodingTree.out_degree(subtree)))
-        if float(NX.__version__) < 0.99:
+        if nxVersion < 0.99:
             outEdges = self.decodingTree.edges(subtree)
         else:
             outEdges = self.decodingTree.edges(subtree, data = True)
@@ -348,7 +355,7 @@ class decoderCreator:
                 return self.getSubInstrCode(self.instrSub[instrId]) + '// Instruction ' + self.instrName[subtree.instrId] + '\nreturn ' + str(subtree.instrId) + ';\n'
             else:
                 return '// Non-valid pattern\nreturn ' + str(self.instrNum) + ';\n'
-        if float(NX.__version__) < 0.99:
+        if nxVersion < 0.99:
             outEdges = self.decodingTree.edges(subtree)
         else:
             outEdges = self.decodingTree.edges(subtree, data = True)

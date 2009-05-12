@@ -67,6 +67,11 @@ processor.setISA(LEON3Isa.isa) # lets set the instruction set
 # Number of register windows, between 2 and 32, default is 8 for LEON3
 numRegWindows = 8
 
+# Code used to move to a new register window
+updateWinCode = ''
+for i in range(8, 32):
+    updateWinCode += 'REGS[' + str(i) + '].updateAlias(WINREGS[(newCwp*16 + ' + str(i - 8) + ') % (16*' + str(numRegWindows) + ')]);\n'
+
 # Here I add a constant to the instruction set so that it can be used from the code implementing
 # the various instructions
 LEON3Isa.isa.addConstant(cxx_writer.writer_code.uintType, 'NUM_REG_WIN', numRegWindows)
@@ -215,6 +220,22 @@ irqPort.setOperation("""//Basically, what I have to do when
 //are enabled and that the the processor can take this interrupt
 //(valid interrupt level). The we simply raise an exception and
 //acknowledge the IRQ on the irqAck port.
+if(PSR[key_ET]){
+    if(IRQ == 15 || IRQ > PSR[key_PIL]){
+        // First of all I have to move to a new register window
+        unsigned int newCwp = ((unsigned int)(PSR[key_CWP] - 1)) % """ + str(numRegWindows) + """;
+        PSRbp = (PSR & 0xFFFFFFE0) | newCwp;
+        PSR.immediateWrite(PSRbp);
+        """ + updateWinCode + """
+        // Now I set the TBR
+        TBR[key_TT] = 0x10 + IRQ;
+        // I have to jump to the address contained in the TBR register
+        PC = TBR;
+        NPC = TBR + 4;
+        // finally I acknowledge the interrupt on the external pin port
+        irqAck.send_pin_req(IRQ, 0);
+    }
+}
 """)
 processor.addIrq(irqPort)
 
@@ -252,9 +273,8 @@ processor.setWBOrder('Ybp', ('execute', 'wb'))
 # eventually, retarget GCC
 abi = trap.ABI('REGS[24]', 'REGS[24-29]', 'PC', 'LR', 'SP', 'FP')
 abi.addVarRegsCorrespondence({'REGS[0-31]': (0, 31), 'Y': 64, 'PSR': 65, 'WIM': 66, 'TBR': 67, 'PC': 68, 'NPC': 69})
-updateWinCode = ''
-for i in range(8, 32):
-    updateWinCode += 'REGS[' + str(i) + '].updateAlias(WINREGS[(newCwp*16 + ' + str(i - 8) + ') % (16*' + str(numRegWindows) + ')]);\n'
+# ************* TODO ************ Do I need to check for register window over/under -flow even for
+# systemcalls ?????
 pre_code = """
 unsigned int newCwp = ((unsigned int)(PSR[key_CWP] - 1)) % """ + str(numRegWindows) + """;
 PSRbp = (PSR & 0xFFFFFFE0) | newCwp;

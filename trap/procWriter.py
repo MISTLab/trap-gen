@@ -49,6 +49,13 @@ except:
     traceback.print_exc()
     raise Exception('Error occurred during the import of module networkx, required for the creation of the decoder. Please correctly install the module')
 
+try:
+    nxVersion = float(NX.__version__)
+except:
+    import traceback
+    traceback.print_exc()
+    raise Exception('Error while determining the version of module networkx, try changing version, at least 0.36 required (newest non-development versions are usually ok)')
+
 assignmentOps = ['=', '+=', '-=', '*=', '/=', '|=', '&=', '^=', '<<=', '>>=']
 binaryOps = ['+', '-', '*', '/', '|', '&', '^', '<<', '>>']
 unaryOps = ['~']
@@ -1733,7 +1740,7 @@ def getCPPProc(self, model, trace):
     # the initialization of the aliases must be chained (we should
     # create an initialization graph since an alias might depend on another one ...)
     global aliasGraph
-    if float(NX.__version__) < 0.99:
+    if nxVersion < 0.99:
         aliasGraph = NX.XDiGraph()
     else:
         aliasGraph = NX.DiGraph()
@@ -1774,7 +1781,7 @@ def getCPPProc(self, model, trace):
         if self.isBank(alias.name):
             break
         aliasGraphRev = aliasGraph.reverse()
-        if float(NX.__version__) < 0.99:
+        if nxVersion < 0.99:
             edgeType = aliasGraphRev.edges(alias)[0][0]
         else:
             edgeType = aliasGraphRev.edges(alias, data = True)[0][0]
