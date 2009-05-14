@@ -791,10 +791,10 @@ class Processor:
         # Returns the code implementing the PIN ports
         return procWriter.getGetPINPorts(self)
 
-    def getIRQTests(self):
+    def getIRQTests(self, trace):
         # Returns the code implementing the tests for the
         # interrupt lines
-        return procWriter.getIRQTests(self)
+        return procWriter.getIRQTests(self, trace)
 
     def getGetPipelineStages(self, trace):
         # Returns the code implementing the pipeline stages
@@ -965,15 +965,17 @@ class Processor:
                 decTests = dec.getCPPTests()
                 decTestsFile.addMember(decTests)
                 hdecTestsFile.addMember(decTests)
-                irqTests = self.getIRQTests()
+                irqTests = self.getIRQTests(trace)
                 if irqTests:
                     irqTestsFile = cxx_writer.writer_code.FileDumper('irqTests.cpp', False)
                     irqTestsFile.addInclude('irqTests.hpp')
                     if PINClasses:
-                        ISATestsFile.addInclude('PINTarget.hpp')
-                        ISATestsFile.addInclude('externalPins.hpp')
+                        irqTestsFile.addInclude('PINTarget.hpp')
+                        irqTestsFile.addInclude('externalPins.hpp')
                     mainTestFile.addInclude('irqTests.hpp')
                     hirqTestsFile = cxx_writer.writer_code.FileDumper('irqTests.hpp', True)
+                    irqTestsFile.addMember(irqTests)
+                    hirqTestsFile.addMember(irqTests)
                     testFolder.addCode(irqTestsFile)
                     testFolder.addHeader(hirqTestsFile)
                 testFolder.addCode(decTestsFile)
@@ -996,6 +998,9 @@ class Processor:
                 if testPerFile*numTestFiles < len(ISATests):
                     ISATestsFile = cxx_writer.writer_code.FileDumper('isaTests' + str(numTestFiles) + '.cpp', False)
                     ISATestsFile.addInclude('isaTests' + str(numTestFiles) + '.hpp')
+                    if PINClasses:
+                        ISATestsFile.addInclude('PINTarget.hpp')
+                        ISATestsFile.addInclude('externalPins.hpp')
                     mainTestFile.addInclude('isaTests' + str(numTestFiles) + '.hpp')
                     hISATestsFile = cxx_writer.writer_code.FileDumper('isaTests' + str(numTestFiles) + '.hpp', True)
                     ISATestsFile.addMember(ISATests[testPerFile*numTestFiles:])
@@ -1152,12 +1157,12 @@ class Interrupt:
         self.condition = condition
         self.operation = operation
 
-    def addTest(self, test):
+    def addTest(self, inputState, expOut):
         # The test is composed of 2 parts: the status before the
         # execution of the interrupt and the status after; note that
         # in the status before execution of the interrupt we also have
         # to specify the value of the interrupt line
-        self.tests.append(test)
+        self.tests.append((inputState, expOut))
 
 class Pins:
     """Custom pins; checking them or writing to them is responsibility ofnon

@@ -57,7 +57,7 @@ import LEON3Isa
 import LEON3Tests
 
 # Lets now start building the processor
-processor = trap.Processor('LEON3', version = '0.0.1', systemc = True, instructionCache = True, fastFetch = True)
+processor = trap.Processor('LEON3', version = '0.0.1', systemc = False, instructionCache = True, fastFetch = True)
 processor.setBigEndian() # big endian
 processor.setWordsize(4, 8) # 4 bytes per word, 8 bits per byte
 processor.setISA(LEON3Isa.isa) # lets set the instruction set
@@ -237,6 +237,7 @@ if(PSR[key_ET]){
     }
 }
 """)
+irqPort.addTest({}, {})
 processor.addIrq(irqPort)
 
 # I also need to add the external port which is used to acknowledge

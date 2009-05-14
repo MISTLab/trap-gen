@@ -558,19 +558,19 @@ def getCPPInstrTest(self, processor, model, trace):
     for pinPort in processor.pins:
         if not pinPort.inbound:
             outPinPorts.append(pinPort.name)
-            pinPortName = 'Pin'
+            pinPortTypeName = 'Pin'
             if pinPort.systemc:
-                pinPortName += 'SysC_'
+                pinPortTypeName += 'SysC_'
             else:
-                pinPortName += 'TLM_'
+                pinPortTypeName += 'TLM_'
             if pinPort.inbound:
-                pinPortName += 'in_'
+                pinPortTypeName += 'in_'
             else:
-                pinPortName += 'out_'
-            pinPortName += str(pinPort.portWidth)
-            archElemsDeclStr += pinPortName + ' ' + pinPort.name + '(\"' + pinPort.name + '_PIN\");'
-            archElemsDeclStr += 'PINTarget<' + str(pinPort.portWidth) + '> ' + pinPort.name + '_target;'
-            archElemsDeclStr += pinPort.name + '.bind(' + pinPort.name + '_target);'
+                pinPortTypeName += 'out_'
+            pinPortTypeName += str(pinPort.portWidth)
+            archElemsDeclStr += pinPortTypeName + ' ' + pinPort.name + '(sc_core::sc_gen_unique_name(\"' + pinPort.name + '_PIN\"));\n'
+            archElemsDeclStr += 'PINTarget<' + str(pinPort.portWidth) + '> ' + pinPort.name + '_target(sc_core::sc_gen_unique_name(\"' + pinPort.name + '_PIN\"));\n'
+            archElemsDeclStr += pinPort.name + '.initSocket.bind(' + pinPort.name + '_target.socket);\n'
             baseInitElement += pinPort.name + ', '
 
     if trace and not processor.systemc:
@@ -671,7 +671,7 @@ def getCPPInstrTest(self, processor, model, trace):
         curTest = cxx_writer.writer_code.Code(code)
         wariningDisableCode = '#ifdef _WIN32\n#pragma warning( disable : 4101 )\n#endif\n'
         includeUnprotectedCode = '#define private public\n#define protected public\n#include \"instructions.hpp\"\n#include \"registers.hpp\"\n#include \"memory.hpp\"\n#undef private\n#undef protected\n'
-        curTest.addInclude(['boost/test/test_tools.hpp', 'customExceptions.hpp', wariningDisableCode, includeUnprotectedCode])
+        curTest.addInclude(['boost/test/test_tools.hpp', 'customExceptions.hpp', wariningDisableCode, includeUnprotectedCode, 'alias.hpp'])
         curTestFunction = cxx_writer.writer_code.Function(self.name + '_' + str(len(tests)), curTest, cxx_writer.writer_code.voidType)
         from procWriter import testNames
         testNames.append(self.name + '_' + str(len(tests)))

@@ -3455,16 +3455,17 @@ def getGetPINPorts(self):
 
     return pinClasses
 
-def getIRQTests(self):
+def getIRQTests(self, trace):
     # Returns the code implementing the tests for the interrupts
+    from processor import extractRegInterval
     testFuns = []
     global testNames
 
     archElemsDeclStr = ''
     destrDecls = ''
-    for reg in processor.regs:
+    for reg in self.regs:
         archElemsDeclStr += str(resourceType[reg.name]) + ' ' + reg.name + ';\n'
-    for regB in processor.regBanks:
+    for regB in self.regBanks:
         if regB.constValue or regB.delay:
             archElemsDeclStr += str(resourceType[regB.name]) + ' ' + regB.name + '(' + str(regB.numRegs) + ');\n'
             for i in range(0, regB.numRegs):
@@ -3475,46 +3476,46 @@ def getIRQTests(self):
         else:
             archElemsDeclStr += str(resourceType[regB.name]) + ' ' + regB.name + ' = new ' + str(resourceType[regB.name].makeNormal()) + '[' + str(regB.numRegs) + '];\n'
             destrDecls += 'delete [] ' + regB.name + ';\n'
-    for alias in processor.aliasRegs:
+    for alias in self.aliasRegs:
         archElemsDeclStr += str(resourceType[alias.name]) + ' ' + alias.name + ';\n'
-    for aliasB in processor.aliasRegBanks:
+    for aliasB in self.aliasRegBanks:
         archElemsDeclStr += str(resourceType[aliasB.name].makePointer()) + ' ' + aliasB.name + ' = new ' + str(resourceType[aliasB.name]) + '[' + str(aliasB.numRegs) + '];\n'
         destrDecls += 'delete [] ' + aliasB.name + ';\n'
     memAliasInit = ''
-    for alias in processor.memAlias:
+    for alias in self.memAlias:
         memAliasInit += ', ' + alias.alias
 
-    if (trace or (processor.memory and processor.memory[2])) and not processor.systemc:
+    if (trace or (self.memory and self.memory[2])) and not self.systemc:
         archElemsDeclStr += 'unsigned int totalCycles;\n'
-    if processor.memory:
+    if self.memory:
         memDebugInit = ''
-        if processor.memory[2]:
+        if self.memory[2]:
             memDebugInit += ', totalCycles'
-        if processor.memory[3]:
-            memDebugInit += ', ' + processor.memory[3]
-        archElemsDeclStr += 'LocalMemory ' + processor.memory[0] + '(' + str(processor.memory[1]) + memDebugInit + memAliasInit + ');\n'
+        if self.memory[3]:
+            memDebugInit += ', ' + self.memory[3]
+        archElemsDeclStr += 'LocalMemory ' + self.memory[0] + '(' + str(self.memory[1]) + memDebugInit + memAliasInit + ');\n'
     # Note how I declare local memories even for TLM ports. I use 1MB as default dimension
-    for tlmPorts in processor.tlmPorts.keys():
+    for tlmPorts in self.tlmPorts.keys():
         archElemsDeclStr += 'LocalMemory ' + tlmPorts + '(' + str(1024*1024) + memAliasInit + ');\n'
     # Now I declare the PIN stubs for the outgoing PIN ports
     # and alts themselves
     outPinPorts = []
-    for pinPort in processor.pins:
+    for pinPort in self.pins:
         if not pinPort.inbound:
-            outPinPorts.append(pinPortName)
-            pinPortName = 'Pin'
+            outPinPorts.append(pinPort.name)
+            pinPortTypeName = 'Pin'
             if pinPort.systemc:
-                pinPortName += 'SysC_'
+                pinPortTypeName += 'SysC_'
             else:
-                pinPortName += 'TLM_'
+                pinPortTypeName += 'TLM_'
             if pinPort.inbound:
-                pinPortName += 'in_'
+                pinPortTypeName += 'in_'
             else:
-                pinPortName += 'out_'
-            pinPortName += str(pinPort.portWidth)
-            archElemsDeclStr += pinPortName + ' ' + pinPort.name + '(\"' + pinPort.name + '_PIN\");'
-            archElemsDeclStr += 'PINTarget<' + str(pinPort.portWidth) + '> ' + pinPort.name + '_target;'
-            archElemsDeclStr += pinPort.name + '.bind(' + pinPort.name + '_target);'
+                pinPortTypeName += 'out_'
+            pinPortTypeName += str(pinPort.portWidth)
+            archElemsDeclStr += pinPortTypeName + ' ' + pinPort.name + '(sc_core::sc_gen_unique_name(\"' + pinPort.name + '_PIN\"));\n'
+            archElemsDeclStr += 'PINTarget<' + str(pinPort.portWidth) + '> ' + pinPort.name + '_target(sc_core::sc_gen_unique_name(\"' + pinPort.name + '_target\"));\n'
+            archElemsDeclStr += pinPort.name + '.initSocket.bind(' + pinPort.name + '_target.socket);\n'
 
     # Now we perform the alias initialization; note that they need to be initialized according to the initialization graph
     # (there might be dependences among the aliases)
@@ -3580,14 +3581,14 @@ def getIRQTests(self):
             code += 'if('
             if(irq.condition):
                 code += '('
-            code += irqPort.name + ' != -1'
+            code += irq.name + ' != -1'
             if(irq.condition):
                 code += ') && (' + irq.condition + ')'
             code += '){\n'
-            code += irqPort.operation + '\n}\n'
+            code += irq.operation + '\n}\n'
 
             # finally I check the correctness of the executed operation
-            for resource, value in test[2].items():
+            for resource, value in test[1].items():
                 # I check the value of the listed resources to make sure that the
                 # computation executed correctly
                 code += 'BOOST_CHECK_EQUAL('
@@ -3613,7 +3614,7 @@ def getIRQTests(self):
             curTest = cxx_writer.writer_code.Code(code)
             wariningDisableCode = '#ifdef _WIN32\n#pragma warning( disable : 4101 )\n#endif\n'
             includeUnprotectedCode = '#define private public\n#define protected public\n#include \"registers.hpp\"\n#include \"memory.hpp\"\n#undef private\n#undef protected\n'
-            curTest.addInclude(['boost/test/test_tools.hpp', 'customExceptions.hpp', wariningDisableCode, includeUnprotectedCode])
+            curTest.addInclude(['boost/test/test_tools.hpp', 'customExceptions.hpp', wariningDisableCode, includeUnprotectedCode, 'alias.hpp'])
             curTestFunction = cxx_writer.writer_code.Function(testName, curTest, cxx_writer.writer_code.voidType)
 
             testFuns.append(curTestFunction)

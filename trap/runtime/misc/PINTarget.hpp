@@ -55,8 +55,8 @@ template<unsigned int sockSize> class PINTarget: public sc_module{
     public:
     tlm_utils::simple_target_socket<PINTarget, sockSize> socket;
 
-    PINTarget(sc_module_name name) : sc_module(name), socket((std::string("pin_target_") + name).c_str()){
-        this->socket.register_b_transport(this, &MemoryLT::b_transport);
+    PINTarget(sc_module_name name) : sc_module(name), socket(("pin_target_" + boost::lexical_cast<std::string>(name)).c_str()){
+        this->socket.register_b_transport(this, &PINTarget::b_transport);
     }
 
     void b_transport(tlm::tlm_generic_payload& trans, sc_time& delay){
