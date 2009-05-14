@@ -579,6 +579,48 @@ class Processor:
                 if not self.isRegExisting(self.memory[3]):
                     raise Exception('Register ' + self.memory[3] + ' indicated for program counter of local memory does not exists')
 
+    def checkTestRegs(self):
+        # We check that the registers specifies in the tests are existing
+        outPinPorts = []
+        for pinPort in self.pins:
+            if not pinPort.inbound:
+                outPinPorts.append(pinPort.name)
+
+        for instr in self.isa.instructions.values():
+            for test in instr.tests:
+                # Now I check the existence of the instruction fields
+                for name, elemValue in test[0].items():
+                    if not instr.machineCode.bitLen.has_key(name):
+                        raise Exception('Field ' + name + ' in test of instruction ' + instr.name + ' is not present in the machine code of the instruction')
+                for resource, value in test[1].items():
+                    # Now I check the existence of the global resources
+                    brackIndex = resource.find('[')
+                    memories = self.tlmPorts.keys()
+                    if self.memory:
+                        memories.append(self.memory[0])
+                    if not (brackIndex > 0 and resource[:brackIndex] in memories):
+                        index = extractRegInterval(resource)
+                        if index:
+                            resourceName = resource[:brackIndex]
+                            if not self.isRegExisting(resourceName, index):
+                                raise Exception('Resource ' + resource + ' not found in test for instruction ' + instr.name)
+                        else:
+                            if not self.isRegExisting(resource):
+                                raise Exception('Resource ' + resource + ' not found in test for instruction ' + instr.name)
+                for resource, value in test[2].items():
+                    brackIndex = resource.find('[')
+                    memories = self.tlmPorts.keys()
+                    if self.memory:
+                        memories.append(self.memory[0])
+                    if not (brackIndex > 0 and (resource[:brackIndex] in memories or resource[:brackIndex] in outPinPorts)):
+                        index = extractRegInterval(resource)
+                        if index:
+                            resourceName = resource[:brackIndex]
+                            if not self.isRegExisting(resourceName, index):
+                                raise Exception('Resource ' + resource + ' not found in test for instruction ' + instr.name)
+                        else:
+                            if not self.isRegExisting(resource):
+                                raise Exception('Resource ' + resource + ' not found in test for instruction ' + instr.name)
     def checkAliases(self):
         # checks that the declared aliases actually refer to
         # existing registers
@@ -749,6 +791,11 @@ class Processor:
         # Returns the code implementing the PIN ports
         return procWriter.getGetPINPorts(self)
 
+    def getIRQTests(self):
+        # Returns the code implementing the tests for the
+        # interrupt lines
+        return procWriter.getIRQTests(self)
+
     def getGetPipelineStages(self, trace):
         # Returns the code implementing the pipeline stages
         return procWriter.getGetPipelineStages(self, trace)
@@ -768,6 +815,7 @@ class Processor:
         self.checkAliases()
         self.checkMemRegisters()
         self.checkPipeStages()
+        self.checkTestRegs()
         if self.abi:
             self.checkABI()
         self.isa.checkRegisters(extractRegInterval, self.isRegExisting)
@@ -917,6 +965,17 @@ class Processor:
                 decTests = dec.getCPPTests()
                 decTestsFile.addMember(decTests)
                 hdecTestsFile.addMember(decTests)
+                irqTests = self.getIRQTests()
+                if irqTests:
+                    irqTestsFile = cxx_writer.writer_code.FileDumper('irqTests.cpp', False)
+                    irqTestsFile.addInclude('irqTests.hpp')
+                    if PINClasses:
+                        ISATestsFile.addInclude('PINTarget.hpp')
+                        ISATestsFile.addInclude('externalPins.hpp')
+                    mainTestFile.addInclude('irqTests.hpp')
+                    hirqTestsFile = cxx_writer.writer_code.FileDumper('irqTests.hpp', True)
+                    testFolder.addCode(irqTestsFile)
+                    testFolder.addHeader(hirqTestsFile)
                 testFolder.addCode(decTestsFile)
                 testFolder.addHeader(hdecTestsFile)
                 ISATests = self.isa.getCPPTests(self, model, trace)
@@ -925,20 +984,24 @@ class Processor:
                 for i in range(0, numTestFiles):
                     ISATestsFile = cxx_writer.writer_code.FileDumper('isaTests' + str(i) + '.cpp', False)
                     ISATestsFile.addInclude('isaTests' + str(i) + '.hpp')
+                    if PINClasses:
+                        ISATestsFile.addInclude('PINTarget.hpp')
+                        ISATestsFile.addInclude('externalPins.hpp')
                     mainTestFile.addInclude('isaTests' + str(i) + '.hpp')
                     hISATestsFile = cxx_writer.writer_code.FileDumper('isaTests' + str(i) + '.hpp', True)
                     ISATestsFile.addMember(ISATests[testPerFile*i:testPerFile*(i+1)])
                     hISATestsFile.addMember(ISATests[testPerFile*i:testPerFile*(i+1)])
                     testFolder.addCode(ISATestsFile)
                     testFolder.addHeader(hISATestsFile)
-                ISATestsFile = cxx_writer.writer_code.FileDumper('isaTests' + str(numTestFiles) + '.cpp', False)
-                ISATestsFile.addInclude('isaTests' + str(numTestFiles) + '.hpp')
-                mainTestFile.addInclude('isaTests' + str(numTestFiles) + '.hpp')
-                hISATestsFile = cxx_writer.writer_code.FileDumper('isaTests' + str(numTestFiles) + '.hpp', True)
-                ISATestsFile.addMember(ISATests[testPerFile*numTestFiles:])
-                hISATestsFile.addMember(ISATests[testPerFile*numTestFiles:])
-                testFolder.addCode(ISATestsFile)
-                testFolder.addHeader(hISATestsFile)
+                if testPerFile*numTestFiles < len(ISATests):
+                    ISATestsFile = cxx_writer.writer_code.FileDumper('isaTests' + str(numTestFiles) + '.cpp', False)
+                    ISATestsFile.addInclude('isaTests' + str(numTestFiles) + '.hpp')
+                    mainTestFile.addInclude('isaTests' + str(numTestFiles) + '.hpp')
+                    hISATestsFile = cxx_writer.writer_code.FileDumper('isaTests' + str(numTestFiles) + '.hpp', True)
+                    ISATestsFile.addMember(ISATests[testPerFile*numTestFiles:])
+                    hISATestsFile.addMember(ISATests[testPerFile*numTestFiles:])
+                    testFolder.addCode(ISATestsFile)
+                    testFolder.addHeader(hISATestsFile)
 
                 mainTestFile.addMember(self.getTestMainCode())
                 testFolder.addCode(mainTestFile)
@@ -1082,11 +1145,19 @@ class Interrupt:
         self.portWidth = portWidth
         self.priority = priority
         self.condition = ''
+        self.tests = []
         self.operation = None
 
     def setOperation(self, operation, condition = ''):
         self.condition = condition
         self.operation = operation
+
+    def addTest(self, test):
+        # The test is composed of 2 parts: the status before the
+        # execution of the interrupt and the status after; note that
+        # in the status before execution of the interrupt we also have
+        # to specify the value of the interrupt line
+        self.tests.append(test)
 
 class Pins:
     """Custom pins; checking them or writing to them is responsibility ofnon

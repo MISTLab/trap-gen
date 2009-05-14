@@ -552,6 +552,27 @@ def getCPPInstrTest(self, processor, model, trace):
     for tlmPorts in processor.tlmPorts.keys():
         archElemsDeclStr += 'LocalMemory ' + tlmPorts + '(' + str(1024*1024) + memAliasInit + ');\n'
         baseInitElement += tlmPorts + ', '
+    # Now I declare the PIN stubs for the outgoing PIN ports
+    # and alts themselves
+    outPinPorts = []
+    for pinPort in processor.pins:
+        if not pinPort.inbound:
+            outPinPorts.append(pinPort.name)
+            pinPortName = 'Pin'
+            if pinPort.systemc:
+                pinPortName += 'SysC_'
+            else:
+                pinPortName += 'TLM_'
+            if pinPort.inbound:
+                pinPortName += 'in_'
+            else:
+                pinPortName += 'out_'
+            pinPortName += str(pinPort.portWidth)
+            archElemsDeclStr += pinPortName + ' ' + pinPort.name + '(\"' + pinPort.name + '_PIN\");'
+            archElemsDeclStr += 'PINTarget<' + str(pinPort.portWidth) + '> ' + pinPort.name + '_target;'
+            archElemsDeclStr += pinPort.name + '.bind(' + pinPort.name + '_target);'
+            baseInitElement += pinPort.name + ', '
+
     if trace and not processor.systemc:
         baseInitElement += 'totalCycles, '
     baseInitElement = baseInitElement[:-2] + ')'
@@ -637,6 +658,11 @@ def getCPPInstrTest(self, processor, model, trace):
                     code += resource[:brackIndex] + '.read_word(' + hex(int(resource[brackIndex + 1:-1])) + ')'
                 except ValueError:
                     code += resource[:brackIndex] + '.read_word(' + hex(int(resource[brackIndex + 1:-1], 16)) + ')'
+            elif brackIndex > 0 and resource[:brackIndex] in outPinPorts:
+                try:
+                    code += resource[:brackIndex] + '_target.readPIN(' + hex(int(resource[brackIndex + 1:-1])) + ')'
+                except ValueError:
+                    code += resource[:brackIndex] + '_target.readPIN(' + hex(int(resource[brackIndex + 1:-1], 16)) + ')'
             else:
                 code += resource + '.readNewValue()'
             global archWordType
@@ -887,6 +913,23 @@ def getCPPClasses(self, processor, model, trace):
         initElements.append(tlmPorts + '(' + tlmPorts + ')')
         baseInitElement += tlmPorts + ', '
         instructionElements.append(attribute)
+    for pinPort in processor.pins:
+        if not pinPort.inbound:
+            pinPortName = 'Pin'
+            if pinPort.systemc:
+                pinPortName += 'SysC_'
+            else:
+                pinPortName += 'TLM_'
+            if pinPort.inbound:
+                pinPortName += 'in_'
+            else:
+                pinPortName += 'out_'
+            pinPortType = cxx_writer.writer_code.Type(pinPortName + str(pinPort.portWidth), 'externalPins.hpp')
+            attribute = cxx_writer.writer_code.Attribute(pinPort.name, pinPortType.makeRef(), 'pro')
+            baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(pinPort.name, pinPortType.makeRef()))
+            initElements.append(pinPort.name + '(' + pinPort.name + ')')
+            baseInitElement += pinPort.name + ', '
+            instructionElements.append(attribute)
     if trace and not processor.systemc and not model.startswith('acc'):
         attribute = cxx_writer.writer_code.Attribute('totalCycles', cxx_writer.writer_code.uintType.makeRef(), 'pro')
         baseInstrConstrParams.append(cxx_writer.writer_code.Parameter('totalCycles', cxx_writer.writer_code.uintType.makeRef()))

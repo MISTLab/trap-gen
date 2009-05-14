@@ -1984,6 +1984,9 @@ def getCPPProc(self, model, trace):
         baseInstrInitElement += self.memory[0] + ', '
     for tlmPorts in self.tlmPorts.keys():
         baseInstrInitElement += tlmPorts + ', '
+    for pinPort in self.pins:
+        if not pinPort.inbound:
+            baseInstrInitElement += pinPort.name + ', '
     if trace and not self.systemc and not model.startswith('acc'):
         baseInstrInitElement += 'totalCycles, '
     baseInstrInitElement = baseInstrInitElement[:-2]
@@ -3451,6 +3454,173 @@ def getGetPINPorts(self):
         raise Exception('inbound SystemC ports not yet supported')
 
     return pinClasses
+
+def getIRQTests(self):
+    # Returns the code implementing the tests for the interrupts
+    testFuns = []
+    global testNames
+
+    archElemsDeclStr = ''
+    destrDecls = ''
+    for reg in processor.regs:
+        archElemsDeclStr += str(resourceType[reg.name]) + ' ' + reg.name + ';\n'
+    for regB in processor.regBanks:
+        if regB.constValue or regB.delay:
+            archElemsDeclStr += str(resourceType[regB.name]) + ' ' + regB.name + '(' + str(regB.numRegs) + ');\n'
+            for i in range(0, regB.numRegs):
+                if regB.constValue.has_key(i) or regB.delay.has_key(i):
+                    archElemsDeclStr += regB.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '[' + str(i) + ']']) + '());\n'
+                else:
+                    archElemsDeclStr += regB.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '_baseType']) + '());\n'
+        else:
+            archElemsDeclStr += str(resourceType[regB.name]) + ' ' + regB.name + ' = new ' + str(resourceType[regB.name].makeNormal()) + '[' + str(regB.numRegs) + '];\n'
+            destrDecls += 'delete [] ' + regB.name + ';\n'
+    for alias in processor.aliasRegs:
+        archElemsDeclStr += str(resourceType[alias.name]) + ' ' + alias.name + ';\n'
+    for aliasB in processor.aliasRegBanks:
+        archElemsDeclStr += str(resourceType[aliasB.name].makePointer()) + ' ' + aliasB.name + ' = new ' + str(resourceType[aliasB.name]) + '[' + str(aliasB.numRegs) + '];\n'
+        destrDecls += 'delete [] ' + aliasB.name + ';\n'
+    memAliasInit = ''
+    for alias in processor.memAlias:
+        memAliasInit += ', ' + alias.alias
+
+    if (trace or (processor.memory and processor.memory[2])) and not processor.systemc:
+        archElemsDeclStr += 'unsigned int totalCycles;\n'
+    if processor.memory:
+        memDebugInit = ''
+        if processor.memory[2]:
+            memDebugInit += ', totalCycles'
+        if processor.memory[3]:
+            memDebugInit += ', ' + processor.memory[3]
+        archElemsDeclStr += 'LocalMemory ' + processor.memory[0] + '(' + str(processor.memory[1]) + memDebugInit + memAliasInit + ');\n'
+    # Note how I declare local memories even for TLM ports. I use 1MB as default dimension
+    for tlmPorts in processor.tlmPorts.keys():
+        archElemsDeclStr += 'LocalMemory ' + tlmPorts + '(' + str(1024*1024) + memAliasInit + ');\n'
+    # Now I declare the PIN stubs for the outgoing PIN ports
+    # and alts themselves
+    outPinPorts = []
+    for pinPort in processor.pins:
+        if not pinPort.inbound:
+            outPinPorts.append(pinPortName)
+            pinPortName = 'Pin'
+            if pinPort.systemc:
+                pinPortName += 'SysC_'
+            else:
+                pinPortName += 'TLM_'
+            if pinPort.inbound:
+                pinPortName += 'in_'
+            else:
+                pinPortName += 'out_'
+            pinPortName += str(pinPort.portWidth)
+            archElemsDeclStr += pinPortName + ' ' + pinPort.name + '(\"' + pinPort.name + '_PIN\");'
+            archElemsDeclStr += 'PINTarget<' + str(pinPort.portWidth) + '> ' + pinPort.name + '_target;'
+            archElemsDeclStr += pinPort.name + '.bind(' + pinPort.name + '_target);'
+
+    # Now we perform the alias initialization; note that they need to be initialized according to the initialization graph
+    # (there might be dependences among the aliases)
+    aliasInit = ''
+    import networkx as NX
+    orderedNodes = NX.topological_sort(aliasGraph)
+    for alias in orderedNodes:
+        if alias == 'stop':
+            continue
+        if isinstance(alias.initAlias, type('')):
+            index = extractRegInterval(alias.initAlias)
+            if index:
+                curIndex = index[0]
+                try:
+                    for i in range(0, alias.numRegs):
+                        aliasInit += alias.name + '[' + str(i) + '].updateAlias(' + alias.initAlias[:alias.initAlias.find('[')] + '[' + str(curIndex) + ']);\n'
+                        curIndex += 1
+                except AttributeError:
+                    aliasInit += alias.name + '.updateAlias(' + alias.initAlias[:alias.initAlias.find('[')] + '[' + str(curIndex) + '], ' + str(alias.offset) + ');\n'
+            else:
+                aliasInit += alias.name + '.updateAlias(' + alias.initAlias + ', ' + str(alias.offset) + ');\n'
+        else:
+            curIndex = 0
+            for curAlias in alias.initAlias:
+                index = extractRegInterval(curAlias)
+                if index:
+                    for curRange in range(index[0], index[1] + 1):
+                        aliasInit += alias.name + '[' + str(curIndex) + '].updateAlias(' + curAlias[:curAlias.find('[')] + '[' + str(curRange) + ']);\n'
+                        curIndex += 1
+                else:
+                    aliasInit += alias.name + '[' + str(curIndex) + '].updateAlias(' + curAlias + ');\n'
+                    curIndex += 1
+
+    for irq in self.irqs:
+        from isa import resolveBitType
+        irqType = resolveBitType('BIT<' + str(irq.portWidth) + '>')
+        archElemsDeclStr += '\n//Fake interrupt line\n' + str(irqType) + ' ' + irq.name + ';\n'
+        testNum = 0
+        for test in irq.tests:
+            testName = 'irq_test_' + irq.name + '_' + str(testNum)
+            code = archElemsDeclStr
+
+            # Note that each test is composed of two parts: the first one
+            # containing the status of the processor before the interrupt and
+            # then the status of the processor after
+            for resource, value in test[0].items():
+                # I set the initial value of the global resources
+                brackIndex = resource.find('[')
+                memories = self.tlmPorts.keys()
+                if self.memory:
+                    memories.append(self.memory[0])
+                if brackIndex > 0 and resource[:brackIndex] in memories:
+                    try:
+                        code += resource[:brackIndex] + '.write_word(' + hex(int(resource[brackIndex + 1:-1])) + ', ' + hex(value) + ');\n'
+                    except ValueError:
+                        code += resource[:brackIndex] + '.write_word(' + hex(int(resource[brackIndex + 1:-1], 16)) + ', ' + hex(value) + ');\n'
+                elif resource == irq.name:
+                    code += resource + ' = ' + hex(value) + ';\n'
+                else:
+                    code += resource + '.immediateWrite(' + hex(value) + ');\n'
+
+            # Now I declare the actual interrupt code
+            code += 'if('
+            if(irq.condition):
+                code += '('
+            code += irqPort.name + ' != -1'
+            if(irq.condition):
+                code += ') && (' + irq.condition + ')'
+            code += '){\n'
+            code += irqPort.operation + '\n}\n'
+
+            # finally I check the correctness of the executed operation
+            for resource, value in test[2].items():
+                # I check the value of the listed resources to make sure that the
+                # computation executed correctly
+                code += 'BOOST_CHECK_EQUAL('
+                brackIndex = resource.find('[')
+                memories = self.tlmPorts.keys()
+                if self.memory:
+                    memories.append(self.memory[0])
+                if brackIndex > 0 and resource[:brackIndex] in memories:
+                    try:
+                        code += resource[:brackIndex] + '.read_word(' + hex(int(resource[brackIndex + 1:-1])) + ')'
+                    except ValueError:
+                        code += resource[:brackIndex] + '.read_word(' + hex(int(resource[brackIndex + 1:-1], 16)) + ')'
+                elif brackIndex > 0 and resource[:brackIndex] in outPinPorts:
+                    try:
+                        code += resource[:brackIndex] + '_target.readPIN(' + hex(int(resource[brackIndex + 1:-1])) + ')'
+                    except ValueError:
+                        code += resource[:brackIndex] + '_target.readPIN(' + hex(int(resource[brackIndex + 1:-1], 16)) + ')'
+                else:
+                    code += resource + '.readNewValue()'
+                global archWordType
+                code += ', (' + str(archWordType) + ')' + hex(value) + ');\n\n'
+            code += destrDecls
+            curTest = cxx_writer.writer_code.Code(code)
+            wariningDisableCode = '#ifdef _WIN32\n#pragma warning( disable : 4101 )\n#endif\n'
+            includeUnprotectedCode = '#define private public\n#define protected public\n#include \"registers.hpp\"\n#include \"memory.hpp\"\n#undef private\n#undef protected\n'
+            curTest.addInclude(['boost/test/test_tools.hpp', 'customExceptions.hpp', wariningDisableCode, includeUnprotectedCode])
+            curTestFunction = cxx_writer.writer_code.Function(testName, curTest, cxx_writer.writer_code.voidType)
+
+            testFuns.append(curTestFunction)
+            testNames.append(testName)
+            testNum += 1
+
+    return testFuns
 
 def getTestMainCode(self):
     # Returns the code for the file which contains the main
