@@ -82,7 +82,7 @@ def configure(conf):
     # Check for boost libraries
     ########################################
     conf.check_tool('boost')
-    conf.check_boost(lib='regex thread program_options filesystem system', static='both', min_version='1.35.0', mandatory = 1, errmsg = 'Unable to find regex and/or thread boost libraries, please install them and specify their location with the --boost-includes and --boost-libs configuration options')
+    conf.check_boost(lib='regex thread program_options filesystem system', static='both', min_version='1.35.0', mandatory = 1, errmsg = 'Unable to find regex and/or thread boost libraries of at least version 1.35, please install them and specify their location with the --boost-includes and --boost-libs configuration options')
 
     ##################################################
     # Check for BFD library and header
