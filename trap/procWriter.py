@@ -3435,7 +3435,7 @@ def getGetPINPorts(self):
         constructorParams.append(cxx_writer.writer_code.Parameter('portName', cxx_writer.writer_code.sc_module_nameType))
         pinPortInit.append('sc_module(portName)')
         initSockAttr = cxx_writer.writer_code.Attribute('initSocket', tlminitsocketType, 'pu')
-        pinPortInit.append('sc_module(sc_gen_unique_name(portName))')
+        pinPortInit.append('initSocket(sc_gen_unique_name(portName))')
         pinPortElements.append(initSockAttr)
 
         pinPortDecl = cxx_writer.writer_code.ClassDeclaration('PinTLM_out_' + str(port.portWidth), pinPortElements, [cxx_writer.writer_code.sc_moduleType])
