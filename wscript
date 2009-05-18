@@ -82,7 +82,8 @@ def configure(conf):
     # Check for boost libraries
     ########################################
     conf.check_tool('boost')
-    conf.check_boost(lib='regex thread program_options filesystem system', static='both', min_version='1.35.0', mandatory = 1, errmsg = 'Unable to find regex and/or thread boost libraries of at least version 1.35, please install them and specify their location with the --boost-includes and --boost-libs configuration options')
+    boostLibs = 'regex thread program_options filesystem system'
+    conf.check_boost(lib=boostLibs, static='both', min_version='1.35.0', mandatory = 1, errmsg = 'Unable to find ' + boostLibs + ' boost libraries of at least version 1.35, please install them and specify their location with the --boost-includes and --boost-libs configuration options')
 
     ##################################################
     # Check for BFD library and header
@@ -98,6 +99,9 @@ def configure(conf):
 
         result = os.popen(compilerExecutable + ' -print-search-dirs')
         searchDirs = []
+        localLibPath = os.path.join('/', 'usr','local','lib')
+        if os.path.exists(localLibPath):
+            searchDirs.append(os.path.abspath(localLibPath))
         gccLines = result.readlines()
         for curLine in gccLines:
             startFound = curLine.find('libraries: =')
@@ -105,7 +109,7 @@ def configure(conf):
                 curLine = curLine[startFound + 12:-1]
                 searchDirs_ = curLine.split(':')
                 for i in searchDirs_:
-                    if not os.path.abspath(i) in searchDirs:
+                    if os.path.exists(i) and not os.path.abspath(i) in searchDirs:
                         searchDirs.append(os.path.abspath(i))
                 break
         if Options.options.bfddir:

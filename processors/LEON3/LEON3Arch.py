@@ -238,7 +238,7 @@ if(PSR[key_ET]){
 }
 """)
 irqPort.addTest({}, {})
-processor.addIrq(irqPort)
+#processor.addIrq(irqPort)
 
 # I also need to add the external port which is used to acknowledge
 # the interrupt

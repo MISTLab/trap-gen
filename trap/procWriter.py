@@ -3402,7 +3402,7 @@ def getGetPINPorts(self):
 
         tlm_dmiType = cxx_writer.writer_code.Type('tlm::tlm_dmi', 'tlm.h')
         PinPortType = cxx_writer.writer_code.Type('PinTLM_out_' + str(port.portWidth))
-        tlminitsocketType = cxx_writer.writer_code.TemplateType('tlm_utils::simple_initiator_socket', [PinPortType, port.portWidth], 'tlm_utils/simple_initiator_socket.h')
+        tlminitsocketType = cxx_writer.writer_code.TemplateType('tlm_utils::multi_passthrough_initiator_socket', [PinPortType, port.portWidth, 'tlm::tlm_base_protocol_types', 1, 'sc_core::SC_ZERO_OR_MORE_BOUND'], 'tlm_utils/multi_passthrough_initiator_socket.h')
         payloadType = cxx_writer.writer_code.Type('tlm::tlm_generic_payload', 'tlm.h')
         pinPortInit = []
         constructorParams = []
@@ -3435,6 +3435,7 @@ def getGetPINPorts(self):
         constructorParams.append(cxx_writer.writer_code.Parameter('portName', cxx_writer.writer_code.sc_module_nameType))
         pinPortInit.append('sc_module(portName)')
         initSockAttr = cxx_writer.writer_code.Attribute('initSocket', tlminitsocketType, 'pu')
+        pinPortInit.append('sc_module(sc_gen_unique_name(portName))')
         pinPortElements.append(initSockAttr)
 
         pinPortDecl = cxx_writer.writer_code.ClassDeclaration('PinTLM_out_' + str(port.portWidth), pinPortElements, [cxx_writer.writer_code.sc_moduleType])
