@@ -345,9 +345,17 @@ class Folder:
     if Options.options.enable_gprof and Options.options.enable_vprof:
         conf.fatal('Only one profiler among gprof and vprof can be enabled')
     if Options.options.enable_gprof:
+        if not '-g' in conf.env['CCFLAGS']:
+            conf.env.append_unique('CCFLAGS', '-g')
+        if not '-g' in conf.env['CXXFLAGS']:
+            conf.env.append_unique('CXXFLAGS', '-g')
         conf.env.append_unique('LINKFLAGS', '-pg')
         conf.env.append_unique('STLINKFLAGS', '-pg')
     if Options.options.enable_vprof:
+        if not '-g' in conf.env['CCFLAGS']:
+            conf.env.append_unique('CCFLAGS', '-g')
+        if not '-g' in conf.env['CXXFLAGS']:
+            conf.env.append_unique('CXXFLAGS', '-g')
         # I have to check for the vprof and papi libraries and for the
         # vmonauto_gcc.o object file
         vmonautoPath = ''
