@@ -273,7 +273,7 @@ RaiseException_method.setSignature(cxx_writer.writer_code.voidType, RaiseExcepti
 opCode = cxx_writer.writer_code.Code("""PC = NPC;
 NPC += 4;
 """)
-IncrementPC = trap.HelperOperation('IncrementPC', opCode)
+IncrementPC = trap.HelperOperation('IncrementPC', opCode, exception = False)
 
 # Write back of the result of most operations, expecially ALUs;
 # such operations do not modify the PSR

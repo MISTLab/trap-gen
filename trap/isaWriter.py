@@ -132,7 +132,7 @@ def getCppOperation(self, parameters = False):
             metodParams.append(cxx_writer.writer_code.Parameter(elem, cxx_writer.writer_code.uintRefType))
         for var in self.instrvars:
             metodParams.append(cxx_writer.writer_code.Parameter(var.name, var.type.makeRef()))
-    methodDecl = cxx_writer.writer_code.Method(self.name, self.code, cxx_writer.writer_code.voidType, 'pro', metodParams, inline = True)
+    methodDecl = cxx_writer.writer_code.Method(self.name, self.code, cxx_writer.writer_code.voidType, 'pro', metodParams, inline = True, noException = not self.exception)
     return methodDecl
 
 def getCppOpClass(self):
@@ -156,7 +156,7 @@ def getCppOpClass(self):
         metodParams.append(cxx_writer.writer_code.Parameter(elem, cxx_writer.writer_code.uintRefType))
     for var in self.instrvars:
         metodParams.append(cxx_writer.writer_code.Parameter(var.name, var.type.makeRef()))
-    methodDecl = cxx_writer.writer_code.Method(self.name, self.code, cxx_writer.writer_code.voidType, 'pro', metodParams, inline = True)
+    methodDecl = cxx_writer.writer_code.Method(self.name, self.code, cxx_writer.writer_code.voidType, 'pro', metodParams, inline = True, noException = not self.exception)
     classElements.append(methodDecl)
     opConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, ['Instruction(' + baseInstrInitElement + ')'])
     opDecl = cxx_writer.writer_code.ClassDeclaration(self.name + '_op', classElements, virtual_superclasses = [instructionType])

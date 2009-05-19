@@ -532,7 +532,7 @@ class HelperOperation:
     variables of the instructions it is associated to (note that
     all the instructions this piece of code is associated to must
     have the referenced variables)"""
-    def __init__(self, name, code, inline = True, model = 'all'):
+    def __init__(self, name, code, inline = True, model = 'all', exception = True):
         # Code must be an instance of cxx_writer.CustomCode. Note
         # that even if inline is specified, in case this operation
         # is used only one, its code is directly put inside the
@@ -540,6 +540,7 @@ class HelperOperation:
         self.name = name
         self.code = code
         self.inline = inline
+        self.exception = exception
         self.numUsed = 0
         self.localvars = []
         self.instrvars = []
