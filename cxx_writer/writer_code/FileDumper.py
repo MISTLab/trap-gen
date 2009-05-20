@@ -598,9 +598,12 @@ class Folder:
     ##################################################
     tlmPath = ''
     if Options.options.tlmdir:
-        tlmPath = [os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.tlmdir, 'tlm'))))]
+        tlmPath = os.path.normpath(os.path.abspath(os.path.expanduser(os.path.expandvars(Options.options.tlmdir))))
     elif 'TLM' in os.environ:
-        tlmPath = [os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(os.environ['TLM'], 'tlm'))))]
+        tlmPath = os.path.normpath(os.path.abspath(os.path.expanduser(os.path.expandvars(os.environ['TLM']))))
+    if not tlmPath.endswith('include'):
+        tlmPath = os.path.join(tlmPath, 'include')
+    tlmPath = [os.path.join(tlmPath, 'tlm')]
 
     conf.check_cxx(header_name='tlm.h', uselib='SYSTEMC', uselib_store='TLM', mandatory=1, includes=tlmPath)
     conf.check_cxx(fragment='''

@@ -525,6 +525,7 @@ def getCPPRegisters(self, model):
     registerElements.append(operatorIntDecl)
 
     ################ Here we determine the different register types which have to be declared ##################
+
     customRegBanksElemens = []
     for i in self.regBanks:
         customRegBanksElemens += i.getConstRegs()
@@ -562,7 +563,7 @@ def getCPPRegisters(self, model):
             regTypeName += '_delay_' + str(reg.delay)
         resourceType[reg.name] = cxx_writer.writer_code.Type(regTypeName, 'registers.hpp')
         if reg in self.regBanks:
-            if reg.constValue or (reg.delay and not model.startswith('acc')):
+            if (reg.constValue and len(reg.constValue) < reg.numRegs)  or ((reg.delay and len(reg.delay) < reg.numRegs) and not model.startswith('acc')):
                 resourceType[reg.name + '_baseType'] = resourceType[reg.name]
                 resourceType[reg.name] = cxx_writer.writer_code.Type('RegisterBankClass', 'registers.hpp')
             else:
@@ -570,6 +571,7 @@ def getCPPRegisters(self, model):
     realRegClasses = []
     for regType in regTypes:
         realRegClasses.append(regType.getCPPClass(model, resourceType[regType.name]))
+
     ################ End of part where we determine the different register types which have to be declared ##################
 
     registerDecl = cxx_writer.writer_code.SCModule('Register', registerElements)
@@ -1618,7 +1620,7 @@ def getCPPProc(self, model, trace):
                 processorElements.append(attribute)
     for regB in self.regBanks:
         attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name], 'pu')
-        if regB.constValue or (not model.startswith('acc') and regB.delay):
+        if (regB.constValue and len(regB.constValue) < regB.numRegs)  or ((regB.delay and len(regB.delay) < regB.numRegs) and not model.startswith('acc')):
             # There are constant registers, so I have to declare the special register bank
             bodyInits += 'this->' + regB.name + '.setSize(' + str(regB.numRegs) + ');\n'
             for i in range(0, regB.numRegs):
@@ -3500,7 +3502,7 @@ def getIRQTests(self, trace):
     for reg in self.regs:
         archElemsDeclStr += str(resourceType[reg.name]) + ' ' + reg.name + ';\n'
     for regB in self.regBanks:
-        if regB.constValue or regB.delay:
+        if (regB.constValue and len(regB.constValue) < regB.numRegs)  or (regB.delay and len(regB.delay) < regB.numRegs):
             archElemsDeclStr += str(resourceType[regB.name]) + ' ' + regB.name + '(' + str(regB.numRegs) + ');\n'
             for i in range(0, regB.numRegs):
                 if regB.constValue.has_key(i) or regB.delay.has_key(i):

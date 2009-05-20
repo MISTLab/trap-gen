@@ -516,7 +516,7 @@ def getCPPInstrTest(self, processor, model, trace):
         archElemsDeclStr += str(resourceType[reg.name]) + ' ' + reg.name + ';\n'
         baseInitElement += reg.name + ', '
     for regB in processor.regBanks:
-        if regB.constValue or regB.delay:
+        if (regB.constValue and len(regB.constValue) < regB.numRegs)  or (regB.delay and len(regB.delay) < regB.numRegs):
             archElemsDeclStr += str(resourceType[regB.name]) + ' ' + regB.name + '(' + str(regB.numRegs) + ');\n'
             for i in range(0, regB.numRegs):
                 if regB.constValue.has_key(i) or regB.delay.has_key(i):

@@ -43,8 +43,6 @@
 #ifndef TOOLSIF_HPP
 #define TOOLSIF_HPP
 
-#include <vector>
-
 ///Base class for the tools which need to interact with memory,
 ///i.e. to be called for every write operation which happens in
 ///memory. Note that only one tool at a time can interact
@@ -74,20 +72,26 @@ template<class issueWidth> class ToolsIf{
 template<class issueWidth> class ToolsManager{
     private:
     ///List of the active tools, which are activated at every instruction
-    std::vector<ToolsIf<issueWidth> *> activeTools;
-    typename std::vector<ToolsIf<issueWidth> *>::const_iterator toolsStart;
-    typename std::vector<ToolsIf<issueWidth> *>::const_iterator toolsEnd;
+    ToolsIf<issueWidth> ** activeTools;
+    int activeToolsNum;
     public:
     ToolsManager(){
-        this->toolsStart = this->activeTools.begin();
-        this->toolsEnd = this->activeTools.end();
+        activeTools = NULL;
+        activeToolsNum = 0;
     }
     ///Adds a tool to the list of the tool which are activated when there is a new instruction
     ///issue
     void addTool(ToolsIf<issueWidth> &tool){
-        this->activeTools.push_back(&tool);
-        this->toolsStart = this->activeTools.begin();
-        this->toolsEnd = this->activeTools.end();
+        this->activeToolsNum++;
+        ToolsIf<issueWidth> ** activeToolsTemp = new ToolsIf<issueWidth> *[activeToolsNum];
+        if(this->activeTools != NULL){
+            for(int i = 0; i < (this->activeToolsNum - 1); i++){
+                activeToolsTemp[i] = this->activeTools[i];
+            }
+            delete [] this->activeTools;
+        }
+        this->activeTools = activeToolsTemp;
+        this->activeTools[this->activeToolsNum - 1] = &tool;
     }
     ///The only method which is called to activate the tool
     ///it signals to the tool that a new instruction issue has been started;
@@ -96,9 +100,8 @@ template<class issueWidth> class ToolsManager{
     ///the issue of the current instruction
     inline bool newIssue(const issueWidth &curPC, const void *curInstr) const throw(){
         bool skipInstruction = false;
-        typename std::vector<ToolsIf<issueWidth> *>::const_iterator toolsIter = this->toolsStart;
-        for(; toolsIter != this->toolsEnd; toolsIter++){
-            skipInstruction |= (*toolsIter)->newIssue(curPC, curInstr);
+        for(int i = 0; i < this->activeToolsNum; i++){
+            skipInstruction |= this->activeTools[i]->newIssue(curPC, curInstr);
         }
         return skipInstruction;
     }

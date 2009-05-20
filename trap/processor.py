@@ -800,7 +800,7 @@ class Processor:
         # Returns the code implementing the pipeline stages
         return procWriter.getGetPipelineStages(self, trace)
 
-    def write(self, folder = '', models = validModels, dumpDecoderName = '', trace = False, forceDecoderCreation = False):
+    def write(self, folder = '', models = validModels, dumpDecoderName = '', trace = False, forceDecoderCreation = False, tests = True):
         # Ok: this method does two things: first of all it performs all
         # the possible checks to ensure that the processor description is
         # coherent. Second it actually calls the write method of the
@@ -954,7 +954,7 @@ class Processor:
             mainFile = cxx_writer.writer_code.FileDumper('main.cpp', False)
             mainFile.addMember(self.getMainCode(model))
 
-            if (model == 'funcLT') and (not self.systemc):
+            if (model == 'funcLT') and (not self.systemc) and tests:
                 testFolder = cxx_writer.writer_code.Folder('tests')
                 curFolder.addSubFolder(testFolder)
                 mainTestFile = cxx_writer.writer_code.FileDumper('main.cpp', False)
@@ -1040,7 +1040,7 @@ class Processor:
             curFolder.addCode(mainFile)
             curFolder.setMain(mainFile.name)
             curFolder.create()
-            if (model == 'funcLT') and (not self.systemc):
+            if (model == 'funcLT') and (not self.systemc) and tests:
                 testFolder.create(configure = False, tests = True)
             print ('\t\tCreated in folder ' + os.path.expanduser(os.path.expandvars(folder)))
         # We create and print the main folder and also add a configuration

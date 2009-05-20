@@ -270,8 +270,10 @@ RaiseException_method.setSignature(cxx_writer.writer_code.voidType, RaiseExcepti
 # Code used to jump to the trap handler address. This code modifies the PC and the NPC
 # so that the next instruction fetched is the one of the trap handler;
 # it also performs a flush of the pipeline
-opCode = cxx_writer.writer_code.Code("""PC = NPC;
-NPC += 4;
+opCode = cxx_writer.writer_code.Code("""unsigned int npc = NPC;
+PC = npc;
+npc += 4;
+NPC = npc;
 """)
 IncrementPC = trap.HelperOperation('IncrementPC', opCode, exception = False)
 

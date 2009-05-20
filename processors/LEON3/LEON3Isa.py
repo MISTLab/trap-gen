@@ -2339,21 +2339,25 @@ switch(cond){
         #endif
     break;}
     default:{
+        bool icc_z = PSRbp[key_ICC_z];
+        bool icc_n = PSRbp[key_ICC_n];
+        bool icc_v = PSRbp[key_ICC_v];
+        bool icc_c = PSRbp[key_ICC_c];
         // All the other non-special situations
-        bool exec = ((cond == 0x9) && PSRbp[key_ICC_z] == 0) ||
-                    ((cond == 0x1) && PSRbp[key_ICC_z] != 0) ||
-                    ((cond == 0xa) && (PSRbp[key_ICC_z] == 0) && (PSRbp[key_ICC_n] == PSRbp[key_ICC_v])) ||
-                    ((cond == 0x2) && ((PSRbp[key_ICC_z] != 0) || (PSRbp[key_ICC_n] != PSRbp[key_ICC_v]))) ||
-                    ((cond == 0xb) && PSRbp[key_ICC_n] == PSRbp[key_ICC_v]) ||
-                    ((cond == 0x3) && PSRbp[key_ICC_n] != PSRbp[key_ICC_v]) ||
-                    ((cond == 0xc) && (PSRbp[key_ICC_c] + PSRbp[key_ICC_z]) == 0) ||
-                    ((cond == 0x4) && (PSRbp[key_ICC_c] + PSRbp[key_ICC_z]) > 0) ||
-                    ((cond == 0xd) && PSRbp[key_ICC_c] == 0) ||
-                    ((cond == 0x5) && PSRbp[key_ICC_c] != 0) ||
-                    ((cond == 0xe) && PSRbp[key_ICC_n] == 0) ||
-                    ((cond == 0x6) && PSRbp[key_ICC_n] != 0) ||
-                    ((cond == 0xf) && PSRbp[key_ICC_v] == 0) ||
-                    ((cond == 0x7) && PSRbp[key_ICC_v] != 0);
+        bool exec = ((cond == 0x9) && icc_z == 0) ||
+                    ((cond == 0x1) && icc_z != 0) ||
+                    ((cond == 0xa) && (icc_z == 0) && (icc_n == icc_v)) ||
+                    ((cond == 0x2) && ((icc_z != 0) || (icc_n != icc_v))) ||
+                    ((cond == 0xb) && icc_n == icc_v) ||
+                    ((cond == 0x3) && icc_n != icc_v) ||
+                    ((cond == 0xc) && (icc_c + icc_z) == 0) ||
+                    ((cond == 0x4) && (icc_c + icc_z) > 0) ||
+                    ((cond == 0xd) && icc_c == 0) ||
+                    ((cond == 0x5) && icc_c != 0) ||
+                    ((cond == 0xe) && icc_n == 0) ||
+                    ((cond == 0x6) && icc_n != 0) ||
+                    ((cond == 0xf) && icc_v == 0) ||
+                    ((cond == 0x7) && icc_v != 0);
         if(exec){
             unsigned int targetPc = PC + 4*(SignExtend(disp22, 22));
             #ifdef ACC_MODEL
