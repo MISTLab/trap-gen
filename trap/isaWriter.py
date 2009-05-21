@@ -113,7 +113,7 @@ def getCppMethod(self, model, processor):
 
     codeTemp.appendCode(undefCode)
 
-    methodDecl = cxx_writer.writer_code.Method(self.name, codeTemp, self.retType, 'pu', self.parameters)
+    methodDecl = cxx_writer.writer_code.Method(self.name, codeTemp, self.retType, 'pu', self.parameters, noException = not self.exception, const = self.const)
 
     return methodDecl
 

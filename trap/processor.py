@@ -292,12 +292,13 @@ class Processor:
     functional processor in case a local memory is used (in case TLM ports
     are used the systemc parameter is not taken into account)
     """
-    def __init__(self, name, version, systemc = True, coprocessor = False, instructionCache = True, fastFetch = False, externalClock = False):
+    def __init__(self, name, version, systemc = True, coprocessor = False, instructionCache = True, fastFetch = False, externalClock = False, cacheLimit = 40):
         self.name = name
         self.version = version
         self.isBigEndian = None
         self.wordSize = None
         self.byteSize = None
+        self.cacheLimit = cacheLimit
         self.regs = []
         self.regBanks = []
         self.aliasRegs = []
@@ -849,7 +850,7 @@ class Processor:
                 forceDecoderCreation = True
         if forceDecoderCreation:
             print ('\t\tCreating the decoder')
-            dec = decoder.decoderCreator(self.isa.instructions, self.isa.subInstructions)
+            dec = decoder.decoderCreator(self.isa.instructions, self.isa.subInstructions, memPenaltyFactor = 2)
             import copy
             decCopy = copy.deepcopy(dec)
         else:

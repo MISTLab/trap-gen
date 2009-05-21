@@ -98,7 +98,7 @@ if((bitSeq & (1 << (bitSeq_length - 1))) != 0)
     bitSeq |= (((unsigned int)0xFFFFFFFF) << bitSeq_length);
 return bitSeq;
 """)
-SignExtend_method = trap.HelperMethod('SignExtend', opCode, 'execute')
+SignExtend_method = trap.HelperMethod('SignExtend', opCode, 'execute', exception = False, const = True)
 SignExtend_method.setSignature(cxx_writer.writer_code.intType, [('bitSeq', 'BIT<32>'), cxx_writer.writer_code.Parameter('bitSeq_length', cxx_writer.writer_code.uintType)])
 
 # Normal PC increment, used when not in a branch instruction; in a branch instruction

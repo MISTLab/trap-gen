@@ -1304,7 +1304,10 @@ def getCPPProc(self, model, trace):
 
     if not model.startswith('acc'):
         if self.instructionCache:
-            codeString += 'template_map< ' + str(fetchWordType) + ', Instruction * >::iterator instrCacheEnd = Processor::instrCache.end();\n'
+            codeString += 'template_map< ' + str(fetchWordType) + """, Instruction * >::iterator instrCacheEnd = Processor::instrCache.end();
+            template_map< """  + str(fetchWordType) + ', ' + str(fetchWordType) + """ > freqInstrMap;
+            template_map< """  + str(fetchWordType) + ', ' + str(fetchWordType) + """ >::iterator freqInstrMapEnd = freqInstrMap.end();
+            """
         if self.externalClock:
             codeString += 'if(this->waitCycles > 0){\nthis->waitCycles--;\nreturn;\n}\n\n'
         else:
@@ -1445,18 +1448,37 @@ def getCPPProc(self, model, trace):
         codeString += """
                 numCycles = 0;
             }
-            // ... and then add the instruction to the cache
-        """
+            """
+        if self.instructionCache:
+            codeString += """template_map< """ + str(fetchWordType) + ', ' + str(fetchWordType) + """ >::iterator freqInstrMapIter = freqInstrMap.find("""
+            if self.fastFetch:
+                codeString += 'curPC);'
+            else:
+                codeString += 'bitString);'
+            codeString += """
+                if(freqInstrMapIter == freqInstrMapEnd){
+                    freqInstrMap.insert(std::pair< """ + str(fetchWordType) + ', ' + str(fetchWordType) + """ >(curPC, 1));
+                    freqInstrMapEnd = freqInstrMap.end();
+                }
+                else{
+                    if(freqInstrMapIter->second > """ + str(self.cacheLimit) + """){
+                // ... and then add the instruction to the cache
+            """
         if self.instructionCache:
             if self.fastFetch:
-                codeString += 'instrCache[curPC] = instr;'
+                codeString += 'instrCache.insert(std::pair< ' + str(fetchWordType) + ', Instruction * >(curPC, instr));'
             else:
-                codeString += 'instrCache[bitString] = instr;'
+                codeString += 'instrCache.insert(std::pair< ' + str(fetchWordType) + ', Instruction * >(bitString, instr));'
             if not self.externalClock:
                 codeString += """
                     instrCacheEnd = Processor::instrCache.end();"""
             codeString += """
-                Processor::INSTRUCTIONS[instrId] = instr->replicate();
+                        Processor::INSTRUCTIONS[instrId] = instr->replicate();
+                    }
+                    else{
+                        freqInstrMapIter->second = freqInstrMapIter->second + 1;
+                    }
+                }
             }
             """
         if self.irqs:

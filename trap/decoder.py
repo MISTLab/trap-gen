@@ -396,7 +396,7 @@ class decoderCreator:
         code = cxx_writer.writer_code.Code(codeString)
         code.addInclude('utils.hpp')
         parameters = [cxx_writer.writer_code.Parameter('instrCode', fetchSizeType)]
-        decodeMethod = cxx_writer.writer_code.Method('decode', code, cxx_writer.writer_code.intType, 'pu', parameters)
+        decodeMethod = cxx_writer.writer_code.Method('decode', code, cxx_writer.writer_code.intType, 'pu', parameters, const = True, noException = True)
         decodeClass = cxx_writer.writer_code.ClassDeclaration('Decoder', [decodeMethod])
         return decodeClass
 

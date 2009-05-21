@@ -599,11 +599,13 @@ class HelperMethod:
     """Represents a fucntion which can be shared among the
     instructions. This function can be called from all
     the instructions and other helper operations"""
-    def __init__(self, name, code, stage):
+    def __init__(self, name, code, stage, exception = True, const = False):
         # Code must be an instance of cxx_writer.CustomCode.
         self.name = name
         self.code = code
         self.stage = stage
+        self.exception = exception
+        self.const = const
         self.localvars = []
         self.parameters = []
         self.retType = cxx_writer.writer_code.Type('void')
