@@ -136,7 +136,7 @@ def getCPPRegClass(self, model, regType):
         codeOperatorBody = 'return this->field_empty;'
     operatorBody = cxx_writer.writer_code.Code(codeOperatorBody)
     operatorParam = [cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.intType)]
-    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, InnerFieldType.makeRef(), 'pu', operatorParam, noException = True)
+    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, InnerFieldType.makeRef(), 'pu', operatorParam, noException = True, inline = True)
     registerElements.append(operatorDecl)
 
     ################ Methods used for the update of delayed registers ######################
@@ -272,7 +272,7 @@ def getCPPRegClass(self, model, regType):
         operatorBody = cxx_writer.writer_code.Code('return (' + readValueItem + '  + ' + str(self.offset) + ');')
     else:
         operatorBody = cxx_writer.writer_code.Code('return ' + readValueItem + ';')
-    operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True, noException = True)
+    operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True, noException = True, inline = True)
     registerElements.append(operatorIntDecl)
 
     # Constructors
@@ -354,7 +354,7 @@ def getCPPRegClass(self, model, regType):
             operatorCode += ' >> ' + str(length[0])
         operatorCode += ';'
         operatorBody = cxx_writer.writer_code.Code(operatorCode)
-        operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True, noException = True)
+        operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True, noException = True, inline = True)
         InnerFieldElems.append(operatorIntDecl)
         fieldAttribute = cxx_writer.writer_code.Attribute('value', regMaxType.makeRef(), 'pri')
         InnerFieldElems.append(fieldAttribute)
@@ -382,7 +382,7 @@ def getCPPRegClass(self, model, regType):
     operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
     operatorEqualDecl = cxx_writer.writer_code.MemberOperator('=', operatorBody, cxx_writer.writer_code.Type('InnerField').makeRef(), 'pu', [operatorParam], noException = True)
     operatorBody = cxx_writer.writer_code.Code('return 0;')
-    operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True, noException = True)
+    operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True, noException = True, inline = True)
     publicConstr = cxx_writer.writer_code.Constructor(cxx_writer.writer_code.Code(''), 'pu')
     InnerFieldClass = cxx_writer.writer_code.ClassDeclaration('InnerField_Empty', [operatorEqualDecl, operatorIntDecl], [cxx_writer.writer_code.Type('InnerField')])
     InnerFieldClass.addConstructor(publicConstr)
@@ -674,7 +674,7 @@ def getCPPAlias(self, model):
     InnerFieldType = cxx_writer.writer_code.Type('InnerField')
     operatorBody = cxx_writer.writer_code.Code(codeOperatorBody)
     operatorParam = [cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.intType)]
-    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, InnerFieldType.makeRef(), 'pu', operatorParam, noException = True)
+    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, InnerFieldType.makeRef(), 'pu', operatorParam, noException = True, inline = True)
     aliasElements.append(operatorDecl)
 
     ################ Lock and Unlock methods used for hazards detection ######################
@@ -697,10 +697,10 @@ def getCPPAlias(self, model):
     if not model.startswith('acc'):
         immediateWriteBody = isLockedBody = cxx_writer.writer_code.Code('this->reg->immediateWrite(value);')
         immediateWriteParam = [cxx_writer.writer_code.Parameter('value', regMaxType.makeRef().makeConst())]
-        immediateWriteMethod = cxx_writer.writer_code.Method('immediateWrite', immediateWriteBody, cxx_writer.writer_code.voidType, 'pu', immediateWriteParam, virtual = True, noException = True)
+        immediateWriteMethod = cxx_writer.writer_code.Method('immediateWrite', immediateWriteBody, cxx_writer.writer_code.voidType, 'pu', immediateWriteParam, noException = True)
         aliasElements.append(immediateWriteMethod)
         readNewValueBody = isLockedBody = cxx_writer.writer_code.Code('return this->reg->readNewValue();')
-        readNewValueMethod = cxx_writer.writer_code.Method('readNewValue', readNewValueBody, regMaxType, 'pu', virtual = True, noException = True)
+        readNewValueMethod = cxx_writer.writer_code.Method('readNewValue', readNewValueBody, regMaxType, 'pu', noException = True)
         aliasElements.append(readNewValueMethod)
 
     #################### Lets declare the normal operators (implementation of the pure operators of the base class) ###########
@@ -778,23 +778,35 @@ def getCPPAlias(self, model):
     operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True, noException = True, inline = True)
     aliasElements.append(operatorIntDecl)
 
-    # Constructor: takes as input the initial register
-    constructorBody = cxx_writer.writer_code.Code('')
+    ######### Constructor: takes as input the initial register #########
+    constructorBody = cxx_writer.writer_code.Code('this->referringAliases = NULL;')
     constructorParams = [cxx_writer.writer_code.Parameter('reg', registerType.makePointer())]
     constructorInit = ['reg(reg)']
     if not model.startswith('acc'):
         constructorParams.append(cxx_writer.writer_code.Parameter('offset', cxx_writer.writer_code.uintType, initValue = '0'))
         constructorInit += ['offset(offset)', 'defaultOffset(0)']
     publicMainClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, constructorInit)
-    publicMainEmptyClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu')
+    if not model.startswith('acc'):
+        constructorInit = ['offset(offset)', 'defaultOffset(0)']
+    publicMainEmptyClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', [], constructorInit)
     # Constructor: takes as input the initial alias
-    constructorBody = cxx_writer.writer_code.Code('initAlias->referredAliases.insert(this);\nthis->referringAliases.insert(initAlias);')
+    constructorBody = cxx_writer.writer_code.Code('initAlias->referredAliases.insert(this);\nthis->referringAliases = initAlias;')
     constructorParams = [cxx_writer.writer_code.Parameter('initAlias', aliasType.makePointer())]
     publicAliasConstrInit = ['reg(initAlias->reg)']
     if not model.startswith('acc'):
         constructorParams.append(cxx_writer.writer_code.Parameter('offset', cxx_writer.writer_code.uintType, initValue = '0'))
         publicAliasConstrInit += ['offset(initAlias->offset + offset)', 'defaultOffset(offset)']
     publicAliasConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, publicAliasConstrInit)
+    destructorBody = cxx_writer.writer_code.Code("""std::set<Alias *>::iterator referredIter, referredEnd;
+        for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
+            if((*referredIter)->referringAliases == this)
+                (*referredIter)->referringAliases = NULL;
+        }
+        if(this->referringAliases != NULL){
+            this->referringAliases->referredAliases.erase(this);
+        }
+        this->referringAliases = NULL;""")
+    publicAliasDestr = cxx_writer.writer_code.Constructor(destructorBody, 'pu')
 
     # Stream Operators
     outStreamType = cxx_writer.writer_code.Type('std::ostream', 'ostream')
@@ -807,7 +819,7 @@ def getCPPAlias(self, model):
     operatorDecl = cxx_writer.writer_code.MemberOperator('<<', operatorBody, outStreamType.makeRef(), 'pu', [operatorParam], const = True, noException = True)
     aliasElements.append(operatorDecl)
 
-    # Update method: updates the register pointed by this alias
+    # Update method: updates the register pointed by this alias: Standard Alias
     if not model.startswith('acc'):
         updateCode = """this->reg = newAlias.reg;
         this->offset = newAlias.offset + newOffset;
@@ -816,13 +828,11 @@ def getCPPAlias(self, model):
         for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
             (*referredIter)->newReferredAlias(newAlias.reg, newAlias.offset + newOffset);
         }
-        newAlias.referredAliases.insert(this);
-        std::set<Alias *>::iterator referringIter, referringEnd;
-        for(referringIter = this->referringAliases.begin(), referringEnd = this->referringAliases.end(); referringIter != referringEnd; referringIter++){
-            (*referringIter)->referredAliases.erase(this);
+        if(this->referringAliases != NULL){
+            this->referringAliases->referredAliases.erase(this);
         }
-        this->referringAliases.clear();
-        this->referringAliases.insert(&newAlias);
+        this->referringAliases = &newAlias;
+        newAlias.referredAliases.insert(this);
         """
         updateBody = cxx_writer.writer_code.Code(updateCode)
         updateParam = [cxx_writer.writer_code.Parameter('newAlias', aliasType.makeRef())]
@@ -835,20 +845,19 @@ def getCPPAlias(self, model):
         """
     updateCode += """this->reg = newAlias.reg;
     std::set<Alias *>::iterator referredIter, referredEnd;
-    for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){"""
+    for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
+    """
     if not model.startswith('acc'):
         updateCode += '(*referredIter)->newReferredAlias(newAlias.reg, newAlias.offset);'
     else:
         updateCode += '(*referredIter)->newReferredAlias(newAlias.reg);'
     updateCode += """
     }
-    newAlias.referredAliases.insert(this);
-    std::set<Alias *>::iterator referringIter, referringEnd;
-    for(referringIter = this->referringAliases.begin(), referringEnd = this->referringAliases.end(); referringIter != referringEnd; referringIter++){
-        (*referringIter)->referredAliases.erase(this);
+    if(this->referringAliases != NULL){
+        this->referringAliases->referredAliases.erase(this);
     }
-    this->referringAliases.clear();
-    this->referringAliases.insert(&newAlias);
+    this->referringAliases = &newAlias;
+    newAlias.referredAliases.insert(this);
     """
     updateBody = cxx_writer.writer_code.Code(updateCode)
     updateParam = [cxx_writer.writer_code.Parameter('newAlias', aliasType.makeRef())]
@@ -863,11 +872,10 @@ def getCPPAlias(self, model):
         for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
             (*referredIter)->newReferredAlias(&newAlias, newOffset);
         }
-        std::set<Alias *>::iterator referringIter, referringEnd;
-        for(referringIter = this->referringAliases.begin(), referringEnd = this->referringAliases.end(); referringIter != referringEnd; referringIter++){
-            (*referringIter)->referredAliases.erase(this);
+        if(this->referringAliases != NULL){
+            this->referringAliases->referredAliases.erase(this);
         }
-        this->referringAliases.clear();
+        this->referringAliases = NULL;
         """
         updateBody = cxx_writer.writer_code.Code(updateCode)
         updateParam = [cxx_writer.writer_code.Parameter('newAlias', registerType.makeRef())]
@@ -884,16 +892,36 @@ def getCPPAlias(self, model):
     for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
         (*referredIter)->newReferredAlias(&newAlias);
     }
-    std::set<Alias *>::iterator referringIter, referringEnd;
-    for(referringIter = this->referringAliases.begin(), referringEnd = this->referringAliases.end(); referringIter != referringEnd; referringIter++){
-        (*referringIter)->referredAliases.erase(this);
+    if(this->referringAliases != NULL){
+        this->referringAliases->referredAliases.erase(this);
     }
-    this->referringAliases.clear();
+    this->referringAliases = NULL;
     """
     updateBody = cxx_writer.writer_code.Code(updateCode)
     updateParam = [cxx_writer.writer_code.Parameter('newAlias', registerType.makeRef())]
     updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam, inline = True, noException = True)
     aliasElements.append(updateDecl)
+
+    directSetBody = cxx_writer.writer_code.Code("""this->reg = newAlias.reg;
+    this->offset = newAlias.offset;
+    if(this->referringAliases != NULL){
+        this->referringAliases->referredAliases.erase(this);
+    }
+    this->referringAliases = &newAlias;
+    newAlias.referredAliases.insert(this);
+    """)
+    directSetParam = [cxx_writer.writer_code.Parameter('newAlias', aliasType.makeRef())]
+    directSetDecl = cxx_writer.writer_code.Method('directSetAlias', directSetBody, cxx_writer.writer_code.voidType, 'pu', directSetParam, noException = True)
+    aliasElements.append(directSetDecl)
+
+    directSetBody = cxx_writer.writer_code.Code("""this->reg = &newAlias;
+    if(this->referringAliases != NULL){
+        this->referringAliases->referredAliases.erase(this);
+    }
+    this->referringAliases = NULL;""")
+    directSetParam = [cxx_writer.writer_code.Parameter('newAlias', registerType.makeRef())]
+    directSetDecl = cxx_writer.writer_code.Method('directSetAlias', directSetBody, cxx_writer.writer_code.voidType, 'pu', directSetParam, noException = True)
+    aliasElements.append(directSetDecl)
 
     if not model.startswith('acc'):
         updateCode = """this->reg = newAlias;
@@ -921,7 +949,7 @@ def getCPPAlias(self, model):
     updateDecl = cxx_writer.writer_code.Method('newReferredAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam, inline = True, noException = True)
     aliasElements.append(updateDecl)
 
-    # Finally I declare the class and pass to it all the declared members
+
     regAttribute = cxx_writer.writer_code.Attribute('reg', registerType.makePointer(), 'pri')
     aliasElements.append(regAttribute)
     if not model.startswith('acc'):
@@ -929,14 +957,18 @@ def getCPPAlias(self, model):
         aliasElements.append(offsetAttribute)
         offsetAttribute = cxx_writer.writer_code.Attribute('defaultOffset', cxx_writer.writer_code.uintType, 'pri')
         aliasElements.append(offsetAttribute)
+
+    # Finally I declare the class and pass to it all the declared members: Standard Alias
     aliasesAttribute = cxx_writer.writer_code.Attribute('referredAliases', cxx_writer.writer_code.TemplateType('std::set', [aliasType.makePointer()], 'set'), 'pri')
     aliasElements.append(aliasesAttribute)
-    aliasesAttribute = cxx_writer.writer_code.Attribute('referringAliases', cxx_writer.writer_code.TemplateType('std::set', [aliasType.makePointer()], 'set'), 'pri')
+    aliasesAttribute = cxx_writer.writer_code.Attribute('referringAliases', aliasType.makePointer(), 'pri')
     aliasElements.append(aliasesAttribute)
     aliasDecl = cxx_writer.writer_code.ClassDeclaration(aliasType.name, aliasElements)
     aliasDecl.addConstructor(publicMainClassConstr)
     aliasDecl.addConstructor(publicMainEmptyClassConstr)
     aliasDecl.addConstructor(publicAliasConstr)
+    aliasDecl.addDestructor(publicAliasDestr)
+
     classes = [aliasDecl]
     return classes
 
@@ -1379,6 +1411,8 @@ def getCPPProc(self, model, trace):
         codeString += """int instrId = this->decoder.decode(bitString);
         Instruction * instr = Processor::INSTRUCTIONS[instrId];
         """
+        if not self.instructionCache:
+            codeString += 'instr->totalInstrCycles = 0;\n'
         codeString += """instr->setParams(bitString);
             try{
                 #ifndef DISABLE_TOOLS
@@ -2060,10 +2094,10 @@ def getCPPProc(self, model, trace):
             delete Processor::INSTRUCTIONS[i];
         }
         delete [] Processor::INSTRUCTIONS;
+        Processor::INSTRUCTIONS = NULL;
     """
     if self.instructionCache:
-        destrCode += """Processor::INSTRUCTIONS = NULL;
-        template_map< """ + str(fetchWordType) + """, Instruction * >::const_iterator cacheIter, cacheEnd;
+        destrCode += """template_map< """ + str(fetchWordType) + """, Instruction * >::const_iterator cacheIter, cacheEnd;
         for(cacheIter = Processor::instrCache.begin(), cacheEnd = Processor::instrCache.end(); cacheIter != cacheEnd; cacheIter++){
             delete cacheIter->second;
         }

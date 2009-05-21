@@ -68,9 +68,13 @@ processor.setISA(LEON3Isa.isa) # lets set the instruction set
 numRegWindows = 8
 
 # Code used to move to a new register window
-updateWinCode = ''
-for i in range(8, 32):
-    updateWinCode += 'REGS[' + str(i) + '].updateAlias(WINREGS[(newCwp*16 + ' + str(i - 8) + ') % (16*' + str(numRegWindows) + ')]);\n'
+updateWinCode = """for(int i = 8; i < 32; i++){
+    REGS[i].updateAlias(WINREGS[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
+}
+"""
+#updateWinCode = ''
+#for i in range(8, 32):
+    #updateWinCode += 'REGS[' + str(i) + '].updateAlias(WINREGS[(newCwp*16 + ' + str(i - 8) + ') % (16*' + str(numRegWindows) + ')]);\n'
 
 # Here I add a constant to the instruction set so that it can be used from the code implementing
 # the various instructions
@@ -298,7 +302,7 @@ processor.setABI(abi)
 # Finally we can dump the processor on file
 #processor.write(folder = 'processor', models = ['funcLT'], dumpDecoderName = 'decoder.dot')
 #processor.write(folder = 'processor', models = ['funcLT'], trace = True)
-processor.write(folder = 'processor', models = ['funcLT'], tests = False)
+processor.write(folder = 'processor', models = ['funcLT'], tests = False, trace = False)
 #processor.write(folder = 'processor', models = ['funcAT'], trace = True)
 #processor.write(folder = 'processor', models = ['funcAT'])
 #processor.write(folder = 'processor', models = ['funcAT', 'funcLT'])

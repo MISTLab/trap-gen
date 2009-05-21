@@ -48,9 +48,13 @@ import cxx_writer
 # *******
 
 def updateAliasCode():
-    code = ''
-    for i in range(8, 32):
-        code += 'REGS[' + str(i) + '].updateAlias(WINREGS[(newCwp*16 + ' + str(i - 8) + ') % (16*NUM_REG_WIN)]);\n'
+    code = """for(int i = 8; i < 32; i++){
+        REGS[i].updateAlias(WINREGS[(newCwp*16 + i - 8) % (16*NUM_REG_WIN)]);
+    }
+    """
+    #code = ''
+    #for i in range(8, 32):
+        #code += 'REGS[' + str(i) + '].updateAlias(WINREGS[(newCwp*16 + ' + str(i - 8) + ') % (16*NUM_REG_WIN)]);\n'
     return code
 
 # Method used to move to the next register window; this simply consists in

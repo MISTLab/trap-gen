@@ -36,7 +36,7 @@
 
 import procWriter
 
-validModels = ['funcLT', 'funcAT', 'accAT']
+validModels = ['funcLT', 'funcAT', 'accLT', 'accAT']
 
 def extractRegInterval(regBankString):
     """Given a string, it check if it specifies an interval
