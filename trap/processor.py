@@ -36,7 +36,7 @@
 
 import procWriter
 
-validModels = ['funcLT', 'funcAT', 'accAT']
+validModels = ['funcLT', 'funcAT', 'accLT', 'accAT']
 
 def extractRegInterval(regBankString):
     """Given a string, it check if it specifies an interval
@@ -292,12 +292,13 @@ class Processor:
     functional processor in case a local memory is used (in case TLM ports
     are used the systemc parameter is not taken into account)
     """
-    def __init__(self, name, version, systemc = True, coprocessor = False, instructionCache = True, fastFetch = False, externalClock = False):
+    def __init__(self, name, version, systemc = True, coprocessor = False, instructionCache = True, fastFetch = False, externalClock = False, cacheLimit = 40):
         self.name = name
         self.version = version
         self.isBigEndian = None
         self.wordSize = None
         self.byteSize = None
+        self.cacheLimit = cacheLimit
         self.regs = []
         self.regBanks = []
         self.aliasRegs = []
@@ -455,7 +456,7 @@ class Processor:
         self.irqs.append(irq)
 
     def addPin(self, pin):
-        for i in pins:
+        for i in self.pins:
             if i.name == pin.name:
                 raise Exception('An external pin with name ' + i.name + ' already exists in processor ' + self.name)
         self.pins.append(pin)
@@ -579,6 +580,48 @@ class Processor:
                 if not self.isRegExisting(self.memory[3]):
                     raise Exception('Register ' + self.memory[3] + ' indicated for program counter of local memory does not exists')
 
+    def checkTestRegs(self):
+        # We check that the registers specifies in the tests are existing
+        outPinPorts = []
+        for pinPort in self.pins:
+            if not pinPort.inbound:
+                outPinPorts.append(pinPort.name)
+
+        for instr in self.isa.instructions.values():
+            for test in instr.tests:
+                # Now I check the existence of the instruction fields
+                for name, elemValue in test[0].items():
+                    if not instr.machineCode.bitLen.has_key(name):
+                        raise Exception('Field ' + name + ' in test of instruction ' + instr.name + ' is not present in the machine code of the instruction')
+                for resource, value in test[1].items():
+                    # Now I check the existence of the global resources
+                    brackIndex = resource.find('[')
+                    memories = self.tlmPorts.keys()
+                    if self.memory:
+                        memories.append(self.memory[0])
+                    if not (brackIndex > 0 and resource[:brackIndex] in memories):
+                        index = extractRegInterval(resource)
+                        if index:
+                            resourceName = resource[:brackIndex]
+                            if not self.isRegExisting(resourceName, index):
+                                raise Exception('Resource ' + resource + ' not found in test for instruction ' + instr.name)
+                        else:
+                            if not self.isRegExisting(resource):
+                                raise Exception('Resource ' + resource + ' not found in test for instruction ' + instr.name)
+                for resource, value in test[2].items():
+                    brackIndex = resource.find('[')
+                    memories = self.tlmPorts.keys()
+                    if self.memory:
+                        memories.append(self.memory[0])
+                    if not (brackIndex > 0 and (resource[:brackIndex] in memories or resource[:brackIndex] in outPinPorts)):
+                        index = extractRegInterval(resource)
+                        if index:
+                            resourceName = resource[:brackIndex]
+                            if not self.isRegExisting(resourceName, index):
+                                raise Exception('Resource ' + resource + ' not found in test for instruction ' + instr.name)
+                        else:
+                            if not self.isRegExisting(resource):
+                                raise Exception('Resource ' + resource + ' not found in test for instruction ' + instr.name)
     def checkAliases(self):
         # checks that the declared aliases actually refer to
         # existing registers
@@ -745,11 +788,20 @@ class Processor:
         # Returns the code implementing the interrupt ports
         return procWriter.getGetIRQPorts(self)
 
+    def getGetPINPorts(self):
+        # Returns the code implementing the PIN ports
+        return procWriter.getGetPINPorts(self)
+
+    def getIRQTests(self, trace):
+        # Returns the code implementing the tests for the
+        # interrupt lines
+        return procWriter.getIRQTests(self, trace)
+
     def getGetPipelineStages(self, trace):
         # Returns the code implementing the pipeline stages
         return procWriter.getGetPipelineStages(self, trace)
 
-    def write(self, folder = '', models = validModels, dumpDecoderName = '', trace = False, forceDecoderCreation = False):
+    def write(self, folder = '', models = validModels, dumpDecoderName = '', trace = False, forceDecoderCreation = False, tests = True):
         # Ok: this method does two things: first of all it performs all
         # the possible checks to ensure that the processor description is
         # coherent. Second it actually calls the write method of the
@@ -764,6 +816,7 @@ class Processor:
         self.checkAliases()
         self.checkMemRegisters()
         self.checkPipeStages()
+        self.checkTestRegs()
         if self.abi:
             self.checkABI()
         self.isa.checkRegisters(extractRegInterval, self.isRegExisting)
@@ -797,7 +850,7 @@ class Processor:
                 forceDecoderCreation = True
         if forceDecoderCreation:
             print ('\t\tCreating the decoder')
-            dec = decoder.decoderCreator(self.isa.instructions, self.isa.subInstructions)
+            dec = decoder.decoderCreator(self.isa.instructions, self.isa.subInstructions, memPenaltyFactor = 2)
             import copy
             decCopy = copy.deepcopy(dec)
         else:
@@ -832,6 +885,7 @@ class Processor:
             MemClass = self.getCPPMemoryIf(model)
             ExternalIf = self.getCPPExternalPorts(model)
             IRQClasses = self.getGetIRQPorts()
+            PINClasses = self.getGetPINPorts()
             ISAClasses = self.isa.getCPPClasses(self, model, trace)
             # Ok, now that we have all the classes it is time to write
             # them to file
@@ -884,16 +938,24 @@ class Processor:
             headFileExt = cxx_writer.writer_code.FileDumper('externalPorts.hpp', True)
             implFileExt.addMember(ExternalIf)
             headFileExt.addMember(ExternalIf)
-            implFileIRQ = cxx_writer.writer_code.FileDumper('irqPorts.cpp', False)
-            implFileIRQ.addInclude('irqPorts.hpp')
-            headFileIRQ = cxx_writer.writer_code.FileDumper('irqPorts.hpp', True)
-            for i in IRQClasses:
-                implFileIRQ.addMember(i)
-                headFileIRQ.addMember(i)
+            if IRQClasses:
+                implFileIRQ = cxx_writer.writer_code.FileDumper('irqPorts.cpp', False)
+                implFileIRQ.addInclude('irqPorts.hpp')
+                headFileIRQ = cxx_writer.writer_code.FileDumper('irqPorts.hpp', True)
+                for i in IRQClasses:
+                    implFileIRQ.addMember(i)
+                    headFileIRQ.addMember(i)
+            if PINClasses:
+                implFilePIN = cxx_writer.writer_code.FileDumper('externalPins.cpp', False)
+                implFilePIN.addInclude('externalPins.hpp')
+                headFilePIN = cxx_writer.writer_code.FileDumper('externalPins.hpp', True)
+                for i in PINClasses:
+                    implFilePIN.addMember(i)
+                    headFilePIN.addMember(i)
             mainFile = cxx_writer.writer_code.FileDumper('main.cpp', False)
             mainFile.addMember(self.getMainCode(model))
 
-            if (model == 'funcLT') and (not self.systemc):
+            if (model == 'funcLT') and (not self.systemc) and tests:
                 testFolder = cxx_writer.writer_code.Folder('tests')
                 curFolder.addSubFolder(testFolder)
                 mainTestFile = cxx_writer.writer_code.FileDumper('main.cpp', False)
@@ -904,6 +966,19 @@ class Processor:
                 decTests = dec.getCPPTests()
                 decTestsFile.addMember(decTests)
                 hdecTestsFile.addMember(decTests)
+                irqTests = self.getIRQTests(trace)
+                if irqTests:
+                    irqTestsFile = cxx_writer.writer_code.FileDumper('irqTests.cpp', False)
+                    irqTestsFile.addInclude('irqTests.hpp')
+                    if PINClasses:
+                        irqTestsFile.addInclude('PINTarget.hpp')
+                        irqTestsFile.addInclude('externalPins.hpp')
+                    mainTestFile.addInclude('irqTests.hpp')
+                    hirqTestsFile = cxx_writer.writer_code.FileDumper('irqTests.hpp', True)
+                    irqTestsFile.addMember(irqTests)
+                    hirqTestsFile.addMember(irqTests)
+                    testFolder.addCode(irqTestsFile)
+                    testFolder.addHeader(hirqTestsFile)
                 testFolder.addCode(decTestsFile)
                 testFolder.addHeader(hdecTestsFile)
                 ISATests = self.isa.getCPPTests(self, model, trace)
@@ -912,20 +987,27 @@ class Processor:
                 for i in range(0, numTestFiles):
                     ISATestsFile = cxx_writer.writer_code.FileDumper('isaTests' + str(i) + '.cpp', False)
                     ISATestsFile.addInclude('isaTests' + str(i) + '.hpp')
+                    if PINClasses:
+                        ISATestsFile.addInclude('PINTarget.hpp')
+                        ISATestsFile.addInclude('externalPins.hpp')
                     mainTestFile.addInclude('isaTests' + str(i) + '.hpp')
                     hISATestsFile = cxx_writer.writer_code.FileDumper('isaTests' + str(i) + '.hpp', True)
                     ISATestsFile.addMember(ISATests[testPerFile*i:testPerFile*(i+1)])
                     hISATestsFile.addMember(ISATests[testPerFile*i:testPerFile*(i+1)])
                     testFolder.addCode(ISATestsFile)
                     testFolder.addHeader(hISATestsFile)
-                ISATestsFile = cxx_writer.writer_code.FileDumper('isaTests' + str(numTestFiles) + '.cpp', False)
-                ISATestsFile.addInclude('isaTests' + str(numTestFiles) + '.hpp')
-                mainTestFile.addInclude('isaTests' + str(numTestFiles) + '.hpp')
-                hISATestsFile = cxx_writer.writer_code.FileDumper('isaTests' + str(numTestFiles) + '.hpp', True)
-                ISATestsFile.addMember(ISATests[testPerFile*numTestFiles:])
-                hISATestsFile.addMember(ISATests[testPerFile*numTestFiles:])
-                testFolder.addCode(ISATestsFile)
-                testFolder.addHeader(hISATestsFile)
+                if testPerFile*numTestFiles < len(ISATests):
+                    ISATestsFile = cxx_writer.writer_code.FileDumper('isaTests' + str(numTestFiles) + '.cpp', False)
+                    ISATestsFile.addInclude('isaTests' + str(numTestFiles) + '.hpp')
+                    if PINClasses:
+                        ISATestsFile.addInclude('PINTarget.hpp')
+                        ISATestsFile.addInclude('externalPins.hpp')
+                    mainTestFile.addInclude('isaTests' + str(numTestFiles) + '.hpp')
+                    hISATestsFile = cxx_writer.writer_code.FileDumper('isaTests' + str(numTestFiles) + '.hpp', True)
+                    ISATestsFile.addMember(ISATests[testPerFile*numTestFiles:])
+                    hISATestsFile.addMember(ISATests[testPerFile*numTestFiles:])
+                    testFolder.addCode(ISATestsFile)
+                    testFolder.addHeader(hISATestsFile)
 
                 mainTestFile.addMember(self.getTestMainCode())
                 testFolder.addCode(mainTestFile)
@@ -950,12 +1032,16 @@ class Processor:
             curFolder.addCode(implFileMem)
             curFolder.addHeader(headFileExt)
             curFolder.addCode(implFileExt)
-            curFolder.addHeader(headFileIRQ)
-            curFolder.addCode(implFileIRQ)
+            if IRQClasses:
+                curFolder.addHeader(headFileIRQ)
+                curFolder.addCode(implFileIRQ)
+            if PINClasses:
+                curFolder.addHeader(headFilePIN)
+                curFolder.addCode(implFilePIN)
             curFolder.addCode(mainFile)
             curFolder.setMain(mainFile.name)
             curFolder.create()
-            if (model == 'funcLT') and (not self.systemc):
+            if (model == 'funcLT') and (not self.systemc) and tests:
                 testFolder.create(configure = False, tests = True)
             print ('\t\tCreated in folder ' + os.path.expanduser(os.path.expandvars(folder)))
         # We create and print the main folder and also add a configuration
@@ -1053,38 +1139,52 @@ class Coprocessor:
         self.isa[name] = (idBits, functionName)
 
 class Interrupt:
-    """Specifies an interrupt port for the processor. It is identified by
-    (a) name (b) edge or level triggered (c) if systemC port or TLM
-    port will be used (d) if rising edge or active on high or low level
-    (e) also a priority is associated to the interrupt;
-    the higher priprity have precedence over low priorities.
+    """Specifies an interrupt port for the processor.
     Note that I will render both systemc and TLM ports as systemc
     signals: there is a check interrupts routine which will be
     called every cycle, in which the user can check the IRQs and
     take the appropriate actions. The signal will be automatically
     raised, lowered etc... depending whether edge triggered, level etc.."""
-    def __init__(self, name, tlm = True, level = True, high = True, priority = 0):
+    def __init__(self, name, portWidth, tlm = True, priority = 0):
         self.name = name
         self.tlm = tlm
-        self.level = level
-        self.high = high
+        self.portWidth = portWidth
         self.priority = priority
         self.condition = ''
+        self.tests = []
         self.operation = None
 
-    def setOperation(self, condition, operation):
+    def setOperation(self, operation, condition = ''):
         self.condition = condition
         self.operation = operation
 
+    def addTest(self, inputState, expOut):
+        # The test is composed of 2 parts: the status before the
+        # execution of the interrupt and the status after; note that
+        # in the status before execution of the interrupt we also have
+        # to specify the value of the interrupt line
+        self.tests.append((inputState, expOut))
+
 class Pins:
-    """Custom pins; checking them or writing to them is responsibility of
+    """Custom pins; checking them or writing to them is responsibility ofnon
     the programmer. They are identified by (a) name (b) type. They are
-    rendered with systemc ports"""
-    def __init__(self, name, type):
+    rendered with systemc or TLM ports. The type of the port should also
+    be specified, as is the direction. For outgoing TLM ports, the requested
+    type and the content of the payload are insignificant and only the
+    address is important"""
+    def __init__(self, name, portWidth, inbound = False, systemc = False):
         # Note how the type of the must be of class cxx_writer.Type; a
         # systemc port using this type as a template will be created
         self.name = name
-        self.type = type
+        self.portWidth = portWidth
+        self.systemc = systemc
+        self.inbound = inbound
+        self.operation = None
+
+    def setOperation(self, operation):
+        if not self.inbound:
+            raise Exception('Error, port ' + self.name + ' is out-going, so not operation can be specified')
+        self.operation = operation
 
 class ABI:
     """Defines the ABI for the processor: this is necessary both for

@@ -240,7 +240,7 @@ class Folder:
                 if not self.mainFile:
                     printOnFile('    obj = bld.new_task_gen(\'cxx\', \'program\')', wscriptFile)
                 else:
-                    printOnFile('    obj = bld.new_task_gen(\'cxx\', \'objects\')', wscriptFile)
+                    printOnFile('    obj = bld.new_task_gen(\'cxx\')', wscriptFile)
                 printOnFile('    obj.source=\"\"\"', wscriptFile)
                 for codeFile in self.codeFiles:
                     if self.mainFile != codeFile.name:
@@ -308,6 +308,84 @@ class Folder:
     if type(conf.env['RPATH']) == type(''):
         conf.env['RPATH'] = conf.env['RPATH'].split(' ')
 
+    #######################################################
+    # Determining gcc search dirs
+    #######################################################
+    if not usingMsvc:
+        compilerExecutable = ''
+        if len(conf.env['CXX']):
+            compilerExecutable = conf.env['CXX'][0]
+        elif len(conf.env['CC']):
+            compilerExecutable = conf.env['CC'][0]
+        else:
+            conf.fatal('CC or CXX environment variables not defined: Error, is the compiler correctly detected?')
+
+        result = os.popen(compilerExecutable + ' -print-search-dirs')
+        searchDirs = []
+        localLibPath = os.path.join('/', 'usr','local','lib')
+        if os.path.exists(localLibPath):
+            searchDirs.append(localLibPath)
+        gccLines = result.readlines()
+        for curLine in gccLines:
+            startFound = curLine.find('libraries: =')
+            if startFound != -1:
+                curLine = curLine[startFound + 12:-1]
+                searchDirs_ = curLine.split(':')
+                for i in searchDirs_:
+                    if os.path.exists(i) and not os.path.abspath(i) in searchDirs:
+                        searchDirs.append(os.path.abspath(i))
+                break
+        conf.check_message_custom('gcc search path', '', 'ok')
+
+    #############################################################
+    # Check support for profilers
+    #############################################################
+    if usingMsvc and (Options.options.enable_gprof or Options.options.enable_vprof):
+        conf.fatal('vprof and gprof profilers can be enabled only under unix environments')
+    if Options.options.enable_gprof and Options.options.enable_vprof:
+        conf.fatal('Only one profiler among gprof and vprof can be enabled')
+    if Options.options.enable_gprof:
+        if not '-g' in conf.env['CCFLAGS']:
+            conf.env.append_unique('CCFLAGS', '-g')
+        if not '-g' in conf.env['CXXFLAGS']:
+            conf.env.append_unique('CXXFLAGS', '-g')
+        conf.env.append_unique('LINKFLAGS', '-pg')
+        conf.env.append_unique('STLINKFLAGS', '-pg')
+    if Options.options.enable_vprof:
+        if not '-g' in conf.env['CCFLAGS']:
+            conf.env.append_unique('CCFLAGS', '-g')
+        if not '-g' in conf.env['CXXFLAGS']:
+            conf.env.append_unique('CXXFLAGS', '-g')
+        # I have to check for the vprof and papi libraries and for the
+        # vmonauto_gcc.o object file
+        vmonautoPath = ''
+        if not Options.options.vprofdir:
+            conf.check_cxx(lib='vmon', uselib_store='VPROF', mandatory=1)
+            for directory in searchDirs:
+                if 'vmonauto_gcc.o' in os.listdir(directory):
+                    vmonautoPath = os.path.abspath(os.path.expanduser(os.path.expandvars(directory)))
+                    break;
+        else:
+            conf.check_cxx(lib='vmon', uselib_store='VPROF', mandatory=1, libpath = os.path.abspath(os.path.expanduser(os.path.expandvars(Options.options.vprofdir))))
+            conf.env.append_unique('RPATH', conf.env['LIBPATH_VPROF'])
+            conf.env.append_unique('LIBPATH', conf.env['LIBPATH_VPROF'])
+            vmonautoPath = conf.env['LIBPATH_VPROF'][0]
+        conf.env.append_unique('LIB', 'vmon')
+
+        if not Options.options.papidir:
+            conf.check_cxx(lib='papi', uselib_store='PAPI', mandatory=1)
+        else:
+            conf.check_cxx(lib='papi', uselib_store='PAPI', mandatory=1, libpath = os.path.abspath(os.path.expanduser(os.path.expandvars(Options.options.papidir))))
+            conf.env.append_unique('RPATH', conf.env['LIBPATH_PAPI'])
+            conf.env.append_unique('LIBPATH', conf.env['LIBPATH_PAPI'])
+        conf.env.append_unique('LIB', 'papi')
+
+        # now I check for the vmonauto_gcc.o object file
+        taskEnv = conf.env.copy()
+        taskEnv.append_unique('LINKFLAGS', os.path.join(vmonautoPath, 'vmonauto_gcc.o'))
+        conf.check_cxx(fragment='int main(){return 0;}', uselib='VPROF', mandatory=1, env=taskEnv)
+        conf.env.append_unique('LINKFLAGS', os.path.join(vmonautoPath, 'vmonauto_gcc.o'))
+
     ########################################
     # Check for special gcc flags
     ########################################
@@ -359,27 +437,6 @@ class Folder:
     # Check for BFD library and header and for LIBERTY library
     ###########################################################
     if not usingMsvc:
-        compilerExecutable = ''
-        if len(conf.env['CXX']):
-            compilerExecutable = conf.env['CXX'][0]
-        elif len(conf.env['CC']):
-            compilerExecutable = conf.env['CC'][0]
-        else:
-            conf.fatal('CC or CXX environment variables not defined: Error, is the compiler correctly detected?')
-
-        result = os.popen(compilerExecutable + ' -print-search-dirs')
-        curLine = result.readline()
-        while curLine.find('libraries: =') == -1:
-            curLine = result.readline()
-            startFound = curLine.find('libraries: =')
-            searchDirs = []
-            if startFound != -1:
-                curLine = curLine[startFound + 12:-1]
-                searchDirs_ = curLine.split(':')
-                for i in searchDirs_:
-                    if not os.path.abspath(i) in searchDirs:
-                        searchDirs.append(os.path.abspath(i))
-                break
         if Options.options.bfddir:
             searchDirs.append(os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'lib')))))
 
@@ -463,7 +520,7 @@ class Folder:
             #error TRAP_REVISION not defined in file trap.hpp
             #endif
 
-            #if TRAP_REVISION < 63
+            #if TRAP_REVISION < 419
             #error Wrong version of the TRAP runtime: too old
             #endif
             int main(int argc, char * argv[]){return 0;}
@@ -541,9 +598,12 @@ class Folder:
     ##################################################
     tlmPath = ''
     if Options.options.tlmdir:
-        tlmPath = [os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.tlmdir, 'tlm'))))]
+        tlmPath = os.path.normpath(os.path.abspath(os.path.expanduser(os.path.expandvars(Options.options.tlmdir))))
     elif 'TLM' in os.environ:
-        tlmPath = [os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(os.environ['TLM'], 'tlm'))))]
+        tlmPath = os.path.normpath(os.path.abspath(os.path.expanduser(os.path.expandvars(os.environ['TLM']))))
+    if not tlmPath.endswith('include'):
+        tlmPath = os.path.join(tlmPath, 'include')
+    tlmPath = [os.path.join(tlmPath, 'tlm')]
 
     conf.check_cxx(header_name='tlm.h', uselib='SYSTEMC', uselib_store='TLM', mandatory=1, includes=tlmPath)
     conf.check_cxx(fragment='''
@@ -587,8 +647,12 @@ class Folder:
     # Specify BFD and IBERTY libraries path
     opt.add_option('--with-bfd', type='string', help='BFD installation directory', dest='bfddir' )
     opt.add_option('--static', default=False, action="store_true", help='Triggers a static build, with no dependences from any dynamic library', dest='static_build')
-    # Specify the options for the processor creation
     # Specify if OS emulation support should be compiled inside processor models
     opt.add_option('-T', '--disable-tools', default=True, action="store_false", help='Disables support for support tools (debuger, os-emulator, etc.) (switch)', dest='enable_tools')
+    # Specify support for the profilers: gprof, vprof
+    opt.add_option('-P', '--gprof', default=False, action="store_true", help='Enables profiling with gprof profiler', dest='enable_gprof')
+    opt.add_option('-V', '--vprof', default=False, action="store_true", help='Enables profiling with vprof profiler', dest='enable_vprof')
+    opt.add_option('--with-vprof', type='string', help='vprof installation folder', dest='vprofdir')
+    opt.add_option('--with-papi', type='string', help='papi installation folder', dest='papidir')
 """, wscriptFile)
         wscriptFile.close()

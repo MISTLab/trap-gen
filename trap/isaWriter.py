@@ -113,7 +113,7 @@ def getCppMethod(self, model, processor):
 
     codeTemp.appendCode(undefCode)
 
-    methodDecl = cxx_writer.writer_code.Method(self.name, codeTemp, self.retType, 'pu', self.parameters)
+    methodDecl = cxx_writer.writer_code.Method(self.name, codeTemp, self.retType, 'pu', self.parameters, noException = not self.exception, const = self.const)
 
     return methodDecl
 
@@ -132,7 +132,7 @@ def getCppOperation(self, parameters = False):
             metodParams.append(cxx_writer.writer_code.Parameter(elem, cxx_writer.writer_code.uintRefType))
         for var in self.instrvars:
             metodParams.append(cxx_writer.writer_code.Parameter(var.name, var.type.makeRef()))
-    methodDecl = cxx_writer.writer_code.Method(self.name, self.code, cxx_writer.writer_code.voidType, 'pro', metodParams, inline = True)
+    methodDecl = cxx_writer.writer_code.Method(self.name, self.code, cxx_writer.writer_code.voidType, 'pro', metodParams, inline = True, noException = not self.exception)
     return methodDecl
 
 def getCppOpClass(self):
@@ -156,7 +156,7 @@ def getCppOpClass(self):
         metodParams.append(cxx_writer.writer_code.Parameter(elem, cxx_writer.writer_code.uintRefType))
     for var in self.instrvars:
         metodParams.append(cxx_writer.writer_code.Parameter(var.name, var.type.makeRef()))
-    methodDecl = cxx_writer.writer_code.Method(self.name, self.code, cxx_writer.writer_code.voidType, 'pro', metodParams, inline = True)
+    methodDecl = cxx_writer.writer_code.Method(self.name, self.code, cxx_writer.writer_code.voidType, 'pro', metodParams, inline = True, noException = not self.exception)
     classElements.append(methodDecl)
     opConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, ['Instruction(' + baseInstrInitElement + ')'])
     opDecl = cxx_writer.writer_code.ClassDeclaration(self.name + '_op', classElements, virtual_superclasses = [instructionType])
@@ -424,18 +424,23 @@ def getCPPInstr(self, model, processor, trace):
         if shiftAmm > 0:
             setParamsCode += ' >> ' + str(shiftAmm)
         setParamsCode += ';\n'
+        #if processor.instructionCache:
+            #updateMetodName = 'updateAlias'
+        #else:
+            #updateMetodName = 'directSetAlias'
+        updateMetodName = 'directSetAlias'
         if correspondence[1]:
             if model.startswith('acc'):
                 for pipeStage in pipeline:
-                    setParamsCode += 'this->' + name + '_' + pipeStage.name + '.updateAlias(this->' + correspondence[0] + '_' + pipeStage.name + '[' + str(correspondence[1]) + ' + this->' + name + '_bit]);\n'
+                    setParamsCode += 'this->' + name + '_' + pipeStage.name + '.' + updateMetodName + '(this->' + correspondence[0] + '_' + pipeStage.name + '[' + str(correspondence[1]) + ' + this->' + name + '_bit]);\n'
             else:
-                setParamsCode += 'this->' + name + '.updateAlias(this->' + correspondence[0] + '[' + str(correspondence[1]) + ' + this->' + name + '_bit]);\n'
+                setParamsCode += 'this->' + name + '.' + updateMetodName + '(this->' + correspondence[0] + '[' + str(correspondence[1]) + ' + this->' + name + '_bit]);\n'
         else:
             if model.startswith('acc'):
                 for pipeStage in pipeline:
-                    setParamsCode += 'this->' + name + '_' + pipeStage.name + '.updateAlias(this->' + correspondence[0] + '_' + pipeStage.name + '[this->' + name + '_bit]);\n'
+                    setParamsCode += 'this->' + name + '_' + pipeStage.name + '.' + updateMetodName + '(this->' + correspondence[0] + '_' + pipeStage.name + '[this->' + name + '_bit]);\n'
             else:
-                setParamsCode += 'this->' + name + '.updateAlias(this->' + correspondence[0] + '[this->' + name + '_bit]);\n'
+                setParamsCode += 'this->' + name + '.' + updateMetodName + '(this->' + correspondence[0] + '[this->' + name + '_bit]);\n'
     # now I need to declare the fields for the variable parts of the
     # instruction
     for name, length in self.machineCode.bitFields:
@@ -516,7 +521,7 @@ def getCPPInstrTest(self, processor, model, trace):
         archElemsDeclStr += str(resourceType[reg.name]) + ' ' + reg.name + ';\n'
         baseInitElement += reg.name + ', '
     for regB in processor.regBanks:
-        if regB.constValue or regB.delay:
+        if (regB.constValue and len(regB.constValue) < regB.numRegs)  or (regB.delay and len(regB.delay) < regB.numRegs):
             archElemsDeclStr += str(resourceType[regB.name]) + ' ' + regB.name + '(' + str(regB.numRegs) + ');\n'
             for i in range(0, regB.numRegs):
                 if regB.constValue.has_key(i) or regB.delay.has_key(i):
@@ -552,6 +557,27 @@ def getCPPInstrTest(self, processor, model, trace):
     for tlmPorts in processor.tlmPorts.keys():
         archElemsDeclStr += 'LocalMemory ' + tlmPorts + '(' + str(1024*1024) + memAliasInit + ');\n'
         baseInitElement += tlmPorts + ', '
+    # Now I declare the PIN stubs for the outgoing PIN ports
+    # and alts themselves
+    outPinPorts = []
+    for pinPort in processor.pins:
+        if not pinPort.inbound:
+            outPinPorts.append(pinPort.name)
+            pinPortTypeName = 'Pin'
+            if pinPort.systemc:
+                pinPortTypeName += 'SysC_'
+            else:
+                pinPortTypeName += 'TLM_'
+            if pinPort.inbound:
+                pinPortTypeName += 'in_'
+            else:
+                pinPortTypeName += 'out_'
+            pinPortTypeName += str(pinPort.portWidth)
+            archElemsDeclStr += pinPortTypeName + ' ' + pinPort.name + '(sc_core::sc_gen_unique_name(\"' + pinPort.name + '_PIN\"));\n'
+            archElemsDeclStr += 'PINTarget<' + str(pinPort.portWidth) + '> ' + pinPort.name + '_target(sc_core::sc_gen_unique_name(\"' + pinPort.name + '_PIN\"));\n'
+            archElemsDeclStr += pinPort.name + '.initSocket.bind(' + pinPort.name + '_target.socket);\n'
+            baseInitElement += pinPort.name + ', '
+
     if trace and not processor.systemc:
         baseInitElement += 'totalCycles, '
     baseInitElement = baseInitElement[:-2] + ')'
@@ -637,6 +663,11 @@ def getCPPInstrTest(self, processor, model, trace):
                     code += resource[:brackIndex] + '.read_word(' + hex(int(resource[brackIndex + 1:-1])) + ')'
                 except ValueError:
                     code += resource[:brackIndex] + '.read_word(' + hex(int(resource[brackIndex + 1:-1], 16)) + ')'
+            elif brackIndex > 0 and resource[:brackIndex] in outPinPorts:
+                try:
+                    code += resource[:brackIndex] + '_target.readPIN(' + hex(int(resource[brackIndex + 1:-1])) + ')'
+                except ValueError:
+                    code += resource[:brackIndex] + '_target.readPIN(' + hex(int(resource[brackIndex + 1:-1], 16)) + ')'
             else:
                 code += resource + '.readNewValue()'
             global archWordType
@@ -645,7 +676,7 @@ def getCPPInstrTest(self, processor, model, trace):
         curTest = cxx_writer.writer_code.Code(code)
         wariningDisableCode = '#ifdef _WIN32\n#pragma warning( disable : 4101 )\n#endif\n'
         includeUnprotectedCode = '#define private public\n#define protected public\n#include \"instructions.hpp\"\n#include \"registers.hpp\"\n#include \"memory.hpp\"\n#undef private\n#undef protected\n'
-        curTest.addInclude(['boost/test/test_tools.hpp', 'customExceptions.hpp', wariningDisableCode, includeUnprotectedCode])
+        curTest.addInclude(['boost/test/test_tools.hpp', 'customExceptions.hpp', wariningDisableCode, includeUnprotectedCode, 'alias.hpp'])
         curTestFunction = cxx_writer.writer_code.Function(self.name + '_' + str(len(tests)), curTest, cxx_writer.writer_code.voidType)
         from procWriter import testNames
         testNames.append(self.name + '_' + str(len(tests)))
@@ -887,6 +918,23 @@ def getCPPClasses(self, processor, model, trace):
         initElements.append(tlmPorts + '(' + tlmPorts + ')')
         baseInitElement += tlmPorts + ', '
         instructionElements.append(attribute)
+    for pinPort in processor.pins:
+        if not pinPort.inbound:
+            pinPortName = 'Pin'
+            if pinPort.systemc:
+                pinPortName += 'SysC_'
+            else:
+                pinPortName += 'TLM_'
+            if pinPort.inbound:
+                pinPortName += 'in_'
+            else:
+                pinPortName += 'out_'
+            pinPortType = cxx_writer.writer_code.Type(pinPortName + str(pinPort.portWidth), 'externalPins.hpp')
+            attribute = cxx_writer.writer_code.Attribute(pinPort.name, pinPortType.makeRef(), 'pro')
+            baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(pinPort.name, pinPortType.makeRef()))
+            initElements.append(pinPort.name + '(' + pinPort.name + ')')
+            baseInitElement += pinPort.name + ', '
+            instructionElements.append(attribute)
     if trace and not processor.systemc and not model.startswith('acc'):
         attribute = cxx_writer.writer_code.Attribute('totalCycles', cxx_writer.writer_code.uintType.makeRef(), 'pro')
         baseInstrConstrParams.append(cxx_writer.writer_code.Parameter('totalCycles', cxx_writer.writer_code.uintType.makeRef()))
@@ -896,7 +944,7 @@ def getCPPClasses(self, processor, model, trace):
     baseInitElement = baseInitElement[:-2]
     baseInitElement += ')'
     if not model.startswith('acc'):
-        instructionElements.append(cxx_writer.writer_code.Attribute('totalInstrCycles', cxx_writer.writer_code.uintType, 'pro'))
+        instructionElements.append(cxx_writer.writer_code.Attribute('totalInstrCycles', cxx_writer.writer_code.uintType, 'pu'))
         constrBody = 'this->totalInstrCycles = 0;'
     else:
         instructionElements.append(cxx_writer.writer_code.Attribute('flushPipeline', cxx_writer.writer_code.boolType, 'pu'))

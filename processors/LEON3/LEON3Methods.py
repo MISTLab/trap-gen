@@ -48,9 +48,13 @@ import cxx_writer
 # *******
 
 def updateAliasCode():
-    code = ''
-    for i in range(8, 32):
-        code += 'REGS[' + str(i) + '].updateAlias(WINREGS[(newCwp*16 + ' + str(i - 8) + ') % (16*NUM_REG_WIN)]);\n'
+    code = """for(int i = 8; i < 32; i++){
+        REGS[i].updateAlias(WINREGS[(newCwp*16 + i - 8) % (16*NUM_REG_WIN)]);
+    }
+    """
+    #code = ''
+    #for i in range(8, 32):
+        #code += 'REGS[' + str(i) + '].updateAlias(WINREGS[(newCwp*16 + ' + str(i - 8) + ') % (16*NUM_REG_WIN)]);\n'
     return code
 
 # Method used to move to the next register window; this simply consists in
@@ -94,7 +98,7 @@ if((bitSeq & (1 << (bitSeq_length - 1))) != 0)
     bitSeq |= (((unsigned int)0xFFFFFFFF) << bitSeq_length);
 return bitSeq;
 """)
-SignExtend_method = trap.HelperMethod('SignExtend', opCode, 'execute')
+SignExtend_method = trap.HelperMethod('SignExtend', opCode, 'execute', exception = False, const = True)
 SignExtend_method.setSignature(cxx_writer.writer_code.intType, [('bitSeq', 'BIT<32>'), cxx_writer.writer_code.Parameter('bitSeq_length', cxx_writer.writer_code.uintType)])
 
 # Normal PC increment, used when not in a branch instruction; in a branch instruction
@@ -270,10 +274,12 @@ RaiseException_method.setSignature(cxx_writer.writer_code.voidType, RaiseExcepti
 # Code used to jump to the trap handler address. This code modifies the PC and the NPC
 # so that the next instruction fetched is the one of the trap handler;
 # it also performs a flush of the pipeline
-opCode = cxx_writer.writer_code.Code("""PC = NPC;
-NPC += 4;
+opCode = cxx_writer.writer_code.Code("""unsigned int npc = NPC;
+PC = npc;
+npc += 4;
+NPC = npc;
 """)
-IncrementPC = trap.HelperOperation('IncrementPC', opCode)
+IncrementPC = trap.HelperOperation('IncrementPC', opCode, exception = False)
 
 # Write back of the result of most operations, expecially ALUs;
 # such operations do not modify the PSR

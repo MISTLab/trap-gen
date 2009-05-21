@@ -6,7 +6,7 @@ import os
 def build(bld):
     bld.add_subdirs('loader utils bfdFontend osEmulator debugger misc')
 
-    obj = bld.new_task_gen('cxx', 'objects')
+    obj = bld.new_task_gen('cxx')
     obj.source="""
         ToolsIf.cpp
     """

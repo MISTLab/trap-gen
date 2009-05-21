@@ -57,7 +57,7 @@ import LEON3Isa
 import LEON3Tests
 
 # Lets now start building the processor
-processor = trap.Processor('LEON3', version = '0.0.1', systemc = True, instructionCache = True, fastFetch = True)
+processor = trap.Processor('LEON3', version = '0.0.1', systemc = False, instructionCache = True, fastFetch = False)
 processor.setBigEndian() # big endian
 processor.setWordsize(4, 8) # 4 bytes per word, 8 bits per byte
 processor.setISA(LEON3Isa.isa) # lets set the instruction set
@@ -66,6 +66,15 @@ processor.setISA(LEON3Isa.isa) # lets set the instruction set
 # resources
 # Number of register windows, between 2 and 32, default is 8 for LEON3
 numRegWindows = 8
+
+# Code used to move to a new register window
+updateWinCode = """for(int i = 8; i < 32; i++){
+    REGS[i].updateAlias(WINREGS[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
+}
+"""
+#updateWinCode = ''
+#for i in range(8, 32):
+    #updateWinCode += 'REGS[' + str(i) + '].updateAlias(WINREGS[(newCwp*16 + ' + str(i - 8) + ') % (16*' + str(numRegWindows) + ')]);\n'
 
 # Here I add a constant to the instruction set so that it can be used from the code implementing
 # the various instructions
@@ -204,24 +213,41 @@ processor.setMemory('dataMem', 10*1024*1024)
 # Now lets add the interrupt ports: TODO
 # It PSR[ET] == 0 I do not do anything; else
 # I check the interrupt level, if == 15 or > PSR[PIL] I service the interrupt,
-# otherwise I put it in a queue. The interrupt level depends on the interrupt line
-# (actually I can have an external interrupt controller and a complex input line
-# or a simple interrupt controller and just an input signal)
+# The interrupt level is carried by the value at the interrupt port
 # Otherwise it is treated like a normal exception, to I jump to the
 # TBR: we can use a routine for this ...
-# TODO: do we check for exceptions in the fetch or exception stage???
-# TODO: SVT (Single vector trapping) must be configurable in the ASR[17]
-# and we also have to behave accordingly when interrupts are found
-irq = trap.Interrupt('IRQ', priority = 0)
-irq.setOperation('/*TODO*/', """
-Using the current interrupt request level (IRL) we
-jump to the TBR (using also the request level to
-complete the TBR address)
-it pst[et] == 0 we ignore the request
-We postpone the interrupt for later processing
-in case the IRL > psr[pil] or IRL == 15
-//TODO""")
-#processor.addIrq(irq)
+# At the end I have to acknowledge the interrupt, by writing on the ack
+# port.
+irqPort = trap.Interrupt('IRQ', 32)
+irqPort.setOperation("""//Basically, what I have to do when
+//an interrupt arrives is very simple: we check that interrupts
+//are enabled and that the the processor can take this interrupt
+//(valid interrupt level). The we simply raise an exception and
+//acknowledge the IRQ on the irqAck port.
+if(PSR[key_ET]){
+    if(IRQ == 15 || IRQ > PSR[key_PIL]){
+        // First of all I have to move to a new register window
+        unsigned int newCwp = ((unsigned int)(PSR[key_CWP] - 1)) % """ + str(numRegWindows) + """;
+        PSRbp = (PSR & 0xFFFFFFE0) | newCwp;
+        PSR.immediateWrite(PSRbp);
+        """ + updateWinCode + """
+        // Now I set the TBR
+        TBR[key_TT] = 0x10 + IRQ;
+        // I have to jump to the address contained in the TBR register
+        PC = TBR;
+        NPC = TBR + 4;
+        // finally I acknowledge the interrupt on the external pin port
+        irqAck.send_pin_req(IRQ, 0);
+    }
+}
+""")
+irqPort.addTest({}, {})
+#processor.addIrq(irqPort)
+
+# I also need to add the external port which is used to acknowledge
+# the interrupt
+irqAckPin = trap.Pins('irqAck', 32, inbound = False)
+processor.addPin(irqAckPin)
 
 # Now it is time to add the pipeline stages
 fetchStage = trap.PipeStage('fetch')
@@ -252,9 +278,8 @@ processor.setWBOrder('Ybp', ('execute', 'wb'))
 # eventually, retarget GCC
 abi = trap.ABI('REGS[24]', 'REGS[24-29]', 'PC', 'LR', 'SP', 'FP')
 abi.addVarRegsCorrespondence({'REGS[0-31]': (0, 31), 'Y': 64, 'PSR': 65, 'WIM': 66, 'TBR': 67, 'PC': 68, 'NPC': 69})
-updateWinCode = ''
-for i in range(8, 32):
-    updateWinCode += 'REGS[' + str(i) + '].updateAlias(WINREGS[(newCwp*16 + ' + str(i - 8) + ') % (16*' + str(numRegWindows) + ')]);\n'
+# ************* TODO ************ Do I need to check for register window over/under -flow even for
+# systemcalls ?????
 pre_code = """
 unsigned int newCwp = ((unsigned int)(PSR[key_CWP] - 1)) % """ + str(numRegWindows) + """;
 PSRbp = (PSR & 0xFFFFFFE0) | newCwp;
@@ -277,7 +302,7 @@ processor.setABI(abi)
 # Finally we can dump the processor on file
 #processor.write(folder = 'processor', models = ['funcLT'], dumpDecoderName = 'decoder.dot')
 #processor.write(folder = 'processor', models = ['funcLT'], trace = True)
-processor.write(folder = 'processor', models = ['funcLT'])
+processor.write(folder = 'processor', models = ['funcLT'], tests = False, trace = False)
 #processor.write(folder = 'processor', models = ['funcAT'], trace = True)
 #processor.write(folder = 'processor', models = ['funcAT'])
 #processor.write(folder = 'processor', models = ['funcAT', 'funcLT'])

@@ -1,12 +1,14 @@
--- Check the delay of the Y register ... is there a delay? or a not? do we have a stall? I have seen that we should nave the delay otherwise nothing works
+-- Interrupts: we need to establish a protocol for asserting/deasserting interrupts: I would say that the address
+of the request can be the interrupt line and the contents (0 or 1 asserting/deasserting)!!
 
--- Check the how the WIM register is managed in the real OS (LEON bsp??): how is it initialized?
+-- SVT: how do we takle into account single vector trapping in the interrupts??
+
+-- Check the delay of the Y register ... is there a delay? or a not? do we have a stall? I have seen that we
+should nave the delay otherwise nothing works
 
 --  PROGRAM COUNTER: IS IT THE CASE OF EXPLORING THE POSSIBILITY OF MAKING IT A NORMAL non-offset REGISTER???
-
--- Memory: check read/write of bytes and half words: is it correct to do nothing or, in cross-endianess
-environments we have to swap everything? if all is done in the same endianess there shouldn't be any problems...
-but ... lets check to be sure!!!
+Since we do not need to use the PC or the NPC as general purpose registers, there should be no need
+of performing dirty tricks
 
 -- TODO: there are problems when releasing the lock on the registers in the CA model. I could release the
 lock simply when the register is written. But this means that if an instruction does not write to a register
@@ -24,29 +26,14 @@ request level of the corresponding interrupt; the queue of interrupts is dealt w
 the interrupt controller, so I should not bother with it. Processor should be able to
 acknowledge the interrupt (how?? is there a separate line?) CHECK in the VHDL code.
 
--- The 8 bit ASI is appended to the 32 bits when memory is accessed (do we need to
-send them on the output TLM port? and what if internal memory is used?)I think
-they are dealt with inside the processor itself and never sent out...CHECK on VHDL model...
-otherwise, if they are sent out, we need to accordingly modify the bus ... ACTUALLY,
-SINCE WE DO NOT KNOW THE ACTUAL DETAILS OF THE BUS, ASI IS NOT CONSIDERED. Note that, in
-addition to ASI, the address space also depends on the supervisor bit of the processor
-
 -- Accurately check the result of the multiplication signed operations with respect to
 tsim implementation
 
 -- Check signed division with result such that (res64 & 0xFFFFFFFF80000000LL) == 0xFFFFFFFF80000000LL
 
--- Atomic operation (but also double load and stores) need a way of locking the bus!!
-Since this depends on the actual memory and bus, we might need to simply give instructions
-on how to do it, and, depending on the actual bus used, the developer will customize the
-lock operation.
-
 -- Memory access operations: so far no errors are considered in memory accesses, they are
 all supposed to be successful; we should modify the memory interface to also take this into
 consideration.
-
--- For byte and half memory accesses check endianess: there might be problems ... check also
-this for double word accesses
 
 -- Pipeline: we have to manually lock and unlock the second registers accessed
 in the processor for double load/stores
@@ -54,6 +41,28 @@ in the processor for double load/stores
 -- Check: in all operations (e.g. jump) are sum among registers done signed or unisgned??
 
 ALREADY CONSIDERED NOTES:
+
+-- For byte and half memory accesses check endianess: there might be problems ... check also
+this for double word accesses
+
+-- Atomic operation (but also double load and stores) need a way of locking the bus!!
+Since this depends on the actual memory and bus, we might need to simply give instructions
+on how to do it, and, depending on the actual bus used, the developer will customize the
+lock operation.
+
+-- The 8 bit ASI is appended to the 32 bits when memory is accessed (do we need to
+send them on the output TLM port? and what if internal memory is used?)I think
+they are dealt with inside the processor itself and never sent out...CHECK on VHDL model...
+otherwise, if they are sent out, we need to accordingly modify the bus ... ACTUALLY,
+SINCE WE DO NOT KNOW THE ACTUAL DETAILS OF THE BUS, ASI IS NOT CONSIDERED. Note that, in
+addition to ASI, the address space also depends on the supervisor bit of the processor
+
+-- Memory: check read/write of bytes and half words: is it correct to do nothing or, in cross-endianess
+environments we have to swap everything? if all is done in the same endianess there shouldn't be any problems...
+but ... lets check to be sure!!!
+
+-- Check the how the WIM register is managed in the real OS (LEON bsp??): how is it initialized?
+init from the bsp, accordingly changed the BSP
 
 -- After examining the VHDL code the determined register bypasses are:
 In order fo all this to work correctly we need to extend TRAP to:

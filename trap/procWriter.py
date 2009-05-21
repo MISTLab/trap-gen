@@ -49,6 +49,13 @@ except:
     traceback.print_exc()
     raise Exception('Error occurred during the import of module networkx, required for the creation of the decoder. Please correctly install the module')
 
+try:
+    nxVersion = float(NX.__version__)
+except:
+    import traceback
+    traceback.print_exc()
+    raise Exception('Error while determining the version of module networkx, try changing version, at least 0.36 required (newest non-development versions are usually ok)')
+
 assignmentOps = ['=', '+=', '-=', '*=', '/=', '|=', '&=', '^=', '<<=', '>>=']
 binaryOps = ['+', '-', '*', '/', '|', '&', '^', '<<', '>>']
 unaryOps = ['~']
@@ -129,7 +136,7 @@ def getCPPRegClass(self, model, regType):
         codeOperatorBody = 'return this->field_empty;'
     operatorBody = cxx_writer.writer_code.Code(codeOperatorBody)
     operatorParam = [cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.intType)]
-    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, InnerFieldType.makeRef(), 'pu', operatorParam, noException = True)
+    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, InnerFieldType.makeRef(), 'pu', operatorParam, noException = True, inline = True)
     registerElements.append(operatorDecl)
 
     ################ Methods used for the update of delayed registers ######################
@@ -147,7 +154,7 @@ def getCPPRegClass(self, model, regType):
                     }
                     """
         clockCycleBody = cxx_writer.writer_code.Code(clockCycleCode)
-        clockCycleMethod = cxx_writer.writer_code.Method('clockCycle', clockCycleBody, cxx_writer.writer_code.voidType, 'pu', noException = True)
+        clockCycleMethod = cxx_writer.writer_code.Method('clockCycle', clockCycleBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
         registerElements.append(clockCycleMethod)
     if self.constValue == None or type(self.constValue) == type({}):
         immediateWriteCode = 'this->value = value;\n'
@@ -196,7 +203,7 @@ def getCPPRegClass(self, model, regType):
             operatorBody = cxx_writer.writer_code.Code('return ' + i + '(' + readValueItem + ' + ' + str(self.offset) + ');')
         else:
             operatorBody = cxx_writer.writer_code.Code('return ' + i + '(' + readValueItem + ');')
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu')
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', noException = True)
         registerElements.append(operatorDecl)
     # Now I have the three versions of the operators, depending whether they take
     # in input the integer value, the specific register or the base one
@@ -207,7 +214,7 @@ def getCPPRegClass(self, model, regType):
         else:
             operatorBody = cxx_writer.writer_code.Code(assignValueItem + ' ' + i + ' other;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regType.makeRef(), 'pu', [operatorParam])
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regType.makeRef(), 'pu', [operatorParam], noException = True)
         registerElements.append(operatorDecl)
     # SPECIFIC REGISTER
     for i in binaryOps:
@@ -216,7 +223,7 @@ def getCPPRegClass(self, model, regType):
         else:
             operatorBody = cxx_writer.writer_code.Code('return (' + readValueItem + ' ' + i + ' other.value);')
         operatorParam = cxx_writer.writer_code.Parameter('other', regType.makeRef().makeConst())
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True)
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True, noException = True)
         registerElements.append(operatorDecl)
     for i in comparisonOps:
         if self.offset and not model.startswith('acc'):
@@ -224,7 +231,7 @@ def getCPPRegClass(self, model, regType):
         else:
             operatorBody = cxx_writer.writer_code.Code('return (' + readValueItem + ' ' + i + ' other.value);')
         operatorParam = cxx_writer.writer_code.Parameter('other', regType.makeRef().makeConst())
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True, noException = True)
         registerElements.append(operatorDecl)
     for i in assignmentOps:
         if self.constValue != None and type(self.constValue) != type({}):
@@ -232,7 +239,7 @@ def getCPPRegClass(self, model, regType):
         else:
             operatorBody = cxx_writer.writer_code.Code(assignValueItem + ' ' + i + ' other.value;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', regType.makeRef().makeConst())
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regType.makeRef(), 'pu', [operatorParam])
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regType.makeRef(), 'pu', [operatorParam], noException = True)
         registerElements.append(operatorDecl)
     # GENERIC REGISTER: this case is look more complicated; actually I simply used the
     # operators of parameter other
@@ -242,7 +249,7 @@ def getCPPRegClass(self, model, regType):
         else:
             operatorBody = cxx_writer.writer_code.Code('return (' + readValueItem + ' ' + i + ' other);')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True)
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True, noException = True)
         registerElements.append(operatorDecl)
     for i in comparisonOps:
         if self.offset and not model.startswith('acc'):
@@ -250,7 +257,7 @@ def getCPPRegClass(self, model, regType):
         else:
             operatorBody = cxx_writer.writer_code.Code('return (' + readValueItem + ' ' + i + ' other);')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True, noException = True)
         registerElements.append(operatorDecl)
     for i in assignmentOps:
         if self.constValue != None and type(self.constValue) != type({}):
@@ -258,14 +265,14 @@ def getCPPRegClass(self, model, regType):
         else:
             operatorBody = cxx_writer.writer_code.Code(assignValueItem + ' ' + i + ' other;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regType.makeRef(), 'pu', [operatorParam])
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regType.makeRef(), 'pu', [operatorParam], noException = True)
         registerElements.append(operatorDecl)
     # Scalar value cast operator
     if self.offset and not model.startswith('acc'):
         operatorBody = cxx_writer.writer_code.Code('return (' + readValueItem + '  + ' + str(self.offset) + ');')
     else:
         operatorBody = cxx_writer.writer_code.Code('return ' + readValueItem + ';')
-    operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True, noException = True)
+    operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True, noException = True, inline = True)
     registerElements.append(operatorIntDecl)
 
     # Constructors
@@ -293,7 +300,7 @@ def getCPPRegClass(self, model, regType):
     code = 'stream << std::hex << std::showbase << ' + readValueItem + ' << std::dec;\nreturn stream;'
     operatorBody = cxx_writer.writer_code.Code(code)
     operatorParam = cxx_writer.writer_code.Parameter('stream', outStreamType.makeRef())
-    operatorDecl = cxx_writer.writer_code.MemberOperator('<<', operatorBody, outStreamType.makeRef(), 'pu', [operatorParam], const = True)
+    operatorDecl = cxx_writer.writer_code.MemberOperator('<<', operatorBody, outStreamType.makeRef(), 'pu', [operatorParam], const = True, noException = True)
     registerElements.append(operatorDecl)
 
     # Attributes and inner classes declarations
@@ -340,14 +347,14 @@ def getCPPRegClass(self, model, regType):
         operatorCode += 'return *this;'
         operatorBody = cxx_writer.writer_code.Code(operatorCode)
         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
-        operatorEqualDecl = cxx_writer.writer_code.MemberOperator('=', operatorBody, cxx_writer.writer_code.Type('InnerField').makeRef(), 'pu', [operatorParam])
+        operatorEqualDecl = cxx_writer.writer_code.MemberOperator('=', operatorBody, cxx_writer.writer_code.Type('InnerField').makeRef(), 'pu', [operatorParam], noException = True)
         InnerFieldElems.append(operatorEqualDecl)
         operatorCode = 'return (this->value & ' + hex(int(mask, 2)) + ')'
         if length[0] > 0:
             operatorCode += ' >> ' + str(length[0])
         operatorCode += ';'
         operatorBody = cxx_writer.writer_code.Code(operatorCode)
-        operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True)
+        operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True, noException = True, inline = True)
         InnerFieldElems.append(operatorIntDecl)
         fieldAttribute = cxx_writer.writer_code.Attribute('value', regMaxType.makeRef(), 'pri')
         InnerFieldElems.append(fieldAttribute)
@@ -373,9 +380,9 @@ def getCPPRegClass(self, model, regType):
         attrs.append(fieldAttribute)
     operatorBody = cxx_writer.writer_code.Code('return *this;')
     operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
-    operatorEqualDecl = cxx_writer.writer_code.MemberOperator('=', operatorBody, cxx_writer.writer_code.Type('InnerField').makeRef(), 'pu', [operatorParam])
+    operatorEqualDecl = cxx_writer.writer_code.MemberOperator('=', operatorBody, cxx_writer.writer_code.Type('InnerField').makeRef(), 'pu', [operatorParam], noException = True)
     operatorBody = cxx_writer.writer_code.Code('return 0;')
-    operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True)
+    operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True, noException = True, inline = True)
     publicConstr = cxx_writer.writer_code.Constructor(cxx_writer.writer_code.Code(''), 'pu')
     InnerFieldClass = cxx_writer.writer_code.ClassDeclaration('InnerField_Empty', [operatorEqualDecl, operatorIntDecl], [cxx_writer.writer_code.Type('InnerField')])
     InnerFieldClass.addConstructor(publicConstr)
@@ -479,10 +486,10 @@ def getCPPRegisters(self, model):
     InnerFieldType = cxx_writer.writer_code.Type('InnerField')
     operatorBody = cxx_writer.writer_code.Code('*this = (unsigned int)other;\nreturn *this;')
     operatorParam = cxx_writer.writer_code.Parameter('other', InnerFieldType.makeRef().makeConst())
-    operatorEqualInnerDecl = cxx_writer.writer_code.MemberOperator('=', operatorBody, InnerFieldType.makeRef(), 'pu', [operatorParam])
+    operatorEqualInnerDecl = cxx_writer.writer_code.MemberOperator('=', operatorBody, InnerFieldType.makeRef(), 'pu', [operatorParam], noException = True)
     operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
-    operatorEqualDecl = cxx_writer.writer_code.MemberOperator('=', emptyBody, InnerFieldType.makeRef(), 'pu', [operatorParam], pure = True)
-    operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), emptyBody, cxx_writer.writer_code.Type(''), 'pu', const = True, pure = True)
+    operatorEqualDecl = cxx_writer.writer_code.MemberOperator('=', emptyBody, InnerFieldType.makeRef(), 'pu', [operatorParam], pure = True, noException = True)
+    operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), emptyBody, cxx_writer.writer_code.Type(''), 'pu', const = True, pure = True, noException = True)
     InnerFieldClass = cxx_writer.writer_code.ClassDeclaration('InnerField', [operatorEqualInnerDecl, operatorEqualDecl, operatorIntDecl])
     publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
     InnerFieldClass.addDestructor(publicDestr)
@@ -492,32 +499,33 @@ def getCPPRegisters(self, model):
     operatorDecl = cxx_writer.writer_code.MemberOperator('[]', emptyBody, InnerFieldClass.getType().makeRef(), 'pu', [operatorParam], pure = True, noException = True)
     registerElements.append(operatorDecl)
     for i in unaryOps:
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, emptyBody, regMaxType, 'pu', pure = True)
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, emptyBody, regMaxType, 'pu', pure = True, noException = True)
         registerElements.append(operatorDecl)
     for i in binaryOps:
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, emptyBody, regMaxType, 'pu', [operatorParam], const = True, pure = True)
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, emptyBody, regMaxType, 'pu', [operatorParam], const = True, pure = True, noException = True)
         registerElements.append(operatorDecl)
     for i in comparisonOps:
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, emptyBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True, pure = True)
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, emptyBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True, pure = True, noException = True)
         registerElements.append(operatorDecl)
 
     pureDeclTypes = [regMaxType, registerType]
     for pureDecls in pureDeclTypes:
         for i in assignmentOps:
             operatorParam = cxx_writer.writer_code.Parameter('other', pureDecls.makeRef().makeConst())
-            operatorDecl = cxx_writer.writer_code.MemberOperator(i, emptyBody, registerType.makeRef(), 'pu', [operatorParam], pure = True)
+            operatorDecl = cxx_writer.writer_code.MemberOperator(i, emptyBody, registerType.makeRef(), 'pu', [operatorParam], pure = True, noException = True)
             registerElements.append(operatorDecl)
     # Stream Operators
     outStreamType = cxx_writer.writer_code.Type('std::ostream', 'ostream')
     operatorParam = cxx_writer.writer_code.Parameter('other', outStreamType.makeRef())
-    operatorDecl = cxx_writer.writer_code.MemberOperator('<<', emptyBody, outStreamType.makeRef(), 'pu', [operatorParam], const = True, pure = True)
+    operatorDecl = cxx_writer.writer_code.MemberOperator('<<', emptyBody, outStreamType.makeRef(), 'pu', [operatorParam], const = True, pure = True, noException = True)
     registerElements.append(operatorDecl)
     operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), emptyBody, cxx_writer.writer_code.Type(''), 'pu', const = True, pure = True, noException = True)
     registerElements.append(operatorIntDecl)
 
     ################ Here we determine the different register types which have to be declared ##################
+
     customRegBanksElemens = []
     for i in self.regBanks:
         customRegBanksElemens += i.getConstRegs()
@@ -555,7 +563,7 @@ def getCPPRegisters(self, model):
             regTypeName += '_delay_' + str(reg.delay)
         resourceType[reg.name] = cxx_writer.writer_code.Type(regTypeName, 'registers.hpp')
         if reg in self.regBanks:
-            if reg.constValue or (reg.delay and not model.startswith('acc')):
+            if (reg.constValue and len(reg.constValue) < reg.numRegs)  or ((reg.delay and len(reg.delay) < reg.numRegs) and not model.startswith('acc')):
                 resourceType[reg.name + '_baseType'] = resourceType[reg.name]
                 resourceType[reg.name] = cxx_writer.writer_code.Type('RegisterBankClass', 'registers.hpp')
             else:
@@ -563,6 +571,7 @@ def getCPPRegisters(self, model):
     realRegClasses = []
     for regType in regTypes:
         realRegClasses.append(regType.getCPPClass(model, resourceType[regType.name]))
+
     ################ End of part where we determine the different register types which have to be declared ##################
 
     registerDecl = cxx_writer.writer_code.SCModule('Register', registerElements)
@@ -591,7 +600,7 @@ def getCPPRegisters(self, model):
         }""")
         setNewRegisterBody.addInclude('utils.hpp')
         setNewRegisterParams = [cxx_writer.writer_code.Parameter('numReg', cxx_writer.writer_code.uintType), cxx_writer.writer_code.Parameter('newReg', registerType.makePointer())]
-        setNewRegisterMethod = cxx_writer.writer_code.Method('setNewRegister', setNewRegisterBody, cxx_writer.writer_code.voidType, 'pu', setNewRegisterParams, inline = True)
+        setNewRegisterMethod = cxx_writer.writer_code.Method('setNewRegister', setNewRegisterBody, cxx_writer.writer_code.voidType, 'pu', setNewRegisterParams)
         regBankElements.append(setNewRegisterMethod)
         setSizeBody = cxx_writer.writer_code.Code("""
             for(unsigned int i = 0; i < this->size; i++){
@@ -609,11 +618,11 @@ def getCPPRegisters(self, model):
             }
         """)
         setSizeParams = [cxx_writer.writer_code.Parameter('size', cxx_writer.writer_code.uintType)]
-        setSizeMethod = cxx_writer.writer_code.Method('setSize', setSizeBody, cxx_writer.writer_code.voidType, 'pu', setSizeParams, inline = True, noException = True)
+        setSizeMethod = cxx_writer.writer_code.Method('setSize', setSizeBody, cxx_writer.writer_code.voidType, 'pu', setSizeParams, noException = True)
         regBankElements.append(setSizeMethod)
         operatorBody = cxx_writer.writer_code.Code('return *(this->registers[numReg]);')
         operatorParam = [cxx_writer.writer_code.Parameter('numReg', cxx_writer.writer_code.uintType)]
-        operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, registerType.makeRef(), 'pu', operatorParam)
+        operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, registerType.makeRef(), 'pu', operatorParam, inline = True, noException = True)
         regBankElements.append(operatorDecl)
         regBankClass = cxx_writer.writer_code.ClassDeclaration('RegisterBankClass', regBankElements)
         constructorBody = cxx_writer.writer_code.Code("""this->size = size;
@@ -665,7 +674,7 @@ def getCPPAlias(self, model):
     InnerFieldType = cxx_writer.writer_code.Type('InnerField')
     operatorBody = cxx_writer.writer_code.Code(codeOperatorBody)
     operatorParam = [cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.intType)]
-    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, InnerFieldType.makeRef(), 'pu', operatorParam)
+    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, InnerFieldType.makeRef(), 'pu', operatorParam, noException = True, inline = True)
     aliasElements.append(operatorDecl)
 
     ################ Lock and Unlock methods used for hazards detection ######################
@@ -688,10 +697,10 @@ def getCPPAlias(self, model):
     if not model.startswith('acc'):
         immediateWriteBody = isLockedBody = cxx_writer.writer_code.Code('this->reg->immediateWrite(value);')
         immediateWriteParam = [cxx_writer.writer_code.Parameter('value', regMaxType.makeRef().makeConst())]
-        immediateWriteMethod = cxx_writer.writer_code.Method('immediateWrite', immediateWriteBody, cxx_writer.writer_code.voidType, 'pu', immediateWriteParam, virtual = True, noException = True)
+        immediateWriteMethod = cxx_writer.writer_code.Method('immediateWrite', immediateWriteBody, cxx_writer.writer_code.voidType, 'pu', immediateWriteParam, noException = True)
         aliasElements.append(immediateWriteMethod)
         readNewValueBody = isLockedBody = cxx_writer.writer_code.Code('return this->reg->readNewValue();')
-        readNewValueMethod = cxx_writer.writer_code.Method('readNewValue', readNewValueBody, regMaxType, 'pu', virtual = True, noException = True)
+        readNewValueMethod = cxx_writer.writer_code.Method('readNewValue', readNewValueBody, regMaxType, 'pu', noException = True)
         aliasElements.append(readNewValueMethod)
 
     #################### Lets declare the normal operators (implementation of the pure operators of the base class) ###########
@@ -700,7 +709,7 @@ def getCPPAlias(self, model):
             operatorBody = cxx_writer.writer_code.Code('return ' + i + '*this->reg;')
         else:
             operatorBody = cxx_writer.writer_code.Code('return ' + i + '(*this->reg + this->offset);')
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu')
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', noException = True)
         aliasElements.append(operatorDecl)
     # Now I have the three versions of the operators, depending whether they take
     # in input the integer value, the specific register or the base one
@@ -718,7 +727,7 @@ def getCPPAlias(self, model):
     for i in assignmentOps:
         operatorBody = cxx_writer.writer_code.Code('*this->reg ' + i + ' other;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam], inline = True)
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam], inline = True, noException = True)
         aliasElements.append(operatorDecl)
     # Alias Register
     for i in binaryOps:
@@ -727,7 +736,7 @@ def getCPPAlias(self, model):
         else:
             operatorBody = cxx_writer.writer_code.Code('return ((*this->reg + this->offset) ' + i + ' *other.reg);')
         operatorParam = cxx_writer.writer_code.Parameter('other', aliasType.makeRef().makeConst())
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True)
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True, noException = True)
         aliasElements.append(operatorDecl)
 #    for i in comparisonOps:
 #        operatorBody = cxx_writer.writer_code.Code('return ((*this->reg + this->offset) ' + i + ' *other.reg);')
@@ -737,7 +746,7 @@ def getCPPAlias(self, model):
     for i in assignmentOps:
         operatorBody = cxx_writer.writer_code.Code('*this->reg ' + i + ' *other.reg;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', aliasType.makeRef().makeConst())
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam])
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam], noException = True)
         aliasElements.append(operatorDecl)
     # GENERIC REGISTER:
     for i in binaryOps:
@@ -746,7 +755,7 @@ def getCPPAlias(self, model):
         else:
             operatorBody = cxx_writer.writer_code.Code('return ((*this->reg + this->offset) ' + i + ' other);')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True, inline = True)
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True, inline = True, noException = True)
         aliasElements.append(operatorDecl)
     for i in comparisonOps:
         if model.startswith('acc'):
@@ -754,12 +763,12 @@ def getCPPAlias(self, model):
         else:
             operatorBody = cxx_writer.writer_code.Code('return ((*this->reg + this->offset) ' + i + ' other);')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True, noException = True)
         aliasElements.append(operatorDecl)
     for i in assignmentOps:
         operatorBody = cxx_writer.writer_code.Code('*this->reg ' + i + ' other;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam])
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam], noException = True)
         aliasElements.append(operatorDecl)
     # Scalar value cast operator
     if model.startswith('acc'):
@@ -769,23 +778,35 @@ def getCPPAlias(self, model):
     operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True, noException = True, inline = True)
     aliasElements.append(operatorIntDecl)
 
-    # Constructor: takes as input the initial register
-    constructorBody = cxx_writer.writer_code.Code('')
+    ######### Constructor: takes as input the initial register #########
+    constructorBody = cxx_writer.writer_code.Code('this->referringAliases = NULL;')
     constructorParams = [cxx_writer.writer_code.Parameter('reg', registerType.makePointer())]
     constructorInit = ['reg(reg)']
     if not model.startswith('acc'):
         constructorParams.append(cxx_writer.writer_code.Parameter('offset', cxx_writer.writer_code.uintType, initValue = '0'))
         constructorInit += ['offset(offset)', 'defaultOffset(0)']
     publicMainClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, constructorInit)
-    publicMainEmptyClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu')
+    if not model.startswith('acc'):
+        constructorInit = ['offset(offset)', 'defaultOffset(0)']
+    publicMainEmptyClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', [], constructorInit)
     # Constructor: takes as input the initial alias
-    constructorBody = cxx_writer.writer_code.Code('initAlias->referredAliases.insert(this);\nthis->referringAliases.insert(initAlias);')
+    constructorBody = cxx_writer.writer_code.Code('initAlias->referredAliases.insert(this);\nthis->referringAliases = initAlias;')
     constructorParams = [cxx_writer.writer_code.Parameter('initAlias', aliasType.makePointer())]
     publicAliasConstrInit = ['reg(initAlias->reg)']
     if not model.startswith('acc'):
         constructorParams.append(cxx_writer.writer_code.Parameter('offset', cxx_writer.writer_code.uintType, initValue = '0'))
         publicAliasConstrInit += ['offset(initAlias->offset + offset)', 'defaultOffset(offset)']
     publicAliasConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, publicAliasConstrInit)
+    destructorBody = cxx_writer.writer_code.Code("""std::set<Alias *>::iterator referredIter, referredEnd;
+        for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
+            if((*referredIter)->referringAliases == this)
+                (*referredIter)->referringAliases = NULL;
+        }
+        if(this->referringAliases != NULL){
+            this->referringAliases->referredAliases.erase(this);
+        }
+        this->referringAliases = NULL;""")
+    publicAliasDestr = cxx_writer.writer_code.Constructor(destructorBody, 'pu')
 
     # Stream Operators
     outStreamType = cxx_writer.writer_code.Type('std::ostream', 'ostream')
@@ -795,18 +816,11 @@ def getCPPAlias(self, model):
         code = 'stream << *this->reg + this->offset;\nreturn stream;'
     operatorBody = cxx_writer.writer_code.Code(code)
     operatorParam = cxx_writer.writer_code.Parameter('stream', outStreamType.makeRef())
-    operatorDecl = cxx_writer.writer_code.MemberOperator('<<', operatorBody, outStreamType.makeRef(), 'pu', [operatorParam], const = True)
+    operatorDecl = cxx_writer.writer_code.MemberOperator('<<', operatorBody, outStreamType.makeRef(), 'pu', [operatorParam], const = True, noException = True)
     aliasElements.append(operatorDecl)
 
-    # Update method: updates the register pointed by this alias
-    if model.startswith('acc'):
-        updateCode = """this->reg = newAlias.reg;
-        std::set<Alias *>::iterator referredIter, referredEnd;
-        for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
-            (*referredIter)->newReferredAlias(newAlias.reg);
-        }
-        """
-    else:
+    # Update method: updates the register pointed by this alias: Standard Alias
+    if not model.startswith('acc'):
         updateCode = """this->reg = newAlias.reg;
         this->offset = newAlias.offset + newOffset;
         this->defaultOffset = newOffset;
@@ -814,29 +828,43 @@ def getCPPAlias(self, model):
         for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
             (*referredIter)->newReferredAlias(newAlias.reg, newAlias.offset + newOffset);
         }
-        """
-    updateCode += """newAlias.referredAliases.insert(this);
-        std::set<Alias *>::iterator referringIter, referringEnd;
-        for(referringIter = this->referringAliases.begin(), referringEnd = this->referringAliases.end(); referringIter != referringEnd; referringIter++){
-            (*referringIter)->referredAliases.erase(this);
+        if(this->referringAliases != NULL){
+            this->referringAliases->referredAliases.erase(this);
         }
-        this->referringAliases.clear();
-        this->referringAliases.insert(&newAlias);
+        this->referringAliases = &newAlias;
+        newAlias.referredAliases.insert(this);
         """
+        updateBody = cxx_writer.writer_code.Code(updateCode)
+        updateParam = [cxx_writer.writer_code.Parameter('newAlias', aliasType.makeRef())]
+        updateParam.append(cxx_writer.writer_code.Parameter('newOffset', cxx_writer.writer_code.uintType))
+        updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam, inline = True, noException = True)
+        aliasElements.append(updateDecl)
+    if not model.startswith('acc'):
+        updateCode = """this->offset = newAlias.offset;
+        this->defaultOffset = 0;
+        """
+    updateCode += """this->reg = newAlias.reg;
+    std::set<Alias *>::iterator referredIter, referredEnd;
+    for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
+    """
+    if not model.startswith('acc'):
+        updateCode += '(*referredIter)->newReferredAlias(newAlias.reg, newAlias.offset);'
+    else:
+        updateCode += '(*referredIter)->newReferredAlias(newAlias.reg);'
+    updateCode += """
+    }
+    if(this->referringAliases != NULL){
+        this->referringAliases->referredAliases.erase(this);
+    }
+    this->referringAliases = &newAlias;
+    newAlias.referredAliases.insert(this);
+    """
     updateBody = cxx_writer.writer_code.Code(updateCode)
     updateParam = [cxx_writer.writer_code.Parameter('newAlias', aliasType.makeRef())]
-    if not model.startswith('acc'):
-        updateParam.append(cxx_writer.writer_code.Parameter('newOffset', cxx_writer.writer_code.uintType, initValue = '0'))
-    updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam)
+    updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam, inline = True, noException = True)
     aliasElements.append(updateDecl)
-    if model.startswith('acc'):
-        updateCode = """this->reg = &newAlias;
-        std::set<Alias *>::iterator referredIter, referredEnd;
-        for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
-            (*referredIter)->newReferredAlias(&newAlias);
-        }
-        """
-    else:
+
+    if not model.startswith('acc'):
         updateCode = """this->reg = &newAlias;
         this->offset = newOffset;
         this->defaultOffset = 0;
@@ -844,27 +872,58 @@ def getCPPAlias(self, model):
         for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
             (*referredIter)->newReferredAlias(&newAlias, newOffset);
         }
+        if(this->referringAliases != NULL){
+            this->referringAliases->referredAliases.erase(this);
+        }
+        this->referringAliases = NULL;
         """
-    updateCode += """std::set<Alias *>::iterator referringIter, referringEnd;
-    for(referringIter = this->referringAliases.begin(), referringEnd = this->referringAliases.end(); referringIter != referringEnd; referringIter++){
-        (*referringIter)->referredAliases.erase(this);
+        updateBody = cxx_writer.writer_code.Code(updateCode)
+        updateParam = [cxx_writer.writer_code.Parameter('newAlias', registerType.makeRef())]
+        updateParam.append(cxx_writer.writer_code.Parameter('newOffset', cxx_writer.writer_code.uintType))
+        updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam, inline = True, noException = True)
+        aliasElements.append(updateDecl)
+
+    if not model.startswith('acc'):
+        updateCode = """this->offset = 0;
+        this->defaultOffset = 0;
+        """
+    updateCode += """this->reg = &newAlias;
+    std::set<Alias *>::iterator referredIter, referredEnd;
+    for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
+        (*referredIter)->newReferredAlias(&newAlias);
     }
-    this->referringAliases.clear();
+    if(this->referringAliases != NULL){
+        this->referringAliases->referredAliases.erase(this);
+    }
+    this->referringAliases = NULL;
     """
     updateBody = cxx_writer.writer_code.Code(updateCode)
     updateParam = [cxx_writer.writer_code.Parameter('newAlias', registerType.makeRef())]
-    if not model.startswith('acc'):
-        updateParam.append(cxx_writer.writer_code.Parameter('newOffset', cxx_writer.writer_code.uintType, initValue = '0'))
-    updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam)
+    updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam, inline = True, noException = True)
     aliasElements.append(updateDecl)
-    if model.startswith('acc'):
-        updateCode = """this->reg = newAlias;
-        std::set<Alias *>::iterator referredIter, referredEnd;
-        for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
-            (*referredIter)->newReferredAlias(newAlias);
-        }
-        """
-    else:
+
+    directSetBody = cxx_writer.writer_code.Code("""this->reg = newAlias.reg;
+    this->offset = newAlias.offset;
+    if(this->referringAliases != NULL){
+        this->referringAliases->referredAliases.erase(this);
+    }
+    this->referringAliases = &newAlias;
+    newAlias.referredAliases.insert(this);
+    """)
+    directSetParam = [cxx_writer.writer_code.Parameter('newAlias', aliasType.makeRef())]
+    directSetDecl = cxx_writer.writer_code.Method('directSetAlias', directSetBody, cxx_writer.writer_code.voidType, 'pu', directSetParam, noException = True)
+    aliasElements.append(directSetDecl)
+
+    directSetBody = cxx_writer.writer_code.Code("""this->reg = &newAlias;
+    if(this->referringAliases != NULL){
+        this->referringAliases->referredAliases.erase(this);
+    }
+    this->referringAliases = NULL;""")
+    directSetParam = [cxx_writer.writer_code.Parameter('newAlias', registerType.makeRef())]
+    directSetDecl = cxx_writer.writer_code.Method('directSetAlias', directSetBody, cxx_writer.writer_code.voidType, 'pu', directSetParam, noException = True)
+    aliasElements.append(directSetDecl)
+
+    if not model.startswith('acc'):
         updateCode = """this->reg = newAlias;
         this->offset = newOffset + this->defaultOffset;
         std::set<Alias *>::iterator referredIter, referredEnd;
@@ -872,14 +931,25 @@ def getCPPAlias(self, model):
             (*referredIter)->newReferredAlias(newAlias, newOffset);
         }
         """
+        updateBody = cxx_writer.writer_code.Code(updateCode)
+        updateParam = [cxx_writer.writer_code.Parameter('newAlias', registerType.makePointer())]
+        updateParam.append(cxx_writer.writer_code.Parameter('newOffset', cxx_writer.writer_code.uintType))
+        updateDecl = cxx_writer.writer_code.Method('newReferredAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam, inline = True, noException = True)
+        aliasElements.append(updateDecl)
+
+    if not model.startswith('acc'):
+        updateCode = 'this->offset = this->defaultOffset;\n'
+    updateCode += """this->reg = newAlias;
+    std::set<Alias *>::iterator referredIter, referredEnd;
+    for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
+        (*referredIter)->newReferredAlias(newAlias);
+    }"""
     updateBody = cxx_writer.writer_code.Code(updateCode)
     updateParam = [cxx_writer.writer_code.Parameter('newAlias', registerType.makePointer())]
-    if not model.startswith('acc'):
-        updateParam.append(cxx_writer.writer_code.Parameter('newOffset', cxx_writer.writer_code.uintType))
-    updateDecl = cxx_writer.writer_code.Method('newReferredAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam)
+    updateDecl = cxx_writer.writer_code.Method('newReferredAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam, inline = True, noException = True)
     aliasElements.append(updateDecl)
 
-    # Finally I declare the class and pass to it all the declared members
+
     regAttribute = cxx_writer.writer_code.Attribute('reg', registerType.makePointer(), 'pri')
     aliasElements.append(regAttribute)
     if not model.startswith('acc'):
@@ -887,14 +957,18 @@ def getCPPAlias(self, model):
         aliasElements.append(offsetAttribute)
         offsetAttribute = cxx_writer.writer_code.Attribute('defaultOffset', cxx_writer.writer_code.uintType, 'pri')
         aliasElements.append(offsetAttribute)
+
+    # Finally I declare the class and pass to it all the declared members: Standard Alias
     aliasesAttribute = cxx_writer.writer_code.Attribute('referredAliases', cxx_writer.writer_code.TemplateType('std::set', [aliasType.makePointer()], 'set'), 'pri')
     aliasElements.append(aliasesAttribute)
-    aliasesAttribute = cxx_writer.writer_code.Attribute('referringAliases', cxx_writer.writer_code.TemplateType('std::set', [aliasType.makePointer()], 'set'), 'pri')
+    aliasesAttribute = cxx_writer.writer_code.Attribute('referringAliases', aliasType.makePointer(), 'pri')
     aliasElements.append(aliasesAttribute)
     aliasDecl = cxx_writer.writer_code.ClassDeclaration(aliasType.name, aliasElements)
     aliasDecl.addConstructor(publicMainClassConstr)
     aliasDecl.addConstructor(publicMainEmptyClassConstr)
     aliasDecl.addConstructor(publicAliasConstr)
+    aliasDecl.addDestructor(publicAliasDestr)
+
     classes = [aliasDecl]
     return classes
 
@@ -1230,7 +1304,15 @@ def getCPPProc(self, model, trace):
 
     if not model.startswith('acc'):
         if self.instructionCache:
-            codeString += 'template_map< ' + str(fetchWordType) + ', Instruction * >::iterator instrCacheEnd = Processor::instrCache.end();\n'
+            codeString += 'template_map< ' + str(fetchWordType) + """, Instruction * >::iterator instrCacheEnd = Processor::instrCache.end();
+            template_map< """  + str(fetchWordType) + ', ' + str(fetchWordType) + """ > freqInstrMap;
+            template_map< """  + str(fetchWordType) + ', ' + str(fetchWordType) + """ >::iterator freqInstrMapEnd = freqInstrMap.end();
+            """
+            if self.fastFetch:
+                mapKey = 'curPC'
+            else:
+                mapKey = 'bitString'
+
         if self.externalClock:
             codeString += 'if(this->waitCycles > 0){\nthis->waitCycles--;\nreturn;\n}\n\n'
         else:
@@ -1243,13 +1325,15 @@ def getCPPProc(self, model, trace):
             if irqPort != orderedIrqList[0]:
                 codeString += 'else '
             codeString += 'if('
-            if not irqPort.high:
-                codeString += '!'
-            codeString += irqPort.name
             if(irqPort.condition):
-                codeString += ' && (' + irqPort.condition + ')'
+                codeString += '('
+            codeString += irqPort.name + ' != -1'
+            if(irqPort.condition):
+                codeString += ') && (' + irqPort.condition + ')'
             codeString += '){\n'
             codeString += irqPort.operation + '\n}\n'
+        if self.irqs:
+            codeString += 'else{\n'
 
         fetchCode = str(fetchWordType) + ' bitString = this->'
         # Now I have to check what is the fetch: if there is a TLM port or
@@ -1286,11 +1370,7 @@ def getCPPProc(self, model, trace):
         if trace:
             codeString += 'std::cerr << \"Current PC: \" << std::hex << std::showbase << ' + pcVar + ' << std::endl;\n'
         if self.instructionCache:
-            codeString += 'template_map< ' + str(fetchWordType) + ', Instruction * >::iterator cachedInstr = Processor::instrCache.find('
-            if self.fastFetch:
-                codeString += 'curPC);'
-            else:
-                codeString += 'bitString);'
+            codeString += 'template_map< ' + str(fetchWordType) + ', Instruction * >::iterator cachedInstr = Processor::instrCache.find(' + mapKey + ');'
             codeString += """
             if(cachedInstr != instrCacheEnd){
                 // I can call the instruction, I have found it
@@ -1335,6 +1415,8 @@ def getCPPProc(self, model, trace):
         codeString += """int instrId = this->decoder.decode(bitString);
         Instruction * instr = Processor::INSTRUCTIONS[instrId];
         """
+        if not self.instructionCache:
+            codeString += 'instr->totalInstrCycles = 0;\n'
         codeString += """instr->setParams(bitString);
             try{
                 #ifndef DISABLE_TOOLS
@@ -1367,20 +1449,34 @@ def getCPPProc(self, model, trace):
         codeString += """
                 numCycles = 0;
             }
-            // ... and then add the instruction to the cache
-        """
+            """
         if self.instructionCache:
-            if self.fastFetch:
-                codeString += 'instrCache[curPC] = instr;'
-            else:
-                codeString += 'instrCache[bitString] = instr;'
+            codeString += """template_map< """ + str(fetchWordType) + ', ' + str(fetchWordType) + ' >::iterator freqInstrMapIter = freqInstrMap.find(' + mapKey + ');'
+            codeString += """
+                if(freqInstrMapIter == freqInstrMapEnd){
+                    freqInstrMap.insert(std::pair< """ + str(fetchWordType) + ', ' + str(fetchWordType) + ' >(' + mapKey + """, 1));
+                    freqInstrMapEnd = freqInstrMap.end();
+                }
+                else{
+                    if(freqInstrMapIter->second > """ + str(self.cacheLimit) + """){
+                // ... and then add the instruction to the cache
+            """
+        if self.instructionCache:
+            codeString += 'instrCache.insert(std::pair< ' + str(fetchWordType) + ', Instruction * >(' + mapKey + ', instr));'
             if not self.externalClock:
                 codeString += """
                     instrCacheEnd = Processor::instrCache.end();"""
             codeString += """
-                Processor::INSTRUCTIONS[instrId] = instr->replicate();
+                        Processor::INSTRUCTIONS[instrId] = instr->replicate();
+                    }
+                    else{
+                        freqInstrMapIter->second = freqInstrMapIter->second + 1;
+                    }
+                }
             }
             """
+        if self.irqs:
+            codeString += '}\n'
         if self.externalClock:
             codeString += 'this->waitCycles += numCycles;\n'
         elif len(self.tlmPorts) > 0 and model.endswith('LT'):
@@ -1574,7 +1670,7 @@ def getCPPProc(self, model, trace):
                 processorElements.append(attribute)
     for regB in self.regBanks:
         attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name], 'pu')
-        if regB.constValue or (not model.startswith('acc') and regB.delay):
+        if (regB.constValue and len(regB.constValue) < regB.numRegs)  or ((regB.delay and len(regB.delay) < regB.numRegs) and not model.startswith('acc')):
             # There are constant registers, so I have to declare the special register bank
             bodyInits += 'this->' + regB.name + '.setSize(' + str(regB.numRegs) + ');\n'
             for i in range(0, regB.numRegs):
@@ -1729,7 +1825,7 @@ def getCPPProc(self, model, trace):
     # the initialization of the aliases must be chained (we should
     # create an initialization graph since an alias might depend on another one ...)
     global aliasGraph
-    if float(NX.__version__) < 0.99:
+    if nxVersion < 0.99:
         aliasGraph = NX.XDiGraph()
     else:
         aliasGraph = NX.DiGraph()
@@ -1770,7 +1866,7 @@ def getCPPProc(self, model, trace):
         if self.isBank(alias.name):
             break
         aliasGraphRev = aliasGraph.reverse()
-        if float(NX.__version__) < 0.99:
+        if nxVersion < 0.99:
             edgeType = aliasGraphRev.edges(alias)[0][0]
         else:
             edgeType = aliasGraphRev.edges(alias, data = True)[0][0]
@@ -1868,16 +1964,33 @@ def getCPPProc(self, model, trace):
                             cxx_writer.writer_code.intType, 'pri', True, '0')
     processorElements.append(numProcAttribute)
 
+    # Iterrupt ports
     for irqPort in self.irqs:
         if irqPort.tlm:
-            irqPortType = cxx_writer.writer_code.Type('IntrTLMPort', 'irqPorts.hpp')
+            irqPortType = cxx_writer.writer_code.Type('IntrTLMPort_' + str(irqPort.portWidth), 'irqPorts.hpp')
         else:
-            irqPortType = cxx_writer.writer_code.Type('IntrSysCPort', 'irqPorts.hpp')
-        irqSignalAttr = cxx_writer.writer_code.Attribute(irqPort.name, cxx_writer.writer_code.boolType, 'pri')
+            irqPortType = cxx_writer.writer_code.Type('IntrSysCPort_' + str(irqPort.portWidth), 'irqPorts.hpp')
+        irqWidthType = resolveBitType('BIT<' + str(irqPort.portWidth) + '>')
+        irqSignalAttr = cxx_writer.writer_code.Attribute(irqPort.name, irqWidthType, 'pri')
         irqPortAttr = cxx_writer.writer_code.Attribute(irqPort.name + '_port', irqPortType, 'pu')
         processorElements.append(irqSignalAttr)
         processorElements.append(irqPortAttr)
         initElements.append(irqPort.name + '_port(\"' + irqPort.name + '_IRQ\", ' + irqPort.name + ')')
+    # Generic PIN ports
+    for pinPort in self.pins:
+        pinPortName = 'Pin'
+        if pinPort.systemc:
+            pinPortName += 'SysC_'
+        else:
+            pinPortName += 'TLM_'
+        if pinPort.inbound:
+            pinPortName += 'in_'
+        else:
+            pinPortName += 'out_'
+        pinPortType = cxx_writer.writer_code.Type(pinPortName + str(pinPort.portWidth), 'externalPins.hpp')
+        pinPortAttr = cxx_writer.writer_code.Attribute(pinPort.name, pinPortType, 'pu')
+        processorElements.append(pinPortAttr)
+        initElements.append(pinPort.name + '(\"' + pinPort.name + '_PIN\")')
 
     if model.startswith('acc'):
         # I have to instantiate the pipeline and its stages ...
@@ -1956,6 +2069,9 @@ def getCPPProc(self, model, trace):
         baseInstrInitElement += self.memory[0] + ', '
     for tlmPorts in self.tlmPorts.keys():
         baseInstrInitElement += tlmPorts + ', '
+    for pinPort in self.pins:
+        if not pinPort.inbound:
+            baseInstrInitElement += pinPort.name + ', '
     if trace and not self.systemc and not model.startswith('acc'):
         baseInstrInitElement += 'totalCycles, '
     baseInstrInitElement = baseInstrInitElement[:-2]
@@ -1994,10 +2110,10 @@ def getCPPProc(self, model, trace):
             delete Processor::INSTRUCTIONS[i];
         }
         delete [] Processor::INSTRUCTIONS;
+        Processor::INSTRUCTIONS = NULL;
     """
     if self.instructionCache:
-        destrCode += """Processor::INSTRUCTIONS = NULL;
-        template_map< """ + str(fetchWordType) + """, Instruction * >::const_iterator cacheIter, cacheEnd;
+        destrCode += """template_map< """ + str(fetchWordType) + """, Instruction * >::const_iterator cacheIter, cacheEnd;
         for(cacheIter = Processor::instrCache.begin(), cacheEnd = Processor::instrCache.end(); cacheIter != cacheEnd; cacheIter++){
             delete cacheIter->second;
         }
@@ -2229,9 +2345,8 @@ def getCPPIf(self, model):
 def getCPPExternalPorts(self, model):
     if len(self.tlmPorts) == 0:
         return None
-    # creates the processor external ports used for the
-    # communication with the external world (the memory port
-    # is not among this ports, it is treated separately)
+    # creates the processor external TLM ports used for the
+    # communication with the external world
     from isa import resolveBitType
     archDWordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize*2) + '>')
     archWordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>')
@@ -2609,79 +2724,103 @@ def getCPPExternalPorts(self, model):
 def getGetIRQPorts(self):
     # Returns the classes implementing the interrupt ports; there can
     # be two different kind of ports: systemc based or TLM based
-    hasTLM = False
-    hasSysC = False
+    TLMWidth = []
+    SyscWidth = []
     for i in self.irqs:
         if i.operation:
             if i.tlm:
-                hasTLM = True
+                if not i.portWidth in TLMWidth:
+                    TLMWidth.append(i.portWidth)
             else:
-                hasSysC = True
+                if not i.portWidth in SyscWidth:
+                    SyscWidth.append(i.portWidth)
 
-    # Lets now create the ports:
+
+    # Lets now create the potyrt classes:
     classes = []
-    if hasTLM:
+    for width in TLMWidth:
         # TLM ports: I declare a normal TLM slave
-        tlmsocketType = cxx_writer.writer_code.TemplateType('tlm_utils::simple_target_socket', ['IntrTLMPort'], 'tlm_utils/simple_target_socket.h')
+        tlmsocketType = cxx_writer.writer_code.TemplateType('tlm_utils::multi_passthrough_target_socket', ['IntrTLMPort_' + str(width), str(width), 'tlm::tlm_base_protocol_types', 1, 'sc_core::SC_ZERO_OR_MORE_BOUND'], 'tlm_utils/multi_passthrough_target_socket.h')
         payloadType = cxx_writer.writer_code.Type('tlm::tlm_generic_payload', 'tlm.h')
         tlmPortElements = []
 
         blockTransportCode = """tlm::tlm_command cmd = trans.get_command();
             unsigned char* ptr = trans.get_data_ptr();
+            sc_dt::uint64 adr = trans.get_address();
             if(*ptr == 0){
                 //Lower the interrupt
-                this->irqSignal = false;
+                this->irqSignal = -1;
             }
             else{
                 //Raise the interrupt
-                this->irqSignal = true;
+                this->irqSignal = adr;
             }
             trans.set_response_status(tlm::TLM_OK_RESPONSE);
         """
         blockTransportBody = cxx_writer.writer_code.Code(blockTransportCode)
+        tagParam = cxx_writer.writer_code.Parameter('tag', cxx_writer.writer_code.intType)
         payloadParam = cxx_writer.writer_code.Parameter('trans', payloadType.makeRef())
         delayParam = cxx_writer.writer_code.Parameter('delay', cxx_writer.writer_code.sc_timeType.makeRef())
-        blockTransportDecl = cxx_writer.writer_code.Method('b_transport', blockTransportBody, cxx_writer.writer_code.voidType, 'pu', [payloadParam, delayParam])
+        blockTransportDecl = cxx_writer.writer_code.Method('b_transport', blockTransportBody, cxx_writer.writer_code.voidType, 'pu', [tagParam, payloadParam, delayParam])
         tlmPortElements.append(blockTransportDecl)
+
+        debugTransportBody = cxx_writer.writer_code.Code(blockTransportCode + 'return trans.get_data_length();')
+        debugTransportDecl = cxx_writer.writer_code.Method('transport_dbg', debugTransportBody, cxx_writer.writer_code.uintType, 'pu', [tagParam, payloadParam])
+        tlmPortElements.append(debugTransportDecl)
+
+        nblockTransportCode = """THROW_EXCEPTION("Method not yet implemented");
+        """
+        nblockTransportBody = cxx_writer.writer_code.Code(nblockTransportCode)
+        nblockTransportBody.addInclude('utils.hpp')
+        sync_enumType = cxx_writer.writer_code.Type('tlm::tlm_sync_enum', 'tlm.h')
+        phaseParam = cxx_writer.writer_code.Parameter('phase', cxx_writer.writer_code.Type('tlm::tlm_phase').makeRef())
+        nblockTransportDecl = cxx_writer.writer_code.Method('nb_transport_fw', nblockTransportBody, sync_enumType, 'pu', [tagParam, payloadParam, phaseParam, delayParam])
+        tlmPortElements.append(nblockTransportDecl)
+
         socketAttr = cxx_writer.writer_code.Attribute('socket', tlmsocketType, 'pu')
         tlmPortElements.append(socketAttr)
-        irqSignalAttr = cxx_writer.writer_code.Attribute('irqSignal', cxx_writer.writer_code.boolType.makeRef(), 'pu')
+        from isa import resolveBitType
+        widthType = resolveBitType('BIT<' + str(width) + '>')
+        irqSignalAttr = cxx_writer.writer_code.Attribute('irqSignal', widthType.makeRef(), 'pu')
         tlmPortElements.append(irqSignalAttr)
         constructorCode = ''
         tlmPortInit = []
         constructorParams = []
         constructorParams.append(cxx_writer.writer_code.Parameter('portName', cxx_writer.writer_code.sc_module_nameType))
-        constructorParams.append(cxx_writer.writer_code.Parameter('irqSignal', cxx_writer.writer_code.boolType.makeRef()))
+        constructorParams.append(cxx_writer.writer_code.Parameter('irqSignal', widthType.makeRef()))
         tlmPortInit.append('sc_module(portName)')
         tlmPortInit.append('irqSignal(irqSignal)')
-        constructorCode += 'this->socket.register_b_transport(this, &IntrTLMPort::b_transport);\n'
-        irqPortDecl = cxx_writer.writer_code.ClassDeclaration('IntrTLMPort', tlmPortElements, [cxx_writer.writer_code.sc_moduleType])
+        tlmPortInit.append('socket(portName)')
+        constructorCode += 'this->socket.register_b_transport(this, &IntrTLMPort_' + str(width) + '::b_transport);\n'
+        constructorCode += 'this->socket.register_transport_dbg(this, &IntrTLMPort_' + str(width) + '::transport_dbg);\n'
+        constructorCode += 'this->socket.register_nb_transport_fw(this, &IntrTLMPort_' + str(width) + '::nb_transport_fw);\n'
+        irqPortDecl = cxx_writer.writer_code.ClassDeclaration('IntrTLMPort_' + str(width), tlmPortElements, [cxx_writer.writer_code.sc_moduleType])
         constructorBody = cxx_writer.writer_code.Code(constructorCode + 'end_module();')
         publicExtPortConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, tlmPortInit)
         irqPortDecl.addConstructor(publicExtPortConstr)
         classes.append(irqPortDecl)
-    if hasSysC:
-        # SystemC ports: I simply have a method listening for a signal; depending on the triggering type, wither
-        # wait on edge, level ... and raise or lower the boolean variable accordingly
-        boolSignalType = cxx_writer.writer_code.TemplateType('sc_signal', [cxx_writer.writer_code.boolType], 'systemc.h')
+    for width in SyscWidth:
+        # SystemC ports: I simply have a method listening for a signal; note that in order to lower the interrupt,
+        # the signal has to be equal to 0
+        widthSignalType = cxx_writer.writer_code.TemplateType('sc_signal', [widthType], 'systemc.h')
         systemcPortElements = []
         sensitiveMethodCode = 'this->irqSignal = this->recvIntr.read();'
         sensitiveMethodBody = cxx_writer.writer_code.Code(sensitiveMethodCode)
         sensitiveMethodDecl = cxx_writer.writer_code.Method('irqRecvMethod', sensitiveMethodBody, cxx_writer.writer_code.voidType, 'pu')
         systemcPortElements.append(sensitiveMethodDecl)
-        signalAttr = cxx_writer.writer_code.Attribute('recvIntr', boolSignalType, 'pu')
+        signalAttr = cxx_writer.writer_code.Attribute('recvIntr', widthSignalType, 'pu')
         systemcPortElements.append(signalAttr)
-        irqSignalAttr = cxx_writer.writer_code.Attribute('irqSignal', cxx_writer.writer_code.boolType.makeRef(), 'pu')
+        irqSignalAttr = cxx_writer.writer_code.Attribute('irqSignal', widthType.makeRef(), 'pu')
         tlmPortElements.append(irqSignalAttr)
         constructorCode = ''
         tlmPortInit = []
         constructorParams = []
         constructorParams.append(cxx_writer.writer_code.Parameter('portName', cxx_writer.writer_code.sc_module_nameType))
-        constructorParams.append(cxx_writer.writer_code.Parameter('irqSignal', cxx_writer.writer_code.boolType.makeRef()))
+        constructorParams.append(cxx_writer.writer_code.Parameter('irqSignal', widthType.makeRef()))
         tlmPortInit.append('sc_module(portName)')
         tlmPortInit.append('irqSignal(irqSignal)')
         constructorCode += 'SC_METHOD();\nsensitive << this->recvIntr;\n'
-        irqPortDecl = cxx_writer.writer_code.ClassDeclaration('IntrSysCPort', systemcPortElements, [cxx_writer.writer_code.sc_moduleType])
+        irqPortDecl = cxx_writer.writer_code.ClassDeclaration('IntrSysCPort_' + str(width), systemcPortElements, [cxx_writer.writer_code.sc_moduleType])
         constructorBody = cxx_writer.writer_code.Code(constructorCode + 'end_module();')
         publicExtPortConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, tlmPortInit)
         irqPortDecl.addConstructor(publicExtPortConstr)
@@ -3305,6 +3444,270 @@ def getGetPipelineStages(self, trace):
         pipeCodeElements.append(curPipeDecl)
 
     return pipeCodeElements
+
+def getGetPINPorts(self):
+    # Returns the code implementing pins for communication with external world.
+    # there are both incoming and outgoing external ports. For the outgoing
+    # I simply have to declare the port class (like memory ports), for the
+    # incoming I also have to specify the operation which has to be performed
+    # when the port is triggered (they are like interrupt ports)
+    if len(self.pins) == 0:
+        return None
+
+    alreadyDecl = []
+    inboundSysCPorts = []
+    outboundSysCPorts = []
+    inboundTLMPorts = []
+    outboundTLMPorts = []
+    for port in self.pins:
+        if port.inbound:
+            # I add all the inbound ports since there is an action specified for each
+            # of them. In order to correctly execute the specified action the
+            # port needs to have references to all the architectural elements
+            if port.systemc:
+                inboundSysCPorts.append(port)
+            else:
+                inboundTLMPorts.append(port)
+        else:
+            # I have to declare a new port only if there is not yet another
+            # port with same width and it is systemc or tlm.
+            if not (str(port.portWidth) + '_' + str(port.systemc)) in alreadyDecl:
+                if port.systemc:
+                    outboundSysCPorts.append(port)
+                else:
+                    outboundTLMPorts.append(port)
+                alreadyDecl.append(str(port.portWidth) + '_' + str(self.systemc))
+
+    pinClasses = []
+    # Now I have to actually declare the ports; I declare only
+    # blocking interfaces
+    # outgoing
+    for port in outboundTLMPorts:
+        pinPortElements = []
+
+        tlm_dmiType = cxx_writer.writer_code.Type('tlm::tlm_dmi', 'tlm.h')
+        PinPortType = cxx_writer.writer_code.Type('PinTLM_out_' + str(port.portWidth))
+        tlminitsocketType = cxx_writer.writer_code.TemplateType('tlm_utils::multi_passthrough_initiator_socket', [PinPortType, port.portWidth, 'tlm::tlm_base_protocol_types', 1, 'sc_core::SC_ZERO_OR_MORE_BOUND'], 'tlm_utils/multi_passthrough_initiator_socket.h')
+        payloadType = cxx_writer.writer_code.Type('tlm::tlm_generic_payload', 'tlm.h')
+        pinPortInit = []
+        constructorParams = []
+
+        sendPINBody = cxx_writer.writer_code.Code("""tlm::tlm_generic_payload trans;
+        sc_time delay;
+        trans.set_address(address);
+        trans.set_write();
+        trans.set_data_ptr((unsigned char*)&datum);
+        trans.set_data_length(sizeof(datum));
+        trans.set_byte_enable_ptr(0);
+        trans.set_dmi_allowed(false);
+        trans.set_response_status(tlm::TLM_INCOMPLETE_RESPONSE);
+        this->initSocket->b_transport(trans, delay);
+
+        if(trans.is_response_error()){
+            std::string errorStr("Error from b_transport, response status = " + trans.get_response_string());
+            SC_REPORT_ERROR("TLM-2", errorStr.c_str());
+        }
+        """)
+        sendPINBody.addInclude('utils.hpp')
+        sendPINBody.addInclude('tlm.h')
+        from isa import resolveBitType
+        PINWidthType = resolveBitType('BIT<' + str(port.portWidth) + '>')
+        addressParam = cxx_writer.writer_code.Parameter('address', PINWidthType.makeRef().makeConst())
+        datumParam = cxx_writer.writer_code.Parameter('datum', PINWidthType)
+        sendPINDecl = cxx_writer.writer_code.Method('send_pin_req', sendPINBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
+        pinPortElements.append(sendPINDecl)
+
+        constructorParams.append(cxx_writer.writer_code.Parameter('portName', cxx_writer.writer_code.sc_module_nameType))
+        pinPortInit.append('sc_module(portName)')
+        initSockAttr = cxx_writer.writer_code.Attribute('initSocket', tlminitsocketType, 'pu')
+        pinPortInit.append('initSocket(sc_gen_unique_name(portName))')
+        pinPortElements.append(initSockAttr)
+
+        pinPortDecl = cxx_writer.writer_code.ClassDeclaration('PinTLM_out_' + str(port.portWidth), pinPortElements, [cxx_writer.writer_code.sc_moduleType])
+        constructorBody = cxx_writer.writer_code.Code('end_module();')
+        publicPINPortConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, pinPortInit)
+        pinPortDecl.addConstructor(publicPINPortConstr)
+        pinClasses.append(pinPortDecl)
+
+    for port in outboundSysCPorts:
+        raise Exception('outbound SystemC ports not yet supported')
+
+    # incoming
+    for port in inboundTLMPorts:
+        raise Exception('inbound TLM ports not yet supported')
+
+    for port in inboundSysCPorts:
+        raise Exception('inbound SystemC ports not yet supported')
+
+    return pinClasses
+
+def getIRQTests(self, trace):
+    # Returns the code implementing the tests for the interrupts
+    from processor import extractRegInterval
+    testFuns = []
+    global testNames
+
+    archElemsDeclStr = ''
+    destrDecls = ''
+    for reg in self.regs:
+        archElemsDeclStr += str(resourceType[reg.name]) + ' ' + reg.name + ';\n'
+    for regB in self.regBanks:
+        if (regB.constValue and len(regB.constValue) < regB.numRegs)  or (regB.delay and len(regB.delay) < regB.numRegs):
+            archElemsDeclStr += str(resourceType[regB.name]) + ' ' + regB.name + '(' + str(regB.numRegs) + ');\n'
+            for i in range(0, regB.numRegs):
+                if regB.constValue.has_key(i) or regB.delay.has_key(i):
+                    archElemsDeclStr += regB.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '[' + str(i) + ']']) + '());\n'
+                else:
+                    archElemsDeclStr += regB.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '_baseType']) + '());\n'
+        else:
+            archElemsDeclStr += str(resourceType[regB.name]) + ' ' + regB.name + ' = new ' + str(resourceType[regB.name].makeNormal()) + '[' + str(regB.numRegs) + '];\n'
+            destrDecls += 'delete [] ' + regB.name + ';\n'
+    for alias in self.aliasRegs:
+        archElemsDeclStr += str(resourceType[alias.name]) + ' ' + alias.name + ';\n'
+    for aliasB in self.aliasRegBanks:
+        archElemsDeclStr += str(resourceType[aliasB.name].makePointer()) + ' ' + aliasB.name + ' = new ' + str(resourceType[aliasB.name]) + '[' + str(aliasB.numRegs) + '];\n'
+        destrDecls += 'delete [] ' + aliasB.name + ';\n'
+    memAliasInit = ''
+    for alias in self.memAlias:
+        memAliasInit += ', ' + alias.alias
+
+    if (trace or (self.memory and self.memory[2])) and not self.systemc:
+        archElemsDeclStr += 'unsigned int totalCycles;\n'
+    if self.memory:
+        memDebugInit = ''
+        if self.memory[2]:
+            memDebugInit += ', totalCycles'
+        if self.memory[3]:
+            memDebugInit += ', ' + self.memory[3]
+        archElemsDeclStr += 'LocalMemory ' + self.memory[0] + '(' + str(self.memory[1]) + memDebugInit + memAliasInit + ');\n'
+    # Note how I declare local memories even for TLM ports. I use 1MB as default dimension
+    for tlmPorts in self.tlmPorts.keys():
+        archElemsDeclStr += 'LocalMemory ' + tlmPorts + '(' + str(1024*1024) + memAliasInit + ');\n'
+    # Now I declare the PIN stubs for the outgoing PIN ports
+    # and alts themselves
+    outPinPorts = []
+    for pinPort in self.pins:
+        if not pinPort.inbound:
+            outPinPorts.append(pinPort.name)
+            pinPortTypeName = 'Pin'
+            if pinPort.systemc:
+                pinPortTypeName += 'SysC_'
+            else:
+                pinPortTypeName += 'TLM_'
+            if pinPort.inbound:
+                pinPortTypeName += 'in_'
+            else:
+                pinPortTypeName += 'out_'
+            pinPortTypeName += str(pinPort.portWidth)
+            archElemsDeclStr += pinPortTypeName + ' ' + pinPort.name + '(sc_core::sc_gen_unique_name(\"' + pinPort.name + '_PIN\"));\n'
+            archElemsDeclStr += 'PINTarget<' + str(pinPort.portWidth) + '> ' + pinPort.name + '_target(sc_core::sc_gen_unique_name(\"' + pinPort.name + '_target\"));\n'
+            archElemsDeclStr += pinPort.name + '.initSocket.bind(' + pinPort.name + '_target.socket);\n'
+
+    # Now we perform the alias initialization; note that they need to be initialized according to the initialization graph
+    # (there might be dependences among the aliases)
+    aliasInit = ''
+    import networkx as NX
+    orderedNodes = NX.topological_sort(aliasGraph)
+    for alias in orderedNodes:
+        if alias == 'stop':
+            continue
+        if isinstance(alias.initAlias, type('')):
+            index = extractRegInterval(alias.initAlias)
+            if index:
+                curIndex = index[0]
+                try:
+                    for i in range(0, alias.numRegs):
+                        aliasInit += alias.name + '[' + str(i) + '].updateAlias(' + alias.initAlias[:alias.initAlias.find('[')] + '[' + str(curIndex) + ']);\n'
+                        curIndex += 1
+                except AttributeError:
+                    aliasInit += alias.name + '.updateAlias(' + alias.initAlias[:alias.initAlias.find('[')] + '[' + str(curIndex) + '], ' + str(alias.offset) + ');\n'
+            else:
+                aliasInit += alias.name + '.updateAlias(' + alias.initAlias + ', ' + str(alias.offset) + ');\n'
+        else:
+            curIndex = 0
+            for curAlias in alias.initAlias:
+                index = extractRegInterval(curAlias)
+                if index:
+                    for curRange in range(index[0], index[1] + 1):
+                        aliasInit += alias.name + '[' + str(curIndex) + '].updateAlias(' + curAlias[:curAlias.find('[')] + '[' + str(curRange) + ']);\n'
+                        curIndex += 1
+                else:
+                    aliasInit += alias.name + '[' + str(curIndex) + '].updateAlias(' + curAlias + ');\n'
+                    curIndex += 1
+
+    for irq in self.irqs:
+        from isa import resolveBitType
+        irqType = resolveBitType('BIT<' + str(irq.portWidth) + '>')
+        archElemsDeclStr += '\n//Fake interrupt line\n' + str(irqType) + ' ' + irq.name + ';\n'
+        testNum = 0
+        for test in irq.tests:
+            testName = 'irq_test_' + irq.name + '_' + str(testNum)
+            code = archElemsDeclStr
+
+            # Note that each test is composed of two parts: the first one
+            # containing the status of the processor before the interrupt and
+            # then the status of the processor after
+            for resource, value in test[0].items():
+                # I set the initial value of the global resources
+                brackIndex = resource.find('[')
+                memories = self.tlmPorts.keys()
+                if self.memory:
+                    memories.append(self.memory[0])
+                if brackIndex > 0 and resource[:brackIndex] in memories:
+                    try:
+                        code += resource[:brackIndex] + '.write_word(' + hex(int(resource[brackIndex + 1:-1])) + ', ' + hex(value) + ');\n'
+                    except ValueError:
+                        code += resource[:brackIndex] + '.write_word(' + hex(int(resource[brackIndex + 1:-1], 16)) + ', ' + hex(value) + ');\n'
+                elif resource == irq.name:
+                    code += resource + ' = ' + hex(value) + ';\n'
+                else:
+                    code += resource + '.immediateWrite(' + hex(value) + ');\n'
+
+            # Now I declare the actual interrupt code
+            code += 'if('
+            if(irq.condition):
+                code += '('
+            code += irq.name + ' != -1'
+            if(irq.condition):
+                code += ') && (' + irq.condition + ')'
+            code += '){\n'
+            code += irq.operation + '\n}\n'
+
+            # finally I check the correctness of the executed operation
+            for resource, value in test[1].items():
+                # I check the value of the listed resources to make sure that the
+                # computation executed correctly
+                code += 'BOOST_CHECK_EQUAL('
+                brackIndex = resource.find('[')
+                memories = self.tlmPorts.keys()
+                if self.memory:
+                    memories.append(self.memory[0])
+                if brackIndex > 0 and resource[:brackIndex] in memories:
+                    try:
+                        code += resource[:brackIndex] + '.read_word(' + hex(int(resource[brackIndex + 1:-1])) + ')'
+                    except ValueError:
+                        code += resource[:brackIndex] + '.read_word(' + hex(int(resource[brackIndex + 1:-1], 16)) + ')'
+                elif brackIndex > 0 and resource[:brackIndex] in outPinPorts:
+                    try:
+                        code += resource[:brackIndex] + '_target.readPIN(' + hex(int(resource[brackIndex + 1:-1])) + ')'
+                    except ValueError:
+                        code += resource[:brackIndex] + '_target.readPIN(' + hex(int(resource[brackIndex + 1:-1], 16)) + ')'
+                else:
+                    code += resource + '.readNewValue()'
+                global archWordType
+                code += ', (' + str(archWordType) + ')' + hex(value) + ');\n\n'
+            code += destrDecls
+            curTest = cxx_writer.writer_code.Code(code)
+            wariningDisableCode = '#ifdef _WIN32\n#pragma warning( disable : 4101 )\n#endif\n'
+            includeUnprotectedCode = '#define private public\n#define protected public\n#include \"registers.hpp\"\n#include \"memory.hpp\"\n#undef private\n#undef protected\n'
+            curTest.addInclude(['boost/test/test_tools.hpp', 'customExceptions.hpp', wariningDisableCode, includeUnprotectedCode, 'alias.hpp'])
+            curTestFunction = cxx_writer.writer_code.Function(testName, curTest, cxx_writer.writer_code.voidType)
+
+            testFuns.append(curTestFunction)
+            testNames.append(testName)
+            testNum += 1
+
+    return testFuns
 
 def getTestMainCode(self):
     # Returns the code for the file which contains the main
