@@ -1308,6 +1308,11 @@ def getCPPProc(self, model, trace):
             template_map< """  + str(fetchWordType) + ', ' + str(fetchWordType) + """ > freqInstrMap;
             template_map< """  + str(fetchWordType) + ', ' + str(fetchWordType) + """ >::iterator freqInstrMapEnd = freqInstrMap.end();
             """
+            if self.fastFetch:
+                mapKey = 'curPC'
+            else:
+                mapKey = 'bitString'
+
         if self.externalClock:
             codeString += 'if(this->waitCycles > 0){\nthis->waitCycles--;\nreturn;\n}\n\n'
         else:
@@ -1365,11 +1370,7 @@ def getCPPProc(self, model, trace):
         if trace:
             codeString += 'std::cerr << \"Current PC: \" << std::hex << std::showbase << ' + pcVar + ' << std::endl;\n'
         if self.instructionCache:
-            codeString += 'template_map< ' + str(fetchWordType) + ', Instruction * >::iterator cachedInstr = Processor::instrCache.find('
-            if self.fastFetch:
-                codeString += 'curPC);'
-            else:
-                codeString += 'bitString);'
+            codeString += 'template_map< ' + str(fetchWordType) + ', Instruction * >::iterator cachedInstr = Processor::instrCache.find(' + mapKey + ');'
             codeString += """
             if(cachedInstr != instrCacheEnd){
                 // I can call the instruction, I have found it
@@ -1450,14 +1451,10 @@ def getCPPProc(self, model, trace):
             }
             """
         if self.instructionCache:
-            codeString += """template_map< """ + str(fetchWordType) + ', ' + str(fetchWordType) + """ >::iterator freqInstrMapIter = freqInstrMap.find("""
-            if self.fastFetch:
-                codeString += 'curPC);'
-            else:
-                codeString += 'bitString);'
+            codeString += """template_map< """ + str(fetchWordType) + ', ' + str(fetchWordType) + ' >::iterator freqInstrMapIter = freqInstrMap.find(' + mapKey + ');'
             codeString += """
                 if(freqInstrMapIter == freqInstrMapEnd){
-                    freqInstrMap.insert(std::pair< """ + str(fetchWordType) + ', ' + str(fetchWordType) + """ >(curPC, 1));
+                    freqInstrMap.insert(std::pair< """ + str(fetchWordType) + ', ' + str(fetchWordType) + ' >(' + mapKey + """, 1));
                     freqInstrMapEnd = freqInstrMap.end();
                 }
                 else{
@@ -1465,10 +1462,7 @@ def getCPPProc(self, model, trace):
                 // ... and then add the instruction to the cache
             """
         if self.instructionCache:
-            if self.fastFetch:
-                codeString += 'instrCache.insert(std::pair< ' + str(fetchWordType) + ', Instruction * >(curPC, instr));'
-            else:
-                codeString += 'instrCache.insert(std::pair< ' + str(fetchWordType) + ', Instruction * >(bitString, instr));'
+            codeString += 'instrCache.insert(std::pair< ' + str(fetchWordType) + ', Instruction * >(' + mapKey + ', instr));'
             if not self.externalClock:
                 codeString += """
                     instrCacheEnd = Processor::instrCache.end();"""
