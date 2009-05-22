@@ -1,3 +1,5 @@
+-- CHECK FACT BENCHMARK WHEN A HUGE NUMBER IS USED: IT CRASHES
+
 -- Interrupts: we need to establish a protocol for asserting/deasserting interrupts: I would say that the address
 of the request can be the interrupt line and the contents (0 or 1 asserting/deasserting)!!
 
