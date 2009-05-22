@@ -1,9 +1,9 @@
 /*************************************************************
- * 
+ *
  * Copyright 2006/7 Gregor Heinrich/Arbylon and Fraunhofer IGD.
  *
  * Only for usage within hArtes tool-chain development. No
- * warranties for functional or structural features of the code 
+ * warranties for functional or structural features of the code
  * or resulting binary applications. Usage in any applications
  * requires the consent of copyright holders.
  *
@@ -20,8 +20,9 @@
  *
  * \author Gregor Heinrich, Arbylon / for Fraunhofer IGD
  * \date 20061812
- * 
+ *
  */
+
 
 #ifndef MYMATH_H
 #define MYMATH_H
@@ -94,7 +95,7 @@ real cmag(complex x);
  * \param x
  * \return arg(x)
  */
-real carg(complex x);
+real mycarg(complex x);
 
 /*!
  * complex number from magnitude and phase
@@ -102,12 +103,12 @@ real carg(complex x);
  * \param mag magnitude
  * \return mag * exp(j arg)
  */
-complex cexp(real mag, real arg);
+complex mycexp(real mag, real arg);
 
 
 /*!
  * conversion from real to complex
- * 
+ *
  * \param in real input
  * \param out complex output
  * \param len buffer lengths
@@ -118,7 +119,7 @@ int r2c(real* in, complex* out, int len);
 
 /*!
  * conversion from complex to real
- * 
+ *
  * \param in complex input
  * \param out real output
  * \param len buffer lengths
@@ -139,7 +140,7 @@ int bitrev(int i,int m);
 
 /*!
  * calculate phase factors
- * 
+ *
  * \param w [out] array of phase factors (fft size / 2)
  * \param idir direction (forward = 1, backward = -1)
  * \param size of fft
@@ -148,7 +149,7 @@ void ffw(complex *w,int idir,int n);
 
 /*!
  * permutation from data order to butterfly order,
- * 
+ *
  * \param x [in/out] data
  * \param m ld of fft size
  */
@@ -157,8 +158,8 @@ void perm(complex* x, int m);
 /*!
  * permutation from data order to butterfly order using reversed half-
  * frames
- * 
- * \param x [in/out] data whose actual order is 
+ *
+ * \param x [in/out] data whose actual order is
  *        x[2^(m-1):2^m-1]x[0:2^(m-1)]
  * \param m ld of fft size
  */
@@ -167,7 +168,7 @@ void permrev(complex* x, int m);
 /*!
  * permutation from data order to butterfly order into
  * provided array.
- * 
+ *
  * \param x [in] data
  * \param y [out] data
  * \param m ld of fft size
@@ -178,8 +179,8 @@ void permcpy(complex* x, complex* y, int m);
 /*!
  * permutation from data order to butterfly order using reversed half-
  * frames, copies into the provided array.
- * 
- * \param x [in/out] data whose actual order is 
+ *
+ * \param x [in/out] data whose actual order is
  *        x[2^(m-1):2^m-1]x[0:2^(m-1)]
  * \param m ld of fft size
  */
@@ -188,7 +189,7 @@ void permrevcpy(complex* x, complex* y, int m);
 /*!
  * fft core routine.
  * (must be prepended by a permutation)
- * 
+ *
  * \param [in/out] time/freq domain vector
  * \param direction (forward = 1, backward = -1)
  * \param size of fft (should be 2^N)
@@ -268,7 +269,7 @@ void fwconv(complex* x, complex* h, complex* y, int m);
  * \param xlen length of x
  * \param h [in] impulse response h
  * \param hlen length of h
- * \param y [out] convolved time-domain signal y = x ** h, 
+ * \param y [out] convolved time-domain signal y = x ** h,
  *        length ylen = xlen + hlen - 1
  */
 void tconv(complex* x, int xlen, complex* h, int ylen, complex* y);
@@ -293,11 +294,11 @@ void printbits(int n);
 #endif // MYMATH_H
 
 /*************************************************************
- * 
+ *
  * Copyright 2006/7 Gregor Heinrich/Arbylon and Fraunhofer IGD.
  *
  * Only for usage within hArtes tool-chain development. No
- * warranties for functional or structural features of the code 
+ * warranties for functional or structural features of the code
  * or resulting binary applications. Usage in any applications
  * requires the consent of copyright holders.
  *
@@ -359,12 +360,12 @@ typedef struct {
 /*!
  * time-partitioned OLS convolution, streaming mode.
  *
- * Prepares the filtering by allocating internal memory of a filter and setting up the transformations. The 
- * input and output buffers are complex arrays inbuf and outbuf. Therefore, the streaming framework that 
+ * Prepares the filtering by allocating internal memory of a filter and setting up the transformations. The
+ * input and output buffers are complex arrays inbuf and outbuf. Therefore, the streaming framework that
  * calls trigger must call the appropriate conversion methods rtols_*2*(in, out, len). TODO: fix this to avoid
  * this inner-loop conversion.
  *
- * In the system, two internal i/o buffers of type complex are generated, one of size 2^m for the input data, 
+ * In the system, two internal i/o buffers of type complex are generated, one of size 2^m for the input data,
  * and one of size 2^(m-1) for the output data.
  *
  * \param filter the structure that contains all information for filtering
@@ -380,12 +381,12 @@ int rtols_prepare(filter* filt, complex* h, int hlen, int m);
  * input buffer requires that the rtols_filter_sigshare method be used instead of rtols_filter, which will return
  * -1 and ignore the call.
  *
- * Prepares the filtering by allocating internal memory of a filter and setting up the transformations. The 
- * input and output buffers are complex arrays inbuf and outbuf. Therefore, the streaming framework that 
+ * Prepares the filtering by allocating internal memory of a filter and setting up the transformations. The
+ * input and output buffers are complex arrays inbuf and outbuf. Therefore, the streaming framework that
  * calls trigger must call the appropriate conversion methods rtols_*2*(in, out, len). TODO: fix this to avoid
  * this inner-loop conversion.
  *
- * In the system, two internal i/o buffers of type complex are generated, one of size 2^m for the input data, 
+ * In the system, two internal i/o buffers of type complex are generated, one of size 2^m for the input data,
  * and one of size 2^(m-1) for the output data.
  *
  * \param filter the structure that contains all information for filtering
@@ -393,25 +394,25 @@ int rtols_prepare(filter* filt, complex* h, int hlen, int m);
  * \param hlen length of h
  * \param wf forward fft structure
  * \param wi inverse fft structure
- * \param XX circular frame spectrum buffer of size R x 2^m, 
- *        R is checked if it is compatible with hlen: R = ceil(hlen * 2^(-m+1)), 
+ * \param XX circular frame spectrum buffer of size R x 2^m,
+ *        R is checked if it is compatible with hlen: R = ceil(hlen * 2^(-m+1)),
  *        if not, -2 as the error code is returned.
  * \param m ld of fft size used to partition the signals, note that input and output buffers are fftsize/2
  * \param addout 0 if outgoing signals overwrite the output buffer, 1 if they are added.
  * \return error code <0 or 0
  */
-int rtols_prepare_sigshare(filter* filt, complex* h, int hlen, complex* wf, complex* wi, 
+int rtols_prepare_sigshare(filter* filt, complex* h, int hlen, complex* wf, complex* wi,
                            complex** XX, int R, int m, int addout);
 
 /*!
  * time-partitioned OLS convolution, streaming mode with shared resources for fft and filter transfer function.
  *
- * Prepares the filtering by allocating internal memory of a filter and setting up the transformations. The 
- * input and output buffers are complex arrays inbuf and outbuf. Therefore, the streaming framework that 
+ * Prepares the filtering by allocating internal memory of a filter and setting up the transformations. The
+ * input and output buffers are complex arrays inbuf and outbuf. Therefore, the streaming framework that
  * calls trigger must call the appropriate conversion methods rtols_*2*(in, out, len). TODO: fix this to avoid
  * this inner-loop conversion.
  *
- * In the system, two internal i/o buffers of type complex are generated, one of size 2^m for the input data, 
+ * In the system, two internal i/o buffers of type complex are generated, one of size 2^m for the input data,
  * and one of size 2^(m-1) for the output data.
  *
  * \param filter the structure that contains all information for filtering
@@ -436,7 +437,7 @@ int rtols_prepare_filtshare(filter* filt, complex* wf, complex* wi, complex** HH
  *        rtols_finish and the returned number of frames, inbuf is ignored (as there is no signal left).
  * \param outbuf real output buffer where the result is written to (size 2^(m-1) expected). If not the full
  *        buffer is filled with signal, it is zero-padded.
- * \return number of samples in the output buffer that are the signal or -1 if there is no signal 
+ * \return number of samples in the output buffer that are the signal or -1 if there is no signal
  *        left or error code <-1. This is especially useful after calls to rtols_finish().
  */
 int rtols_filter(filter* filt, real* inbuf, real* outbuf);
@@ -452,7 +453,7 @@ int rtols_filter(filter* filt, real* inbuf, real* outbuf);
  *        rtols_finish and the returned number of frames, inbuf is ignored (as there is no signal left).
  * \param outbuf real output buffers where the result is written to (size 2^(m-1) expected).
  * \param outoffset offset to each output buffer (internal: pointer addition on each single buffer)
- * \return number of samples in the output buffer that are the signal or -1 if there is no signal 
+ * \return number of samples in the output buffer that are the signal or -1 if there is no signal
  *        left or error code <-1. This is especially useful after calls to rtols_finish().
  */
 int rtols_filter_sigshare(filter* filters, int nfilt, real* inbuf, real** outbuf, int outoffset);
@@ -464,7 +465,7 @@ int rtols_filter_sigshare(filter* filters, int nfilt, real* inbuf, real** outbuf
  *
  * \param h new impulse response
  * \param hlen length of new IR
- * \param transition number of frames that the IR will be crossfaded from the old one 
+ * \param transition number of frames that the IR will be crossfaded from the old one
  *        (frequency-domain interpolation)
  * \return error code <0 or 0
  */
@@ -472,7 +473,7 @@ int rtols_filter_update(filter* filt, complex* h, int hlen, int transition);
 
 /*!
  * time-partitioned OLS convolution, streaming mode.
- * 
+ *
  * finishes the filter operation. Afterwards, the filter can be reused by calling rtols_restart.
  * If the filter is shared by its input, finishes all filters that belong to the signal.
  *
@@ -502,11 +503,11 @@ int rtols_cleanup(filter* filt);
 #endif // RTOLS_H
 
 /*************************************************************
- * 
+ *
  * Copyright 2006/7 Gregor Heinrich/Arbylon and Fraunhofer IGD.
  *
  * Only for usage within hArtes tool-chain development. No
- * warranties for functional or structural features of the code 
+ * warranties for functional or structural features of the code
  * or resulting binary applications. Usage in any applications
  * requires the consent of copyright holders.
  *
@@ -516,7 +517,7 @@ int rtols_cleanup(filter* filt);
  *
  * \author Gregor Heinrich, Arbylon / for Fraunhofer IGD
  * \date 20061812
- * 
+ *
  */
 #ifndef TOLS_H
 #define TOLS_H
@@ -566,24 +567,24 @@ void segment_ir(complex* h, int hlen, int m, complex* wf, complex** HH);
 #endif // TOLS_H
 
 /*************************************************************
- * 
+ *
  * Copyright 2006/7 Gregor Heinrich/Arbylon and Fraunhofer IGD.
  *
  * Only for usage within hArtes tool-chain development. No
- * warranties for functional or structural features of the code 
+ * warranties for functional or structural features of the code
  * or resulting binary applications. Usage in any applications
  * requires the consent of copyright holders.
  *
  *************************************************************/
- /* 
- * Simple implementation of complex binary operations, FFT and 
+ /*
+ * Simple implementation of complex binary operations, FFT and
  * convolution algorithms.
- * 
+ *
  * \author Gregor Heinrich, Arbylon / for Fraunhofer IGD
  * \date 20061812
- * 
- * Note: FFT implementation based on code by Numerical Recipes 
- * (Cambrige Univ. Press) and Martin Neumann's computational 
+ *
+ * Note: FFT implementation based on code by Numerical Recipes
+ * (Cambrige Univ. Press) and Martin Neumann's computational
  * physics notes (Univ. Vienna). Also, see Bronstein-Semendyayev.
  */
 #include <stdlib.h>
@@ -634,11 +635,11 @@ real cmag(complex x) {
     return sqrt(x.re * x.re + x.im * x.im);
 }
 
-real carg(complex x) {
+real mycarg(complex x) {
     return atan(x.im / x.re);
 }
 
-complex cexp(real mag, real arg) {
+complex mycexp(real mag, real arg) {
     complex z;
     z.re = mag * cos(arg);
     z.im = mag * sin(arg);
@@ -664,7 +665,7 @@ int c2r(complex* in, real* out, int len, int mode) {
         } else if (mode == 2) {
             out[i] = (real) cmag(in[i]);
         } else if (mode == 3) {
-            out[i] = (real) carg(in[i]);
+            out[i] = (real) mycarg(in[i]);
         } else {
             // error: \unknown mode
             return -1;
@@ -739,14 +740,14 @@ void permrev(complex* x, int m) {
 void permcpy(complex* x, complex* y, int m) {
     memcpy(y, x, (1 << m) * sizeof(complex));
     perm(y, m);
-    // TODO: replace this by a direct assignment 
+    // TODO: replace this by a direct assignment
     // from x to y
 }
 
 void permrevcpy(complex* x, complex* y, int m) {
     memcpy(y, x, (1 << m) * sizeof(complex));
     permrev(y, m);
-    // TODO: replace this by a direct assignment 
+    // TODO: replace this by a direct assignment
     // from x to y
 }
 
@@ -834,7 +835,7 @@ void ifftcpy(complex* x, complex* y, complex* w, int m) {
 void fconv(complex* x, complex* h, complex* y, complex* wf, complex* wi, int m) {
     complex *xspec, *hspec;
     int n = 1 << m, i;
-    
+
     xspec = (complex*) malloc(n * sizeof(complex));
     hspec = (complex*) malloc(n * sizeof(complex));
 
@@ -857,13 +858,13 @@ void fwconv(complex* x, complex* h, complex* y, int m) {
 
     wf = (complex*) malloc((n/2) * sizeof(complex));
     wi = (complex*) malloc((n/2) * sizeof(complex));
-    
+
     // calculate phase factors for forward and inverse transform
     ffw(wf,1,n);
     ffw(wi,-1,n);
 
     fconv(x, h, y, wf, wi, m);
-    
+
     free(wf);
     free(wi);
 }
@@ -871,7 +872,7 @@ void fwconv(complex* x, complex* h, complex* y, int m) {
 void tconv(complex* x, int xlen, complex* h, int hlen, complex* y) {
 	int i, j;
 	int ylen = xlen + hlen - 1;
-	
+
     for (i = 0; i < ylen; i++) {
         y[i].re = 0.;
         y[i].im = 0.;
@@ -915,11 +916,11 @@ void printbits(int n) {
 }
 
 /*************************************************************
- * 
+ *
  * Copyright 2006/7 Gregor Heinrich/Arbylon and Fraunhofer IGD.
  *
  * Only for usage within hArtes tool-chain development. No
- * warranties for functional or structural features of the code 
+ * warranties for functional or structural features of the code
  * or resulting binary applications. Usage in any applications
  * requires the consent of copyright holders.
  *
@@ -929,7 +930,7 @@ void printbits(int n) {
  *
  * \author Gregor Heinrich, Arbylon / for Fraunhofer IGD
  * \date 20061912
- * 
+ *
  */
 #include <stdlib.h>
 #include <stdio.h>
@@ -1013,11 +1014,11 @@ void ols(complex* x, int xlen, complex* h, int hlen, complex* y, int ylen, int m
 }
 
 /*************************************************************
- * 
+ *
  * Copyright 2006/7 Gregor Heinrich/Arbylon and Fraunhofer IGD.
  *
  * Only for usage within hArtes tool-chain development. No
- * warranties for functional or structural features of the code 
+ * warranties for functional or structural features of the code
  * or resulting binary applications. Usage in any applications
  * requires the consent of copyright holders.
  *
@@ -1051,14 +1052,14 @@ int rtols_prepare(filter* filt, complex* h, int hlen, int m) {
     filt->m = m;
     // L: fft and signal frame size
     filt->L = 1 << m;
-    // K: impulse response frame size (zero padded to L, 
+    // K: impulse response frame size (zero padded to L,
     // always = L/2, this is for notational convenience)
     filt->K = filt->L / 2;
-    // S: signal stepping (always = K, this is for 
+    // S: signal stepping (always = K, this is for
     // notational convenience)
     filt->S = filt->L - filt->K;
 
-    // @deplib: if purely complex fft is used, extra buffering is necessary, 
+    // @deplib: if purely complex fft is used, extra buffering is necessary,
     // otherwise signals can be assigned directly
     // x contains the current signal frame (with half-frame stepping = K)
     filt->x = (complex*) calloc(filt->L, sizeof(complex));
@@ -1115,7 +1116,7 @@ int rtols_prepare(filter* filt, complex* h, int hlen, int m) {
     return 0;
 }
 
-int rtols_prepare_sigshare(filter* filt, complex* h, int hlen, complex* wf, complex* wi, 
+int rtols_prepare_sigshare(filter* filt, complex* h, int hlen, complex* wf, complex* wi,
                            complex** XX, int R, int m, int addout) {
 
     filt->sharemode = RTOLS_SHARED_FFT + RTOLS_SHARED_INPUT + (addout ? RTOLS_SHARED_OUTPUT_ADD : 0);
@@ -1131,7 +1132,7 @@ int rtols_prepare_filtshare(filter* filt, complex* wf, complex* wi, complex** HH
 
 }
 
-// @parallel: can be run in separate thread that has private locals and 
+// @parallel: can be run in separate thread that has private locals and
 // a critical section on outbuf writing
 int rtols_filter(filter* filt, real* inbuf, real* outbuf) {
     // index variables
@@ -1143,7 +1144,7 @@ int rtols_filter(filter* filt, real* inbuf, real* outbuf) {
     if (filt->sharemode & RTOLS_SHARED_INPUT) {
         return RTOLS_ERROR_SHARED_INPUT;
     }
-    
+
     /** BEGIN process frame **/
     if (!filt->finishing || filt->hassignal || filt->hastail) {
         printf("+++++++++++++ loop %i ++++++++++++\n", filt->i);
@@ -1151,7 +1152,7 @@ int rtols_filter(filter* filt, real* inbuf, real* outbuf) {
         // circular index into array of signal spectra XX
         icirc = filt->i % filt->R;
 
-        // index into x where current signal frame starts and ends 
+        // index into x where current signal frame starts and ends
         xxstart = (filt->i) * filt->S;
         xxend = (filt->i + 1) * filt->S - 1;
         printf("xxstart = %i, xxend = %i\n", xxstart, xxend);
@@ -1166,7 +1167,7 @@ int rtols_filter(filter* filt, real* inbuf, real* outbuf) {
 
             // second half is current frame
             memcpy(filt->XX[icirc] + filt->K, filt->x, filt->K * sizeof(complex));
-            
+
         } else if (!filt->finishing || xxstart < filt->xlen) {
 
             // incomplete signal frame -> must be zero-padded for transformation
@@ -1237,7 +1238,7 @@ int rtols_filter(filter* filt, real* inbuf, real* outbuf) {
             yylen = filt->S - (yyend + 1 - filt->ylen);
         }
 
-        /*        
+        /*
         printf("XX:\n");
         for (r = 0; r < filt->R; r++) {
             printf("%i:%s\t", r, r == icirc ? ">": " ");
@@ -1254,7 +1255,7 @@ int rtols_filter(filter* filt, real* inbuf, real* outbuf) {
         for (r = rstart; r < rend; r++) {
             // circular index into XX
             rcirc = (filt->i - r) % filt->R;
-            
+
             //printf("convolve XX[%i] ** HH[%i]\n", rcirc, r);
             //printcvec(filt->XX[rcirc], filt->L);
             //printcvec(filt->HH[r], filt->L);
@@ -1270,7 +1271,7 @@ int rtols_filter(filter* filt, real* inbuf, real* outbuf) {
 
             //printf("ifft(Y):\n");
             //printcvec(filt->Y, filt->L);
-            
+
             // add last L-K points to calloced y (L-K = K)
             for (j = 0; j < yylen; j++) {
                 //filt->y[j] = cadd(filt->y[j], filt->Y[j + filt->K]);
@@ -1285,8 +1286,8 @@ int rtols_filter(filter* filt, real* inbuf, real* outbuf) {
         for (j = yylen; j < filt->K; j++) {
             outbuf[j] = 0.;
         }
-    
-        filt->i++;       
+
+        filt->i++;
     } else {
         // fill output buffer with zeros
         for (j = 0; j < filt->K; j++) {
@@ -1294,7 +1295,7 @@ int rtols_filter(filter* filt, real* inbuf, real* outbuf) {
         }
         return -1;
     } // if !finishing || hassignal || hastail
-    
+
     /** END process frame **/
 
     // convert output (real part) --> no need as we can directly access outbuf
@@ -1305,7 +1306,7 @@ int rtols_filter(filter* filt, real* inbuf, real* outbuf) {
 
 int rtols_filter_sigshare(filter* filters, int nfilt, real* inbuf, real** outbuf, int outoffset) {
     int i, q;
-    
+
     // TODO: implement
     for (i = 0; i < nfilt; i++) {
         // if input frame buffers are not shared, return with error
@@ -1321,7 +1322,7 @@ int rtols_filter_sigshare(filter* filters, int nfilt, real* inbuf, real** outbuf
     for (q = 0; q < nfilt; q++) {
         // perform partial convolution on filter
 
-        // ... 
+        // ...
 
         // write to associated output buffer
         if (filters[q].sharemode & RTOLS_SHARED_OUTPUT_ADD) {
@@ -1330,12 +1331,12 @@ int rtols_filter_sigshare(filter* filters, int nfilt, real* inbuf, real** outbuf
 
             // @parallel: BEGIN critical section here between calls to rtols_filter_sigshare
             //#pragma omp parallel section
-            
+
             // add to buffer content
             // TODO: check whether omp reduction processing applies here
 
             // @parallel: END critical section
-            
+
         } else {
             // replace buffer content
         }
@@ -1398,7 +1399,7 @@ int rtols_cleanup(filter* filt) {
         }
         free(filt->XX);
     }
-    
+
     if (!(filt->sharemode & RTOLS_SHARED_FILTER)) {
         for (r = 0; r < filt->R; r++) {
             free(filt->HH[r]);
@@ -1412,11 +1413,11 @@ int rtols_cleanup(filter* filt) {
 }
 
 /*************************************************************
- * 
+ *
  * Copyright 2006/7 Gregor Heinrich/Arbylon and Fraunhofer IGD.
  *
  * Only for usage within hArtes tool-chain development. No
- * warranties for functional or structural features of the code 
+ * warranties for functional or structural features of the code
  * or resulting binary applications. Usage in any applications
  * requires the consent of copyright holders.
  *
@@ -1425,11 +1426,11 @@ int rtols_cleanup(filter* filt) {
 #include <stdio.h>
 #include <math.h>
 /*!
- * driver function for a filter that can be hooked 
+ * driver function for a filter that can be hooked
  * to audio i/o buffers and callback: When the audio i/o framework
- * has finished filling a new input buffer, one step in the 
+ * has finished filling a new input buffer, one step in the
  * while loop of this method is done, after the while step has been
- * finished (after a call to rtols_filter), the i/o framework is 
+ * finished (after a call to rtols_filter), the i/o framework is
  * notified and can play its output buffer.
  *
  * A note about conversion from tolstoy: Both versions of the program
@@ -1439,15 +1440,15 @@ int rtols_cleanup(filter* filt) {
  * annotations made hint at the conversion steps.
  *
  * Variable name conventions: used common sense and avoided naming rule mania,
- * instead document with comments what's being done. Some conventions: 
- * array sizes and other dimensions -- capital (mid alphabet) or *len; 
- * constant -- uppercase; signals -- time domain lowercase, frequency domain 
- * uppercase (h and end of alphabet): names after symbols common in associated 
- * math, e.g., h, x, y, X, Y; arrays -- duplicate symbols, e.g., hh is an array 
+ * instead document with comments what's being done. Some conventions:
+ * array sizes and other dimensions -- capital (mid alphabet) or *len;
+ * constant -- uppercase; signals -- time domain lowercase, frequency domain
+ * uppercase (h and end of alphabet): names after symbols common in associated
+ * math, e.g., h, x, y, X, Y; arrays -- duplicate symbols, e.g., hh is an array
  * of h, i.e., impulse responses.
  *
  * Task annotation conventions: TODO: planned task, FIXME: known bug.
- * 
+ *
  */
 int rtconv() {
     const int NEWFILT = 20, STOP = 12, END = 20;
@@ -1469,13 +1470,13 @@ int rtconv() {
     xlen = 50;
     hlen = 12;//L * 4 + 1;
     ylen = xlen + hlen - 1;
-    
+
     x = (real*) malloc(xlen * sizeof(real));
     h = (complex*) malloc(hlen * sizeof(complex));
     y = (real*) malloc(ylen * sizeof(real));
     xpos = x;
     ypos = y;
-    
+
     // test data
     for(i=0;i<xlen;i++) {
         x[i] = i + 1;
@@ -1494,7 +1495,7 @@ int rtconv() {
     printf("h sig:\n");
     printcvec(h, hlen);
     /////////////////////////////////////////////////
-    
+
 
     // determine buffer lengths according to fft size
     L = 1 << m;
@@ -1512,7 +1513,7 @@ int rtconv() {
     while (running < END) {
 
         // update filter coefficients, 3 frames transition time
-        // TODO: what happens if the filter is still changing and 
+        // TODO: what happens if the filter is still changing and
         // rtols_filter_update is called again?
         if (running == NEWFILT) {
             //hnew = (complex*) calloc(hlen, sizeof(complex));
@@ -1531,19 +1532,19 @@ int rtconv() {
         // restart the signal 2 frames after it has finished
         //if (running == frames + 2) {
         //    status = rtols_restart(filt);
-        //} 
+        //}
 
         if (filt->hassignal) {
             //printf("BEGIN filter step\n");
             //printf("frame %i, xbuf\n", running);
             //printrvec(xpos, K);
         }
-        
+
         // @realtime: entry point for audio i/o: "input buffer ready, [K] samples"
-        // @realtime: after signal end, this must be called until the signal tail 
+        // @realtime: after signal end, this must be called until the signal tail
         // has been played completely.
         samples = rtols_filter(filt, xpos, ypos);
-        
+
         printf(">>> filter returned %i samples output\n", samples);
 
         // @realtime: calling point for audio i/o: "output buffer ready, [samples] samples"
@@ -1558,7 +1559,7 @@ int rtconv() {
         // increment signal positions
         xpos += K;
         ypos += K;
-        
+
         running++;
     }
 
@@ -1576,7 +1577,7 @@ int rtconv() {
 
 
 /*!
- * for rtwfs(): make dummy irs (here: time domain, but easy to change to 
+ * for rtwfs(): make dummy irs (here: time domain, but easy to change to
  * transfer functions)
  */
 // @realtime: wfs operator calculates primary-to-secondary impulse responses, here
@@ -1596,12 +1597,12 @@ void make_irs(complex*** hh, int P, int Q, int hlen) {
 /*!
  * outline for wave field synthesis run-time.
  *
- * @realtime: This function only shows the organisation principle of filters 
- * and parallel handling requirements. An actual implementation needs to handle 
+ * @realtime: This function only shows the organisation principle of filters
+ * and parallel handling requirements. An actual implementation needs to handle
  * other things in addition, e.g., calculation of impulse responses. Special
  * care must be taken in interaction between the hardware architecture (esp.
  * memory interaction) and the software.
- * 
+ *
  */
 // TODO: bundle filter matrix and i/o in a struct
 int rtwfs() {
@@ -1651,7 +1652,7 @@ int rtwfs() {
         }
     }
 
-    
+
     // create P x Q filters
     // @realtime: updated after change in model geometry
     ff = (filter**) malloc(P * sizeof(filter*));
@@ -1696,17 +1697,17 @@ int rtwfs() {
     // allocate
     wf = (complex*) malloc(L/2 * sizeof(complex));
     wi = (complex*) malloc(L/2 * sizeof(complex));
-    
+
 
     // create fft coefficients (reused across filters)
     ffw(wf, 1, L);
     ffw(wi, -1, L);
-    
+
     // for each primary source
     // @parallel: all preparation can be done in parallel
     // @realtime: depending on the audio i/o implementation, there might be
     // different triggers for input buffers, also output buffers need to be
-    // blocked (appropriate delay!) until the last convolution result has been 
+    // blocked (appropriate delay!) until the last convolution result has been
     // added.
     //#pragma omp parallel for
     for (p = 0; p < P; p++) {
@@ -1759,8 +1760,8 @@ int rtwfs() {
 
         // run the filters
         // for each primary source
-        // @parallel: all filters can run in parallel with the constraint of 
-        // a critical section on the output buffer addition routine and a 
+        // @parallel: all filters can run in parallel with the constraint of
+        // a critical section on the output buffer addition routine and a
         // barrier at the end of the sequence that waits for the yy signal
         // to be output.
         for (p = 0; p < P; p++) {
@@ -1778,7 +1779,7 @@ int rtwfs() {
         // increment signal positions
         xxpos += K;
         yypos += K;
-        
+
         running++;
     }
 
@@ -1790,7 +1791,7 @@ int rtwfs() {
 
     /** BEGIN deallocation **/
 
-    // free input and output signals 
+    // free input and output signals
     // @realtime: handled by audio i/o
     for (p = 0; p < P; p++) {
         free(xx[p]);
@@ -1829,18 +1830,18 @@ int rtwfs() {
 }
 
 /*************************************************************
- * 
+ *
  * Copyright 2006/7 Gregor Heinrich/Arbylon and Fraunhofer IGD.
  *
  * Only for usage within hArtes tool-chain development. No
- * warranties for functional or structural features of the code 
+ * warranties for functional or structural features of the code
  * or resulting binary applications. Usage in any applications
  * requires the consent of copyright holders.
  *
  *************************************************************/
 /*!
  * Tolstoy: Time-partitioned OverLap-Save TOY application for the hArtes
- * project. 
+ * project.
  *
  */
 #include <stdlib.h>
@@ -1866,11 +1867,11 @@ void conv3() {
     xlen = 17 ;//n * 30 - 1;
     hlen = 12;//L * 4 + 1;
     ylen = xlen + hlen;
-    
+
     x = (complex*) malloc(xlen * sizeof(complex));
     h = (complex*) malloc(hlen * sizeof(complex));
     y = (complex*) calloc(ylen, sizeof(complex));
-    
+
     // test data (for convolution, only half non-zero)
     for(i=0;i<xlen;i++) {
         x[i].re = i + 1;
@@ -1907,7 +1908,7 @@ void testperm() {
     double temp;
     m = 4;
     N = 1 << m;
-    
+
 
     x = (complex*) malloc(N * sizeof(complex));
     y = (complex*) malloc(N * sizeof(complex));
@@ -1943,11 +1944,11 @@ int main(int argc, char **argv) {
 }
 
 /*************************************************************
- * 
+ *
  * Copyright 2006/7 Gregor Heinrich/Arbylon and Fraunhofer IGD.
  *
  * Only for usage within hArtes tool-chain development. No
- * warranties for functional or structural features of the code 
+ * warranties for functional or structural features of the code
  * or resulting binary applications. Usage in any applications
  * requires the consent of copyright holders.
  *
@@ -1955,7 +1956,7 @@ int main(int argc, char **argv) {
 /*
  * overlap-save convolution, time-partitioned implementation
  *
- * Annotation legend: 
+ * Annotation legend:
  * @deplib: affects the use or/requirements for dependent libraries (e.g., fft implementations)
  * @matlab: comparison to the equivalent matlab script
  * @parallel: covers aspects of parallel processing
@@ -1967,7 +1968,7 @@ int main(int argc, char **argv) {
  *
  * \author Gregor Heinrich, Arbylon / for Fraunhofer IGD
  * \date 20061912
- * 
+ *
  */
 #include <stdlib.h>
 #include <stdio.h>
@@ -1985,22 +1986,22 @@ int tols(complex* x, int xlen, complex* h, int hlen, complex* y, int ylen, int m
 
     /** General considerations **/
 
-    /* 
-     * @realtime: The largest difference to real-time code is that the length of 
+    /*
+     * @realtime: The largest difference to real-time code is that the length of
      * a signal is unknown a priori and therefore x and y are buffers with constant
      * length that can be used frame-wise in the main loop of the algorithm. Thus,
-     * we give hints at restructuring this script in a setup, a callback and a 
+     * we give hints at restructuring this script in a setup, a callback and a
      * cleanup part. The callback is controlled by the surrounding i/o architecture.
      */
 
-    /* 
+    /*
      * @deplib: the current implementation of the complex operations (including fft)
      * are included in a simple implementation to keep the toy application self-
      * contained. They need to be replaced by the appropriate runtime implementation
      * of the target platform, e.g., IPP or the Diopsis DSP library. Specifically,
      * the code has been built to use in-place transforms, which are more performant
-     * in many implementations. The purely complex transforms used here are due to 
-     * their simple implementation, but in the real setting we need real signal input 
+     * in many implementations. The purely complex transforms used here are due to
+     * their simple implementation, but in the real setting we need real signal input
      * and complex impulse responses and use real results.
      */
 
@@ -2016,8 +2017,8 @@ int tols(complex* x, int xlen, complex* h, int hlen, complex* y, int ylen, int m
     int xxstart, xxend, rstart, rend, yylen, yyend;
     // status variables
     int hastail, hassignal;
-    // internal buffers: 
-    // HH: impulse response spectra (indexed by r), 
+    // internal buffers:
+    // HH: impulse response spectra (indexed by r),
     // XX: circular buffer for signal frame spectra (indexed by icirc and rcirc),
     // Y: spectral product
     // @parallel: share XX for several filters
@@ -2030,7 +2031,7 @@ int tols(complex* x, int xlen, complex* h, int hlen, complex* y, int ylen, int m
 
     // L: fft and signal frame size
     L = 1 << m;
-    // K: impulse response frame size (zero padded to L, 
+    // K: impulse response frame size (zero padded to L,
     // always = L/2 = S)
     K = L / 2;
 
@@ -2061,12 +2062,12 @@ int tols(complex* x, int xlen, complex* h, int hlen, complex* y, int ylen, int m
     // segment IR
     segment_ir(h, hlen, m, wf, HH);
 
-    
+
     for (j = 0; j < R; j++) {
         printf("HH[%i]:\n", j);
         printcvec(HH[j], L);
     }
-    
+
     hastail = 1;
     hassignal = 1;
     i = 0;
@@ -2165,7 +2166,7 @@ int tols(complex* x, int xlen, complex* h, int hlen, complex* y, int ylen, int m
         /* @matlab:
         if hastail == 1
             yylen = S;
-            y = [y; zeros(S,1)]; 
+            y = [y; zeros(S,1)];
         else
             yylen = S - (yyend - ylen);
             y = [y; zeros(yylen,1)];
@@ -2185,15 +2186,15 @@ int tols(complex* x, int xlen, complex* h, int hlen, complex* y, int ylen, int m
         }
 
         // add most recent frame to convolution result
-            
+
         //printf("**********************\n");
-        //printf("x[i=%i] => XX[icirc=%i]\n", i, icirc); 
+        //printf("x[i=%i] => XX[icirc=%i]\n", i, icirc);
 
 
         /* @matlab:
         for r=rstart:rend
             rcirc = mod(i - (r - 1), R) + 1;
-            Y = XX(:,rcirc) .* HH(:,r);  
+            Y = XX(:,rcirc) .* HH(:,r);
             // @deplib: in-place transform
             yy = ifft(Y, L);
             yy = yy(K+1:L);
@@ -2201,7 +2202,7 @@ int tols(complex* x, int xlen, complex* h, int hlen, complex* y, int ylen, int m
         end
         */
 
-        
+
         printf("XX:\n");
         for (r = 0; r < R; r++) {
             printf("%i:%s\t", r, r == icirc ? ">": " ");
@@ -2217,15 +2218,15 @@ int tols(complex* x, int xlen, complex* h, int hlen, complex* y, int ylen, int m
         for (r = rstart; r < rend; r++) {
             // circular index into XX
             rcirc = (i - r) % R;
-            
-            
+
+
             printf("convolve XX[%i] ** HH[%i]\n", rcirc, r);
             printf(" - XX[%i] = \n", rcirc);
             printcvec(XX[rcirc], L);
-           
+
             printf(" - HH[%i]\n", r);
             printcvec(HH[r],L);
-            
+
 
             // partial convolution
             for(j = 0; j < L; j++) {
@@ -2234,10 +2235,10 @@ int tols(complex* x, int xlen, complex* h, int hlen, complex* y, int ylen, int m
 
             // in-place transform
             ifft(Y, wi, m);
-           
+
             //printf("Y\n");
             //printcvec(Y, L);
-            
+
             // add last L-K points to calloced y
             for (j = 0; j < yylen; j++) {
                 y[i * K + j] = cadd(y[i * K + j], Y[K + j]);
@@ -2276,10 +2277,10 @@ int tols(complex* x, int xlen, complex* h, int hlen, complex* y, int ylen, int m
 // TODO: here int *R could be an out parameter but then the malloc size would be unknown for HH
 void segment_ir(complex* h, int hlen, int m, complex* wf, complex** HH) {
     int K, L, i, j, n, R;
-	
+
 	L = 1 << m;
     K = L / 2;
-    
+
     R = (int) ceil(hlen/(double)K);
 
     /* @matlab:
@@ -2289,7 +2290,7 @@ void segment_ir(complex* h, int hlen, int m, complex* wf, complex** HH) {
     if mod(length(h), K) ~= 0
         % zero-pad and process last ir frame
         ...
-    end 
+    end
     */
 
     // @parallel: collect frames in HH

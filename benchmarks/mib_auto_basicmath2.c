@@ -5,9 +5,9 @@
 ** rounding macros by Dave Knapp, Thad Smith, Jon Strayer, & Bob Stout
 */
 
-#ifndef ROUND__H
-#define ROUND__H
 
+#include <stdlib.h>
+#include <stdio.h>
 #include <math.h>
 
 #if defined(__cplusplus) && __cplusplus
@@ -53,15 +53,6 @@ inline double fround(double n, unsigned d)
 
 #endif
 
-#endif /* ROUND__H */
-/* +++Date last modified: 05-Jul-1997 */
-
-/*
-**  SNIPTYPE.H - Include file for SNIPPETS data types and commonly used macros
-*/
-
-#ifndef SNIPTYPE__H
-#define SNIPTYPE__H
 
 #include <stdlib.h>                             /* For free()           */
 #include <string.h>                             /* For NULL & strlen()  */
@@ -90,15 +81,6 @@ typedef enum {Error_ = -1, Success_, False_ = 0, True_} Boolean_T;
 #define TOBOOL(x) (!(!(x)))
 #define FREE(p) (free(p),(p)=NULL)
 
-#endif /* SNIPTYPE__H */
-/* +++Date last modified: 05-Jul-1997 */
-
-/*
-**  SNIPMATH.H - Header file for SNIPPETS math functions and macros
-*/
-
-#ifndef SNIPMATH__H
-#define SNIPMATH__H
 
 #include <math.h>
 
@@ -176,13 +158,6 @@ struct int_sqrt {
 
 void usqrt(unsigned long x, struct int_sqrt *q);
 
-
-#endif /* SNIPMATH__H */
-
-#include <math.h>
-
-#include <math.h>
-#include <stdlib.h>
 
 void SolveCubic(double  a,
                 double  b,
@@ -301,13 +276,13 @@ int main(void)
   /* solve soem cubic functions */
   printf("********* CUBIC FUNCTIONS ***********\n");
   /* should get 3 solutions: 2, 6 & 2.5   */
-  SolveCubic(a1, b1, c1, d1, &solutions, x);  
+  SolveCubic(a1, b1, c1, d1, &solutions, x);
   printf("Solutions:");
   for(i=0;i<solutions;i++)
     printf(" %f",x[i]);
   printf("\n");
   /* should get 1 solution: 2.5           */
-  SolveCubic(a2, b2, c2, d2, &solutions, x);  
+  SolveCubic(a2, b2, c2, d2, &solutions, x);
   printf("Solutions:");
   for(i=0;i<solutions;i++)
     printf(" %f",x[i]);
@@ -327,7 +302,7 @@ int main(void)
     for(b1=10;b1>0;b1--) {
       for(c1=5;c1<15;c1+=0.5) {
 	for(d1=-1;d1>-11;d1--) {
-	  SolveCubic(a1, b1, c1, d1, &solutions, x);  
+	  SolveCubic(a1, b1, c1, d1, &solutions, x);
 	  printf("Solutions:");
 	  for(i=0;i<solutions;i++)
 	    printf(" %f",x[i]);
@@ -336,7 +311,7 @@ int main(void)
       }
     }
   }
-  
+
   printf("********* INTEGER SQR ROOTS ***********\n");
   /* perform some integer square roots */
   for (i = 0; i < 1001; ++i)
@@ -359,7 +334,7 @@ int main(void)
   puts("");
   for (X = 0.0; X <= (2 * PI + 1e-6); X += (PI / 180))
     printf("%.12f radians = %3.0f degrees\n", X, rad2deg(X));
-  
-  
+
+
   return 0;
 }

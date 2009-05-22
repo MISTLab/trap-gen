@@ -4,9 +4,8 @@
 ** rounding macros by Dave Knapp, Thad Smith, Jon Strayer, & Bob Stout
 */
 
-#ifndef ROUND__H
-#define ROUND__H
-
+#include <stdlib.h>
+#include <stdio.h>
 #include <math.h>
 
 #if defined(__cplusplus) && __cplusplus
@@ -52,15 +51,6 @@ inline double fround(double n, unsigned d)
 
 #endif
 
-#endif /* ROUND__H */
-/* +++Date last modified: 05-Jul-1997 */
-
-/*
-**  SNIPTYPE.H - Include file for SNIPPETS data types and commonly used macros
-*/
-
-#ifndef SNIPTYPE__H
-#define SNIPTYPE__H
 
 #include <stdlib.h>                             /* For free()           */
 #include <string.h>                             /* For NULL & strlen()  */
@@ -89,17 +79,6 @@ typedef enum {Error_ = -1, Success_, False_ = 0, True_} Boolean_T;
 #define TOBOOL(x) (!(!(x)))
 #define FREE(p) (free(p),(p)=NULL)
 
-#endif /* SNIPTYPE__H */
-/* +++Date last modified: 05-Jul-1997 */
-
-/*
-**  SNIPMATH.H - Header file for SNIPPETS math functions and macros
-*/
-
-#ifndef SNIPMATH__H
-#define SNIPMATH__H
-
-#include <math.h>
 
 /*
 **  Callable library functions begin here
@@ -175,11 +154,6 @@ struct int_sqrt {
 void usqrt(unsigned long x, struct int_sqrt *q);
 
 
-#endif /* SNIPMATH__H */
-
-#include <math.h>
-#include <stdlib.h>
-
 void SolveCubic(double  a,
                 double  b,
                 double  c,
@@ -212,9 +186,6 @@ void SolveCubic(double  a,
       }
 }
 
-/* +++Date last modified: 05-Jul-1997 */
-
-#include <string.h>
 
 #define BITSPERLONG 32
 
@@ -277,8 +248,6 @@ void usqrt(unsigned long x, struct int_sqrt *q)
       memcpy(q, &a, sizeof(long));
 }
 
-#include <math.h>
-
 /* The printf's may be removed to isolate just the math calculations */
 
 int main(void)
@@ -295,7 +264,7 @@ int main(void)
   /* solve soem cubic functions */
   printf("********* CUBIC FUNCTIONS ***********\n");
   /* should get 3 solutions: 2, 6 & 2.5   */
-  SolveCubic(a1, b1, c1, d1, &solutions, x);  
+  SolveCubic(a1, b1, c1, d1, &solutions, x);
   printf("Solutions:");
   for(i=0;i<solutions;i++)
     printf(" %f",x[i]);
@@ -303,7 +272,7 @@ int main(void)
 
   a1 = 1.0; b1 = -4.5; c1 = 17.0; d1 = -30.0;
   /* should get 1 solution: 2.5           */
-  SolveCubic(a1, b1, c1, d1, &solutions, x);  
+  SolveCubic(a1, b1, c1, d1, &solutions, x);
   printf("Solutions:");
   for(i=0;i<solutions;i++)
     printf(" %f",x[i]);
@@ -356,7 +325,7 @@ int main(void)
     for(b1=10;b1>0;b1-=.25) {
       for(c1=5;c1<15;c1+=0.61) {
 	   for(d1=-1;d1>-5;d1-=.451) {
-		SolveCubic(a1, b1, c1, d1, &solutions, x);  
+		SolveCubic(a1, b1, c1, d1, &solutions, x);
 		printf("Solutions:");
 		for(i=0;i<solutions;i++)
 		  printf(" %f",x[i]);
@@ -395,8 +364,8 @@ int main(void)
 /*   for (X = 0.0; X <= (2 * PI + 1e-6); X += (PI / 180)) */
   for (X = 0.0; X <= (2 * PI + 1e-6); X += (PI / 5760))
     printf("%.12f radians = %3.0f degrees\n", X, rad2deg(X));
-  
-  
+
+
   return 0;
 }
 

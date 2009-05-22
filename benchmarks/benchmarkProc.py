@@ -5,16 +5,16 @@ import csv, os, sys, numpy
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:
-        print ('Error, the command line for the benchmarking program is: processorExecurtable numRuns benchmark1,benchmark2 ...')
-        sys.exit(0)
+        raise Exception('Error, the command line for the benchmarking program is: processorExecurtable numRuns benchmark1 benchmark2 ...')
 
     maxSpeed = 0
     fastBench = ''
     runTime = []
     benchSpeed = {}
-    for benchmark in sys.argv[3].split(','):
+    for benchmark in sys.argv[3:]:
         if not os.path.exists(benchmark):
             raise Exception('Error, benchmark ' + benchmark + ' not existing')
+        print ('Executing benchmark ' + benchmark)
         benchSpeed[benchmark] = []
         for i in range(0, int(sys.argv[2])):
             result = os.popen(sys.argv[1] + ' -a ' + benchmark).readlines()
@@ -27,6 +27,11 @@ if __name__ == "__main__":
                     runTime.append(speed)
                     benchSpeed[benchmark].append(speed)
                     break
+
+    for benchmark in sys.argv[3:]:
+        if len(benchSpeed[benchmark]) < int(sys.argv[2]):
+            print('Benchmark ' + benchmark + ' failed in at least one of its runs')
+            benchSpeed.pop(benchmark, None)
 
     # Lets now print the csv file with all the benchmarks
     fileHandle = open('TRAP_stats.csv', 'w')

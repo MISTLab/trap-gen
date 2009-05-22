@@ -56,6 +56,7 @@
 /* #define POSIX1      */
 /***********************/
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
 
@@ -81,7 +82,7 @@ long bplong,ErrorFlag;
 long NLoops[21];
 
 
-void main()
+int main()
 {
 
 long  i,j,k,p,imax;
@@ -93,7 +94,7 @@ printf("   Version 1.0, 04 Oct 1992\n\n");
 
 printf("   Size of long (bytes): %d\n\n",bplong);
 
-printf("   Array Size    RunTime      Scale    MIPS\n");       
+printf("   Array Size    RunTime      Scale    MIPS\n");
 printf("    (bytes)       (sec)\n");
 
 				  /* NLoops[] holds number of loops  */
@@ -118,8 +119,8 @@ HSORT(j,k,p);
 i = 8;
 if ( runtime > 0.125 ) i = 1;
 
-NLoops[0] =  32 * i; 
-NLoops[1] =  16 * i; 
+NLoops[0] =  32 * i;
+NLoops[1] =  16 * i;
 NLoops[2] =   8 * i;
 NLoops[3] =   4 * i;
 NLoops[4] =   2 * i;
@@ -143,7 +144,7 @@ smips[0] = emips;
 
 j = 2000;
 ErrorFlag = 0;
-				  /* Now do it for memory sizes up to */ 
+				  /* Now do it for memory sizes up to */
 				  /* (2000*sizeof(long)) * (2 ** imax)*/
 				  /* where imax determines maximum    */
 				  /* amount of memory allocated.      */
@@ -184,6 +185,7 @@ printf("\n   Runtime is the average for 1 iteration.\n");
 printf("   High MIPS = %8.2lf\n",hmips);
 printf("   Low  MIPS = %8.2lf\n\n",lmips);
 
+return 0;
 }                                  /* End of main */
 
 
@@ -223,16 +225,16 @@ ih = 1001;
    if ( nulltime < 0.0 ) nulltime = 0.0;
 
    count = 0;
-   for(iter=1 ; iter<=n ; iter++)       /* Do 'n' iterations */             
+   for(iter=1 ; iter<=n ; iter++)       /* Do 'n' iterations */
 
    {
        iran = 47;                        /* Fill with 'random' numbers */
-       for(i=1 ; i<=size ; i++)                      
+       for(i=1 ; i<=size ; i++)
        {
        iran = (iran * ia + ic) % im;
        *(base+i) = 1 + (ih * iran) / im;
        }
-       
+
        k = (size >> 1) + 1;              /* Heap sort the array */
        l = size;
        ca = 0; cb = 0; cc = 0;
@@ -247,7 +249,7 @@ ih = 1001;
 	  ir = *(base+(--k));
        }
        else
-       {  
+       {
 	  cc++;
 	  ir = *(base+l);
 	  *(base+l) = *(base+1);
@@ -268,25 +270,25 @@ ih = 1001;
 	  if (ir < *(base+j))
 	  {
 	       ce++;
-	       *(base+i) = *(base+j);   
+	       *(base+i) = *(base+j);
 	       j += (i=j);
 	  }
-	  else 
+	  else
 	  {
 	       cf++;
 	       j = l + 1;
 	  }
        }
        *(base+i) = ir;
-       } 
-Done:   
+       }
+Done:
    count = count + ca;
    }
    runtime = stb - sta;
    if ( runtime < 0.0 ) runtime = 0.0;
 				       /* Scale runtime per iteration */
    runtime = (runtime - nulltime) / (double)n;
-       
+
    ir = count / n;
    ir = (ir + ca) / 2;
 				       /* Estimate MIPS rating */
