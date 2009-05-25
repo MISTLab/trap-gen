@@ -573,6 +573,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
                 this->valueToBytes(rsp.data, memContent);
             }
             catch(...){
+                std::cerr << "GDB Stub: error in reading memory at address " << std::hex << std::showbase << req.address + i << std::endl;
                 this->valueToBytes(rsp.data, 0);
             }
         }
@@ -663,10 +664,10 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
         for(dataIter = req.data.begin(), dataEnd = req.data.end(); dataIter != dataEnd; dataIter++){
             try{
                 this->processorInstance.writeCharMem(req.address + bytes, *dataIter);
-                std::cerr << std::hex << std::showbase << "Writing in memory " << (unsigned int)*dataIter << " at address " << req.address + bytes << std::endl;
                 bytes++;
             }
             catch(...){
+                std::cerr << "Error in writing in memory " << std::hex << std::showbase << (unsigned int)*dataIter << " at address " << std::hex << std::showbase << req.address + bytes << std::endl;
                 error = true;
                 break;
             }
