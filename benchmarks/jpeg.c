@@ -3,9 +3,8 @@
 #include <math.h>
 #include <stdio.h>
 
-#define ncols 150
-#define nrows 100
-
+int ncols=240;
+int nrows=160;
 unsigned long   huffbits[] = {
     0xd3767676, 0xad0b7380, 0x08080822, 0x2235ad6e,
         0x575aecfc, 0xbd5a5667, 0x04045114, 0x104446b5,
@@ -873,9 +872,9 @@ dquantz_lum (short *data)
 
 #define DCTSIZE 8
 #define BLKSIZE 64
-#define NBLKS ((ncols*nrows)/BLKSIZE)
+#define NBLKS 600
 
-static short dct_data[ncols*nrows];
+static short dct_data[240*160];
 
 int main ()
 
@@ -921,8 +920,8 @@ int main ()
             }
         }
     }
-    if (sum != 688960) {
-        puts("**************************************jpeg: fail**************************\n");
+    if (sum != 2598822) {
+        puts("jpeg: fail\n");
         return -1;
     }
     else {

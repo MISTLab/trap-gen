@@ -78,6 +78,9 @@
 
 #define N 512000  /* number of coefficient taps */
 
+int H[N]; /* Filter Coefficient Vector */
+int X[N]; /* Filter State Variable Vector */
+
 void
 lms_pin_down(int *d, int *x, int *delta, int *p_H, int *p_X)
 {
@@ -97,8 +100,6 @@ lms_pin_down(int *d, int *x, int *delta, int *p_H, int *p_X)
 
 int main()
 {
-  static int H[N] ; /* Filter Coefficient Vector */
-  static int X[N] ; /* Filter State Variable Vector */
 
   int delta  ;  /* Adaption Gain */
   int d ;       /* Desired signal */

@@ -63,15 +63,19 @@ unsigned short icrc(unsigned short crc, unsigned char *lin, unsigned int len,
 int main(void)
 {
     unsigned short i1,i2;
-    int n;
+    int n,i;
 
-    i1=icrc(0,aa,40,(short)0,1);
-    i2=icrc(i1,aa,42,(short)-1,1);
+    for(i = 0; i < 5000; i++){
+        i1=icrc(0,aa,40,(short)0,1);
+        i2=icrc(i1,aa,42,(short)-1,1);
+    }
+
     if (i2 != 268) {
         puts("crc: fail\n");
     }
     else {
         puts("crc: success\n");
     }
+
 	return 0;
 }

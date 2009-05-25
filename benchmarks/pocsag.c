@@ -143,85 +143,85 @@ d32 err_corr (register d32 datain)
 {
     char locator_constant, root2;
     signed char root1;
-    
+
     hexword = datain;
-    
+
     /* find syndromes s1 and s3, and check overall parity */
-    
+
     find_syndromes ();
-    
+
     /* if both syndromes are zero, there are no errors */
-    
+
     if (s1 == 0 && s3 == 0)
-        
+
         error_code = 0;
-    
+
     else        /* at least one error exists */
-        
-    {   
+
+    {
         locator_constant = normalized_locator ();
-        
+
         if (locator_constant == 0)
-            
+
         {
-            
+
             /* only one error found and the power of S1 */
             /* is the bit position of the error */
-            
-            root1 = alpha_inv[s1];              
-            
+
+            root1 = alpha_inv[s1];
+
             /* fix the bit in error */
-            
+
             fix_bit (root1);
-            
+
             error_code = 1;
-            
+
         }
-        
+
         else    /* more than one error exists */
-            
+
         {
             /* look up the first root */
-            
+
             root1 = roots[locator_constant];
-            
+
             /* if the root doesn't exist the word cannot be corrected */
             /* roots that don't exist appear as negative numbers */
-            
+
             if (root1 < 0)
-                
+
                 error_code = 4;
-            
+
             else
-                
+
             {
-                
+
                 /* the bit position of 1st error = S1(root) */
-                
+
                 root1 = alpha_inv[s1] + root1;
-                
+
                 /* place error within bits 0 to 30 */
-                
-                while (root1 > 30) 
-                    
+
+                while (root1 > 30)
+
                     root1 -= 31;
-                
+
                 /* fix first error */
-                
+
                 fix_bit (root1);
-                
+
                 /* position of 2nd error = S1 + S1(root) */
-                
+
                 root2 = s1 ^ alpha[root1];
-                
+
                 root2 = alpha_inv[root2];
-                
+
                 /* fix second error */
-                
+
                 fix_bit (root2);
-                
+
                 /* check the overall parity */
-                
+
                 if (parity)
                     error_code = 3;
                 else
@@ -229,11 +229,11 @@ d32 err_corr (register d32 datain)
             }
         }
     }
-    
+
     /* printf("error code %d, corrected BCH = %x\n\n", error_code, hexword);  */
-    
+
     return(hexword);
-    
+
 }   /****End correct (hexword)****/
 
 
@@ -244,11 +244,11 @@ in hexword  in the following function */
 void fix_bit (register char eroot)
 
 {
-    
+
     eroot++;    /* adjust bit position to be 1 to 31 */
-    
+
     hexword = hexword ^ (ERROR_MASK << eroot);
-    
+
 }
 
 
@@ -279,7 +279,7 @@ void fix_bit (register char eroot)
 *
 *           s3 ^= alpha[(i*3)%31];
 *
-*   or, without the multiplication and modulo operators:    
+*   or, without the multiplication and modulo operators:
 *
 *           j = i + i + i;
 *           while (j > 30);
@@ -291,53 +291,53 @@ void fix_bit (register char eroot)
 void find_syndromes ()
 
 {
-    
+
     d32 mask = BIT_MASK;
     dx  i;
-    
+
     /* initialize syndromes */
-    
+
     s1 = 0;
-    
+
     s3 = 0;
-    
+
     /* save the even parity bit of the BCH code word */
-    
+
     parity = hexword & EVEN_PARITY_MASK;
-    
+
     i = 30;
-    
+
     while (i >= 0)
-        
+
     {
-        
+
         /* if hexword[MSB] == 1 */
-        
+
         if (hexword & mask)
-            
+
         {
-            
+
             /* compute syndromes */
-            
+
             s1 ^= alpha[i];
-            
+
             s3 ^= alpha3[i];
-            
+
             /* update parity count */
-            
+
             parity++;
         }
-        
+
         mask >>= 1;
-        
+
         i--;
-        
+
     }
-    
+
     /* compute even parity bit */
-    
+
     parity &= EVEN_PARITY_MASK;
-    
+
 }   /****End find_syndromes (hexword)****/
 
 
@@ -364,31 +364,33 @@ char normalized_locator ()
 {
     char power_s1;
     signed char tau;
-    
+
     /* convert s1 to power of a */
-    
+
     power_s1 = alpha_inv[s1];
-    
-    /* convert s3 to power of a, then find S3/(S1)^3 */ 
-    
+
+    /* convert s3 to power of a, then find S3/(S1)^3 */
+
     tau = alpha_inv[s3] - power_s1 - power_s1 - power_s1;
-    
+
     /* make sure tau is between 0 and 30 */
-    
-    while (tau < 0) 
-        
+
+    while (tau < 0)
+
         tau += 31;
-    
+
     /* convert tau to it's 5-tuple vector and */
     /* add 1 to the vector then return the result */
-    
+
     return (alpha[tau] ^ 1);
-    
+
 }   /****End normalized_locator ()****/
 
 
 
 /* CONSTANT DEFINITIONS */
+
+#undef STATIC_SIZE
 
 #ifdef STATIC_SIZE
 #define MAX_MSG       1
@@ -423,16 +425,16 @@ dx  func;                         /* 2-bit function code of current page */
 /* LOOK-UP TABLES */
 
 /*
-* 256-byte table lookup to determine the number of 1's in 
+* 256-byte table lookup to determine the number of 1's in
 * a given byte
 */
 
 const d8 err_tab[] =
-#ifdef STATIC_SIZE 
+#ifdef STATIC_SIZE
 { 0 };
 #else
-{ 
-    
+{
+
     0x0,0x1,0x1,0x2,0x1,0x2,0x2,0x3,0x1,0x2,0x2,0x3,0x2,0x3,0x3,0x4,
         0x1,0x2,0x2,0x3,0x2,0x3,0x3,0x4,0x2,0x3,0x3,0x4,0x3,0x4,0x4,0x5,
         0x1,0x2,0x2,0x3,0x2,0x3,0x3,0x4,0x2,0x3,0x3,0x4,0x3,0x4,0x4,0x5,
@@ -449,13 +451,13 @@ const d8 err_tab[] =
         0x3,0x4,0x4,0x5,0x4,0x5,0x5,0x6,0x4,0x5,0x5,0x6,0x5,0x6,0x6,0x7,
         0x3,0x4,0x4,0x5,0x4,0x5,0x5,0x6,0x4,0x5,0x5,0x6,0x5,0x6,0x6,0x7,
         0x4,0x5,0x5,0x6,0x5,0x6,0x6,0x7,0x5,0x6,0x6,0x7,0x6,0x7,0x7,0x8
-        
+
 };
 #endif
 
 /* FUNCTIONS */
 
-/* 
+/*
 * this routine accepts two 32-bit words, sample and reference,
 * and returns the number of mismatches
 */
@@ -470,17 +472,17 @@ dx comp32(register d32 sample,register d32 reference)
     /* accumulation loop */
     while (i > 0)
     {
-        num_err = num_err + 
+        num_err = num_err +
             err_tab[(d8) sample];        /* look-up errors in 256x8 table using */
         /* 8 LSB's of sample */
         sample    = sample >> 8;               /* align next 8-bits for error accumulation */
-        
+
         i--;
-        
+
     }
-    
+
     return(num_err);                         /* return the number of mismatches */
-    
+
 }
 
 /*
@@ -497,68 +499,68 @@ d32 *sync_find(register d32 *dptr)
     dx  bit_cnt;                             /* keeps track of the number of bits shifted */
     /* out of sample2 */
     d32 sample1, sample2;                    /* two 32-bit data samples from SPI */
-    
+
     sample1 = *dptr++;                       /* acquire first sample data from SPI */
-    
+
     while (sync_window > 0)                  /* while sync window is less than 576 bits */
-        
+
     {
-        
+
         sample2 = *dptr++;                     /* acquire second sample data from SPI */
-        
+
         bit_cnt = 0;                           /* initialize bit counter */
-        
+
         while (bit_cnt < 32)                   /* while sample2 is still being shifted */
             /* into sample1 */
-            
+
         {
-            
+
             num_err = comp32(sample1, POCSAG_SYNC); /* compare to POCSAG sync word */
-            
+
             if (num_err <= 2)                       /* if sync word match */
-                
+
                 return(dptr);                         /* return pointer to next code word */
-            
+
             num_err = comp32(sample1, PREAMBLE);    /* otherwise, compare to preamble */
-            
+
             if ((num_err <= 2) OR (num_err >= 30))  /* if preamble match */
-                
+
             {
-                
+
                 sample1 = sample2 >> bit_cnt;      /* flush preamble data sample and reset it to */
                 /* a properly aligned sample2 */
-                
+
                 sync_window = 19;                  /* reset sync window (to 18 due to decrement later) */
-                
+
                 break;                             /* exit inner while */
-                
+
             }
-            
+
             else                                 /* shift MSB of sample2 into LSB of sample1 */
-                
+
             {
-                
+
                 sample1 = (sample1 << 1) |         /* shift MSB of sample2 into LSB of sample1 */
                     (sample2 >> 31);
-                
+
                 sample2 = sample2 << 1;            /* update sample2 */
-                
-                
+
+
             }
-            
+
             bit_cnt++;                           /* update bit counter */
-            
+
         }
-        
+
         sync_window--;                         /* update sync window */
-        
+
     } /* outer while */
-    
+
     return(NULL);                            /* return sync acquisition failure */
-    
+
 }
 
-/* 
+/*
 * This function looks for a capcode A or B match in frame 4.
 * If the number of mismatches is less or equal to 2, 2-bit
 * error correction is attempted. At its completion, a
@@ -571,62 +573,62 @@ d32 *sync_find(register d32 *dptr)
 dx addr_corr(register d32 data)
 
 {
-    
+
     dx  num_err;                        /* number of match errors */
     d32 addr;                           /* 19-bit address code (including message flag bit) */
     d32 capcode=CAPCODE_A;              /* initialize capcode variable to capcode A */
-    
+
     addr    = data >> 13;               /* extract address portion from code word */
-    
+
     num_err = comp32(addr, capcode);    /* compare address to capcode A */
-    
+
     if (num_err > 2)                    /* if greater than 2 mismatches */
-        
+
     {
-        
+
         capcode = CAPCODE_B;              /* set capcode to capcode B */
-        
+
         num_err = comp32(addr, capcode);  /* compare address to capcode B */
-        
+
     }
-    
+
     if (num_err <= 2)                   /* if 2 mismatches or less */
-        
+
     {
-        
+
         data = err_corr(data);            /* perform up to 2-bit error correction on orig "data" */
-        
+
         if (error_code < 3)               /* if error correction successful */
-            
+
         {
-            
+
             if (error_code != FALSE)        /* if 1 or 2 errors were fixed */
-                
+
             {
-                
+
                 addr    = data >> 13;         /* re-extract address from corrected code word */
-                
+
                 num_err = comp32(addr, capcode); /* perform full correlation to preset capcode */
-                
+
             }
-            
+
             if (num_err == FALSE)            /* if no mismatches exist */
-                
+
             {
-                
-                func = (d8) ((data >> 11) & 
+
+                func = (d8) ((data >> 11) &
                     FUNC_MASK);      /* extract 2-bit function code global variable */
-                
+
                 return(TRUE);                 /* address correlation successful */
-                
+
             }
-            
+
         }
-        
+
     }
-    
+
     return(FALSE);                      /* address correlation unsuccessful */
-    
+
 }
 
 
@@ -643,45 +645,45 @@ dx num_proc(register dx i,register d32 codeword)
 /* is to be stored */
 /* "codeword" is 20-bit data code word */
 
-{ 
-    
+{
+
     dx count=5;                              /* set numeric data count in current message */
     dx shift=0;                              /* reset numeric shift amount */
     d8 digit;                                /* extracted numeral digit */
-    
+
     while (count > 0)
-        
+
     {
         digit = (d8) ((codeword >> shift) &
             NUM_MASK);            /* extract digit */
-        
+
         if (error_code < 3)                    /* if error correction successful */
         {
             if (digit < 0xa)                     /* if digit is BCD character: 0 .. 9 */
                 msg[i] = digit + 0x30;             /* store as 7-bit ASCII */
             else                                 /* otherwise, for the other symbols */
-                
+
                 msg[i] = digit;                    /* store as is */
-            
+
         }
-        
+
         else                                   /* error correction unsuccessful */
-            
+
             msg[i] = BAD_BYTE;                   /* set stored numeral as bad data */
-        
+
         shift = shift + 4;                     /* update numeric shift amount */
-        
+
         i++;                                   /* update message array index */
-        
+
         count--;                               /* update numeric data count */
-        
+
     }
-    
+
     return(i);                               /* return new array index */
-    
+
 }
 
-/* 
+/*
 * This function processes a 20-bit alphanumeric message and index into message
 * storage array where its storage is to begin. It extracts and stores
 * 2 and 7/8 characters in msg[] array. Refer to pp. 47 of Rattler software
@@ -695,74 +697,74 @@ dx alpha_proc(register dx i,register d32 codeword)
 /* "codeword" 20-bit msg code word */
 
 {
-    
+
     dx num_bits_left;                               /* number of alpha bits left from */
     /* previous alpha code word */
     d8 rem_bits;                                    /* actual remainder bits in new code word */
     dx char_count=3;                                /* intialize new char extract count */
     dx char_shift=0;                                /* initialize char shift amount */
-    
+
     if (alpha_count > 0)                            /* if NOT first iteration in alpha loop, */
-        
+
     {                                               /* derive the left over char */
-        
+
         num_bits_left = 7 - alpha_count;              /* compute number of bits left over */
-        
-        rem_bits      = (d8) (codeword 
+
+        rem_bits      = (d8) (codeword
             << num_bits_left);      /* align remainder bits */
-        
+
         if (error_code < 3)                           /* error correction successful */
-            
+
             msg[i]      = (msg[i] | rem_bits) &
             ALPHA_MASK;                  /* compute left over char; */
         /* if left over char was a bad char, */
         /* its MSB is already set to a "1" */
-        
+
         else                                          /* error correction unsuccessful */
-            
+
             msg[i]      = BAD_BYTE;                     /* store left over char as bad char */
-        
+
         i++;                                          /* update array index */
-        
+
         char_shift = alpha_count;                     /* set shift amount for 1st new char */
-        
+
     }
-    
+
     while (char_count > 0)                          /* while char count is less than 3, */
         /* derive the 3 new chars */
-    {                                              
-        
+    {
+
         if (error_code < 3)                           /* error correction successful */
-            
+
             msg[i]   = (d8) ((codeword >> char_shift) &
             ALPHA_MASK);               /* compute new char */
-        
+
         else
-            
+
             msg[i]  = BAD_BYTE;                         /* store new char as bad char */
-        
+
         char_shift = char_shift + 7;                  /* compute new char shift amount */
-        
+
         i++;                                          /* update message array index */
-        
+
         char_count--;                                 /* update new char count */
-        
+
     }
-    
+
     i--;                                            /* update msg array index to point to */
     /* left over char or new char (if */
     /* alpha_count is 6) */
-    
+
     if (alpha_count == 6)                           /* if terminal alpha loop count */
-        
+
         alpha_count = 0;                              /* reset alpha loop count */
-    
+
     else
-        
+
         alpha_count++;                                /* update alpha loop count */
-    
+
     return(i);                                      /* return msg array index */
-    
+
 }
 
 
@@ -778,69 +780,69 @@ dx alpha_proc(register dx i,register d32 codeword)
 dx msg_proc(register d32 *dptr)
 
 {
-    
+
     dx  i=0;                                 /* initialize message array index */
     dx  word_count=0;                        /* initialize word count for new batch; it can */
     /* take on values between 0 and 16 where 16 is */
-    /* the sync word slot */ 
+    /* the sync word slot */
     dx  num_bad_sync=0;                      /* initialize bad sync count */
     dx  num_err;                             /* number of mismatches variable */
     dx  addr_search_mode=TRUE;               /* initialize address (capcode) search mode */
     d32 addr;                                /* 19-bit extracted address field */
     d32 data;                                /* SPI data */
-    
+
     while (TRUE)                             /* for duration of message */
-        
+
     {
-        
+
         data = *dptr++;                        /* read next codeword */
-        
+
         /* if new batch */
-        
+
         if (word_count == 16)                  /* if sync word slot, acquire sync */
-            
+
         {
-            
+
             num_err = comp32(data, POCSAG_SYNC); /* compute # of mismatches */
-            
+
             if (num_err <= 2)                    /* sync word match */
-                
+
                 num_bad_sync = 0;                  /* reset bad sync count */
-            
+
             else                                 /* sync acquisition failure */
-                
+
             {
-                
+
                 if (num_bad_sync == 1)             /* if 2 consecutive bad syncs */
-                    
+
                     return(i);                       /* return message array length */
-                
+
                 else
-                    
+
                     num_bad_sync++;                  /* update the bad sync count */
-                
+
             }
-            
+
             word_count = 0;                      /* reset word count for new batch */
-            
+
         }
-        
-        
+
+
         /* otherwise, perform address correlation or message processing */
-        
+
         else
-            
+
         {
-            
+
             if (addr_search_mode)                    /* if in initial address search mode */
-                
+
             {
-                
+
                 if ((word_count == 6) OR               /* if frame 4 (capcode frame) */
                     (word_count == 7))
-                    
+
                 {
-                    
+
                     if (addr_corr(data))              /* if address correlation success */
                     {
                         addr_search_mode = FALSE;       /* end of initial address search */
@@ -853,7 +855,7 @@ dx msg_proc(register d32 *dptr)
             else                          /* otherwise, continue to message decode */
             {
                 data = err_corr(data);                 /* perform 2-bit error correction on BCH data */
-                
+
                 /* if frame 4, attempt to address correlate first */
                 if ((word_count == 6) OR               /* if frame 4 (capcode frame) */
                     (word_count == 7))
@@ -870,40 +872,40 @@ dx msg_proc(register d32 *dptr)
                     if (num_err == FALSE)    /* if address correlation successful, */
                         return(i);   /* terminate message and return message array length */
                 }
-                
+
                 /* otherwise, since address correlation unsuccessful, continue to process message */
-                
+
                 data = (data >> 11) & MSG_MASK;      /* extract 20-bit message */
-                
+
                 switch (func)           /* process message according to function code */
                 {
                 case 0:                            /* process NUMERIC code word */
                     i = num_proc(i, data);           /* process next numeric data word, and */
                     /* return new array index */
-                    
-                    
+
+
                     break;
-                    
-                    
+
+
                 case 3:                            /* process ALPHANUMERIC code word */
-                    
+
                     i = alpha_proc(i, data);         /* process next alphanumeric data word, */
-                    /* and return new array index */                      
-                    
-                    break;               
-                    
+                    /* and return new array index */
+
+                    break;
+
                 default: return(FALSE);            /* message array not updated */
-                    
+
                 } /* end switch */
-                
+
             } /* end message decode else */
-            
+
             word_count++;                            /* update word count in current batch */
-            
+
         } /* end not sync slot else */
-        
+
   } /* end while */
-  
+
 }
 
 /* MAIN MODULE */
@@ -975,7 +977,7 @@ unsigned long alpha_data[] = {
         0xcbb503f0,
         0x879f3efb,
         0x8e5cfaee,
-        0x54e9d8d5 
+        0x54e9d8d5
 };
 
 /* file: numeric.h    */
@@ -1021,7 +1023,7 @@ unsigned long numeric_data[] = {
         0xe66667d1,
         0xe66667d1,
         0xe66667d1,
-        0x54e8d9d5 
+        0x54e8d9d5
 };
 
 int main()
@@ -1031,49 +1033,52 @@ int main()
     dx  msg_length;                /* length of message processed */
     dx  i;                         /* message array index */
     dx  j;                         /* msg process type index */
-    
-    for (j = 0; j < 2; j++)
-    {
-        alpha_count=0;
-        if (!j)                                   /* process numeric data set */
+    int m = 0;
+
+    for(m = 0; m < 100; m++){
+        for (j = 0; j < 2; j++)
         {
-            dptr = numeric_data;
-        }
-        else                                    /* process alphanumeric data set */
-        {
-            dptr = alpha_data;
-        }
-        
-        if (sync_find(dptr) != NULL)               /* if sync acquisition success */
-        {
-            msg_length = msg_proc(sync_find(dptr));  /* return length of message */
-            
-            if (func == 0)                           /* if numeric message */
+            alpha_count=0;
+            if (!j)                                   /* process numeric data set */
             {
+                dptr = numeric_data;
             }
-            else if (func == 3)                       /* alphanumeric message */
+            else                                    /* process alphanumeric data set */
             {
+                dptr = alpha_data;
             }
-            else
+
+            if (sync_find(dptr) != NULL)               /* if sync acquisition success */
             {
+                msg_length = msg_proc(sync_find(dptr));  /* return length of message */
+
+                if (func == 0)                           /* if numeric message */
+                {
+                }
+                else if (func == 3)                       /* alphanumeric message */
+                {
+                }
+                else
+                {
+                    puts("pocsag: failed\n");
+                    return 0;
+                }
+            }
+            else {
+
                 puts("pocsag: failed\n");
                 return 0;
             }
+
         }
-        else {
-            
-            puts("pocsag: failed\n");
-            return 0;
-        }
-        
     }
-    
-    if( strncmp((char*)msg, "Dear fellow ACP benchmarker", 27) == 0 && 
+
+    if( strncmp((char*)msg, "Dear fellow ACP benchmarker", 27) == 0 &&
         msg_length == 88 ) {
         puts("pocsag: success\n");
     }
     else {
-        
+
         puts("pocsag: failed\n");
     }
     return 0;

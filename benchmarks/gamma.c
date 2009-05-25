@@ -32,8 +32,10 @@ float factrl(int n)
 
 int main()
 {
-    int i;
-    for(i=10;i<30;i++)
-        printf("fattoriale %d:%f\n",i,factrl(i));
+    int i,j;
+    for(j = 0; j < 10000; j++){
+        for(i=10;i<33;i++)
+            factrl(i);
+    }
     return 0;
 }
