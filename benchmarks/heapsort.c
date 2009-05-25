@@ -109,81 +109,81 @@ for( i=0 ; i<= 20 ; i++)
 				  /* and 256 iterations. p = 0 means */
 				  /* don't print the result.         */
 j = 2000;
-k = 256;
+k = 64;
 p = 0;
 HSORT(j,k,p);
 				  /* Set number of iterations (loops)*/
 				  /* based on runtime above --- so   */
 				  /* program won't take forever on   */
 				  /* the slower machines.            */
-i = 8;
-if ( runtime > 0.125 ) i = 1;
-
-NLoops[0] =  32 * i;
-NLoops[1] =  16 * i;
-NLoops[2] =   8 * i;
-NLoops[3] =   4 * i;
-NLoops[4] =   2 * i;
-NLoops[5] =       i;
-NLoops[6] =   i / 2;
-NLoops[7] =   i / 4;
-
-if ( i == 1 )
-{
-NLoops[6]  = 1;
-NLoops[7]  = 1;
-}
-				  /* Redo the first run and print    */
-				  /* the results.                    */
-j = 2000;
-k = NLoops[0];
-p = 1;
-HSORT(j,k,p);
-				  /* Save estimated mips result      */
-smips[0] = emips;
-
-j = 2000;
-ErrorFlag = 0;
-				  /* Now do it for memory sizes up to */
-				  /* (2000*sizeof(long)) * (2 ** imax)*/
-				  /* where imax determines maximum    */
-				  /* amount of memory allocated.      */
-				  /* Currently I set imax = 8, so if  */
-				  /* sizeof(long) = 4 program will run*/
-				  /* from 8000, 16000, ..., and up to */
-				  /* 2048000 byte memory size. You can*/
-				  /* increase imax, but imax = 8 is   */
-				  /* limit for this test program.     */
-imax = 8;
-for( i=1 ; i<= imax ; i++)
-{
-   j = 2 * j;
-
-   k = NLoops[i];
-
-   HSORT(j,k,p);
-   smips[i] = emips;
-
-   if( ErrorFlag > 0L ) break;
-
-}
-
-if( ErrorFlag == 2L )
-{
-printf("\n   Could Not Allocate Memory for Array Size: %ld\n",j*bplong);
-}
-
-hmips = 0.0;
-lmips = 1.0e+06;
-for( k = 0; k < i; k++)
-{
-if( smips[k] > hmips ) hmips = smips[k];
-if( smips[k] < lmips ) lmips = smips[k];
-}
-
-printf("\n   Runtime is the average for 1 iteration.\n");
-printf("   High MIPS = %8.2lf\n",hmips);
-printf("   Low  MIPS = %8.2lf\n\n",lmips);
+// i = 8;
+// if ( runtime > 0.125 ) i = 1;
+//
+// NLoops[0] =  32 * i;
+// NLoops[1] =  16 * i;
+// NLoops[2] =   8 * i;
+// NLoops[3] =   4 * i;
+// NLoops[4] =   2 * i;
+// NLoops[5] =       i;
+// NLoops[6] =   i / 2;
+// NLoops[7] =   i / 4;
+//
+// if ( i == 1 )
+// {
+// NLoops[6]  = 1;
+// NLoops[7]  = 1;
+// }
+// 				  /* Redo the first run and print    */
+// 				  /* the results.                    */
+// j = 2000;
+// k = NLoops[0];
+// p = 1;
+// HSORT(j,k,p);
+// 				  /* Save estimated mips result      */
+// smips[0] = emips;
+//
+// j = 2000;
+// ErrorFlag = 0;
+// 				  /* Now do it for memory sizes up to */
+// 				  /* (2000*sizeof(long)) * (2 ** imax)*/
+// 				  /* where imax determines maximum    */
+// 				  /* amount of memory allocated.      */
+// 				  /* Currently I set imax = 8, so if  */
+// 				  /* sizeof(long) = 4 program will run*/
+// 				  /* from 8000, 16000, ..., and up to */
+// 				  /* 2048000 byte memory size. You can*/
+// 				  /* increase imax, but imax = 8 is   */
+// 				  /* limit for this test program.     */
+// imax = 8;
+// for( i=1 ; i<= imax ; i++)
+// {
+//    j = 2 * j;
+//
+//    k = NLoops[i];
+//
+//    HSORT(j,k,p);
+//    smips[i] = emips;
+//
+//    if( ErrorFlag > 0L ) break;
+//
+// }
+//
+// if( ErrorFlag == 2L )
+// {
+// printf("\n   Could Not Allocate Memory for Array Size: %ld\n",j*bplong);
+// }
+//
+// hmips = 0.0;
+// lmips = 1.0e+06;
+// for( k = 0; k < i; k++)
+// {
+// if( smips[k] > hmips ) hmips = smips[k];
+// if( smips[k] < lmips ) lmips = smips[k];
+// }
+//
+// printf("\n   Runtime is the average for 1 iteration.\n");
+// printf("   High MIPS = %8.2lf\n",hmips);
+// printf("   Low  MIPS = %8.2lf\n\n",lmips);
 
 return 0;
 }                                  /* End of main */

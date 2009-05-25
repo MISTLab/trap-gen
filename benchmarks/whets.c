@@ -32,7 +32,7 @@
  *     number of subroutine calls and divides which may be
  *     changed by optimisation. For comparison purposes the
  *     compiler and level of optimisation should be identified.
- *       
+ *
  ************************************************************
  *
  *     The original benchmark had a single variable I which
@@ -83,7 +83,7 @@
  *     particular run. This information is appended to file
  *     whets.res along with the results. The input section can
  *     be avoided using a command line parameter N (for example
- *     Whets.exe N).  
+ *     Whets.exe N).
  *
  *     Roy Longbottom  101323.2241@compuserve.com
  *
@@ -125,7 +125,7 @@
  * statements are then supplied to type in the run details.
  *
  ************************************************************
- * 
+ *
  * Examples of results from file whets.res
  *
  * Whetstone Single  Precision Benchmark in C/C++
@@ -177,7 +177,7 @@
  *
  * Whetstone Double  Precision Benchmark in C/C++
  *
- * Compiler          Watcom C/C++ 10.5 Win32NT 
+ * Compiler          Watcom C/C++ 10.5 Win32NT
  * Options           -otexan -zp4 -om -fp5 -5r
  *
  * Loop content                 Result           MFLOPS      MOPS   Seconds
@@ -194,27 +194,27 @@
  * MWIPS                                         67.156             100.066
  *
  *  Note different numeric results to single precision. Slight variations
- *  are normal with different compilers and sometimes optimisation levels. 
+ *  are normal with different compilers and sometimes optimisation levels.
  *
  *
  *             Example Single Precision Optimised Results
  *
  *     MWIPS   MFLOPS  MFLOPS  MFLOPS  COS     EXP     FIXPT    IF    EQUAL
  * PC            1       2       3     MOPS    MOPS    MOPS    MOPS    MOPS
- *                                                                                                                                                
+ *
  * P3  5.68    0.928   0.884   0.673   0.461   0.275   2.36    2.16   0.638
  * P4  16.4    5.09    4.03    2.66    0.526   0.342   6.36    6.00    5.28
  * P5  66.3    26.8    17.1    10.1    2.66    1.51    16.0    19.9    22.9
  * P6  161     50.3    45.2    31.5    4.46    2.77    102     20.6    119
  *
  *            Example Single Precision Non-optimised Results
- *                                                                        
+ *
  * P3  3.07    0.860   0.815   0.328   0.355   0.160   1.70    1.32   0.264
  * P4  10.0    4.68    3.51    1.27    0.482   0.298   5.73    5.20    1.18
  * P5  28.5    20.0    11.8    3.36    2.10    1.21    14.0    11.7    2.42
  * P6  81.7    47.5    37.8    10.9    3.91    2.43    51.2    42.8    7.85
  *
- *        Summary results as in whets.tbl at ftp.nosc.mil/pub/aburto 
+ *        Summary results as in whets.tbl at ftp.nosc.mil/pub/aburto
  *
  *           MFLOPS   = Geometric Mean of three MFLOPS loops
  *           VAX MIPS = 5 * Geometric Mean of last three items above
@@ -225,7 +225,7 @@
  * P3 Clone   AM80386DX with 387        128K    40    5.68    0.820   7.40
  * P4 Escom   80486DX2 CIS chipset      128K    66    16.4    3.79    29.3
  * P5 Escom   Pentium Neptune chipset   256K   100    66.3    16.7    96.9
- * P6 Dell    PentiumPro 440FX PCIset   256K   200    161     41.5    315 
+ * P6 Dell    PentiumPro 440FX PCIset   256K   200    161     41.5    315
  *
  * P3 Clone   AM80386DX with 387        128K    40    3.07    0.613   4.20
  * P4 Escom   80486DX2 CIS chipset      128K    66    10.0    2.75    16.4
@@ -255,9 +255,9 @@
  *
  **************************************************************************
  */
- 
+
  #include <math.h>       /* for sin, exp etc.           */
- #include <stdio.h>      /* standard I/O                */ 
+ #include <stdio.h>      /* standard I/O                */
  #include <string.h>     /* for strcpy - 3 occurrences  */
  #include <stdlib.h>     /* for exit   - 1 occurrence   */
 
@@ -283,21 +283,21 @@
 /* #define WIN32       */
 /* #define POSIX1      */
 /***********************/
- 
+
 /*PRECISION PRECISION PRECISION PRECISION PRECISION PRECISION PRECISION*/
 
- 
+
     #define SPDP float
     #define Precision "Single"
 
 
- void whetstones(long xtra, long x100, int calibrate);  
+ void whetstones(long xtra, long x100, int calibrate);
  void pa(SPDP e[4], SPDP t, SPDP t2);
  void po(SPDP e1[4], long j, long k, long l);
  void p3(SPDP *x, SPDP *y, SPDP *z, SPDP t, SPDP t1, SPDP t2);
  void pout(char title[22], float ops, int type, SPDP checknum,
           SPDP time, int calibrate, int section);
-  
+
 
  static SPDP loop_time[9];
  static SPDP loop_mops[9];
@@ -310,35 +310,31 @@
 
 int main(int argc, char *argv[])
 {
-    int count = 4, calibrate = 1;
+    int count = 1, calibrate = 1;
     long xtra = 1;
     int section;
-    long x100 = 100;
-    int duration = 100; 
+    long x100 = 4;
+    int duration = 100;
     FILE *outfile;
     char compiler[80] = " ", options[256] = " ", general[10][80] = {" "};
     char *endit = " ";
     char *getinput = "Yes";
-  
+
     printf("\n");
-    printf("##########################################\n"); 
+    printf("##########################################\n");
     printf("%s Precision C/C++ Whetstone Benchmark\n\n", Precision);
 
 
   printf("Calibrate\n");
-  do
-   {
+
     TimeUsed=0;
-        
+
     whetstones(xtra,x100,calibrate);
-        
+
     printf("%11.2f Seconds %10.0lf   Passes (x 100)\n",
                      TimeUsed,(SPDP)(xtra));
-    calibrate++;
-    count--;
-       xtra = xtra * 5;
-   }
-   while (count > 0);
+    xtra = xtra * 5;
+
     return 0;
 }
 
@@ -346,17 +342,17 @@ int main(int argc, char *argv[])
       {
 
     long n1,n2,n3,n4,n5,n6,n7,n8,i,ix,n1mult;
-    SPDP x,y,z;              
+    SPDP x,y,z;
     long j,k,l;
     SPDP e1[4],timea,timeb;
-            
+
     SPDP t =  0.49999975;
-    SPDP t0 = t;        
+    SPDP t0 = t;
     SPDP t1 = 0.50000025;
     SPDP t2 = 2.0;
-        
+
     Check=0.0;
-       
+
     n1 = 12*x100;
     n2 = 14*x100;
     n3 = 345*x100;
@@ -385,13 +381,13 @@ int main(int argc, char *argv[])
           }
         t = 1.0 - t;
           }
-        t =  t0;                    
+        t =  t0;
      }
     /* Section 2, Array as parameter */
 
      {
         for (ix=0; ix<xtra; ix++)
-          { 
+          {
         for(i=0; i<n2; i++)
           {
              pa(e1,t,t2);
@@ -537,14 +533,14 @@ int main(int argc, char *argv[])
     strcpy (headings[section],title);
     TimeUsed =  TimeUsed + time;
     if (calibrate == 1)
-     
+
       {
           results[section] = checknum;
       }
     if (calibrate == 0)
-      {              
-        printf("%s %24.17f    ",headings[section],results[section]);    
-       
+      {
+        printf("%s %24.17f    ",headings[section],results[section]);
+
         if (type == 1)
          {
         if (time>0)
@@ -558,7 +554,7 @@ int main(int argc, char *argv[])
         loop_mops[section] = 99999;
         loop_mflops[section] = mflops;
         printf(" %9.3f          %9.3f\n",
-         loop_mflops[section], loop_time[section]);                
+         loop_mflops[section], loop_time[section]);
          }
         else
          {
@@ -571,12 +567,12 @@ int main(int argc, char *argv[])
            mops = 0;
          }
         loop_mops[section] = mops;
-        loop_mflops[section] = 0;                 
+        loop_mflops[section] = 0;
         printf("           %9.3f%9.3f\n",
          loop_mops[section], loop_time[section]);
          }
       }
-      
+
     return;
       }
 

@@ -299,7 +299,7 @@ template<class wordSize> class sbrkSysCall : public SyscallCB<wordSize>{
         }
         catch(...){
             this->processorInstance.setRetVal(-1);
-            std::cerr << "SBRK: tried to allocate " << increment << " bytes of memory starting at address 0x" << std::hex << base << std::dec << " but it seems there is not enough memory" << std::endl;
+            std::cerr << "SBRK: tried to allocate " << increment << " bytes of memory starting at address " << std::hex << std::showbase << base << std::dec << " but it seems there is not enough memory" << std::endl;
         }
 
         this->processorInstance.returnFromCall();

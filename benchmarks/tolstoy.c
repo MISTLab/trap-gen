@@ -890,19 +890,19 @@ void tconv(complex* x, int xlen, complex* h, int hlen, complex* y) {
 /********************* utilities ************************/
 
 void printcvec(complex* x, int n) {
-    int i;
+/*    int i;
     for(i=0;i<n;i++) {
         printf(" %5d %10.5f %10.5f\n",i,x[i].re,x[i].im);
     }
-    printf("\n");
+    printf("\n");*/
 }
 
 void printrvec(real* x, int n) {
-    int i;
+/*    int i;
     for(i=0;i<n;i++) {
         printf(" %5d %10.5f\n",i,x[i]);
     }
-    printf("\n");
+    printf("\n");*/
 }
 
 void printbits(int n) {
@@ -910,7 +910,7 @@ void printbits(int n) {
     n = n & 0xFF;
     for (i = 1; i <= 8; i++) {
         u = n & (1 << (8 - i));
-        printf("%i", u ? 1 : 0);
+        //printf("%i", u ? 1 : 0);
     }
     printf("\n");
 }
@@ -967,7 +967,7 @@ void ols(complex* x, int xlen, complex* h, int hlen, complex* y, int ylen, int m
     step = L - M;
 
     frames = (int) ceil((double)xlen/(double)step);
-    printf("frames: %i (xlen=%i, step=%i)\n", frames, xlen, step);
+    //printf("frames: %i (xlen=%i, step=%i)\n", frames, xlen, step);
     for (k = 0; k < frames + 1; k++) {
         if (k == 0) {
             // zero-padding of first frame (by calloc, above)
@@ -1147,7 +1147,7 @@ int rtols_filter(filter* filt, real* inbuf, real* outbuf) {
 
     /** BEGIN process frame **/
     if (!filt->finishing || filt->hassignal || filt->hastail) {
-        printf("+++++++++++++ loop %i ++++++++++++\n", filt->i);
+//         printf("+++++++++++++ loop %i ++++++++++++\n", filt->i);
 
         // circular index into array of signal spectra XX
         icirc = filt->i % filt->R;
@@ -1155,7 +1155,7 @@ int rtols_filter(filter* filt, real* inbuf, real* outbuf) {
         // index into x where current signal frame starts and ends
         xxstart = (filt->i) * filt->S;
         xxend = (filt->i + 1) * filt->S - 1;
-        printf("xxstart = %i, xxend = %i\n", xxstart, xxend);
+        /*printf*/("xxstart = %i, xxend = %i\n", xxstart, xxend);
 
         if (!filt->finishing || xxend < filt->xlen) {
 
@@ -1187,8 +1187,8 @@ int rtols_filter(filter* filt, real* inbuf, real* outbuf) {
                 filt->XX[icirc][j].im = 0.;
             }
 
-            printf("****************************************************\n");
-            printf(" - loop %i: signal incomplete, padding %i zeroes\n", filt->i+1, xxend - filt->xlen + 1);
+            /*printf*/("****************************************************\n");
+            /*printf*/(" - loop %i: signal incomplete, padding %i zeroes\n", filt->i+1, xxend - filt->xlen + 1);
         } else {
             // @realtime: there are no remaining samples from the input
             if (filt->hassignal) {
@@ -1196,8 +1196,8 @@ int rtols_filter(filter* filt, real* inbuf, real* outbuf) {
                 filt->hassignal = 0;
                 // xframes should be exactly = fullframes
                 filt->xframes = filt->i - 1;
-                printf("****************************************************\n");
-                printf(" - loop %i: signal finished, processing tail only.\n", filt->i + 1);
+                /*printf*/("****************************************************\n");
+                /*printf*/(" - loop %i: signal finished, processing tail only.\n", filt->i + 1);
             }
         }
 
@@ -1224,7 +1224,7 @@ int rtols_filter(filter* filt, real* inbuf, real* outbuf) {
 
         if (filt->finishing) {
             yyend = filt->S * (filt->i + 1) - 1;
-            printf("yyend = %i\n", yyend);
+            /*printf*/("yyend = %i\n", yyend);
             if (yyend >= filt->ylen) {
                 filt->hassignal = 0;
                 filt->hastail = 0;
@@ -1489,10 +1489,10 @@ int rtconv() {
         h[i].im = 0;
     }
 
-    printf("x sig:\n");
+    /*printf*/("x sig:\n");
     printrvec(x, xlen);
 
-    printf("h sig:\n");
+    /*printf*/("h sig:\n");
     printcvec(h, hlen);
     /////////////////////////////////////////////////
 
@@ -1522,9 +1522,9 @@ int rtconv() {
 
         // stop the signal, 5 more input samples
         if (running == STOP) {
-            printf("************* stop filter after 2 samples *************\n");
+            /*printf*/("************* stop filter after 2 samples *************\n");
             frames = rtols_finish(filt, 3);
-            printf("************* %i output frames remaining ****************\n", frames);
+            /*printf*/("************* %i output frames remaining ****************\n", frames);
             frames += running;
             //free(hnew);
         }
@@ -1545,14 +1545,14 @@ int rtconv() {
         // has been played completely.
         samples = rtols_filter(filt, xpos, ypos);
 
-        printf(">>> filter returned %i samples output\n", samples);
+        /*printf*/(">>> filter returned %i samples output\n", samples);
 
         // @realtime: calling point for audio i/o: "output buffer ready, [samples] samples"
 
         //printf("END filter step\n");
 
         if (samples > 0) {
-            printf(">>> frame %i, ybuf:\n", running + 1);
+            /*printf*/(">>> frame %i, ybuf:\n", running + 1);
             printrvec(ypos, samples);
         }
 
@@ -1770,9 +1770,9 @@ int rtwfs() {
         }
         /** END filtering step **/
 
-        printf("frame %i, xbuf:\n", running + 1);
+        /*printf*/("frame %i, xbuf:\n", running + 1);
         printrvec(xx[0] + xxpos, K);
-        printf("frame %i, ybuf:\n", running + 1);
+        /*printf*/("frame %i, ybuf:\n", running + 1);
         printrvec(yy[0] + yypos, K);
 
 
@@ -1885,14 +1885,14 @@ void conv3() {
         h[i].im = 0;
     }
 
-    printf("x sig:\n");
+    /*printf*/("x sig:\n");
     printcvec(x, xlen);
 
-    printf("h sig:\n");
+    /*printf*/("h sig:\n");
     printcvec(h, hlen);
 
     tols(x, xlen, h, hlen, y, ylen, m);
-    printf("TOLS convolution: y = x ** h:\n");
+    /*printf*/("TOLS convolution: y = x ** h:\n");
     printcvec(y, ylen - 1);
 
     free(x);
@@ -1934,9 +1934,12 @@ void testperm() {
 int main(int argc, char **argv) {
     //conv1();
     //conv2();
-    conv3();
-    //rtconv();
-    //testperm();
+    int i = 0;
+    for(i = 0; i < 5; i++){
+        conv3();
+        rtconv();
+        testperm();
+    }
 
 
     return 0;
@@ -2064,7 +2067,7 @@ int tols(complex* x, int xlen, complex* h, int hlen, complex* y, int ylen, int m
 
 
     for (j = 0; j < R; j++) {
-        printf("HH[%i]:\n", j);
+        /*printf*/("HH[%i]:\n", j);
         printcvec(HH[j], L);
     }
 
@@ -2182,7 +2185,7 @@ int tols(complex* x, int xlen, complex* h, int hlen, complex* y, int ylen, int m
 
         // TODO: ensure ylen = xlen + hlen - 1
         if (hassignal == 0) {
-            printf("yylen = %i, yyend = %i, ylen = %i\n", yylen, yyend, ylen);
+            /*printf*/("yylen = %i, yyend = %i, ylen = %i\n", yylen, yyend, ylen);
         }
 
         // add most recent frame to convolution result
@@ -2203,14 +2206,14 @@ int tols(complex* x, int xlen, complex* h, int hlen, complex* y, int ylen, int m
         */
 
 
-        printf("XX:\n");
-        for (r = 0; r < R; r++) {
-            printf("%i:%s\t", r, r == icirc ? ">": " ");
-            for (j = 0; j < L; j++) {
-                printf("%i\t", (int) XX[r][j].re);
-            }
-            printf("\n");
-        }
+//         printf("XX:\n");
+//         for (r = 0; r < R; r++) {
+//             printf("%i:%s\t", r, r == icirc ? ">": " ");
+//             for (j = 0; j < L; j++) {
+//                 printf("%i\t", (int) XX[r][j].re);
+//             }
+//             printf("\n");
+//         }
 
         // @parallel: loops over r can be done in parallel, result can
         // be collected by adding in y
@@ -2220,12 +2223,12 @@ int tols(complex* x, int xlen, complex* h, int hlen, complex* y, int ylen, int m
             rcirc = (i - r) % R;
 
 
-            printf("convolve XX[%i] ** HH[%i]\n", rcirc, r);
-            printf(" - XX[%i] = \n", rcirc);
-            printcvec(XX[rcirc], L);
-
-            printf(" - HH[%i]\n", r);
-            printcvec(HH[r],L);
+//             printf("convolve XX[%i] ** HH[%i]\n", rcirc, r);
+//             printf(" - XX[%i] = \n", rcirc);
+//             printcvec(XX[rcirc], L);
+//
+//             printf(" - HH[%i]\n", r);
+//             printcvec(HH[r],L);
 
 
             // partial convolution
@@ -2330,7 +2333,7 @@ void segment_ir(complex* h, int hlen, int m, complex* wf, complex** HH) {
          if (hlen > n)
          {
             // last, incomplete frame
-            printf("hlen = %i, n = %i, hlen - n = %i \n", hlen, K*i, hlen - n);
+            /*printf*/("hlen = %i, n = %i, hlen - n = %i \n", hlen, K*i, hlen - n);
             memcpy(HH[i], h + n, (hlen - n) * sizeof(complex));
             for (j = hlen - n; j < L; j++)
             {

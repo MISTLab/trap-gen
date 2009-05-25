@@ -64,42 +64,44 @@ long count;
 int main()
 {
     double RunTime = 0.0, sum_mps = 0.0, TLimit, mps;
-    int disk, Loops = 0;
-    
+    int disk, Loops = 0, i = 0;
+
     printf("\n");
     printf("Towers of Hanoi Puzzle Test Program (27 Oct 94)\n\n");
     printf("Disks     Moves     Time(sec)   Moves/25usec\n");
 
     disk    = 4;
- 
-    while ( disk < 6 )
-    {
-     disk++;
-     num[0] = 0;
-     num[1] = disk;
-     num[2] = 0;
-     num[3] = 0;
-     count  = 0;
 
-     mov(disk,1,3);
-     
-     RunTime = TimeArray[1];
-     //mps = 2.5E-05 * ( (double)count/RunTime );
-     
-     if ( RunTime > 0.1)
-     {
-     Loops = Loops + 1;
-     sum_mps = sum_mps + mps;
-     }
+    for(i = 0; i < 10000; i++){
+        while ( disk < 6 )
+        {
+        disk++;
+        num[0] = 0;
+        num[1] = disk;
+        num[2] = 0;
+        num[3] = 0;
+        count  = 0;
 
-     printf("%3ld  %10ld  %12.5lf  %10.4lf\n",disk,count,RunTime,mps);
-     
-     if ( disk == 6 ) break;
+        mov(disk,1,3);
+
+        RunTime = TimeArray[1];
+        //mps = 2.5E-05 * ( (double)count/RunTime );
+
+        if ( RunTime > 0.1)
+        {
+        Loops = Loops + 1;
+        sum_mps = sum_mps + mps;
+        }
+
+        printf("%3ld  %10ld  %12.5lf  %10.4lf\n",disk,count,RunTime,mps);
+
+        if ( disk == 6 ) break;
+        }
+
+        //sum_mps = sum_mps / (double)Loops;
+        printf("\nAverage Moves Per 25 usec = %10.4lf\n",sum_mps);
+        printf("\n");
     }
-    
-    //sum_mps = sum_mps / (double)Loops;
-    printf("\nAverage Moves Per 25 usec = %10.4lf\n",sum_mps);
-    printf("\n");
 
     exit(0);
     return 0;
@@ -108,7 +110,7 @@ int main()
 mov(n,f,t)
 {
    int o;
-   if(n == 1) 
+   if(n == 1)
    {
     num[f]--;
     num[t]++;

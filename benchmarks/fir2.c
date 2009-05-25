@@ -65,7 +65,7 @@ short h[] = { 0xBC16, 0x2990, 0x7D0A, 0x1ABE, 0x342A, 0x5DA0, 0xD33B,
 int main()
 {
     int i;
-    int num_iter = 2; //int num_iter = 20;
+    int num_iter = 2000; //int num_iter = 20;
 
     /************************************************************************/
     /* TIME FIR3.                                                           */

@@ -1,17 +1,17 @@
 /*
  * benchmark program:   matrix1.c
- * 
+ *
  * benchmark suite:     DSP-kernel
- * 
+ *
  * description:         generic matrix - multiply benchmarking
  *
  * This program performs a matrix multiplication of the form C=AB,
  * where A and B are two dimensional matrices of arbitrary dimension.
  * The only restriction os that the inner dimension of the arrays must
- * be greater than 1. 
- * 
+ * be greater than 1.
+ *
  *          A[X x Y] * B[Y x Z] = C[X x Z]
- *                    
+ *
  *                  |a11     a12     ..      a1y|
  *                  |a21     a22     ..      a2y|
  * matrix A[X x Y]= |..      ..      ..     ..  |
@@ -30,30 +30,30 @@
  * matrix C[X x Z]= |..      ..      ..     .. |
  *                  |c(x-1)1 c(x-1)2 .. c(x-1)z|
  *                  |cx1     cx2     ..     cxz|
- * 
+ *
  * matrix elements are stored as
  *
- * A[X x Y] = { a11, a12, .. , a1y, 
- *              a21, a22, .. , a2y, ..., 
+ * A[X x Y] = { a11, a12, .. , a1y,
+ *              a21, a22, .. , a2y, ...,
  *              ax1, ax2, .. , axy}
- * 
- * B[Y x Z] = { b11, b21, .., b(y-1)1, by1, b12, b22, .. , b(y-1)z, byz} 
- * 
+ *
+ * B[Y x Z] = { b11, b21, .., b(y-1)1, by1, b12, b22, .. , b(y-1)z, byz}
+ *
  * C[X x Z] = { c11, c21, .. , c(x-1)1, cx1, c12, c22, .. ,c(x-1)z, cxz }
- * 
- * 
- * reference code: 
- * 
- * f. verification:     
- * 
- * organization:         Aachen University of Technology - IS2 
+ *
+ *
+ * reference code:
+ *
+ * f. verification:
+ *
+ * organization:         Aachen University of Technology - IS2
  *                       DSP Tools Group
- *                       phone:  +49(241)807887 
+ *                       phone:  +49(241)807887
  *                       fax:    +49(241)8888195
- *                       e-mail: zivojnov@ert.rwth-aachen.de 
+ *                       e-mail: zivojnov@ert.rwth-aachen.de
  *
  * author:              Juan Martinez Velarde
- * 
+ *
  * history:             3-4-94 creation (Martinez Velarde)
  *                      5-4-94 profiling (Martinez Velarde)
  *
@@ -62,60 +62,60 @@
  *                      $Revision: 696 $
  */
 
-#define X 10 /* first dimension of array A */
-#define Y 10 /* second dimension of array A, first dimension of array B */
-#define Z 10 /* second dimension of array B */
+#define X 150 /* first dimension of array A */
+#define Y 150 /* second dimension of array A, first dimension of array B */
+#define Z 150 /* second dimension of array B */
 
 int matrix_pin_down(int A[], int B[], int C[])
 {
-  int i ; 
-  
+  int i ;
+
   for (i = 0 ; i < X*Y; i++)
-      A[i] = 1 ; 
-  
+      A[i] = 1 ;
+
   for (i = 0 ; i < Y*Z ; i++)
-      B[i] = 1 ; 
-  
+      B[i] = 1 ;
+
   for (i = 0 ; i < X*Z ; i++)
-      C[i] = 0 ; 
-  
-  return((int)0) ; 
+      C[i] = 0 ;
+
+  return((int)0) ;
 
 }
 
 int main()
-{ 
-  static  int A[X*Y] ; 
+{
+  static  int A[X*Y] ;
   static  int B[Y*Z] ;
   static  int C[X*Z] ;
 
   int *p_a = &A[0] ;
   int *p_b = &B[0] ;
   int *p_c = &C[0] ;
-  
-  int f,i,k ; 
 
-  matrix_pin_down(&A[0], &B[0], &C[0]) ; 
+  int f,i,k ;
+
+  matrix_pin_down(&A[0], &B[0], &C[0]) ;
 
   for (k = 0 ; k < Z ; k++)
     {
       p_a = &A[0] ;                  /* point to the beginning of array A */
-      
+
       for (i = 0 ; i < X; i++)
     {
       p_b = &B[k*Y] ;            /* take next column */
-      
-      *p_c =  0 ; 
-      
+
+      *p_c =  0 ;
+
       for (f = 0 ; f < Y; f++) /* do multiply */
         *p_c += *p_a++ * *p_b++ ;
-      
-      *p_c++  ; 
-          
+
+      *p_c++  ;
+
     }
     }
-  
-  
-  matrix_pin_down(&A[0], &B[0], &C[0]) ; 
+
+
+  matrix_pin_down(&A[0], &B[0], &C[0]) ;
   return 0;
 }

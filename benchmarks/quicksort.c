@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#define TO_SORT_SIZE 8192
+#define TO_SORT_SIZE 16384
 
 void QS(int[] ,int,int);
 void swap(int[],int,int);
@@ -9,7 +9,7 @@ int main()
  int o;
  int a[TO_SORT_SIZE];
  for (o=0;o<TO_SORT_SIZE;o++)
-  a[o]=rand()/128;
+  a[o]=rand() % 16384;
  QS(a,0,TO_SORT_SIZE - 1);
  return 0;
 }

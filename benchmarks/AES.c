@@ -1,5 +1,5 @@
 
-typedef unsigned char     WORD8; /*Definisce la parola in Nero come 
+typedef unsigned char     WORD8; /*Definisce la parola in Nero come
 sinonimo del tipo di dato che lo precede pag. 187 (aggiunge un
 nuovo nome ad un tipo di variabile già esistente */
 typedef unsigned int      WORD32; /*Vedi pag. 42 per "unsigned";
@@ -9,10 +9,10 @@ Le operazioni su oggetti privi di segno non possono mai andare in overflow */
 
 /*Queste 4 operazioni estraggono ognuna un byte solo dalla parola a 32 bit
 ricevuta in ingresso*/
-#define byte3(x) (x & 0xff) /*Primo byte di dx*/ 
+#define byte3(x) (x & 0xff) /*Primo byte di dx*/
 #define byte2(x) ((x >> 8) & 0xff)    /*Secondo byte da dx*/
-#define byte1(x) ((x >> 16) & 0xff)   /*Secondo byte da sx*/   
-#define byte0(x) (x >> 24)    /*il byte più significativo*/           
+#define byte1(x) ((x >> 16) & 0xff)   /*Secondo byte da sx*/
+#define byte0(x) (x >> 24)    /*il byte più significativo*/
 
 /*Passandogli 4 byte crea una parola da 32 bit i byte vengono inseriti da sx a dx in ordine di
 parametro*/
@@ -57,7 +57,7 @@ I suoi elementi sono char quindi 8 bit (1 byte) (infatti WORD8 è typedef in aes
     0x9b, 0x1e, 0x87, 0xe9, 0xce, 0x55, 0x28, 0xdf,
     0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68,
     0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16
-};  
+};
 
 /*La matrice di S-box inversa*/
 static const WORD8 InvSbox[256] =
@@ -97,13 +97,13 @@ static const WORD8 InvSbox[256] =
 };
 
 
-/*Questa matrice è necessaria nel keyschedule; è fatta da 10 elementi che sono 
-ognuno una parola da 32 bit: dove solo il primo byte è diverso da zero e vale x elevato 
+/*Questa matrice è necessaria nel keyschedule; è fatta da 10 elementi che sono
+ognuno una parola da 32 bit: dove solo il primo byte è diverso da zero e vale x elevato
 alla i-1 (i parte da 1)*/
 static const WORD32 rcon[10] = {
     0x01000000, 0x02000000, 0x04000000, 0x08000000,
     0x10000000, 0x20000000, 0x40000000, 0x80000000/*x alla 7*/,
-    0x1b000000/*x alla 8 calcolato cap.2.3 rijndal*/, 0x36000000 
+    0x1b000000/*x alla 8 calcolato cap.2.3 rijndal*/, 0x36000000
 /*n.b. Si scrive xalla8 e si xor con il polinomio irriducibile*/
 };
 
@@ -120,10 +120,11 @@ int main()
     int i=0,n_blk;
     WORD32 key[4]=
     {0x2b7e1516,0x28aed2a6,0xabf71588,0x09cf4f3c};
-    WORD32 block[4]=
+    WORD32 block[16]=
     {0x3243f6a8,0x885a308d,0x313198a2,0xe0370734};
     WORD32 outencry[4]; /*Uscita crittografia*/
     WORD32 outdecry[4]; /*UScita decrittografia*/
+    for(i = 0; i < 1000; i++){
     for (n_blk=0;n_blk<10;n_blk++)
     {
         keyschedule(key, m_expanded_key); /*Lancia Init che crea le chiavi
@@ -134,9 +135,10 @@ int main()
         block[0]= block[0]+block[1]-block[2]+block[3]-block[2];
         block[1]= block[2]+block[3]+block[3]-block[1]-block[0];
         block[2]= block[2]-block[1]+block[3]+block[0]+block[2];
-        block[3]= block[0]-block[3]+block[1]+block[0]-block[2];         
+        block[3]= block[0]-block[3]+block[1]+block[0]-block[2];
     }
-        i = 3;
+    }
+
     return 0;
 }
 
@@ -151,7 +153,7 @@ void keyschedule(WORD32* key, WORD32* exp)
     register WORD32 copy2;
     register WORD32 copy3;
     register int i = 0;
-    copy0 = ( key[0] & 0xff000000)        |/*le celle Key[0] sono di 32 bit con & estraggo 
+    copy0 = ( key[0] & 0xff000000)        |/*le celle Key[0] sono di 32 bit con & estraggo
                                              solo il byte di interesse*/
               ((key[1] & 0xff000000) >> 8)  |
               ((key[2] & 0xff000000) >> 16) |
@@ -168,7 +170,7 @@ void keyschedule(WORD32* key, WORD32* exp)
               ((key[1] & 0x000000ff) << 16) |
               ((key[2] & 0x000000ff) << 8)  |
               ( key[3] & 0x000000ff);/*Fine trasposizione matrice chiave*/
-    
+
         local_pointer[0] = copy0;
         local_pointer[1] = copy1;
         local_pointer[2] = copy2;
@@ -184,14 +186,14 @@ void keyschedule(WORD32* key, WORD32* exp)
             copy1 ^= (copy1 >> 8) ^ (copy1 >> 16) ^ (copy1 >> 24);
             copy2 ^= (copy2 >> 8) ^ (copy2 >> 16) ^ (copy2 >> 24);
             copy3 ^= (copy3 >> 8) ^ (copy3 >> 16) ^ (copy3 >> 24);
-            local_pointer += 4;/*Incrementa il puntatore così usa sempre gli stessi indici 
+            local_pointer += 4;/*Incrementa il puntatore così usa sempre gli stessi indici
                                ma si sposta lungo l'array*/
             local_pointer[0] = copy0;
             local_pointer[1] = copy1;
             local_pointer[2] = copy2;
             local_pointer[3] = copy3;/*Salvataggio chiave successiva appena calcolata*/
         }
-        
+
     /*copy[4] = ( key[4] & 0xff000000)        |
               ((key[5] & 0xff000000) >> 8);
     copy[5] = ((key[4] & 0x00ff0000) << 8)  |
@@ -210,14 +212,14 @@ void encryptblock(WORD32* input_pointer, WORD32* output_pointer, WORD32* expkey)
     register WORD32 t0;
     register WORD32 t1;
     register WORD32 t2;
-    register WORD32 t3;  
+    register WORD32 t3;
     register WORD32 s0;
     register WORD32 s1;
     register WORD32 s2;
     register WORD32 s3;
     register int r = 10 >> 1;
     register WORD32* local_pointer = expkey;
-    s0 =(( input_pointer[0] & 0xff000000)        | 
+    s0 =(( input_pointer[0] & 0xff000000)        |
            ((input_pointer[1] & 0xff000000) >> 8)  |
            ((input_pointer[2] & 0xff000000) >> 16) |
            ((input_pointer[3] & 0xff000000) >> 24))  ^ local_pointer[0];
@@ -234,7 +236,7 @@ void encryptblock(WORD32* input_pointer, WORD32* output_pointer, WORD32* expkey)
            ((input_pointer[2] & 0x000000ff) << 8)  |
            ( input_pointer[3] & 0x000000ff))         ^ local_pointer[3];
     /* fine del passaggio TRASPOSTA + ADD KEY*/
-    for (;;) 
+    for (;;)
     {
         s0 = WORD8_TO_WORD32( Sbox[byte0(s0)],
                                 Sbox[byte1(s0)],
@@ -269,7 +271,7 @@ void encryptblock(WORD32* input_pointer, WORD32* output_pointer, WORD32* expkey)
         {
             break;/*Se finisce i round esce*/
         }
-        t0 = WORD8_TO_WORD32( Sbox[byte0(t0)],/*Altro SBOX del secondo round 
+        t0 = WORD8_TO_WORD32( Sbox[byte0(t0)],/*Altro SBOX del secondo round
                                                     con variaile ausiliaria 't'*/
                                 Sbox[byte1(t0)],
                                 Sbox[byte2(t0)],
@@ -299,7 +301,7 @@ void encryptblock(WORD32* input_pointer, WORD32* output_pointer, WORD32* expkey)
         s2 ^= t2 ^ t3 ^ local_pointer[2];
         s3 ^= t0 ^ t3 ^ local_pointer[3];
     }/* Fine del ciclo di for(;;)*/
-    
+
     t0 = WORD8_TO_WORD32( Sbox[byte0(t0)],
                             Sbox[byte1(t0)],
                             Sbox[byte2(t0)],
@@ -340,7 +342,7 @@ void decryptblock(WORD32* input_pointer, WORD32* output_pointer, WORD32* expkey)
     register WORD32 t0;
     register WORD32 t1;
     register WORD32 t2;
-    register WORD32 t3;  
+    register WORD32 t3;
     register WORD32 s0;
     register WORD32 s1;
     register WORD32 s2;
@@ -363,7 +365,7 @@ void decryptblock(WORD32* input_pointer, WORD32* output_pointer, WORD32* expkey)
            ((input_pointer[1] & 0x000000ff) << 16) |
            ((input_pointer[2] & 0x000000ff) << 8)  |
            ( input_pointer[3] & 0x000000ff))         ^ local_pointer[3];
-    for (;;) 
+    for (;;)
     {
         local_pointer -= 8;
         s0 = WORD8_TO_WORD32( InvSbox[byte0(s0)],
@@ -405,7 +407,7 @@ void decryptblock(WORD32* input_pointer, WORD32* output_pointer, WORD32* expkey)
         t1 ^= s0;
         t2 ^= s0;
         t3 ^= s0;
-        if (--r == 0) 
+        if (--r == 0)
         {
             break;
         }

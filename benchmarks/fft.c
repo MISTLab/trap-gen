@@ -75,22 +75,22 @@ void SlaveStart(int my_id)
   int MyNum;
   double error;
   double *upriv;
-  int initdone; 
-  int finish; 
+  int initdone;
+  int finish;
   int l_transtime=0;
-  int MyFirst; 
+  int MyFirst;
   int MyLast;
 
     MyNum = my_id ;
 
 // POSSIBLE ENHANCEMENT:  Here is where one might pin processes to
-// processors to avoid migration 
+// processors to avoid migration
 
 
-  upriv = (double *) malloc(2*(rootN-1)*sizeof(double));  
+  upriv = (double *) malloc(2*(rootN-1)*sizeof(double));
   for (i=0;i<2*(rootN-1);i++) {
     upriv[i] = umain[i];
-  }   
+  }
 
   MyFirst = rootN*MyNum/P;
   MyLast = rootN*(MyNum+1)/P;
@@ -100,26 +100,26 @@ void SlaveStart(int my_id)
 // POSSIBLE ENHANCEMENT:  Here is where one might reset the
 //   statistics that one is measuring about the parallel execution
 
-  // perform forward FFT 
-  FFT1D(1, M, N, x, trans, upriv, umain2, MyNum, &l_transtime, MyFirst, 
+  // perform forward FFT
+  FFT1D(1, M, N, x, trans, upriv, umain2, MyNum, &l_transtime, MyFirst,
     MyLast, pad_length, P, test_result, doprint, dostats, Global);
 
-  // perform backward FFT 
+  // perform backward FFT
   if (test_result) {
-    FFT1D(-1, M, N, x, trans, upriv, umain2, MyNum, &l_transtime, MyFirst, 
+    FFT1D(-1, M, N, x, trans, upriv, umain2, MyNum, &l_transtime, MyFirst,
       MyLast, pad_length, P, test_result, doprint, dostats, Global);
-  }  
+  }
 //  printf("prima della fine\n");
 }
 
 
 double TouchArray(x, scratch, u, upriv, N, MyNum, MyFirst, MyLast)
 
-double *x; 
-double *scratch; 
-double *u; 
+double *x;
+double *scratch;
+double *u;
 double *upriv;
-int N; 
+int N;
 int MyNum;
 int MyFirst;
 int MyLast;
@@ -131,15 +131,15 @@ int MyLast;
   /* touch my data */
   for (j=0;j<2*(rootN-1);j++) {
     tot += upriv[j];
-  }   
+  }
   for (j=MyFirst; j<MyLast; j++) {
     k = j * (rootN + pad_length);
     for (i=0;i<rootN;i++) {
-      tot += x[2*(k+i)] + x[2*(k+i)+1] + 
+      tot += x[2*(k+i)] + x[2*(k+i)+1] +
              scratch[2*(k+i)] + scratch[2*(k+i)+1] +
          u[2*(k+i)] + u[2*(k+i)+1];
     }
-  }  
+  }
   return tot;
 }
 
@@ -188,16 +188,16 @@ int N;
 double *u;
 
 {
-  int q; 
-  int j; 
-  int base; 
+  int q;
+  int j;
+  int base;
   int n1;
 
-  for (q=0; 1<<q<N; q++) {  
+  for (q=0; 1<<q<N; q++) {
     n1 = 1<<q;
     base = n1-1;
     for (j=0; j<n1; j++) {
-      if (base+j > rootN-1) { 
+      if (base+j > rootN-1) {
     return;
       }
       //u[2*(base+j)] = 1;
@@ -216,12 +216,12 @@ double *u;
 int n1;
 
 {
-  int i,j,k; 
+  int i,j,k;
   int base;
 
-  for (j=0; j<n1; j++) {  
+  for (j=0; j<n1; j++) {
     k = j*(rootN+pad_length);
-    for (i=0; i<n1; i++) {  
+    for (i=0; i<n1; i++) {
       //u[2*(k+i)] = cos(2.0*PI*i*j/(N));
       u[2*(k+i)] = 0.7;
       //u[2*(k+i)+1] = -sin(2.0*PI*i*j/(N));
@@ -233,12 +233,12 @@ int n1;
 
 BitReverse(M, k)
 
-int M; 
+int M;
 int k;
 
 {
-  int i; 
-  int j; 
+  int i;
+  int j;
   int tmp;
 
   j = 0;
@@ -251,18 +251,18 @@ int k;
 }
 
 
-void FFT1D(direction, M, N, x, scratch, upriv, umain2, MyNum, l_transtime, 
-           MyFirst, MyLast, pad_length, P, test_result, doprint, dostats, 
+void FFT1D(direction, M, N, x, scratch, upriv, umain2, MyNum, l_transtime,
+           MyFirst, MyLast, pad_length, P, test_result, doprint, dostats,
        Global)
 
-int direction; 
-int M; 
-int N; 
+int direction;
+int M;
+int N;
 int *l_transtime;
-double *x; 
-double *upriv; 
+double *x;
+double *upriv;
 double *scratch;
-double *umain2; 
+double *umain2;
 int MyFirst;
 int MyLast;
 int pad_length;
@@ -273,9 +273,9 @@ int dostats;
 struct GlobalMemory *Global;
 
 {
-  int i; 
+  int i;
   int j;
-  int m1; 
+  int m1;
   int n1;
   int flag = 0;
   unsigned int clocktime1;
@@ -286,13 +286,13 @@ struct GlobalMemory *Global;
 
   /* transpose from x into scratch */
   Transpose(n1, x, scratch, MyNum, MyFirst, MyLast, pad_length);
-  
+
   /* do n1 1D FFTs on columns */
   for (j=MyFirst; j<MyLast; j++) {
     FFT1DOnce(direction, m1, n1, upriv, &scratch[2*j*(n1+pad_length)]);
     TwiddleOneCol(direction, n1, N, j, umain2, &scratch[2*j*(n1+pad_length)],
           pad_length);
-  }  
+  }
 
   /* transpose */
   Transpose(n1, scratch, x, MyNum, MyFirst, MyLast, pad_length);
@@ -313,7 +313,7 @@ struct GlobalMemory *Global;
 
 TwiddleOneCol(direction, n1, N, j, u, x, pad_length)
 
-int direction; 
+int direction;
 int n1;
 int N;
 int j;
@@ -323,9 +323,9 @@ int pad_length;
 
 {
   int i;
-  double omega_r; 
-  double omega_c; 
-  double x_r; 
+  double omega_r;
+  double omega_c;
+  double x_r;
   double x_c;
   double r1;
   double c1;
@@ -334,8 +334,8 @@ int pad_length;
 
   for (i=0; i<n1; i++) {
     omega_r = u[2*(j*(n1+pad_length)+i)];
-    omega_c = direction*u[2*(j*(n1+pad_length)+i)+1];  
-    x_r = x[2*i]; 
+    omega_c = direction*u[2*(j*(n1+pad_length)+i)+1];
+    x_r = x[2*i];
     x_c = x[2*i+1];
     x[2*i] = omega_r*x_r - omega_c*x_c;
     x[2*i+1] = omega_r*x_c + omega_c*x_r;
@@ -345,7 +345,7 @@ int pad_length;
 
 Scale(n1, N, x)
 
-int n1; 
+int n1;
 int N;
 double *x;
 
@@ -362,7 +362,7 @@ double *x;
 Transpose(n1, src, dest, MyNum, MyFirst, MyLast, pad_length)
 
 int n1;
-double *src; 
+double *src;
 double *dest;
 int MyNum;
 int MyFirst;
@@ -370,10 +370,10 @@ int MyLast;
 int pad_length;
 
 {
-  int i; 
-  int j; 
-  int k; 
-  int l; 
+  int i;
+  int j;
+  int k;
+  int l;
   int m;
   int blksize;
   int numblks;
@@ -454,7 +454,7 @@ int pad_length;
 CopyColumn(n1, src, dest)
 
 int n1;
-double *src; 
+double *src;
 double *dest;
 
 {
@@ -469,7 +469,7 @@ double *dest;
 
 Reverse(N, M, x)
 
-int N; 
+int N;
 int M;
 double *x;
 
@@ -488,27 +488,27 @@ double *x;
 
 FFT1DOnce(direction, M, N, u, x)
 
-int direction; 
-int M; 
+int direction;
+int M;
 int N;
-double *u; 
+double *u;
 double *x;
 
 {
-  int j; 
-  int k; 
-  int q; 
-  int L; 
-  int r; 
+  int j;
+  int k;
+  int q;
+  int L;
+  int r;
   int Lstar;
-  double *u1; 
-  double *x1; 
+  double *u1;
+  double *x1;
   double *x2;
-  double omega_r; 
-  double omega_c; 
-  double tau_r; 
-  double tau_c; 
-  double x_r; 
+  double omega_r;
+  double omega_c;
+  double tau_r;
+  double tau_c;
+  double x_r;
   double x_c;
 
   Reverse(N, M, x);
@@ -520,13 +520,13 @@ double *x;
       x1 = &x[2*(k*L)];
       x2 = &x[2*(k*L+Lstar)];
       for (j=0; j<Lstar; j++) {
-    omega_r = u1[2*j]; 
+    omega_r = u1[2*j];
         omega_c = direction*u1[2*j+1];
-    x_r = x2[2*j]; 
+    x_r = x2[2*j];
         x_c = x2[2*j+1];
     tau_r = omega_r*x_r - omega_c*x_c;
     tau_c = omega_r*x_c + omega_c*x_r;
-    x_r = x1[2*j]; 
+    x_r = x1[2*j];
         x_c = x1[2*j+1];
     x2[2*j] = x_r - tau_r;
     x2[2*j+1] = x_c - tau_c;
@@ -545,7 +545,7 @@ void printerr(s)
 char *s;
 
 {
-//  fprintf(stderr,"ERROR: %s\n",s);
+  fprintf(stderr,"ERROR: %s\n",s);
 }
 
 
@@ -580,8 +580,9 @@ int argc;
 char *argv;
 
 {
-  int i; 
-  int j; 
+    int numIter = 0;
+  int i;
+  int j;
   int c;
   extern char *optarg;
   int m1;
@@ -597,7 +598,7 @@ char *argv;
   if (line_size < 2*sizeof(double)) {
     factor = (2*sizeof(double)) / line_size;
     num_cache_lines = orig_num_lines / factor;
-  }  
+  }
   if (line_size <= 2*sizeof(double)) {
     pad_length = 1;
   } else {
@@ -634,8 +635,9 @@ char *argv;
   InitX(N, x);                  /* place random values in x */
   InitU(N,umain);               /* initialize u arrays*/
   InitU2(N,umain2,rootN);
-  SlaveStart(1);
-  SlaveStart(0);
+    for(numIter = 0; numIter < 500; numIter++){
+        SlaveStart(0);
+    }
   return 0;
 }
 

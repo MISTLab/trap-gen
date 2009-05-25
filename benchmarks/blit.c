@@ -30,7 +30,7 @@ unsigned long	src[1024] =
 unsigned long	dst[1024];
 #endif
 
-void	blit(unsigned long saddr, unsigned long daddr, unsigned long n)
+void blit(unsigned long saddr, unsigned long daddr, unsigned long n)
 {
 	int		d1, d2;
 	unsigned long	*s, *d, x, y;
@@ -87,6 +87,8 @@ void	blit(unsigned long saddr, unsigned long daddr, unsigned long n)
 
 int main()
 {
+    int i = 0;
+
 	blit(17, 29, 1000*32);	/* bit blit */
 	blit(29, 17, 1000*32);
 
@@ -98,5 +100,11 @@ int main()
 	{
 		puts("blit: success\n");
 	}
+
+    for(i = 0; i < 1000; i++){
+        blit(17, 29, 1000*32);  /* bit blit */
+        blit(29, 17, 1000*32);
+    }
+
 	return 0;
 }

@@ -80,7 +80,7 @@ struct table vaf_fi_tab2000[] = {
 };
 #endif
 
-/* Below 4000. This is a big flat area similar to the 2000 RPM table. 
+/* Below 4000. This is a big flat area similar to the 2000 RPM table.
 * It is just a little richer at the higher VAF values. */
 #ifdef STATIC_SIZE
 struct table vaf_fi_tab4000[1];
@@ -95,7 +95,7 @@ struct table vaf_fi_tab4000[] = {
 };
 #endif
 
-/* Below 4500. We are concerned with max torque/horsepower. 
+/* Below 4500. We are concerned with max torque/horsepower.
 */
 #ifdef STATIC_SIZE
 struct table vaf_fi_tab4500[1];
@@ -182,28 +182,28 @@ engine(void)
     struct rtable *rtp;
     int vaf, rpm;
     unsigned int hc_count   ;
-    
-    
+
+
     /*
     * Vane Air Flow (VAF) is an 8-bit A/D value that represents the * amount of flow. RPM is the engine speed in revolutions per * minute.
     */
-    for (vaf=0; vaf<255; vaf+=10) 
+    for (vaf=0; vaf<255; vaf+=10)
     {
         ival = vaf;
         hc_count = MAXCOUNT;
-        while (hc_count > MINCOUNT) 
+        while (hc_count > MINCOUNT)
         {
             rpm = edge_to_rpm(hc_count);
             hc_count -= hc_count/STEPCOUNT;
             rtp = rpm_vfi_tab;
             while (rtp->r_rpm < rpm)
                 rtp++;
-            if (rtp->r_rpm == rpm) 
+            if (rtp->r_rpm == rpm)
             {
                 tab1 = tab2 = rtp->r_tab;
                 rpm1 = rpm2 = rpm;
             }
-            else 
+            else
             {
                 tab2 = rtp->r_tab;
                 rpm2 = rtp->r_rpm;
@@ -213,7 +213,7 @@ engine(void)
             }
             interpolate();
         }
-        
+
         /* verify results */
         debug_val += rpm;
         debug_base += vaf;
@@ -241,7 +241,7 @@ interpolate(void)
     tabptr = tab1;
     while (tabptr->t_val < ival)
         tabptr++;
-    
+
         /* Check the easy boundary case.
     */
     if (tabptr->t_val == ival) {
@@ -252,11 +252,11 @@ interpolate(void)
         inter1 = tabptr->t_base +
             ((ival - tabptr->t_val) * tabptr->t_increment);
     }
-    
+
     /* Interpolate the second table.
     */
     if (tab2 == tab1) {
-        
+
     /* Special case, we are done.
         */
         inter_val = inter1;
@@ -267,7 +267,7 @@ interpolate(void)
         tabptr = tab2;
         while (tabptr->t_val < ival)
             tabptr++;
-        
+
             /* Check the easy boundary case.
         */
         if (tabptr->t_val == ival) {
@@ -278,7 +278,7 @@ interpolate(void)
             inter2 = tabptr->t_base +
                 ((ival - tabptr->t_val) * tabptr->t_increment);
         }
-        
+
         rpm_delta = rpm2 - rpm1;
         if (inter2 > inter1) {
             inter_delta = inter2 - inter1;
@@ -290,9 +290,9 @@ interpolate(void)
             offset = rpm2 - rpm;
             inter_temp = inter2;
         }
-        
+
         big_temp = offset * inter_delta;
-        
+
         inter_val = big_temp / rpm_delta +inter_temp;
         //inter_val += inter_temp;
     }
@@ -306,7 +306,7 @@ int count;
 {
     int rpm;
     int quot, rem;
-    
+
     fdiv_func(1, count, &quot, &rem);
     rpm = quot * 458;
     fdiv_func(rem, count, &quot, &rem);
@@ -322,9 +322,9 @@ int den;
 int *quot;
 int *rem;
 {
-    
+
     int temp;
-    
+
     temp = num * 65536;
     *quot = temp / den;
     *rem = temp - (*quot * den);
@@ -334,8 +334,10 @@ int *rem;
 int
 main(void)
 {
-    engine();
-    
+    int i = 0;
+    for(i = 0; i < 50; i++)
+        engine();
+
     if ( (debug_val != 191932) || (debug_base!= 3250) || (debug_interval != 418230) )
     {
         puts("engine: failed\n");
