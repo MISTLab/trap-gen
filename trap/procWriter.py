@@ -787,7 +787,7 @@ def getCPPAlias(self, model):
         constructorInit += ['offset(offset)', 'defaultOffset(0)']
     publicMainClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, constructorInit)
     if not model.startswith('acc'):
-        constructorInit = ['offset(offset)', 'defaultOffset(0)']
+        constructorInit = ['offset(0)', 'defaultOffset(0)']
     publicMainEmptyClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', [], constructorInit)
     # Constructor: takes as input the initial alias
     constructorBody = cxx_writer.writer_code.Code('initAlias->referredAliases.insert(this);\nthis->referringAliases = initAlias;')
@@ -995,16 +995,16 @@ def getCPPMemoryIf(self, model):
     readDecl = cxx_writer.writer_code.Method('read_byte', emptyBody, archByteType, 'pu', [addressParam], pure = True, const = len(self.tlmPorts) == 0, noException = True)
     memoryIfElements.append(readDecl)
     readDeclDBGBody = cxx_writer.writer_code.Code('return this->read_dword(address);')
-    readDecl = cxx_writer.writer_code.Method('read_dword_dbg', readDeclDBGBody, archDWordType, 'pu', [addressParam], virtual = True, const = len(self.tlmPorts) == 0, noException = True)
+    readDecl = cxx_writer.writer_code.Method('read_dword_dbg', readDeclDBGBody, archDWordType, 'pu', [addressParam], virtual = True, const = len(self.tlmPorts) == 0)
     memoryIfElements.append(readDecl)
     readDeclDBGBody = cxx_writer.writer_code.Code('return this->read_word(address);')
-    readDecl = cxx_writer.writer_code.Method('read_word_dbg', readDeclDBGBody, archWordType, 'pu', [addressParam], virtual = True, const = len(self.tlmPorts) == 0, noException = True)
+    readDecl = cxx_writer.writer_code.Method('read_word_dbg', readDeclDBGBody, archWordType, 'pu', [addressParam], virtual = True, const = len(self.tlmPorts) == 0)
     memoryIfElements.append(readDecl)
     readDeclDBGBody = cxx_writer.writer_code.Code('return this->read_half(address);')
-    readDecl = cxx_writer.writer_code.Method('read_half_dbg', readDeclDBGBody, archHWordType, 'pu', [addressParam], virtual = True, const = len(self.tlmPorts) == 0, noException = True)
+    readDecl = cxx_writer.writer_code.Method('read_half_dbg', readDeclDBGBody, archHWordType, 'pu', [addressParam], virtual = True, const = len(self.tlmPorts) == 0)
     memoryIfElements.append(readDecl)
     readDeclDBGBody = cxx_writer.writer_code.Code('return this->read_byte(address);')
-    readDecl = cxx_writer.writer_code.Method('read_byte_dbg', readDeclDBGBody, archByteType, 'pu', [addressParam], virtual = True, const = len(self.tlmPorts) == 0, noException = True)
+    readDecl = cxx_writer.writer_code.Method('read_byte_dbg', readDeclDBGBody, archByteType, 'pu', [addressParam], virtual = True, const = len(self.tlmPorts) == 0)
     memoryIfElements.append(readDecl)
 
     datumParam = cxx_writer.writer_code.Parameter('datum', archDWordType)
@@ -1021,19 +1021,19 @@ def getCPPMemoryIf(self, model):
     memoryIfElements.append(writeDecl)
     datumParam = cxx_writer.writer_code.Parameter('datum', archDWordType)
     writeDeclDBGBody = cxx_writer.writer_code.Code('this->write_dword(address, datum);')
-    writeDecl = cxx_writer.writer_code.Method('write_dword_dbg', writeDeclDBGBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], virtual = True, noException = True)
+    writeDecl = cxx_writer.writer_code.Method('write_dword_dbg', writeDeclDBGBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], virtual = True)
     memoryIfElements.append(writeDecl)
     datumParam = cxx_writer.writer_code.Parameter('datum', archWordType)
     writeDeclDBGBody = cxx_writer.writer_code.Code('this->write_word(address, datum);')
-    writeDecl = cxx_writer.writer_code.Method('write_word_dbg', writeDeclDBGBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], virtual = True, noException = True)
+    writeDecl = cxx_writer.writer_code.Method('write_word_dbg', writeDeclDBGBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], virtual = True)
     memoryIfElements.append(writeDecl)
     datumParam = cxx_writer.writer_code.Parameter('datum', archHWordType)
     writeDeclDBGBody = cxx_writer.writer_code.Code('this->write_half(address, datum);')
-    writeDecl = cxx_writer.writer_code.Method('write_half_dbg', writeDeclDBGBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], virtual = True, noException = True)
+    writeDecl = cxx_writer.writer_code.Method('write_half_dbg', writeDeclDBGBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], virtual = True)
     memoryIfElements.append(writeDecl)
     datumParam = cxx_writer.writer_code.Parameter('datum', archByteType)
     writeDeclDBGBody = cxx_writer.writer_code.Code('this->write_byte(address, datum);')
-    writeDecl = cxx_writer.writer_code.Method('write_byte_dbg', writeDeclDBGBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], virtual = True, noException = True)
+    writeDecl = cxx_writer.writer_code.Method('write_byte_dbg', writeDeclDBGBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], virtual = True)
     memoryIfElements.append(writeDecl)
 
     for curType in [archWordType, archHWordType]:
@@ -1074,6 +1074,7 @@ def getCPPMemoryIf(self, model):
         writeMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n this->' + alias.alias + ' = datum;\nreturn;\n}\n'
 
     checkAddressCode = 'if(address >= this->size){\nTHROW_ERROR("Address " << std::hex << std::showbase << address << " out of memory");\n}\n'
+    checkAddressCodeException = 'if(address >= this->size){\nTHROW_ERROR("Address " << std::hex << std::showbase << address << " out of memory");\n}\n'
 
     if self.isBigEndian:
         swapEndianessCode = '#ifdef LITTLE_ENDIAN_BO\n'
@@ -3655,9 +3656,9 @@ def getIRQTests(self, trace):
                     memories.append(self.memory[0])
                 if brackIndex > 0 and resource[:brackIndex] in memories:
                     try:
-                        code += resource[:brackIndex] + '.write_word(' + hex(int(resource[brackIndex + 1:-1])) + ', ' + hex(value) + ');\n'
+                        code += resource[:brackIndex] + '.write_word_dbg(' + hex(int(resource[brackIndex + 1:-1])) + ', ' + hex(value) + ');\n'
                     except ValueError:
-                        code += resource[:brackIndex] + '.write_word(' + hex(int(resource[brackIndex + 1:-1], 16)) + ', ' + hex(value) + ');\n'
+                        code += resource[:brackIndex] + '.write_word_dbg(' + hex(int(resource[brackIndex + 1:-1], 16)) + ', ' + hex(value) + ');\n'
                 elif resource == irq.name:
                     code += resource + ' = ' + hex(value) + ';\n'
                 else:
@@ -3684,9 +3685,9 @@ def getIRQTests(self, trace):
                     memories.append(self.memory[0])
                 if brackIndex > 0 and resource[:brackIndex] in memories:
                     try:
-                        code += resource[:brackIndex] + '.read_word(' + hex(int(resource[brackIndex + 1:-1])) + ')'
+                        code += resource[:brackIndex] + '.read_word_dbg(' + hex(int(resource[brackIndex + 1:-1])) + ')'
                     except ValueError:
-                        code += resource[:brackIndex] + '.read_word(' + hex(int(resource[brackIndex + 1:-1], 16)) + ')'
+                        code += resource[:brackIndex] + '.read_word_dbg(' + hex(int(resource[brackIndex + 1:-1], 16)) + ')'
                 elif brackIndex > 0 and resource[:brackIndex] in outPinPorts:
                     try:
                         code += resource[:brackIndex] + '_target.readPIN(' + hex(int(resource[brackIndex + 1:-1])) + ')'

@@ -933,11 +933,12 @@ class Processor:
             for i in MemClass:
                 implFileMem.addMember(i)
                 headFileMem.addMember(i)
-            implFileExt = cxx_writer.writer_code.FileDumper('externalPorts.cpp', False)
-            implFileExt.addInclude('externalPorts.hpp')
-            headFileExt = cxx_writer.writer_code.FileDumper('externalPorts.hpp', True)
-            implFileExt.addMember(ExternalIf)
-            headFileExt.addMember(ExternalIf)
+            if ExternalIf:
+                implFileExt = cxx_writer.writer_code.FileDumper('externalPorts.cpp', False)
+                implFileExt.addInclude('externalPorts.hpp')
+                headFileExt = cxx_writer.writer_code.FileDumper('externalPorts.hpp', True)
+                implFileExt.addMember(ExternalIf)
+                headFileExt.addMember(ExternalIf)
             if IRQClasses:
                 implFileIRQ = cxx_writer.writer_code.FileDumper('irqPorts.cpp', False)
                 implFileIRQ.addInclude('irqPorts.hpp')
@@ -1030,8 +1031,9 @@ class Processor:
             curFolder.addCode(implFileDec)
             curFolder.addHeader(headFileMem)
             curFolder.addCode(implFileMem)
-            curFolder.addHeader(headFileExt)
-            curFolder.addCode(implFileExt)
+            if ExternalIf:
+                curFolder.addHeader(headFileExt)
+                curFolder.addCode(implFileExt)
             if IRQClasses:
                 curFolder.addHeader(headFileIRQ)
                 curFolder.addCode(implFileIRQ)

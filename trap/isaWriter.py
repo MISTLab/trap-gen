@@ -641,9 +641,9 @@ def getCPPInstrTest(self, processor, model, trace):
                 memories.append(processor.memory[0])
             if brackIndex > 0 and resource[:brackIndex] in memories:
                 try:
-                    code += resource[:brackIndex] + '.write_word(' + hex(int(resource[brackIndex + 1:-1])) + ', ' + hex(value) + ');\n'
+                    code += resource[:brackIndex] + '.write_word_dbg(' + hex(int(resource[brackIndex + 1:-1])) + ', ' + hex(value) + ');\n'
                 except ValueError:
-                    code += resource[:brackIndex] + '.write_word(' + hex(int(resource[brackIndex + 1:-1], 16)) + ', ' + hex(value) + ');\n'
+                    code += resource[:brackIndex] + '.write_word_dbg(' + hex(int(resource[brackIndex + 1:-1], 16)) + ', ' + hex(value) + ');\n'
             else:
                 code += resource + '.immediateWrite(' + hex(value) + ');\n'
         code += 'toTest.setParams(' + hex(int(''.join(instrCode), 2)) + ');\n'
@@ -660,9 +660,9 @@ def getCPPInstrTest(self, processor, model, trace):
                 memories.append(processor.memory[0])
             if brackIndex > 0 and resource[:brackIndex] in memories:
                 try:
-                    code += resource[:brackIndex] + '.read_word(' + hex(int(resource[brackIndex + 1:-1])) + ')'
+                    code += resource[:brackIndex] + '.read_word_dbg(' + hex(int(resource[brackIndex + 1:-1])) + ')'
                 except ValueError:
-                    code += resource[:brackIndex] + '.read_word(' + hex(int(resource[brackIndex + 1:-1], 16)) + ')'
+                    code += resource[:brackIndex] + '.read_word_dbg(' + hex(int(resource[brackIndex + 1:-1], 16)) + ')'
             elif brackIndex > 0 and resource[:brackIndex] in outPinPorts:
                 try:
                     code += resource[:brackIndex] + '_target.readPIN(' + hex(int(resource[brackIndex + 1:-1])) + ')'
