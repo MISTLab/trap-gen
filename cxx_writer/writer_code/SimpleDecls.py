@@ -114,6 +114,7 @@ class Type(DumpElement):
         newType = copy.deepcopy(self)
         newType.const = False
         return newType
+
     def writeDeclaration(self, writer):
         if self.const:
             writer.write('const ')
@@ -136,14 +137,16 @@ class Type(DumpElement):
 class TemplateType(Type):
     """Represents a templated type; this is use for variable declaration, function parameter declaration ..."""
 
-    def __init__(self, name, template = [], includes = []):
-        Type.__init__(self, name, includes)
+    def __init__(self, name, template = [], includes = [], const = False):
+        Type.__init__(self, name, includes, const)
         if type(template) != type([]):
             self.template = [template]
         else:
             self.template = template
 
     def writeDeclaration(self, writer):
+        if self.const:
+            writer.write('const ')
         currentModifiers = self.modifiers
         self.modifiers = []
         Type.writeDeclaration(self, writer)
@@ -289,13 +292,16 @@ class Variable(DumpElement):
     sense that it is not a member of a class; it can, anyway, be a variable
     of a method"""
 
-    def __init__(self, name, type, static = False, initValue = ''):
+    def __init__(self, name, type, static = False, initValue = '', namespaces = []):
         DumpElement.__init__(self, name)
         self.type = type
         self.static = static
+        self.namespaces = namespaces
         self.initValue = initValue
 
     def writeDeclaration(self, writer):
+        for namespace in self.namespaces:
+            writer.write('namespace ' + namespace + '{\n')
         if self.docstring:
             self.printDocString(writer)
         if self.static:
@@ -305,6 +311,8 @@ class Variable(DumpElement):
         if self.initValue:
             writer.write(' = ' + self.initValue)
         writer.write(';\n')
+        for namespace in self.namespaces:
+            writer.write('};\n')
 
     def writeImplementation(self, writer):
         self.writeDeclaration(writer)
@@ -329,7 +337,7 @@ class Function(DumpElement):
     """Represents a function of the program; this function is not
     a method of a class"""
 
-    def __init__(self, name, body, retType = Type('void'), parameters = [], static = False, inline = False, template = [], noException = False):
+    def __init__(self, name, body, retType = Type('void'), parameters = [], static = False, inline = False, template = [], noException = False, namespaces = []):
         DumpElement.__init__(self, name)
         self.body = body
         self.parameters = parameters
@@ -337,9 +345,12 @@ class Function(DumpElement):
         self.template = template
         self.static = static
         self.inline = inline
+        self.namespaces = namespaces
         self.noException = noException
 
     def writeDeclaration(self, writer):
+        for namespace in self.namespaces:
+            writer.write('namespace ' + namespace + '{\n')
         if self.docstring:
             self.printDocString(writer)
         if self.template:
@@ -397,6 +408,8 @@ class Function(DumpElement):
             except AttributeError:
                 pass
             writer.write(';\n')
+        for namespace in self.namespaces:
+            writer.write('};\n')
 
     def writeImplementation(self, writer):
         if self.docstring:
@@ -405,7 +418,10 @@ class Function(DumpElement):
         if self.template or self.inline:
             return
         self.retType.writeDeclaration(writer)
-        writer.write(' ' + self.name + '(')
+        writer.write(' ')
+        for namespace in self.namespaces:
+            writer.write(namespace + '::')
+        writer.write(self.name + '(')
         if self.parameters:
             writer.write(' ')
         for i in self.parameters:
@@ -439,20 +455,23 @@ class Operator(Function):
     """Represents an operator of the program; this operator is not
     a method of a class"""
 
-    def __init__(self, name, body, retType = Type('void'), parameters = [], static = False, inline = False, template = [], noException = False):
-        Function.__init__(self, 'operator ' + name, body, retType, parameters, static, inline, template, noException)
+    def __init__(self, name, body, retType = Type('void'), parameters = [], static = False, inline = False, template = [], noException = False, namespaces = []):
+        Function.__init__(self, 'operator ' + name, body, retType, parameters, static, inline, template, noException, namespaces)
 
 class Enum(DumpElement):
     """Represents the declaration of an enumeration type"""
 
-    def __init__(self, name, values):
+    def __init__(self, name, values, namespaces = []):
         DumpElement.__init__(self, name)
         self.values = values
+        self.namespaces = namespaces
 
     def addValue(self, name, value):
         self.values[name] = value
 
     def writeDeclaration(self, writer):
+        for namespace in self.namespaces:
+            writer.write('namespace ' + namespace + '{\n')
         if self.docstring:
             self.printDocString(writer)
         if not self.values:
@@ -461,18 +480,23 @@ class Enum(DumpElement):
         for key, val in self.values.items():
             code += key + ' = ' + str(val) + ' \n,'
         writer.write(code[:-1] + '};\n')
+        for namespace in self.namespaces:
+            writer.write('};\n')
 
 class Union(DumpElement):
     """Represents a union"""
 
-    def __init__(self, name, members = []):
+    def __init__(self, name, members = [], namespaces = []):
         DumpElement.__init__(self, name)
         self.members = members
+        self.namespaces = namespaces
 
     def addMember(self, member):
         self.members.append(member)
 
     def writeDeclaration(self, writer):
+        for namespace in self.namespaces:
+            writer.write('namespace ' + namespace + '{\n')
         if self.docstring:
             self.printDocString(writer)
         if not self.members:
@@ -481,6 +505,8 @@ class Union(DumpElement):
         for i in self.members:
             i.writeDeclaration(writer)
         writer.write('};\n')
+        for namespace in self.namespaces:
+            writer.write('};\n')
 
     def getIncludes(self):
         includes = []
@@ -496,14 +522,17 @@ class Union(DumpElement):
 class BitField(DumpElement):
     """Represents a bitfield"""
 
-    def __init__(self, name, members = []):
+    def __init__(self, name, members = [], namespaces = []):
         DumpElement.__init__(self, name)
         self.members = members
+        self.namespaces = namespaces
 
     def addMember(self, member):
         self.members.append(member)
 
     def writeDeclaration(self, writer):
+        for namespace in self.namespaces:
+            writer.write('namespace ' + namespace + '{\n')
         if self.docstring:
             self.printDocString(writer)
         if not self.members:
@@ -512,6 +541,8 @@ class BitField(DumpElement):
         for i in self.members:
             writer.write('unsigned ' + str(i[0]) + ':' + str(i[1]) + ';\n')
         writer.write('};\n')
+        for namespace in self.namespaces:
+            writer.write('};\n')
 
     def getIncludes(self):
         return []
@@ -522,16 +553,21 @@ class BitField(DumpElement):
 class Typedef(DumpElement):
     """Represents a typedef of an existing type"""
 
-    def __init__(self, name, oldType):
+    def __init__(self, name, oldType, namespaces = []):
         DumpElement.__init__(self, name)
         self.oldType = oldType
+        self.namespaces = namespaces
 
     def writeDeclaration(self, writer):
+        for namespace in self.namespaces:
+            writer.write('namespace ' + namespace + '{\n')
         if self.docstring:
             self.printDocString(writer)
         writer.write('typedef ' + self.name + ' ')
         self.oldType.writeDeclaration(writer)
         writer.write(';\n')
+        for namespace in self.namespaces:
+            writer.write('}:\n')
 
     def getIncludes(self):
         return copy.copy(self.oldType.getIncludes())

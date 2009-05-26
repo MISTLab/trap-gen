@@ -574,7 +574,7 @@ def getCPPRegisters(self, model):
 
     ################ End of part where we determine the different register types which have to be declared ##################
 
-    registerDecl = cxx_writer.writer_code.SCModule('Register', registerElements)
+    registerDecl = cxx_writer.writer_code.SCModule('Register', registerElements, namespaces = [self.name.lower() + '_trap'])
     registerDecl.addConstructor(publicConstr)
 
     ################ Finally I put everything together##################
@@ -624,7 +624,7 @@ def getCPPRegisters(self, model):
         operatorParam = [cxx_writer.writer_code.Parameter('numReg', cxx_writer.writer_code.uintType)]
         operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, registerType.makeRef(), 'pu', operatorParam, inline = True, noException = True)
         regBankElements.append(operatorDecl)
-        regBankClass = cxx_writer.writer_code.ClassDeclaration('RegisterBankClass', regBankElements)
+        regBankClass = cxx_writer.writer_code.ClassDeclaration('RegisterBankClass', regBankElements, namespaces = [self.name.lower() + '_trap'])
         constructorBody = cxx_writer.writer_code.Code("""this->size = size;
             this->registers = new """ + str(registerType.makePointer()) + """[this->size];
             for(unsigned int i = 0; i < this->size; i++){
@@ -963,7 +963,7 @@ def getCPPAlias(self, model):
     aliasElements.append(aliasesAttribute)
     aliasesAttribute = cxx_writer.writer_code.Attribute('referringAliases', aliasType.makePointer(), 'pri')
     aliasElements.append(aliasesAttribute)
-    aliasDecl = cxx_writer.writer_code.ClassDeclaration(aliasType.name, aliasElements)
+    aliasDecl = cxx_writer.writer_code.ClassDeclaration(aliasType.name, aliasElements, namespaces = [self.name.lower() + '_trap'])
     aliasDecl.addConstructor(publicMainClassConstr)
     aliasDecl.addConstructor(publicMainEmptyClassConstr)
     aliasDecl.addConstructor(publicAliasConstr)
@@ -1053,7 +1053,7 @@ def getCPPMemoryIf(self, model):
     memoryIfElements.append(lockDecl)
     unlockDecl = cxx_writer.writer_code.Method('unlock', emptyBody, cxx_writer.writer_code.voidType, 'pu', pure = True)
     memoryIfElements.append(unlockDecl)
-    memoryIfDecl = cxx_writer.writer_code.ClassDeclaration('MemoryInterface', memoryIfElements)
+    memoryIfDecl = cxx_writer.writer_code.ClassDeclaration('MemoryInterface', memoryIfElements, namespaces = [self.name.lower() + '_trap'])
     publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
     memoryIfDecl.addDestructor(publicDestr)
     classes.append(memoryIfDecl)
@@ -1174,7 +1174,7 @@ def getCPPMemoryIf(self, model):
         sizeAttribute = cxx_writer.writer_code.Attribute('size', cxx_writer.writer_code.uintType, 'pri')
         memoryElements.append(sizeAttribute)
         memoryElements += aliasAttrs
-        localMemDecl = cxx_writer.writer_code.ClassDeclaration('LocalMemory', memoryElements, [memoryIfDecl.getType()])
+        localMemDecl = cxx_writer.writer_code.ClassDeclaration('LocalMemory', memoryElements, [memoryIfDecl.getType()], namespaces = [self.name.lower() + '_trap'])
         constructorBody = cxx_writer.writer_code.Code('this->memory = new char[size];\nthis->debugger = NULL;')
         constructorParams = [cxx_writer.writer_code.Parameter('size', cxx_writer.writer_code.uintType)]
         publicMemConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams + aliasParams, ['size(size)'] + aliasInit)
@@ -1338,7 +1338,7 @@ this->dumpFile.write((char *)&dumpInfo, sizeof(MemAccessType));
         memoryElements.append(cxx_writer.writer_code.Attribute(self.memory[3], resourceType[self.memory[3]].makeRef(), 'pri'))
         pcRegParam = [cxx_writer.writer_code.Parameter(self.memory[3], resourceType[self.memory[3]].makeRef())]
         pcRegInit = [self.memory[3] + '(' + self.memory[3] + ')']
-        localMemDecl = cxx_writer.writer_code.ClassDeclaration('LocalMemory', memoryElements, [memoryIfDecl.getType()])
+        localMemDecl = cxx_writer.writer_code.ClassDeclaration('LocalMemory', memoryElements, [memoryIfDecl.getType()], namespaces = [self.name.lower() + '_trap'])
         constructorBody = cxx_writer.writer_code.Code("""this->memory = new char[size];
             this->debugger = NULL;
             this->dumpFile.open("memoryDump.dmp", ios::out | ios::binary | ios::ate);
@@ -2195,7 +2195,7 @@ def getCPPProc(self, model, trace):
     destrCode += bodyDestructor
     destructorBody = cxx_writer.writer_code.Code(destrCode)
     publicDestr = cxx_writer.writer_code.Destructor(destructorBody, 'pu')
-    processorDecl = cxx_writer.writer_code.SCModule('Processor', processorElements)
+    processorDecl = cxx_writer.writer_code.SCModule('Processor', processorElements, namespaces = [self.name.lower() + '_trap'])
     processorDecl.addConstructor(publicConstr)
     processorDecl.addDestructor(publicDestr)
     return processorDecl
@@ -2405,7 +2405,7 @@ def getCPPIf(self, model):
     ifClassElements.append(writeMemMethod)
 
     ABIIfType = cxx_writer.writer_code.TemplateType('ABIIf', [wordType], 'ABIIf.hpp')
-    ifClassDecl = cxx_writer.writer_code.ClassDeclaration(self.name + '_ABIIf', ifClassElements, [ABIIfType])
+    ifClassDecl = cxx_writer.writer_code.ClassDeclaration(self.name + '_ABIIf', ifClassElements, [ABIIfType], namespaces = [self.name.lower() + '_trap'])
     publicIfConstr = cxx_writer.writer_code.Constructor(cxx_writer.writer_code.Code(''), 'pu', baseInstrConstrParams, initElements)
     emptyBody = cxx_writer.writer_code.Code('')
     opDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
@@ -2785,7 +2785,7 @@ def getCPPExternalPorts(self, model):
 
     tlmPortElements += aliasAttrs
 
-    extPortDecl = cxx_writer.writer_code.ClassDeclaration('TLMMemory', tlmPortElements, [memIfType, cxx_writer.writer_code.sc_moduleType])
+    extPortDecl = cxx_writer.writer_code.ClassDeclaration('TLMMemory', tlmPortElements, [memIfType, cxx_writer.writer_code.sc_moduleType], namespaces = [self.name.lower() + '_trap'])
     constructorBody = cxx_writer.writer_code.Code(constructorCode + 'end_module();')
     publicExtPortConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams + aliasParams, tlmPortInit + aliasInit)
     extPortDecl.addConstructor(publicExtPortConstr)
@@ -2865,7 +2865,7 @@ def getGetIRQPorts(self):
         constructorCode += 'this->socket.register_b_transport(this, &IntrTLMPort_' + str(width) + '::b_transport);\n'
         constructorCode += 'this->socket.register_transport_dbg(this, &IntrTLMPort_' + str(width) + '::transport_dbg);\n'
         constructorCode += 'this->socket.register_nb_transport_fw(this, &IntrTLMPort_' + str(width) + '::nb_transport_fw);\n'
-        irqPortDecl = cxx_writer.writer_code.ClassDeclaration('IntrTLMPort_' + str(width), tlmPortElements, [cxx_writer.writer_code.sc_moduleType])
+        irqPortDecl = cxx_writer.writer_code.ClassDeclaration('IntrTLMPort_' + str(width), tlmPortElements, [cxx_writer.writer_code.sc_moduleType], namespaces = [self.name.lower() + '_trap'])
         constructorBody = cxx_writer.writer_code.Code(constructorCode + 'end_module();')
         publicExtPortConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, tlmPortInit)
         irqPortDecl.addConstructor(publicExtPortConstr)
@@ -2891,7 +2891,7 @@ def getGetIRQPorts(self):
         tlmPortInit.append('sc_module(portName)')
         tlmPortInit.append('irqSignal(irqSignal)')
         constructorCode += 'SC_METHOD();\nsensitive << this->recvIntr;\n'
-        irqPortDecl = cxx_writer.writer_code.ClassDeclaration('IntrSysCPort_' + str(width), systemcPortElements, [cxx_writer.writer_code.sc_moduleType])
+        irqPortDecl = cxx_writer.writer_code.ClassDeclaration('IntrSysCPort_' + str(width), systemcPortElements, [cxx_writer.writer_code.sc_moduleType], namespaces = [self.name.lower() + '_trap'])
         constructorBody = cxx_writer.writer_code.Code(constructorCode + 'end_module();')
         publicExtPortConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, tlmPortInit)
         irqPortDecl.addConstructor(publicExtPortConstr)
@@ -3040,7 +3040,7 @@ def getGetPipelineStages(self, trace):
     constructorInit.append('succStage(succStage)')
     baseConstructorInit += 'prevStage, '
     baseConstructorInit += 'succStage, '
-    pipelineDecl = cxx_writer.writer_code.ClassDeclaration('BasePipeStage', pipelineElements)
+    pipelineDecl = cxx_writer.writer_code.ClassDeclaration('BasePipeStage', pipelineElements, namespaces = [self.name.lower() + '_trap'])
     constructorBody = cxx_writer.writer_code.Code(constructorCode)
     publicPipelineConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParamsBase, constructorInit)
     pipelineDecl.addConstructor(publicPipelineConstr)
@@ -3508,7 +3508,7 @@ def getGetPipelineStages(self, trace):
             curPipeElements.append(instructionsAttribute)
 
         constructorInit = ['sc_module(pipeName)', 'BasePipeStage(' + baseConstructorInit[:-2] + ')'] + constructorInit
-        curPipeDecl = cxx_writer.writer_code.SCModule(pipeStage.name.upper() + '_PipeStage', curPipeElements, [pipeType])
+        curPipeDecl = cxx_writer.writer_code.SCModule(pipeStage.name.upper() + '_PipeStage', curPipeElements, [pipeType], namespaces = [self.name.lower() + '_trap'])
         constructorBody = cxx_writer.writer_code.Code(constructorCode + 'end_module();')
         publicCurPipeConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, constructorInit)
         curPipeDecl.addConstructor(publicCurPipeConstr)
@@ -3594,7 +3594,7 @@ def getGetPINPorts(self):
         pinPortInit.append('initSocket(sc_gen_unique_name(portName))')
         pinPortElements.append(initSockAttr)
 
-        pinPortDecl = cxx_writer.writer_code.ClassDeclaration('PinTLM_out_' + str(port.portWidth), pinPortElements, [cxx_writer.writer_code.sc_moduleType])
+        pinPortDecl = cxx_writer.writer_code.ClassDeclaration('PinTLM_out_' + str(port.portWidth), pinPortElements, [cxx_writer.writer_code.sc_moduleType], namespaces = [self.name.lower() + '_trap'])
         constructorBody = cxx_writer.writer_code.Code('end_module();')
         publicPINPortConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, pinPortInit)
         pinPortDecl.addConstructor(publicPINPortConstr)
@@ -3713,7 +3713,7 @@ def getIRQTests(self, trace):
         testNum = 0
         for test in irq.tests:
             testName = 'irq_test_' + irq.name + '_' + str(testNum)
-            code = archElemsDeclStr
+            code = 'using namespace ' + self.name.lower() + '_trap;\n\n' + archElemsDeclStr
 
             # Note that each test is composed of two parts: the first one
             # containing the status of the processor before the interrupt and
@@ -3806,7 +3806,8 @@ def getMainCode(self, model):
     # in order to execute simulations
     from isa import resolveBitType
     wordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>')
-    code = """
+    code = 'using namespace ' + self.name.lower() + '_trap;\n\n'
+    code += """
     boost::program_options::options_description desc("Processor simulator for """ + self.name + """");
     desc.add_options()
         ("help,h", "produces the help message")
