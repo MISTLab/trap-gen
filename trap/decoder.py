@@ -384,7 +384,7 @@ class decoderCreator:
         code += '}\n'
         return code
 
-    def getCPPClass(self, fetchSizeType):
+    def getCPPClass(self, fetchSizeType, namespace = ''):
         # Creates the representation of the decoder as a C++ class
         import cxx_writer
         from isa import resolveBitType
@@ -397,7 +397,7 @@ class decoderCreator:
         code.addInclude('utils.hpp')
         parameters = [cxx_writer.writer_code.Parameter('instrCode', fetchSizeType)]
         decodeMethod = cxx_writer.writer_code.Method('decode', code, cxx_writer.writer_code.intType, 'pu', parameters, const = True, noException = True)
-        decodeClass = cxx_writer.writer_code.ClassDeclaration('Decoder', [decodeMethod])
+        decodeClass = cxx_writer.writer_code.ClassDeclaration('Decoder', [decodeMethod], namespaces = [namespace])
         return decodeClass
 
     def getCPPTests(self):

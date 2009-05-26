@@ -230,11 +230,11 @@ class ISA:
                 if not checkerMethod(reg):
                     raise Exception('Register ' + reg + ' used in the MachineCode description does not exists')
 
-    def getCPPClasses(self, processor, model, trace):
-        return isaWriter.getCPPClasses(self, processor, model, trace)
+    def getCPPClasses(self, processor, model, trace, namespace):
+        return isaWriter.getCPPClasses(self, processor, model, trace, namespace)
 
-    def getCPPTests(self, processor, model, trace):
-        return isaWriter.getCPPTests(self, processor, model, trace)
+    def getCPPTests(self, processor, model, trace, namespace):
+        return isaWriter.getCPPTests(self, processor, model, trace, namespace)
 
     def getInstructionSig(self):
         # Returns the signature (in the form of a string) uniquely identifying the
@@ -519,11 +519,11 @@ class Instruction:
     def __str__(self):
         return repr(self)
 
-    def getCPPClass(self, model, processor, trace):
-        return isaWriter.getCPPInstr(self, model, processor, trace)
+    def getCPPClass(self, model, processor, trace, namespace):
+        return isaWriter.getCPPInstr(self, model, processor, trace, namespace)
 
-    def getCPPTest(self, processor, model, trace):
-        return isaWriter.getCPPInstrTest(self, processor, model, trace)
+    def getCPPTest(self, processor, model, trace, namespace):
+        return isaWriter.getCPPInstrTest(self, processor, model, trace, namespace)
 
 class HelperOperation:
     """Represents some code; this code can be shared among the
@@ -583,11 +583,11 @@ class HelperOperation:
         # returns the cpp code implementing the current method
         return isaWriter.getCppOperation(self, parameters)
 
-    def getCppOpClass(self, procName):
+    def getCppOpClass(self, namespace):
         # Relturn a CPP class, deriving from Instruction,
         # implementing a method which defines the current
         # oepration
-        return isaWriter.getCppOpClass(self, procName)
+        return isaWriter.getCppOpClass(self, namespace)
 
     def __repr__(self):
         return self.name

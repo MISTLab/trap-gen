@@ -74,6 +74,22 @@ class Define:
     def __str__(self):
         return self.defineStr
 
+class UseNamespace:
+    def __init__(self, namespace):
+        self.namespace = namespace
+
+    def writeImplementation(self, writer):
+        writer.write('using namespace ' + self.namespace + ';\n')
+
+    def writeDeclaration(self, writer):
+        pass
+
+    def getIncludes(self):
+        return []
+
+    def __str__(self):
+        return 'using namespace ' + self.namespace
+
 class Type(DumpElement):
     """Represents a type; this is use for variable declaration, function parameter declaration ..."""
 
@@ -145,8 +161,6 @@ class TemplateType(Type):
             self.template = template
 
     def writeDeclaration(self, writer):
-        if self.const:
-            writer.write('const ')
         currentModifiers = self.modifiers
         self.modifiers = []
         Type.writeDeclaration(self, writer)
@@ -372,7 +386,9 @@ class Function(DumpElement):
         except AttributeError:
             pass
         self.retType.writeDeclaration(writer)
-        writer.write(' ' + self.name + '(')
+        if self.retType.name:
+            writer.write(' ')
+        writer.write(self.name + '(')
         if self.parameters:
             writer.write(' ')
         for i in self.parameters:

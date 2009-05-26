@@ -283,7 +283,7 @@ class ClassDeclaration(DumpElement):
     def writeDeclaration(self, writer):
         self.computeMemVisibility()
         for namespace in self.namespaces:
-            writer.write('namespace ' + namespace + '{\n')
+            writer.write('namespace ' + namespace + '{\n\n')
         # Now I can simply print the declarations
         if self.docstring:
             self.printDocString(writer)
@@ -363,12 +363,12 @@ class ClassDeclaration(DumpElement):
         # matter anymore
         for i in self.innerClasses:
             try:
-                i.writeImplementation(writer, namespaces + [self.name])
+                i.writeImplementation(writer, namespaces + self.namespaces + [self.name])
             except AttributeError:
                 pass
         for i in self.members:
             try:
-                i.writeImplementation(writer, self.name, namespaces)
+                i.writeImplementation(writer, self.name, namespaces + self.namespaces)
             except AttributeError:
                 pass
 

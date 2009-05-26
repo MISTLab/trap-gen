@@ -104,8 +104,8 @@ class Register:
             raise Exception('For register ' + self.name + ' unable to set an offset since a bit mask is used')
         self.offset = value
 
-    def getCPPClass(self, model, regType):
-        return procWriter.getCPPRegClass(self, model, regType)
+    def getCPPClass(self, model, regType, namespace):
+        return procWriter.getCPPRegClass(self, model, regType, namespace)
 
 class RegisterBank:
     """Same thing of a register, it also specifies the
@@ -188,8 +188,8 @@ class RegisterBank:
             raise Exception('Default value already set for register ' + str(position) + ' in register bank' + self.name)
         self.defValues[position] = value
 
-    def getCPPClass(self, model, regType):
-        return procWriter.getCPPRegBankClass(self, model, regType)
+    def getCPPClass(self, model, regType, namespace):
+        return procWriter.getCPPRegBankClass(self, model, regType, namespace)
 
 class AliasRegister:
     """Alias for a register of the processor;
@@ -736,72 +736,72 @@ class Processor:
                 # Single register or alias: I check that it exists
                 if not self.isRegExisting(i):
                     raise Exception('Register ' + i + ' used in the ABI does not exists')
-        ################à TODO: check also the memories #######################
+        ################# TODO: check also the memories #######################
 
-    def getCPPRegisters(self, model):
+    def getCPPRegisters(self, model, namespace):
         # This method creates all the classes necessary for declaring
         # the registers: in particular the register base class
         # and all the classes for the different bitwidths
-        return procWriter.getCPPRegisters(self, model)
+        return procWriter.getCPPRegisters(self, model, namespace)
 
     def getRegistersBitfields(self):
         return procWriter.getRegistersBitfields(self)
 
-    def getCPPAlias(self, model):
+    def getCPPAlias(self, model, namespace):
         # This method creates the class describing a register
         # alias
-        return procWriter.getCPPAlias(self, model)
+        return procWriter.getCPPAlias(self, model, namespace)
 
-    def getCPPProc(self, model, trace):
+    def getCPPProc(self, model, trace, namespace):
         # creates the class describing the processor
-        return procWriter.getCPPProc(self, model, trace)
+        return procWriter.getCPPProc(self, model, trace, namespace)
 
-    def getCPPMemoryIf(self, model):
+    def getCPPMemoryIf(self, model, namespace):
         # creates the class describing the processor
-        return procWriter.getCPPMemoryIf(self, model)
+        return procWriter.getCPPMemoryIf(self, model, namespace)
 
-    def getCPPIf(self, model):
+    def getCPPIf(self, model, namespace):
         # creates the interface which is used by the tools
         # to access the processor core
-        return procWriter.getCPPIf(self, model)
+        return procWriter.getCPPIf(self, model, namespace)
 
-    def getCPPExternalPorts(self, model):
+    def getCPPExternalPorts(self, model, namespace):
         # creates the processor external ports used for the
         # communication with the external world (the memory port
         # is not among this ports, it is treated separately)
-        return procWriter.getCPPExternalPorts(self, model)
+        return procWriter.getCPPExternalPorts(self, model, namespace)
 
-    def getTestMainCode(self):
+    def getTestMainCode(self, namespace):
         # Returns the code for the file which contains the main
         # routine for the execution of the tests.
         # actually it is nothing but a file which includes
         # boost/test/auto_unit_test.hpp and defines
         # BOOST_AUTO_TEST_MAIN and BOOST_TEST_DYN_LINK
-        return procWriter.getTestMainCode(self)
+        return procWriter.getTestMainCode(self, namespace)
 
-    def getMainCode(self, model):
+    def getMainCode(self, model, namespace):
         # Returns the code which instantiate the processor
         # in order to execute simulations
-        return procWriter.getMainCode(self, model)
+        return procWriter.getMainCode(self, model, namespace)
 
-    def getGetIRQPorts(self):
+    def getGetIRQPorts(self, namespace):
         # Returns the code implementing the interrupt ports
-        return procWriter.getGetIRQPorts(self)
+        return procWriter.getGetIRQPorts(self, namespace)
 
-    def getGetPINPorts(self):
+    def getGetPINPorts(self, namespace):
         # Returns the code implementing the PIN ports
-        return procWriter.getGetPINPorts(self)
+        return procWriter.getGetPINPorts(self, namespace)
 
-    def getIRQTests(self, trace):
+    def getIRQTests(self, trace, namespace):
         # Returns the code implementing the tests for the
         # interrupt lines
-        return procWriter.getIRQTests(self, trace)
+        return procWriter.getIRQTests(self, trace, namespace)
 
-    def getGetPipelineStages(self, trace):
+    def getGetPipelineStages(self, trace, namespace):
         # Returns the code implementing the pipeline stages
-        return procWriter.getGetPipelineStages(self, trace)
+        return procWriter.getGetPipelineStages(self, trace, namespace)
 
-    def write(self, folder = '', models = validModels, dumpDecoderName = '', trace = False, forceDecoderCreation = False, tests = True):
+    def write(self, folder = '', models = validModels, namespace = '', dumpDecoderName = '', trace = False, forceDecoderCreation = False, tests = True):
         # Ok: this method does two things: first of all it performs all
         # the possible checks to ensure that the processor description is
         # coherent. Second it actually calls the write method of the
@@ -861,12 +861,6 @@ class Processor:
             decDumpFile.close()
         if dumpDecoderName:
             dec.printDecoder(dumpDecoderName)
-        decClass = dec.getCPPClass(resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>'))
-        implFileDec = cxx_writer.writer_code.FileDumper('decoder.cpp', False)
-        headFileDec = cxx_writer.writer_code.FileDumper('decoder.hpp', True)
-        implFileDec.addMember(decClass)
-        headFileDec.addMember(decClass)
-        implFileDec.addInclude('decoder.hpp')
         mainFolder = cxx_writer.writer_code.Folder(os.path.expanduser(os.path.expandvars(folder)))
         for model in models:
             if model.endswith('AT') and self.externalClock:
@@ -875,18 +869,28 @@ class Processor:
             print ('\t\tCreating the implementation for model ' + model)
             if not model in validModels:
                 raise Exception(model + ' is not a valid model type')
-            RegClasses = self.getCPPRegisters(model)
-            AliasClass = self.getCPPAlias(model)
-            ProcClass = self.getCPPProc(model, trace)
+            if not namespace:
+                namespace = self.name.lower() + '_' + model.lower() + '_trap'
+            namespaceUse = cxx_writer.writer_code.UseNamespace(namespace)
+            decClass = dec.getCPPClass(resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>'), namespace)
+            implFileDec = cxx_writer.writer_code.FileDumper('decoder.cpp', False)
+            headFileDec = cxx_writer.writer_code.FileDumper('decoder.hpp', True)
+            implFileDec.addMember(namespaceUse)
+            implFileDec.addMember(decClass)
+            headFileDec.addMember(decClass)
+            implFileDec.addInclude('decoder.hpp')
+            RegClasses = self.getCPPRegisters(model, namespace)
+            AliasClass = self.getCPPAlias(model, namespace)
+            ProcClass = self.getCPPProc(model, trace, namespace)
             if self.abi:
-                IfClass = self.getCPPIf(model)
+                IfClass = self.getCPPIf(model, namespace)
             if model.startswith('acc'):
-                pipeClass = self.getGetPipelineStages(trace)
-            MemClass = self.getCPPMemoryIf(model)
-            ExternalIf = self.getCPPExternalPorts(model)
-            IRQClasses = self.getGetIRQPorts()
-            PINClasses = self.getGetPINPorts()
-            ISAClasses = self.isa.getCPPClasses(self, model, trace)
+                pipeClass = self.getGetPipelineStages(trace, namespace)
+            MemClass = self.getCPPMemoryIf(model, namespace)
+            ExternalIf = self.getCPPExternalPorts(model, namespace)
+            IRQClasses = self.getGetIRQPorts(namespace)
+            PINClasses = self.getGetPINPorts(namespace)
+            ISAClasses = self.isa.getCPPClasses(self, model, trace, namespace)
             # Ok, now that we have all the classes it is time to write
             # them to file
             curFolder = cxx_writer.writer_code.Folder(os.path.join(folder, model))
@@ -895,29 +899,34 @@ class Processor:
             implFileRegs.addInclude('registers.hpp')
             headFileRegs = cxx_writer.writer_code.FileDumper('registers.hpp', True)
             headFileRegs.addMember(self.getRegistersBitfields())
+            implFileRegs.addMember(namespaceUse)
             for i in RegClasses:
                 implFileRegs.addMember(i)
                 headFileRegs.addMember(i)
             implFileAlias = cxx_writer.writer_code.FileDumper('alias.cpp', False)
             implFileAlias.addInclude('alias.hpp')
             headFileAlias = cxx_writer.writer_code.FileDumper('alias.hpp', True)
+            implFileAlias.addMember(namespaceUse)
             for i in AliasClass:
                 implFileAlias.addMember(i)
                 headFileAlias.addMember(i)
             implFileProc = cxx_writer.writer_code.FileDumper('processor.cpp', False)
             headFileProc = cxx_writer.writer_code.FileDumper('processor.hpp', True)
+            implFileProc.addMember(namespaceUse)
             implFileProc.addMember(ProcClass)
             headFileProc.addMember(ProcClass)
             implFileProc.addInclude('processor.hpp')
             if model.startswith('acc'):
                 implFilePipe = cxx_writer.writer_code.FileDumper('pipeline.cpp', False)
                 headFilePipe = cxx_writer.writer_code.FileDumper('pipeline.hpp', True)
+                implFilePipe.addMember(namespaceUse)
                 for i in pipeClass:
                     implFilePipe.addMember(i)
                     headFilePipe.addMember(i)
                 implFilePipe.addInclude('pipeline.hpp')
             implFileInstr = cxx_writer.writer_code.FileDumper('instructions.cpp', False)
             headFileInstr = cxx_writer.writer_code.FileDumper('instructions.hpp', True)
+            implFileInstr.addMember(namespaceUse)
             for i in ISAClasses:
                 implFileInstr.addMember(i)
                 headFileInstr.addMember(i)
@@ -925,11 +934,13 @@ class Processor:
                 implFileIf = cxx_writer.writer_code.FileDumper('interface.cpp', False)
                 implFileIf.addInclude('interface.hpp')
                 headFileIf = cxx_writer.writer_code.FileDumper('interface.hpp', True)
+                implFileIf.addMember(namespaceUse)
                 implFileIf.addMember(IfClass)
                 headFileIf.addMember(IfClass)
             implFileMem = cxx_writer.writer_code.FileDumper('memory.cpp', False)
             implFileMem.addInclude('memory.hpp')
             headFileMem = cxx_writer.writer_code.FileDumper('memory.hpp', True)
+            implFileMem.addMember(namespaceUse)
             for i in MemClass:
                 implFileMem.addMember(i)
                 headFileMem.addMember(i)
@@ -937,12 +948,14 @@ class Processor:
                 implFileExt = cxx_writer.writer_code.FileDumper('externalPorts.cpp', False)
                 implFileExt.addInclude('externalPorts.hpp')
                 headFileExt = cxx_writer.writer_code.FileDumper('externalPorts.hpp', True)
+                implFileExt.addMember(namespaceUse)
                 implFileExt.addMember(ExternalIf)
                 headFileExt.addMember(ExternalIf)
             if IRQClasses:
                 implFileIRQ = cxx_writer.writer_code.FileDumper('irqPorts.cpp', False)
                 implFileIRQ.addInclude('irqPorts.hpp')
                 headFileIRQ = cxx_writer.writer_code.FileDumper('irqPorts.hpp', True)
+                implFileIRQ.addMember(namespaceUse)
                 for i in IRQClasses:
                     implFileIRQ.addMember(i)
                     headFileIRQ.addMember(i)
@@ -950,11 +963,12 @@ class Processor:
                 implFilePIN = cxx_writer.writer_code.FileDumper('externalPins.cpp', False)
                 implFilePIN.addInclude('externalPins.hpp')
                 headFilePIN = cxx_writer.writer_code.FileDumper('externalPins.hpp', True)
+                implFilePIN.addMember(namespaceUse)
                 for i in PINClasses:
                     implFilePIN.addMember(i)
                     headFilePIN.addMember(i)
             mainFile = cxx_writer.writer_code.FileDumper('main.cpp', False)
-            mainFile.addMember(self.getMainCode(model))
+            mainFile.addMember(self.getMainCode(model, namespace))
 
             if (model == 'funcLT') and (not self.systemc) and tests:
                 testFolder = cxx_writer.writer_code.Folder('tests')
@@ -964,10 +978,10 @@ class Processor:
                 decTestsFile.addInclude('decoderTests.hpp')
                 mainTestFile.addInclude('decoderTests.hpp')
                 hdecTestsFile = cxx_writer.writer_code.FileDumper('decoderTests.hpp', True)
-                decTests = dec.getCPPTests()
+                decTests = dec.getCPPTests(namespace)
                 decTestsFile.addMember(decTests)
                 hdecTestsFile.addMember(decTests)
-                irqTests = self.getIRQTests(trace)
+                irqTests = self.getIRQTests(trace, namespace)
                 if irqTests:
                     irqTestsFile = cxx_writer.writer_code.FileDumper('irqTests.cpp', False)
                     irqTestsFile.addInclude('irqTests.hpp')
@@ -976,13 +990,14 @@ class Processor:
                         irqTestsFile.addInclude('externalPins.hpp')
                     mainTestFile.addInclude('irqTests.hpp')
                     hirqTestsFile = cxx_writer.writer_code.FileDumper('irqTests.hpp', True)
+                    irqTestsFile.addMember(namespaceUse)
                     irqTestsFile.addMember(irqTests)
                     hirqTestsFile.addMember(irqTests)
                     testFolder.addCode(irqTestsFile)
                     testFolder.addHeader(hirqTestsFile)
                 testFolder.addCode(decTestsFile)
                 testFolder.addHeader(hdecTestsFile)
-                ISATests = self.isa.getCPPTests(self, model, trace)
+                ISATests = self.isa.getCPPTests(self, model, trace, namespace)
                 testPerFile = 100
                 numTestFiles = len(ISATests)/testPerFile
                 for i in range(0, numTestFiles):
@@ -993,6 +1008,7 @@ class Processor:
                         ISATestsFile.addInclude('externalPins.hpp')
                     mainTestFile.addInclude('isaTests' + str(i) + '.hpp')
                     hISATestsFile = cxx_writer.writer_code.FileDumper('isaTests' + str(i) + '.hpp', True)
+                    ISATestsFile.addMember(namespaceUse)
                     ISATestsFile.addMember(ISATests[testPerFile*i:testPerFile*(i+1)])
                     hISATestsFile.addMember(ISATests[testPerFile*i:testPerFile*(i+1)])
                     testFolder.addCode(ISATestsFile)
@@ -1005,6 +1021,7 @@ class Processor:
                         ISATestsFile.addInclude('externalPins.hpp')
                     mainTestFile.addInclude('isaTests' + str(numTestFiles) + '.hpp')
                     hISATestsFile = cxx_writer.writer_code.FileDumper('isaTests' + str(numTestFiles) + '.hpp', True)
+                    ISATestsFile.addMember(namespaceUse)
                     ISATestsFile.addMember(ISATests[testPerFile*numTestFiles:])
                     hISATestsFile.addMember(ISATests[testPerFile*numTestFiles:])
                     testFolder.addCode(ISATestsFile)
