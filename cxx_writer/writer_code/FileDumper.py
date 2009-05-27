@@ -460,7 +460,7 @@ class Folder:
         for bfdlib in foundStatic:
             if bfdlib in foundShared:
                 bfd_lib_name = bfdlib
-            break
+                break
         if not bfd_lib_name:
             if foundShared:
                 bfd_lib_name = foundShared[0]
