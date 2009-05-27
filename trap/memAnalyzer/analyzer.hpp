@@ -7,6 +7,8 @@
 
 #include <boost/filesystem/path.hpp>
 
+namespace trap{
+
 struct MemAccessType;
 
 class MemAnalyzer{
@@ -31,5 +33,7 @@ class MemAnalyzer{
     ///Prints all the modifications done to address addr
     void getAllModifications(std::string addr, boost::filesystem::path &outFile, double initSimTime = 0, double endSimTime = -1);
 };
+
+}
 
 #endif

@@ -20,7 +20,7 @@
 
 ///Given an array of chars (either in hex or decimal form) if converts it to the
 ///corresponding integer representation
-unsigned int MemAnalyzer::toIntNum(const std::string &numStr){
+unsigned int trap::MemAnalyzer::toIntNum(const std::string &numStr){
     if(numStr.size() > 2 && numStr[0] == '0' && tolower(numStr[1]) == 'x'){
         int result;
         std::stringstream converter(numStr);
@@ -50,7 +50,7 @@ unsigned int MemAnalyzer::toIntNum(const std::string &numStr){
     return 0;
 }
 
-MemAnalyzer::MemAnalyzer(std::string fileName, std::string memSize){
+trap::MemAnalyzer::MemAnalyzer(std::string fileName, std::string memSize){
     this->memSize = this->toIntNum(memSize);
     boost::filesystem::path memDumpPath = boost::filesystem::system_complete(boost::filesystem::path(fileName, boost::filesystem::native));
     if ( !boost::filesystem::exists( memDumpPath ) ){
@@ -63,14 +63,14 @@ MemAnalyzer::MemAnalyzer(std::string fileName, std::string memSize){
     }
 }
 
-MemAnalyzer::~MemAnalyzer(){
+trap::MemAnalyzer::~MemAnalyzer(){
     if(this->dumpFile.is_open()){
         this->dumpFile.close();
     }
 }
 
 ///Creates the image of the memory as it was at cycle procCycle
-void MemAnalyzer::createMemImage(boost::filesystem::path &outFile, double simTime){
+void trap::MemAnalyzer::createMemImage(boost::filesystem::path &outFile, double simTime){
     char * tempMemImage = new char[this->memSize];
     MemAccessType readVal;
     unsigned int maxAddress = 0;
@@ -102,7 +102,7 @@ void MemAnalyzer::createMemImage(boost::filesystem::path &outFile, double simTim
 
 ///Returns the first memory access that modifies the address addr after
 ///procCycle
-MemAccessType MemAnalyzer::getFirstModAfter(std::string addr, double simTime){
+trap::MemAccessType trap::MemAnalyzer::getFirstModAfter(std::string addr, double simTime){
     MemAccessType readVal;
     unsigned int address = this->toIntNum(addr);
 
@@ -122,7 +122,7 @@ MemAccessType MemAnalyzer::getFirstModAfter(std::string addr, double simTime){
 }
 
 ///Returns the last memory access that modified addr
-MemAccessType MemAnalyzer::getLastMod(std::string addr){
+trap::MemAccessType trap::MemAnalyzer::getLastMod(std::string addr){
     MemAccessType readVal;
     MemAccessType foundVal;
     bool found = false;
@@ -146,7 +146,7 @@ MemAccessType MemAnalyzer::getLastMod(std::string addr){
 }
 
 ///Prints all the modifications done to address addr
-void MemAnalyzer::getAllModifications(std::string addr, boost::filesystem::path &outFile, double initSimTime, double endSimTime){
+void trap::MemAnalyzer::getAllModifications(std::string addr, boost::filesystem::path &outFile, double initSimTime, double endSimTime){
     MemAccessType readVal;
     unsigned int address = this->toIntNum(addr);
     std::ofstream memImageFile(outFile.native_file_string().c_str());

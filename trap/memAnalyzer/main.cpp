@@ -12,6 +12,8 @@
 #include "memAccessType.hpp"
 #include "analyzer.hpp"
 
+using namespace trap;
+
 int main(int argc, char *argv[]){
     boost::program_options::options_description desc("Memory Analyzer");
     desc.add_options()
