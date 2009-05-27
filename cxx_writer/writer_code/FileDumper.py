@@ -511,7 +511,7 @@ class Folder:
     if Options.options.trapdir:
         trapDirLib = os.path.abspath(os.path.expandvars(os.path.expanduser(os.path.join(Options.options.trapdir, 'lib'))))
         trapDirInc = os.path.abspath(os.path.expandvars(os.path.expanduser(os.path.join(Options.options.trapdir, 'include'))))
-        conf.check_cxx(lib='trap', uselib_store='TRAP', mandatory=1, libpath=trapDirLib)
+        conf.check_cxx(lib='trap', uselib_store='TRAP', mandatory=1, libpath=trapDirLib, errmsg='not found, use --with-trap option')
         conf.check_cxx(header_name='trap.hpp', uselib='TRAP', uselib_store='TRAP', mandatory=1, includes=trapDirInc)
         conf.check_cxx(fragment='''
             #include "trap.hpp"
@@ -520,11 +520,11 @@ class Folder:
             #error TRAP_REVISION not defined in file trap.hpp
             #endif
 
-            #if TRAP_REVISION < 419
+            #if TRAP_REVISION < 420
             #error Wrong version of the TRAP runtime: too old
             #endif
             int main(int argc, char * argv[]){return 0;}
-        ''', msg='Check for TRAP version', uselib='TRAP', mandatory=1, includes=trapDirInc)
+        ''', msg='Check for TRAP version', uselib='TRAP', mandatory=1, includes=trapDirInc, errmsg='Error, at least revision 420 required')
     else:
         conf.check_cxx(lib='trap', uselib_store='TRAP', mandatory=1, errmsg='not found, use --with-trap option')
         conf.check_cxx(header_name='trap.hpp', uselib='TRAP', uselib_store='TRAP', mandatory=1)
@@ -535,11 +535,11 @@ class Folder:
             #error TRAP_REVISION not defined in file trap.hpp
             #endif
 
-            #if TRAP_REVISION < 63
+            #if TRAP_REVISION < 420
             #error Wrong version of the TRAP runtime: too old
             #endif
             int main(int argc, char * argv[]){return 0;}
-        ''', msg='Check for TRAP version', uselib='TRAP', mandatory=1)
+        ''', msg='Check for TRAP version', uselib='TRAP', mandatory=1, errmsg='Error, at least revision 420 required')
 
     ##################################################
     # Is SystemC compiled? Check for SystemC library
