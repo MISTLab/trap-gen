@@ -66,18 +66,22 @@
 #endif
 #define MAKE_STRING( msg )  ( ((std::ostringstream&)((std::ostringstream() << '\x0') << msg)).str().substr(1) )
 
+namespace trap{
 void throw_exception_helper(std::string message);
+};
 
 #ifdef THROW_EXCEPTION
 #undef THROW_EXCEPTION
 #endif
-#define THROW_EXCEPTION( msg ) ( throw_exception_helper(MAKE_STRING( "At: function " << __PRETTY_FUNCTION__ << " file: " << __FILE__ << ":" << __LINE__ << " --> " << msg )) )
+#define THROW_EXCEPTION( msg ) ( trap::throw_exception_helper(MAKE_STRING( "At: function " << __PRETTY_FUNCTION__ << " file: " << __FILE__ << ":" << __LINE__ << " --> " << msg )) )
 
+namespace trap{
 void throw_error_helper(std::string message);
+};
 
 #ifdef THROW_ERROR
 #undef THROW_ERROR
 #endif
-#define THROW_ERROR( msg ) ( throw_error_helper(MAKE_STRING( "At: function " << __PRETTY_FUNCTION__ << " file: " << __FILE__ << ":" << __LINE__ << " --> " << msg << std::endl )) )
+#define THROW_ERROR( msg ) ( trap::throw_error_helper(MAKE_STRING( "At: function " << __PRETTY_FUNCTION__ << " file: " << __FILE__ << ":" << __LINE__ << " --> " << msg << std::endl )) )
 
 #endif

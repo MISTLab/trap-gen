@@ -3806,7 +3806,7 @@ def getMainCode(self, model, namespace):
     # in order to execute simulations
     from isa import resolveBitType
     wordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>')
-    code = 'using namespace ' + namespace + ';\n\n'
+    code = 'using namespace ' + namespace + ';\nusing namespace trap;\n\n'
     code += """
     boost::program_options::options_description desc("Processor simulator for """ + self.name + """");
     desc.add_options()

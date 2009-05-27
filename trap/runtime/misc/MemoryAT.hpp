@@ -55,6 +55,8 @@
 
 DECLARE_EXTENDED_PHASE(internal_ph);
 
+namespace trap{
+
 template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryAT: public sc_module{
     public:
     tlm_utils::simple_target_socket_tagged<MemoryAT, sockSize> * socket[N_INITIATORS];
@@ -71,6 +73,7 @@ template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryAT: publi
         // Reset memory
         this->mem = new unsigned char[size];
         memset(this->mem, 0, size);
+        end_module();
     }
 
     // TLM-2 non-blocking transport method
@@ -229,6 +232,8 @@ template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryAT: publi
     bool  transactionInProgress;
     sc_event transactionCompleted;
     tlm_utils::peq_with_cb_and_phase<MemoryAT> m_peq;
+};
+
 };
 
 #endif

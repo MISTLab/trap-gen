@@ -77,9 +77,9 @@ extern "C" {
 #define DMGL_GNU_V3      (1 << 14)
 #define DMGL_GNAT        (1 << 15)
 
-BFDFrontend * BFDFrontend::curInstance = NULL;
+trap::BFDFrontend * trap::BFDFrontend::curInstance = NULL;
 
-BFDFrontend & BFDFrontend::getInstance(std::string fileName){
+trap::BFDFrontend & trap::BFDFrontend::getInstance(std::string fileName){
     if(BFDFrontend::curInstance == NULL){
         if(fileName != "")
             BFDFrontend::curInstance = new BFDFrontend(fileName);
@@ -89,7 +89,7 @@ BFDFrontend & BFDFrontend::getInstance(std::string fileName){
     return *BFDFrontend::curInstance;
 }
 
-BFDFrontend::BFDFrontend(std::string binaryName){
+trap::BFDFrontend::BFDFrontend(std::string binaryName){
     char ** matching = NULL;
     this->sy = NULL;
 
@@ -177,7 +177,7 @@ BFDFrontend::BFDFrontend(std::string binaryName){
     }
 }
 
-BFDFrontend::~BFDFrontend(){
+trap::BFDFrontend::~BFDFrontend(){
     if(this->execImage != NULL){
         if(!bfd_close_all_done(this->execImage)){
             //An Error has occurred; lets see what it is
@@ -202,7 +202,7 @@ BFDFrontend::~BFDFrontend(){
 ///"" if no symbol is found at the specified address; note
 ///That if address is in the middle of a function, the symbol
 ///returned refers to the function itself
-std::list<std::string> BFDFrontend::symbolAt(unsigned int address){
+std::list<std::string> trap::BFDFrontend::symbolAt(unsigned int address){
     std::map<unsigned int, std::list<std::string> >::iterator symMap1 = this->addrToSym.find(address);
     if(symMap1 == this->addrToSym.end()){
         std::map<unsigned int, std::string>::iterator symMap2 = this->addrToFunction.find(address);
@@ -219,7 +219,7 @@ std::list<std::string> BFDFrontend::symbolAt(unsigned int address){
 ///(which usually is its address);
 ///valid is set to false if no symbol with the specified
 ///name is found
-unsigned int BFDFrontend::getSymAddr(std::string symbol, bool &valid){
+unsigned int trap::BFDFrontend::getSymAddr(std::string symbol, bool &valid){
     std::map<std::string, unsigned int>::iterator addrMap = this->symToAddr.find(symbol);
     if(addrMap == this->symToAddr.end()){
         valid = false;
@@ -231,7 +231,7 @@ unsigned int BFDFrontend::getSymAddr(std::string symbol, bool &valid){
     }
 }
 
-void BFDFrontend::sprintf_wrapper(char *str, const char *format, ...) {
+void trap::BFDFrontend::sprintf_wrapper(char *str, const char *format, ...) {
     va_list ap;
     va_start(ap, format);
     vsprintf(str+strlen(str),format, ap);
@@ -239,7 +239,7 @@ void BFDFrontend::sprintf_wrapper(char *str, const char *format, ...) {
 }
 
 ///Accesses the BFD internal structures in order to get the dissassbly of the symbols
-void BFDFrontend::readSyms(){
+void trap::BFDFrontend::readSyms(){
     //make sure there are symbols in the file
     if ((bfd_get_file_flags (execImage) & HAS_SYMS) == 0)
         return;
@@ -282,17 +282,17 @@ void BFDFrontend::readSyms(){
 }
 
 ///Returns the name of the executable file
-std::string BFDFrontend::getExecName(){
+std::string trap::BFDFrontend::getExecName(){
     return this->execName;
 }
 
 ///Returns the end address of the loadable code
-unsigned int BFDFrontend::getBinaryEnd(){
+unsigned int trap::BFDFrontend::getBinaryEnd(){
     return (this->codeSize.first + this->wordsize);
 }
 
 
-std::string BFDFrontend::getMatchingFormats (char **p){
+std::string trap::BFDFrontend::getMatchingFormats (char **p){
     std::string match = "";
     if(p != NULL){
         while (*p){

@@ -468,8 +468,8 @@ class Folder:
                 bfd_lib_name = foundStatic[0]
 
         if Options.options.static_build:
-            conf.check_cc(lib='iberty', uselib_store='LIBERTY', mandatory=1, libpath=searchDirs)
-        conf.check_cc(lib=bfd_lib_name, uselib_store='BFD', mandatory=1, libpath=searchDirs)
+            conf.check_cc(lib='iberty', uselib_store='LIBERTY', mandatory=1, libpath=searchDirs, errmsg='not found, use --with-bfd option')
+        conf.check_cc(lib=bfd_lib_name, uselib_store='BFD', mandatory=1, libpath=searchDirs, errmsg='not found, use --with-bfd option')
         if Options.options.bfddir and foundShared:
             conf.env.append_unique('RPATH', os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'lib')))))
         if Options.options.bfddir:
@@ -526,7 +526,7 @@ class Folder:
             int main(int argc, char * argv[]){return 0;}
         ''', msg='Check for TRAP version', uselib='TRAP', mandatory=1, includes=trapDirInc)
     else:
-        conf.check_cxx(lib='trap', uselib_store='TRAP', mandatory=1)
+        conf.check_cxx(lib='trap', uselib_store='TRAP', mandatory=1, errmsg='not found, use --with-trap option')
         conf.check_cxx(header_name='trap.hpp', uselib='TRAP', uselib_store='TRAP', mandatory=1)
         conf.check_cxx(fragment='''
             #include "trap.hpp"
@@ -564,7 +564,7 @@ class Folder:
             sysclib = [os.path.abspath(os.path.join(syscpath[0], '..', 'msvc71', 'SystemC', 'Release'))]
         else:
             sysclib = glob.glob(os.path.join(os.path.abspath(os.path.join(syscpath[0], '..')), 'lib-*'))
-    conf.check_cxx(lib='systemc', uselib_store='SYSTEMC', mandatory=1, libpath=sysclib)
+    conf.check_cxx(lib='systemc', uselib_store='SYSTEMC', mandatory=1, libpath=sysclib, errmsg='not found, use --with-systemc option')
 
     if not os.path.exists(os.path.join(syscpath[0] , 'sysc' , 'qt')):
         conf.env.append_unique('CPPFLAGS', '-DSC_USE_PTHREADS')
@@ -572,7 +572,7 @@ class Folder:
     ##################################################
     # Check for SystemC header and test the library
     ##################################################
-    conf.check_cxx(header_name='systemc.h', uselib='SYSTEMC', uselib_store='SYSTEMC', mandatory=1, includes=syscpath)
+    conf.check_cxx(header_name='systemc.h', uselib='SYSTEMC', uselib_store='SYSTEMC', mandatory=1, includes=syscpath, errmsg='not found, use --with-systemc option')
     conf.check_cxx(fragment='''
         #include <systemc.h>
 
@@ -591,7 +591,7 @@ class Folder:
                 return 0;
             };
         }
-    ''', msg='Check for SystemC version (2.2.0 or greater required)', uselib='SYSTEMC', mandatory=1)
+    ''', msg='Check for SystemC version', uselib='SYSTEMC', mandatory=1, errmsg='Error, at least version 2.2.0 required')
 
     ##################################################
     # Check for TLM header
@@ -605,7 +605,7 @@ class Folder:
         tlmPath = os.path.join(tlmPath, 'include')
     tlmPath = [os.path.join(tlmPath, 'tlm')]
 
-    conf.check_cxx(header_name='tlm.h', uselib='SYSTEMC', uselib_store='TLM', mandatory=1, includes=tlmPath)
+    conf.check_cxx(header_name='tlm.h', uselib='SYSTEMC', uselib_store='TLM', mandatory=1, includes=tlmPath, errmsg='not found, use --with-tlm option')
     conf.check_cxx(fragment='''
         #include <systemc.h>
         #include <tlm.h>
@@ -627,7 +627,7 @@ class Folder:
         extern "C" int sc_main(int argc, char **argv){
             return 0;
         }
-    ''', msg='Check for TLM version (2.0 or greater required)', uselib='SYSTEMC TLM', mandatory=1)
+    ''', msg='Check for TLM version', uselib='SYSTEMC TLM', mandatory=1, errmsg='Error, at least version 2.0 required')
 
 """, wscriptFile)
             # Finally now I can add the options

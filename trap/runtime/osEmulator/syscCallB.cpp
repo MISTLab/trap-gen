@@ -67,7 +67,9 @@
 #define CORRECT_O_APPEND          02000
 #define CORRECT_O_NONBLOCK        04000
 
-void OSEmulatorBase::correct_flags(int &val){
+
+
+void trap::OSEmulatorBase::correct_flags(int &val){
     int flags = 0;
 
     if( val &  NEWLIB_O_RDONLY )
@@ -92,20 +94,20 @@ void OSEmulatorBase::correct_flags(int &val){
     val = flags;
 }
 
-void OSEmulatorBase::set_environ(std::string name, std::string value){
+void trap::OSEmulatorBase::set_environ(std::string name, std::string value){
     OSEmulatorBase::env[name] = value;
 }
 
-void OSEmulatorBase::set_sysconf(std::string name, int value){
+void trap::OSEmulatorBase::set_sysconf(std::string name, int value){
     OSEmulatorBase::sysconfmap[name] = value;
 }
 
-void OSEmulatorBase::set_program_args(std::vector<std::string> args){
+void trap::OSEmulatorBase::set_program_args(std::vector<std::string> args){
     OSEmulatorBase::programArgs = args;
 }
 
-std::map<std::string,  std::string> OSEmulatorBase::env;
-std::map<std::string, int> OSEmulatorBase::sysconfmap;
-std::vector<std::string> OSEmulatorBase::programArgs;
-unsigned int OSEmulatorBase::heapPointer = 0;
-int exitValue = 0;
+std::map<std::string,  std::string> trap::OSEmulatorBase::env;
+std::map<std::string, int> trap::OSEmulatorBase::sysconfmap;
+std::vector<std::string> trap::OSEmulatorBase::programArgs;
+unsigned int trap::OSEmulatorBase::heapPointer = 0;
+int trap::exitValue = 0;

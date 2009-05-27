@@ -70,6 +70,8 @@
 #endif
 #endif
 
+namespace trap{
+
 template <class AddressType> struct Watchpoint{
     enum Type{WRITE_watch, READ_watch, ACCESS_watch};
     AddressType address;
@@ -137,6 +139,8 @@ template <class AddressType> class WatchpointManager{
     template_map<AddressType, Watchpoint<AddressType> > & getWatchpoints() throw(){
         return this->watchpoints;
     }
+};
+
 };
 
 #endif

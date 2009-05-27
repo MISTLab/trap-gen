@@ -59,6 +59,8 @@
 #include <boost/thread/condition.hpp>
 #include <boost/thread/mutex.hpp>
 
+namespace trap{
+
 /**
  * High level repesentation of a GDB request packet
  */
@@ -168,6 +170,8 @@ class GDBConnectionManager{
     ///debugger becomes responsive and it is possible to debug the
     ///program under test
     void sendInterrupt();
+};
+
 };
 
 #endif

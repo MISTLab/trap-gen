@@ -49,6 +49,8 @@ extern "C" {
 #include <bfd.h>
 }
 
+namespace trap{
+
 class ExecLoader{
   private:
     bfd * execImage;
@@ -75,6 +77,8 @@ class ExecLoader{
     unsigned int getProgDim();
     ///Returns a pointer to the array contianing the program data
     unsigned char * getProgData();
+};
+
 };
 
 #endif

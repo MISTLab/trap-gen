@@ -84,6 +84,8 @@
 #include "WatchpointManager.hpp"
 #include "GDBConnectionManager.hpp"
 
+namespace trap{
+
 template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public MemoryToolsIf<issueWidth>, public sc_module{
   private:
     enum stopType {BREAK_stop=0, WATCH_stop, STEP_stop, SEG_stop, TIMEOUT_stop, PAUSED_stop, UNK_stop};
@@ -947,6 +949,8 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
             this->setStopped(WATCH_stop);
         }
     }
+};
+
 };
 
 #endif

@@ -51,6 +51,8 @@
 
 #include <utils.hpp>
 
+namespace trap{
+
 template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryLT: public sc_module{
     public:
     tlm_utils::simple_target_socket<MemoryLT, sockSize> * socket[N_INITIATORS];
@@ -66,6 +68,8 @@ template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryLT: publi
 
         // Reset memory
         this->mem = new unsigned char[this->size];
+        memset(this->mem, 0, size);
+        end_module();
     }
 
     ~MemoryLT(){
@@ -154,6 +158,8 @@ template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryLT: publi
     const sc_time latency;
     unsigned int size;
     unsigned char * mem;
+};
+
 };
 
 #endif

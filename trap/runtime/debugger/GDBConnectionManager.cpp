@@ -70,7 +70,7 @@
 
 #include "GDBConnectionManager.hpp"
 
-GDBConnectionManager::GDBConnectionManager(bool endianess) : endianess(endianess), killed(false){
+trap::GDBConnectionManager::GDBConnectionManager(bool endianess) : endianess(endianess), killed(false){
     this->socket = NULL;
     this->HexMap['0'] = 0;
     this->HexMap['1'] = 1;
@@ -96,7 +96,7 @@ GDBConnectionManager::GDBConnectionManager(bool endianess) : endianess(endianess
     this->HexMap['f'] = 15;
 }
 
-GDBConnectionManager::~GDBConnectionManager(){
+trap::GDBConnectionManager::~GDBConnectionManager(){
    if(this->socket != NULL && !this->killed){
       delete this->socket;
    }
@@ -104,7 +104,7 @@ GDBConnectionManager::~GDBConnectionManager(){
 
 ///Creates a socket connection waiting on the specified port;
 ///this will be later used to communicate with GDB
-void GDBConnectionManager::initialize(unsigned int port){
+void trap::GDBConnectionManager::initialize(unsigned int port){
     try{
         boost::asio::io_service io_service;
         boost::asio::ip::tcp::acceptor acceptor(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port));
@@ -121,7 +121,7 @@ void GDBConnectionManager::initialize(unsigned int port){
 }
 
 ///Sends the response to the GDB debugger connected
-void GDBConnectionManager::sendResponse(GDBResponse &response){
+void trap::GDBConnectionManager::sendResponse(GDBResponse &response){
     //All the response packets are in the form $<packet info>#<checksum>
     std::string payload;
     //First of all I compute the payload; it depends on the particular packet
@@ -238,7 +238,7 @@ void GDBConnectionManager::sendResponse(GDBResponse &response){
 
 ///Waits for the sending of a packet from GDB; it then parses it and
 ///translates it into the correct request
-GDBRequest GDBConnectionManager::processRequest(){
+trap::GDBRequest trap::GDBConnectionManager::processRequest(){
     //Ok, we have to read the request and create its high level representation;
     //Note how this operation is repeated until the packet is correctly received
     std::string payload;
@@ -547,7 +547,7 @@ GDBRequest GDBConnectionManager::processRequest(){
 
 ///Keeps waiting for a character on the channel with the GDB
 ///debugger
-bool GDBConnectionManager::checkInterrupt(){
+bool trap::GDBConnectionManager::checkInterrupt(){
     unsigned char recivedChar = '\x0';
     boost::system::error_code asioError;
     //Reading the starting character
@@ -575,7 +575,7 @@ bool GDBConnectionManager::checkInterrupt(){
 }
 
 ///Reads a character from the queue of ready characters
-unsigned char GDBConnectionManager::readQueueChar(){
+unsigned char trap::GDBConnectionManager::readQueueChar(){
     boost::mutex::scoped_lock lock(this->queueMutex);
     while(this->recvdChars.empty())
         this->emptyQueueCond.wait(lock);
@@ -588,7 +588,7 @@ unsigned char GDBConnectionManager::readQueueChar(){
 ///the execution of the program halted: this way the GDB
 ///debugger becomes responsive and it is possible to debug the
 ///program under test
-void GDBConnectionManager::sendInterrupt(){
+void trap::GDBConnectionManager::sendInterrupt(){
    GDBResponse response;
    response.type = GDBResponse::S_rsp;
    response.payload = SIGTRAP;
@@ -597,7 +597,7 @@ void GDBConnectionManager::sendInterrupt(){
 }
 
 ///Closes the connection with the GDB debugger
-void GDBConnectionManager::disconnect(){
+void trap::GDBConnectionManager::disconnect(){
    if(this->socket != NULL){
       if(this->socket->is_open())
          this->socket->close();
@@ -607,7 +607,7 @@ void GDBConnectionManager::disconnect(){
 }
 
 ///Computes the checksum for the data
-unsigned char GDBConnectionManager::computeChecksum(std::string &data){
+unsigned char trap::GDBConnectionManager::computeChecksum(std::string &data){
     unsigned char sum = 0;
     std::string::iterator dataIter, dataEnd;
     for(dataIter = data.begin(), dataEnd = data.end(); dataIter != dataEnd; dataIter++)
@@ -616,7 +616,7 @@ unsigned char GDBConnectionManager::computeChecksum(std::string &data){
 }
 
 ///Checks that the checksum included in the packet is correct
-bool GDBConnectionManager::checkChecksum(std::string &data, char checkSum[2]){
+bool trap::GDBConnectionManager::checkChecksum(std::string &data, char checkSum[2]){
     unsigned char compCheck = this->computeChecksum(data);
     unsigned char recvCheck = ((this->chToHex(checkSum[0]) & 0x0f) << 4) | (this->chToHex(checkSum[1]) & 0x0f);
     return compCheck == recvCheck;
@@ -625,7 +625,7 @@ bool GDBConnectionManager::checkChecksum(std::string &data, char checkSum[2]){
 ///Converts a generic numeric value into a string of hex numbers;
 ///each hew number of the string is in the same order of the endianess
 ///of the processor linked to this stub
-std::string GDBConnectionManager::toHexString(unsigned int value, int numChars){
+std::string trap::GDBConnectionManager::toHexString(unsigned int value, int numChars){
     std::ostringstream os;
 
     if(!this->endianess && ((value & 0xFFFFFF00) != 0)){
@@ -647,7 +647,7 @@ std::string GDBConnectionManager::toHexString(unsigned int value, int numChars){
 ///into its correspondent integer number
 ///each hex number of the string is in the same order of the endianess
 ///of the processor linked to this stub
-unsigned int GDBConnectionManager::toIntNum(std::string &toConvert){
+unsigned int trap::GDBConnectionManager::toIntNum(std::string &toConvert){
     std::string toConvTemp = toConvert;
     if(toConvTemp.size() >= 2 && toConvTemp[0] == '0' && (toConvTemp[1] == 'X' || toConvTemp[1] == 'x'))
         toConvTemp = toConvTemp.substr(2);
@@ -666,7 +666,7 @@ unsigned int GDBConnectionManager::toIntNum(std::string &toConvert){
 }
 
 ///Converts a hex character to an int representing it
-int GDBConnectionManager::chToHex(unsigned char ch){
+int trap::GDBConnectionManager::chToHex(unsigned char ch){
     if(ch >= 'a' && ch <= 'f')
         return ch-'a'+10;
     if(ch >= '0' && ch <= '9')
@@ -677,7 +677,7 @@ int GDBConnectionManager::chToHex(unsigned char ch){
 }
 
 ///Converts a hexadecimal number into the corresponding character string
-std::string GDBConnectionManager::toStr(std::string &toConvert){
+std::string trap::GDBConnectionManager::toStr(std::string &toConvert){
     //What I do is to read the string element in couples; then
     //I convert each couple to its integer representation:
     //that is one string character

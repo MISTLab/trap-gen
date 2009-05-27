@@ -83,6 +83,8 @@ extern int errno;
 #endif
 #include <ctime>
 
+namespace trap{
+
 class OSEmulatorBase{
     public:
     static void correct_flags(int &val);
@@ -1010,5 +1012,7 @@ template<class wordSize> class sysconfSysCall : public SyscallCB<wordSize>{
         return true;
     }
 };
+
+}
 
 #endif

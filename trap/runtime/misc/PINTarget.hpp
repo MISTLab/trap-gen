@@ -51,12 +51,15 @@
 
 #include <utils.hpp>
 
+namespace trap{
+
 template<unsigned int sockSize> class PINTarget: public sc_module{
     public:
     tlm_utils::simple_target_socket<PINTarget, sockSize> socket;
 
     PINTarget(sc_module_name name) : sc_module(name), socket(("pin_target_" + boost::lexical_cast<std::string>(name)).c_str()){
         this->socket.register_b_transport(this, &PINTarget::b_transport);
+        end_module();
     }
 
     void b_transport(tlm::tlm_generic_payload& trans, sc_time& delay){
@@ -88,6 +91,8 @@ template<unsigned int sockSize> class PINTarget: public sc_module{
 
     private:
     std::map<unsigned int, unsigned int> values;
+};
+
 };
 
 #endif

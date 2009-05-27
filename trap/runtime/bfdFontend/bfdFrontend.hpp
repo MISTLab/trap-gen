@@ -55,6 +55,8 @@ extern "C" {
 #include <vector>
 #include <boost/regex.hpp>
 
+namespace trap{
+
 struct Section{
     struct bfd_section *descriptor;
     bfd_byte * data;
@@ -116,6 +118,8 @@ class BFDFrontend{
     unsigned int getBinaryEnd();
 //    ///It returns all the symbols that match the given regular expression
 //    std::map<std::string,  unsigned int> findFunction(boost::regex &regEx);
+};
+
 };
 
 #endif

@@ -75,6 +75,8 @@
 
 #include "syscCallB.hpp"
 
+namespace trap{
+
 template<class issueWidth, int stageOffset> class OSEmulatorCA : public ToolsIf<issueWidth>, OSEmulatorBase{
   private:
     int routineOffset;
@@ -284,6 +286,8 @@ template<class issueWidth, int stageOffset> class OSEmulatorCA : public ToolsIf<
         return false;
     }
     virtual ~OSEmulatorCA(){}
+};
+
 };
 
 #endif

@@ -54,12 +54,12 @@ extern "C" {
 
 #include "utils.hpp"
 
-void throw_error_helper(std::string message){
+void trap::throw_error_helper(std::string message){
     std::cerr << message << std::endl;
     ::exit(0);
 }
 
-void throw_exception_helper(std::string message){
+void trap::throw_exception_helper(std::string message){
     throw std::runtime_error(message);
 }
 

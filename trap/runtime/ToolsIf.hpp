@@ -43,6 +43,8 @@
 #ifndef TOOLSIF_HPP
 #define TOOLSIF_HPP
 
+namespace trap{
+
 ///Base class for the tools which need to interact with memory,
 ///i.e. to be called for every write operation which happens in
 ///memory. Note that only one tool at a time can interact
@@ -105,6 +107,8 @@ template<class issueWidth> class ToolsManager{
         }
         return skipInstruction;
     }
+};
+
 };
 
 #endif

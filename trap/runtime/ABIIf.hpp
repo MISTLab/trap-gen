@@ -46,6 +46,8 @@
 #include <vector>
 #include "utils.hpp"
 
+namespace trap{
+
 template<class regWidth> class ABIIf{
     public:
     inline bool matchEndian() const throw(){
@@ -96,6 +98,8 @@ template<class regWidth> class ABIIf{
     virtual void writeCharMem( const regWidth & address, unsigned char datum ) = 0;
     virtual regWidth getCodeLimit() = 0;
     virtual ~ABIIf(){}
+};
+
 };
 
 #endif

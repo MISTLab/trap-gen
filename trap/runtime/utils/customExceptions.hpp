@@ -50,10 +50,12 @@
 #include <iostream>
 #include <execinfo.h>
 
+namespace trap{
 class annull_exception: public std::runtime_error{
     public:
     annull_exception() : std::runtime_error(""){}
     annull_exception(const char * message) : std::runtime_error(message){}
+};
 };
 
 #endif
