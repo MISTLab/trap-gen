@@ -504,44 +504,6 @@ class Folder:
         pthread_uselib = []
 
     ##################################################
-    # Check for TRAP runtime libraries and headers
-    ##################################################
-    trapDirLib = ''
-    trapDirInc = ''
-    if Options.options.trapdir:
-        trapDirLib = os.path.abspath(os.path.expandvars(os.path.expanduser(os.path.join(Options.options.trapdir, 'lib'))))
-        trapDirInc = os.path.abspath(os.path.expandvars(os.path.expanduser(os.path.join(Options.options.trapdir, 'include'))))
-        conf.check_cxx(lib='trap', uselib_store='TRAP', mandatory=1, libpath=trapDirLib, errmsg='not found, use --with-trap option')
-        conf.check_cxx(header_name='trap.hpp', uselib='TRAP', uselib_store='TRAP', mandatory=1, includes=trapDirInc)
-        conf.check_cxx(fragment='''
-            #include "trap.hpp"
-
-            #ifndef TRAP_REVISION
-            #error TRAP_REVISION not defined in file trap.hpp
-            #endif
-
-            #if TRAP_REVISION < 420
-            #error Wrong version of the TRAP runtime: too old
-            #endif
-            int main(int argc, char * argv[]){return 0;}
-        ''', msg='Check for TRAP version', uselib='TRAP', mandatory=1, includes=trapDirInc, errmsg='Error, at least revision 420 required')
-    else:
-        conf.check_cxx(lib='trap', uselib_store='TRAP', mandatory=1, errmsg='not found, use --with-trap option')
-        conf.check_cxx(header_name='trap.hpp', uselib='TRAP', uselib_store='TRAP', mandatory=1)
-        conf.check_cxx(fragment='''
-            #include "trap.hpp"
-
-            #ifndef TRAP_REVISION
-            #error TRAP_REVISION not defined in file trap.hpp
-            #endif
-
-            #if TRAP_REVISION < 420
-            #error Wrong version of the TRAP runtime: too old
-            #endif
-            int main(int argc, char * argv[]){return 0;}
-        ''', msg='Check for TRAP version', uselib='TRAP', mandatory=1, errmsg='Error, at least revision 420 required')
-
-    ##################################################
     # Is SystemC compiled? Check for SystemC library
     # Notice that we can't rely on lib-linux, therefore I have to find the actual platform...
     ##################################################
@@ -628,6 +590,47 @@ class Folder:
             return 0;
         }
     ''', msg='Check for TLM version', uselib='SYSTEMC TLM', mandatory=1, errmsg='Error, at least version 2.0 required')
+
+    ##################################################
+    # Check for TRAP runtime libraries and headers
+    ##################################################
+    trapDirLib = ''
+    trapDirInc = ''
+    if Options.options.trapdir:
+        trapDirLib = os.path.abspath(os.path.expandvars(os.path.expanduser(os.path.join(Options.options.trapdir, 'lib'))))
+        trapDirInc = os.path.abspath(os.path.expandvars(os.path.expanduser(os.path.join(Options.options.trapdir, 'include'))))
+        conf.check_cxx(lib='trap', uselib='BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM BFD SYSTEMC', uselib_store='TRAP', mandatory=1, libpath=trapDirLib, errmsg='not found, use --with-trap option')
+        foundShared = glob.glob(os.path.join(trapDirLib, conf.env['shlib_PATTERN'].split('%s')[0] + 'trap' + conf.env['shlib_PATTERN'].split('%s')[1]))
+        if foundShared:
+            conf.env.append_unique('RPATH', conf.env['LIBPATH_TRAP'])
+        conf.check_cxx(header_name='trap.hpp', uselib='TRAP BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM BFD SYSTEMC', uselib_store='TRAP', mandatory=1, includes=trapDirInc)
+        conf.check_cxx(fragment='''
+            #include "trap.hpp"
+
+            #ifndef TRAP_REVISION
+            #error TRAP_REVISION not defined in file trap.hpp
+            #endif
+
+            #if TRAP_REVISION < 420
+            #error Wrong version of the TRAP runtime: too old
+            #endif
+            int main(int argc, char * argv[]){return 0;}
+        ''', msg='Check for TRAP version', uselib='TRAP BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM BFD SYSTEMC', mandatory=1, includes=trapDirInc, errmsg='Error, at least revision 420 required')
+    else:
+        conf.check_cxx(lib='trap', uselib='BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM BFD SYSTEMC', uselib_store='TRAP', mandatory=1, errmsg='not found, use --with-trap option')
+        conf.check_cxx(header_name='trap.hpp', uselib='BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM BFD SYSTEMC TRAP', uselib_store='TRAP', mandatory=1)
+        conf.check_cxx(fragment='''
+            #include "trap.hpp"
+
+            #ifndef TRAP_REVISION
+            #error TRAP_REVISION not defined in file trap.hpp
+            #endif
+
+            #if TRAP_REVISION < 420
+            #error Wrong version of the TRAP runtime: too old
+            #endif
+            int main(int argc, char * argv[]){return 0;}
+        ''', msg='Check for TRAP version', uselib='TRAP BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM BFD SYSTEMC', mandatory=1, errmsg='Error, at least revision 420 required')
 
 """, wscriptFile)
             # Finally now I can add the options

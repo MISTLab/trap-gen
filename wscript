@@ -56,6 +56,15 @@ def configure(conf):
         conf.env.append_unique('STLINKFLAGS','/IGNORE:4006')
         conf.env.append_unique('CPPFLAGS','/D_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1')
         conf.env.append_unique('CPPFLAGS','/D_CRT_SECURE_NO_WARNINGS=1')
+    else:
+        conf.env.append_unique('CXXFLAGS','-fstrict-aliasing' )
+        conf.env.append_unique('CCFLAGS','-fstrict-aliasing' )
+        conf.env.append_unique('CXXFLAGS','-fPIC' )
+        conf.env.append_unique('CCFLAGS','-fPIC' )
+        conf.env.append_unique('CPPFLAGS','-DPIC' )
+        conf.env.append_unique('LINKFLAGS','-fPIC' )
+        if sys.platform != 'darwin':
+            conf.env.append_unique('LINKFLAGS','-Wl,-E')
 
     if conf.env['CPPFLAGS']:
         conf.check_cc(cflags=conf.env['CPPFLAGS'], mandatory=1)

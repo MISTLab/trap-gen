@@ -110,4 +110,7 @@ std::map<std::string,  std::string> trap::OSEmulatorBase::env;
 std::map<std::string, int> trap::OSEmulatorBase::sysconfmap;
 std::vector<std::string> trap::OSEmulatorBase::programArgs;
 unsigned int trap::OSEmulatorBase::heapPointer = 0;
+
+namespace trap{
 int exitValue = 0;
+}

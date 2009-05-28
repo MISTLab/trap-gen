@@ -948,6 +948,8 @@ class Processor:
             implFileMem.addInclude('memory.hpp')
             headFileMem = cxx_writer.writer_code.FileDumper('memory.hpp', True)
             implFileMem.addMember(namespaceUse)
+            implFileMem.addMember(namespaceTrapUse)
+            headFileMem.addMember(namespaceTrapUse)
             for i in MemClass:
                 implFileMem.addMember(i)
                 headFileMem.addMember(i)

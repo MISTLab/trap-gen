@@ -82,7 +82,7 @@ class UseNamespace:
         writer.write('using namespace ' + self.namespace + ';\n')
 
     def writeDeclaration(self, writer):
-        pass
+        self.writeImplementation(writer)
 
     def getIncludes(self):
         return []
