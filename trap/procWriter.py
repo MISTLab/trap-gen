@@ -2295,12 +2295,13 @@ def getCPPIf(self, model, namespace):
     readArgsMethod = cxx_writer.writer_code.Method('readArgs', readArgsCode, vectorType, 'pu', noException = True, const = True)
     ifClassElements.append(readArgsMethod)
     setArgsBody = 'if(args.size() > ' + str(len(self.abi.args)) + '){\nTHROW_EXCEPTION(\"ABI of processor supports up to ' + str(len(self.abi.args)) + ' arguments: \" << args.size() << \" given\");\n}\n'
-    setArgsBody += str(vectorType) + '::const_iterator argIter = args.begin();\n'
+    setArgsBody += str(vectorType) + '::const_iterator argIter = args.begin(), argEnd = args.end();\n'
     for arg in self.abi.args:
+        setArgsBody += 'if(argIter != argEnd){\n'
         setArgsBody += 'this->' + arg + '.immediateWrite(*argIter'
         if self.abi.offset.has_key(arg) and not model.startswith('acc'):
             setArgsBody += ' - ' + str(self.abi.offset[arg])
-        setArgsBody += ');\nargIter++;\n'
+        setArgsBody += ');\nargIter++;\n}\n'
     setArgsCode = cxx_writer.writer_code.Code(setArgsBody)
     setArgsParam = cxx_writer.writer_code.Parameter('args', vectorType.makeRef().makeConst())
     setArgsMethod = cxx_writer.writer_code.Method('setArgs', setArgsCode, cxx_writer.writer_code.voidType, 'pu', [setArgsParam], noException = True)
@@ -2726,7 +2727,7 @@ def getCPPExternalPorts(self, model, namespace):
     readBody = cxx_writer.writer_code.Code(readMemAliasCode + readCode1 + 'trans.set_data_length(' + str(self.wordSize/2) + ');\n' + str(archHWordType) + ' datum = 0;\n' + readCode2 + swapEndianessCode + 'return datum;')
     readDecl = cxx_writer.writer_code.Method('read_half_dbg', readBody, archHWordType, 'pu', [addressParam], noException = True)
     tlmPortElements.append(readDecl)
-    readBody = cxx_writer.writer_code.Code(readMemAliasCode + readCode1 + 'trans.set_data_length(1);\n' + str(archByteType) + ' datum = 0;\n' + readCode2)
+    readBody = cxx_writer.writer_code.Code(readMemAliasCode + readCode1 + 'trans.set_data_length(1);\n' + str(archByteType) + ' datum = 0;\n' + readCode2 + 'return datum;')
     readDecl = cxx_writer.writer_code.Method('read_byte_dbg', readBody, archByteType, 'pu', [addressParam], noException = True)
     tlmPortElements.append(readDecl)
     writeCode1 = """tlm::tlm_generic_payload trans;
@@ -3870,6 +3871,7 @@ def getMainCode(self, model, namespace):
         procInst.clock(TestClk);
         """
     instrMemName = ''
+    instrDissassName = ''
     if len(self.tlmPorts) > 0:
         code += """//Here we instantiate the memory and connect it
         //wtih the processor
@@ -3886,8 +3888,10 @@ def getMainCode(self, model, namespace):
             numPort += 1
             if fetch:
                 instrMemName = 'mem'
+                instrDissassName = 'procInst.' + tlmPortName
     if instrMemName == '' and self.memory:
         instrMemName = 'procInst.' + self.memory[0]
+        instrDissassName = instrMemName
 
     execOffset = 0
     for pipeStage in self.pipes:
@@ -3910,8 +3914,8 @@ def getMainCode(self, model, namespace):
     if(vm.count("disassembler") != 0){
         std:cout << "Entry Point: " << std::hex << std::showbase << loader.getProgStart() << std::endl << std::endl;
         for(unsigned int i = 0; i < loader.getProgDim(); i+= """ + str(self.wordSize) + """){
-            Instruction * curInstr = procInst.decode(""" + instrMemName + """.read_word_dbg(loader.getDataStart() + i));
-            std::cout << std::hex << std::showbase << loader.getDataStart() + i << ":    " << """ + instrMemName + """.read_word_dbg(loader.getDataStart() + i);
+            Instruction * curInstr = procInst.decode(""" + instrDissassName + """.read_word_dbg(loader.getDataStart() + i));
+            std::cout << std::hex << std::showbase << loader.getDataStart() + i << ":    " << """ + instrDissassName + """.read_word_dbg(loader.getDataStart() + i);
             if(curInstr != NULL){
                  std::cout << "    " << curInstr->getMnemonic();
             }
