@@ -843,6 +843,8 @@ def getCPPAlias(self, model, namespace):
         updateCode = """this->offset = newAlias.offset;
         this->defaultOffset = 0;
         """
+    else:
+        updateCode = ''
     updateCode += """this->reg = newAlias.reg;
     std::set<Alias *>::iterator referredIter, referredEnd;
     for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
@@ -2711,9 +2713,6 @@ def getCPPExternalPorts(self, model, namespace):
         """
     readCode2 = """trans.set_data_ptr(reinterpret_cast<unsigned char *>(&datum));
         this->initSocket->transport_dbg(trans);
-        //Now the code for endianess conversion: the processor is always modeled
-        //with the host endianess; in case they are different, the endianess
-        //is turned
         """
     addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
     readBody = cxx_writer.writer_code.Code(readMemAliasCode + readCode1 + 'trans.set_data_length(' + str(self.wordSize*2) + ');\n' + str(archDWordType) + ' datum = 0;\n' + readCode2 + swapDEndianessCode + 'return datum;')
@@ -2908,8 +2907,8 @@ def getGetPipelineStages(self, trace, namespace):
     constructorInit = []
     baseConstructorInit = ''
     pipeType = cxx_writer.writer_code.Type('BasePipeStage')
-    IntructionType = cxx_writer.writer_code.Type('Instruction', include = 'instructions.hpp')
-    registerType = cxx_writer.writer_code.Type('Register', include = 'registers.hpp')
+    IntructionType = cxx_writer.writer_code.Type('Instruction', includes = ['instructions.hpp'])
+    registerType = cxx_writer.writer_code.Type('Register', includes = ['registers.hpp'])
 
     stageEndedFlag = cxx_writer.writer_code.Attribute('stageEnded', cxx_writer.writer_code.boolType, 'pu')
     pipelineElements.append(stageEndedFlag)

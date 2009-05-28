@@ -308,6 +308,23 @@ class Folder:
     if type(conf.env['RPATH']) == type(''):
         conf.env['RPATH'] = conf.env['RPATH'].split(' ')
 
+    ##############################################################
+    # Since I want to build fast simulators, if the user didn't
+    # specify any flags I set optimized flags
+    #############################################################
+    if not conf.env['CXXFLAGS'] and not conf.env['CCFLAGS']:
+        testFlags = ['-O2', '-march=native', '-pipe', '-finline-functions', '-ftracer', '-fomit-frame-pointer']
+        if conf.check_cxx(cxxflags=testFlags, msg='Checking for optimization flags') and conf.check_cc(cflags=testFlags, msg='Checking for optimization flags'):
+            conf.env.append_unique('CXXFLAGS', testFlags)
+            conf.env.append_unique('CCFLAGS', testFlags)
+            conf.env.append_unique('CPPFLAGS', '-DNDEBUG')
+        else:
+            testFlags = ['-O2', '-pipe', '-finline-functions', '-fomit-frame-pointer']
+            if conf.check_cxx(cxxflags=testFlags, msg='Checking for optimization flags') and conf.check_cc(cflags=testFlags, msg='Checking for optimization flags'):
+                conf.env.append_unique('CXXFLAGS', testFlags)
+                conf.env.append_unique('CCFLAGS', testFlags)
+                conf.env.append_unique('CPPFLAGS', '-DNDEBUG')
+
     #######################################################
     # Determining gcc search dirs
     #######################################################
@@ -396,16 +413,16 @@ class Folder:
         conf.env.append_unique('CPPFLAGS','/D_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1')
         conf.env.append_unique('CPPFLAGS','/D_CRT_SECURE_NO_WARNINGS=1')
 
-    if conf.env['CPPFLAGS']:
-        conf.check_cc(cflags=conf.env['CPPFLAGS'], mandatory=1)
-    if conf.env['CCFLAGS']:
-        conf.check_cc(cflags=conf.env['CCFLAGS'], mandatory=1)
-    if conf.env['CXXFLAGS']:
-        conf.check_cxx(cxxflags=conf.env['CXXFLAGS'], mandatory=1)
-    if conf.env['LINKFLAGS']:
-        conf.check_cxx(linkflags=conf.env['LINKFLAGS'], mandatory=1)
-    if conf.env['STLINKFLAGS']:
-        conf.check_cxx(linkflags=conf.env['STLINKFLAGS'], mandatory=1)
+    for flag in conf.env['CPPFLAGS']:
+        conf.check_cc(cflags=flag, mandatory=1)
+    for flag in conf.env['CCFLAGS']:
+        conf.check_cc(cflags=flag, mandatory=1)
+    for flag in conf.env['CXXFLAGS']:
+        conf.check_cxx(cxxflags=flag, mandatory=1)
+    for flag in conf.env['LINKFLAGS']:
+        conf.check_cxx(linkflags=flag, mandatory=1)
+    for flag in conf.env['STLINKFLAGS']:
+        conf.check_cxx(linkflags=flag, mandatory=1)
 
     ########################################
     # Setting the host endianess

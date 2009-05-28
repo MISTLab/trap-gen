@@ -316,7 +316,7 @@ def getCPPInstr(self, model, processor, trace, namespace):
                     for regToUnlock in self.machineCode.bitCorrespondence.keys():
                         if 'out' in self.machineCode.bitDirection[regToUnlock] and not regToUnlock in self.specialOutRegsWB.values():
                             behaviorCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
-                    for regToUnlock, correspondence in self.bitCorrespondence.keys():
+                    for regToUnlock in self.bitCorrespondence.keys():
                         if 'out' in self.bitDirection[regToUnlock] and not regToUnlock in self.specialOutRegsWB.values():
                             behaviorCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
                     for regToUnlock in self.specialOutRegs:
@@ -377,12 +377,13 @@ def getCPPInstr(self, model, processor, trace, namespace):
             lockDecl = cxx_writer.writer_code.Method('lockRegs', lockBody, cxx_writer.writer_code.voidType, 'pu')
             classElements.append(lockDecl)
             getUnlockCode = ''
-            for regToUnlock in self.specialOutRegsWB.values():
-                getUnlockCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
+            for regsToUnlock in self.specialOutRegsWB.values():
+                for regToUnlock in regsToUnlock:
+                    getUnlockCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
             for regToUnlock in self.machineCode.bitCorrespondence.keys():
                 if 'out' in self.machineCode.bitDirection[regToUnlock] and not regToUnlock in self.specialOutRegsWB.values():
                     getUnlockCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
-            for regToUnlock, correspondence in self.bitCorrespondence.keys():
+            for regToUnlock in self.bitCorrespondence.keys():
                 if 'out' in self.bitDirection[regToUnlock] and not regToUnlock in self.specialOutRegsWB.values():
                     getUnlockCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
             for regToUnlock in self.specialOutRegs:
@@ -738,7 +739,7 @@ def getCPPClasses(self, processor, model, trace, namespace):
                     if not processor.pipes[processor.pipes.index(pipeStage) - 1].checkHazard:
                         hasWb = True
         if hasCheckHazard:
-            if externalClock:
+            if processor.externalClock:
                 checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.boolType, 'pu', pure = True)
             else:
                 checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.voidType, 'pu', pure = True)
@@ -765,10 +766,10 @@ def getCPPClasses(self, processor, model, trace, namespace):
                 printTraceCode += '#define ' + aliasB.name + ' ' + aliasB.name + '_' + processor.pipes[-1].name + '\n'
             printTraceCode += '\n'
 
-        #if not processor.systemc and not model.startswith('acc') and not model.endswith('AT'):
-            #printTraceCode += 'std::cerr << \"Simulated time \" << std::dec << this->totalCycles << std::endl;\n'
-        #else:
-            #printTraceCode += 'std::cerr << \"Simulated time \" << sc_time_stamp().to_double() << std::endl;\n'
+        if not processor.systemc and not model.startswith('acc') and not model.endswith('AT'):
+            printTraceCode += 'std::cerr << \"Simulated time \" << std::dec << this->totalCycles << std::endl;\n'
+        else:
+            printTraceCode += 'std::cerr << \"Simulated time \" << sc_time_stamp().to_double() << std::endl;\n'
         printTraceCode += 'std::cerr << \"Instruction: \" << this->getInstructionName() << std::endl;\n'
         printTraceCode += 'std::cerr << \"Mnemonic: \" << this->getMnemonic() << std::endl;\n'
         if self.traceRegs:
@@ -1013,7 +1014,7 @@ def getCPPClasses(self, processor, model, trace, namespace):
     invalidInstrElements.append(getMnemonicDecl)
     if model.startswith('acc'):
         if hasCheckHazard:
-            if externalClock:
+            if processor.externalClock:
                 checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', cxx_writer.writer_code.Code('return false;'), cxx_writer.writer_code.boolType, 'pu')
             else:
                 checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.voidType, 'pu')
@@ -1053,7 +1054,7 @@ def getCPPClasses(self, processor, model, trace, namespace):
         getMnemonicDecl = cxx_writer.writer_code.Method('getMnemonic', getMnemonicBody, cxx_writer.writer_code.stringType, 'pu')
         NOPInstructionElements.append(getMnemonicDecl)
         if hasCheckHazard:
-            if externalClock:
+            if processor.externalClock:
                 checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', cxx_writer.writer_code.Code('return false;'), cxx_writer.writer_code.boolType, 'pu')
             else:
                 checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.voidType, 'pu')
