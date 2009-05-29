@@ -1075,6 +1075,7 @@ class Processor:
             if (model == 'funcLT') and (not self.systemc) and tests:
                 testFolder.create(configure = False, tests = True)
             print ('\t\tCreated in folder ' + os.path.expanduser(os.path.expandvars(folder)))
+            namespace = ''
         # We create and print the main folder and also add a configuration
         # part to the wscript
         mainFolder.create(configure = True, projectName = self.name, version = self.version)
