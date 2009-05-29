@@ -66,7 +66,7 @@
 #include <boost/thread/condition.hpp>
 #include <boost/thread/mutex.hpp>
 
-#include "utils.hpp"
+#include "trap_utils.hpp"
 
 #include "GDBConnectionManager.hpp"
 

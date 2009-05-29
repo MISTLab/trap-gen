@@ -13,7 +13,7 @@
 
 #include <boost/lexical_cast.hpp>
 
-#include "utils.hpp"
+#include "trap_utils.hpp"
 
 #include "memAccessType.hpp"
 #include "analyzer.hpp"

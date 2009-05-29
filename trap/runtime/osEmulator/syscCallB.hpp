@@ -47,7 +47,7 @@
 #pragma warning( disable : 4244 )
 #endif
 
-#include "utils.hpp"
+#include "trap_utils.hpp"
 
 #include "ABIIf.hpp"
 #include <systemc.h>

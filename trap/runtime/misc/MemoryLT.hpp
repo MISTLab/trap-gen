@@ -49,7 +49,7 @@
 #include <boost/lexical_cast.hpp>
 #include <string>
 
-#include <utils.hpp>
+#include <trap_utils.hpp>
 
 namespace trap{
 

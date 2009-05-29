@@ -51,7 +51,7 @@
 #include <string>
 #include <cstring>
 
-#include <utils.hpp>
+#include <trap_utils.hpp>
 
 DECLARE_EXTENDED_PHASE(internal_ph);
 

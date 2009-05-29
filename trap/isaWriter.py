@@ -75,7 +75,7 @@ def getCppMethod(self, model, processor):
     # Returns the code implementing a helper method
     for var in self.localvars:
         self.code.addVariable(var)
-    self.code.addInclude('utils.hpp')
+    self.code.addInclude('trap_utils.hpp')
     import copy
     codeTemp = copy.deepcopy(self.code)
 
@@ -122,7 +122,7 @@ def getCppOperation(self, parameters = False):
     aliasType = cxx_writer.writer_code.Type('Alias', 'alias.hpp')
     for var in self.localvars:
         self.code.addVariable(var)
-    self.code.addInclude('utils.hpp')
+    self.code.addInclude('trap_utils.hpp')
     metodParams = []
     if parameters:
         for elem in self.archElems:
@@ -145,7 +145,7 @@ def getCppOpClass(self, namespace):
     emptyBody = cxx_writer.writer_code.Code('')
     for var in self.localvars:
         self.code.addVariable(var)
-    self.code.addInclude('utils.hpp')
+    self.code.addInclude('trap_utils.hpp')
     classElements = []
     # Now I also need to declare the instruction variables and referenced architectural elements
     metodParams = []

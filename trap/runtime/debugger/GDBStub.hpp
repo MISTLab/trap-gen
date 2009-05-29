@@ -75,7 +75,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include "utils.hpp"
+#include "trap_utils.hpp"
 
 #include "ABIIf.hpp"
 #include "ToolsIf.hpp"

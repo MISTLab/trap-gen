@@ -54,7 +54,7 @@ extern "C" {
 #include <list>
 #include <iostream>
 
-#include "utils.hpp"
+#include "trap_utils.hpp"
 
 #include <boost/regex.hpp>
 

@@ -7,7 +7,7 @@
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/path.hpp>
 
-#include "utils.hpp"
+#include "trap_utils.hpp"
 
 #include "memAccessType.hpp"
 #include "analyzer.hpp"
