@@ -134,7 +134,7 @@ if processor.systemc:
 else:
     processor.setMemory('dataMem', 10*1024*1024)
 # Now lets add the interrupt ports
-irq = trap.Interrupt('IRQ', priority = 0)
+irq = trap.Interrupt('IRQ', 1, priority = 0)
 irq.setOperation('CPSR[key_I] == 0', """
 //Save LR_irq
 LR_IRQ = PC;
@@ -149,7 +149,7 @@ CPSR = (CPSR & 0xFFFFFFD0) | 0x00000092;
 //Finally I update the PC
 PC = 0x18;""")
 #processor.addIrq(irq)
-fiq = trap.Interrupt('FIQ', priority = 1)
+fiq = trap.Interrupt('FIQ', 1, priority = 1)
 fiq.setOperation('CPSR[key_F] == 0', """
 //Save LR_irq
 LR_FIQ = PC;
