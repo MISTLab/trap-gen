@@ -231,13 +231,6 @@ unsigned int trap::BFDFrontend::getSymAddr(std::string symbol, bool &valid){
     }
 }
 
-void trap::BFDFrontend::sprintf_wrapper(char *str, const char *format, ...) {
-    va_list ap;
-    va_start(ap, format);
-    vsprintf(str+strlen(str),format, ap);
-    va_end(ap);
-}
-
 ///Accesses the BFD internal structures in order to get the dissassbly of the symbols
 void trap::BFDFrontend::readSyms(){
     //make sure there are symbols in the file

@@ -94,8 +94,6 @@ class BFDFrontend{
     ///In case it is not possible to open the BFD because it is not possible to determine
     ///it target, this function extracts the list of possible targets
     std::string getMatchingFormats (char **p);
-    /// sprintf wrapper with append features
-    static void sprintf_wrapper(char *str, const char *format, ...);
     static BFDFrontend *curInstance;
   public:
     BFDFrontend(std::string binaryName);
