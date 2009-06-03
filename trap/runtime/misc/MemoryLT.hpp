@@ -73,6 +73,7 @@ template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryLT: publi
     }
 
     ~MemoryLT(){
+        delete this->mem;
         for(int i = 0; i < N_INITIATORS; i++){
             delete this->socket[i];
         }

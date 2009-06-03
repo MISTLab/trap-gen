@@ -76,6 +76,13 @@ template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryAT: publi
         end_module();
     }
 
+    ~MemoryAT(){
+        delete this->mem;
+        for(int i = 0; i < N_INITIATORS; i++){
+            delete this->socket[i];
+        }
+    }
+
     // TLM-2 non-blocking transport method
     tlm::tlm_sync_enum nb_transport_fw(int tag, tlm::tlm_generic_payload& trans,
                                                 tlm::tlm_phase& phase, sc_time& delay){
