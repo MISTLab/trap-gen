@@ -63,6 +63,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <utime.h>
+#include <sys/time.h>
 #ifdef __GNUC__
 #include <unistd.h>
 #else
@@ -528,7 +530,34 @@ template<class wordSize> class utimesSysCall : public SyscallCB<wordSize>{
     public:
     utimesSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     bool operator()(){
-        THROW_EXCEPTION("utimes syscall still have to be completed");
+        this->processorInstance.preCall();
+        //Lets get the system call arguments
+        std::vector< wordSize > callArgs = this->processorInstance.readArgs();
+
+        char pathname[256];
+        for(int i = 0; i < 256; i++){
+            pathname[i] = (char)this->processorInstance.readCharMem(callArgs[0] + i);
+            if(pathname[i] == '\x0')
+                break;
+        }
+
+        int ret = -1;
+        int timesAddr = callArgs[1];
+        if(timesAddr == 0){
+            ret = ::utimes((char *)pathname, NULL);
+        }
+        else{
+            struct timeval times[2];
+            this->processorInstance.readMem(timesAddr, times[0].tv_sec, 4);
+            this->processorInstance.readMem(timesAddr + 4, times[0].tv_usec, 4);
+            this->processorInstance.readMem(timesAddr + 8, times[1].tv_sec, 4);
+            this->processorInstance.readMem(timesAddr + 12, times[1].tv_usec, 4);
+            ret = ::utimes((char *)pathname, times);
+        }
+
+        this->processorInstance.setRetVal(ret);
+        this->processorInstance.returnFromCall();
+        this->processorInstance.postCall();
         return true;
     }
 };
@@ -537,7 +566,48 @@ template<class wordSize> class lstatSysCall : public SyscallCB<wordSize>{
     public:
     lstatSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     bool operator()(){
-        THROW_EXCEPTION("lstat syscall still have to be completed");
+        this->processorInstance.preCall();
+        //Lets get the system call arguments
+        std::vector< wordSize > callArgs = this->processorInstance.readArgs();
+
+        #ifdef __GNUC__
+        struct stat buf_stat;
+        #else
+        struct _stat buf_stat;
+        #endif
+
+        char pathname[256];
+        for(int i = 0; i < 256; i++){
+            pathname[i] = (char)this->processorInstance.readCharMem(callArgs[0] + i);
+            if(pathname[i] == '\x0')
+                break;
+        }
+        int retAddr = callArgs[1];
+        #ifdef __GNUC__
+        int ret = ::lstat((char *)pathname, &buf_stat);
+        #else
+        int ret = ::_lstat((char *)pathname, &buf_stat);
+        #endif
+        if(ret >= 0 && retAddr != 0){
+            this->processorInstance.writeMem(retAddr, buf_stat.st_dev, 2);
+            this->processorInstance.writeMem(retAddr + 2, buf_stat.st_ino, 2);
+            this->processorInstance.writeMem(retAddr + 4, buf_stat.st_mode, 4);
+            this->processorInstance.writeMem(retAddr + 8, buf_stat.st_nlink, 2);
+            this->processorInstance.writeMem(retAddr + 10, buf_stat.st_uid, 2);
+            this->processorInstance.writeMem(retAddr + 12, buf_stat.st_gid, 2);
+            this->processorInstance.writeMem(retAddr + 14, buf_stat.st_rdev, 2);
+            this->processorInstance.writeMem(retAddr + 16, buf_stat.st_size, 4);
+            this->processorInstance.writeMem(retAddr + 20, buf_stat.st_atime, 4);
+            this->processorInstance.writeMem(retAddr + 28, buf_stat.st_mtime, 4);
+            this->processorInstance.writeMem(retAddr + 36, buf_stat.st_ctime, 4);
+            #ifdef __GNUC__
+            this->processorInstance.writeMem(retAddr + 44, buf_stat.st_blksize, 4);
+            this->processorInstance.writeMem(retAddr + 48, buf_stat.st_blocks, 4);
+            #endif
+        }
+        this->processorInstance.setRetVal(ret);
+        this->processorInstance.returnFromCall();
+        this->processorInstance.postCall();
         return true;
     }
 };
