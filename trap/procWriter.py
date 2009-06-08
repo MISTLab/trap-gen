@@ -1362,6 +1362,31 @@ this->dumpFile.write((char *)&dumpInfo, sizeof(MemAccessType));
 
     return classes
 
+def getInstrIssueCode(self, trace, instrVarName):
+    codeString = """try{
+            #ifndef DISABLE_TOOLS
+            if(!(this->toolManager.newIssue(curPC, """ + instrVarName + """))){
+            #endif
+            numCycles = """ + instrVarName + """->behavior();
+    """
+    if trace:
+        codeString += instrVarName + '->printTrace();\n'
+    codeString += '#ifndef DISABLE_TOOLS\n}\n'
+    if trace:
+        codeString += """else{
+            std::cerr << "Not executed Instruction because Tools anulled it" << std::endl << std::endl;
+        }
+        """
+    codeString +='#endif\n}\ncatch(annull_exception &etc){\n'
+    if trace:
+        codeString += instrVarName + """->printTrace();
+                std::cerr << "Skipped Instruction " << """ + instrVarName + """->getInstructionName() << std::endl << std::endl;
+        """
+    codeString += """numCycles = 0;
+        }
+        """
+    return codeString
+
 def getCPPProc(self, model, trace, namespace):
     # creates the class describing the processor
     from isa import resolveBitType
@@ -1371,15 +1396,28 @@ def getCPPProc(self, model, trace, namespace):
         interfaceType = cxx_writer.writer_code.Type(self.name + '_ABIIf', 'interface.hpp')
     ToolsManagerType = cxx_writer.writer_code.TemplateType('ToolsManager', [fetchWordType], 'ToolsIf.hpp')
     IntructionType = cxx_writer.writer_code.Type('Instruction', 'instructions.hpp')
+    CacheElemType = cxx_writer.writer_code.Type('CacheElem')
     IntructionTypePtr = IntructionType.makePointer()
+    emptyBody = cxx_writer.writer_code.Code('')
     processorElements = []
     codeString = ''
 
+    # Here I declare the type which shall be contained in the cache
+    instrAttr = cxx_writer.writer_code.Attribute('instr', IntructionTypePtr, 'pu')
+    countAttr = cxx_writer.writer_code.Attribute('count', cxx_writer.writer_code.uintType, 'pu')
+    cacheTypeElements = [instrAttr, countAttr]
+    cacheType = cxx_writer.writer_code.ClassDeclaration('CacheElem', cacheTypeElements, namespaces = [namespace])
+    instrParam = cxx_writer.writer_code.Parameter('instr', IntructionTypePtr)
+    countParam = cxx_writer.writer_code.Parameter('count', cxx_writer.writer_code.uintType)
+    cacheTypeConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', [instrParam, countParam], ['instr(instr)', 'count(count)'])
+    cacheType.addConstructor(cacheTypeConstr)
+    emptyCacheTypeConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', [], ['instr(NULL)', 'count(1)'])
+    cacheType.addConstructor(emptyCacheTypeConstr)
+
+    # An here I start declaring the real processor content
     if not model.startswith('acc'):
         if self.instructionCache:
-            codeString += 'template_map< ' + str(fetchWordType) + """, Instruction * >::iterator instrCacheEnd = Processor::instrCache.end();
-            template_map< """  + str(fetchWordType) + ', ' + str(fetchWordType) + """ > freqInstrMap;
-            template_map< """  + str(fetchWordType) + ', ' + str(fetchWordType) + """ >::iterator freqInstrMapEnd = freqInstrMap.end();
+            codeString += 'template_map< ' + str(fetchWordType) + """, CacheElem >::iterator instrCacheEnd = Processor::instrCache.end();
             """
             if self.fastFetch:
                 mapKey = 'curPC'
@@ -1420,134 +1458,72 @@ def getCPPProc(self, model, trace, namespace):
                     fetchCode += name
             if codeString.endswith('= '):
                 raise Exception('No TLM port was chosen for the instruction fetch')
-        fetchCode += '.read_word('
+        fetchCode += '.read_word(curPC);\n'
+
         fetchAddress = 'this->' + self.fetchReg[0]
-        if self.instructionCache and self.fastFetch:
-            pcVar = 'curPC'
-        else:
-            pcVar = 'this->' + self.fetchReg[0]
         if model.startswith('func'):
             if self.fetchReg[1] < 0:
                 fetchAddress += str(self.fetchReg[1])
-                if not (self.instructionCache and self.fastFetch):
-                    pcVar += str(self.fetchReg[1])
             else:
                 fetchAddress += ' + ' + str(self.fetchReg[1])
-                if not (self.instructionCache and self.fastFetch):
-                    pcVar += ' + ' + str(self.fetchReg[1])
-        fetchCode += pcVar + ');\n'
-        if self.instructionCache and self.fastFetch:
-            codeString += str(fetchWordType) + ' curPC = ' + fetchAddress + ';\n'
-        else:
+        codeString += str(fetchWordType) + ' curPC = ' + fetchAddress + ';\n'
+
+        if not (self.instructionCache and self.fastFetch):
             codeString += fetchCode
+
         if trace:
-            codeString += 'std::cerr << \"Current PC: \" << std::hex << std::showbase << ' + pcVar + ' << std::endl;\n'
+            codeString += 'std::cerr << \"Current PC: \" << std::hex << std::showbase << curPC << std::endl;\n'
         if self.instructionCache:
-            codeString += 'template_map< ' + str(fetchWordType) + ', Instruction * >::iterator cachedInstr = Processor::instrCache.find(' + mapKey + ');'
+            codeString += 'template_map< ' + str(fetchWordType) + ', CacheElem >::iterator cachedInstr = Processor::instrCache.find(' + mapKey + ');'
+            # I have found the instruction in the cache
             codeString += """
             if(cachedInstr != instrCacheEnd){
+                Instruction * &curInstrPtr = cachedInstr->second.instr;
                 // I can call the instruction, I have found it
-                try{
-                    #ifndef DISABLE_TOOLS
-                    if(!(this->toolManager.newIssue(""" + pcVar + """, cachedInstr->second))){
-                    #endif
-                    numCycles = cachedInstr->second->behavior();
+                if(curInstrPtr != NULL){
             """
-            if trace:
-                codeString += """
-                    cachedInstr->second->printTrace();
-                """
-            codeString += """
-                    #ifndef DISABLE_TOOLS
-                    }
-                """
-            if trace:
-                codeString += """else{
-                    std::cerr << "Not executed Instruction because Tools anulled it" << std::endl << std::endl;
-                }"""
-            codeString += """
-                    #endif
-                }
-                catch(annull_exception &etc){
+            codeString += getInstrIssueCode(self, trace, 'curInstrPtr')
+
+            # I have found the element in the cache, but not the instruction
+            codeString += '}\nelse{\n'
+            if self.fastFetch:
+                codeString += fetchCode
+            codeString += """int instrId = this->decoder.decode(bitString);
+            Instruction * instr = Processor::INSTRUCTIONS[instrId];
+            instr->setParams(bitString);
             """
-            if trace:
-                codeString += """
-                        cachedInstr->second->printTrace();
-                        std::cerr << "Skipped Instruction " << cachedInstr->second->getInstructionName() << std::endl << std::endl;
-                """
-            codeString += """
-                    numCycles = 0;
+            codeString += getInstrIssueCode(self, trace, 'instr')
+            codeString += """unsigned int & curCount = cachedInstr->second.count;
+                if(curCount < 40){
+                    curCount++;
                 }
+                else{
+                    // ... and then add the instruction to the cache
+                    curInstrPtr = instr;
+                    Processor::INSTRUCTIONS[instrId] = instr->replicate();
+                }
+            """
+
+            # and now finally I have found nothing and I have to add everything
+            codeString += """}
             }
             else{
                 // The current instruction is not present in the cache:
                 // I have to perform the normal decoding phase ...
             """
-        if self.instructionCache and self.fastFetch:
-            codeString += fetchCode
+            if self.fastFetch:
+                codeString += fetchCode
+
         codeString += """int instrId = this->decoder.decode(bitString);
         Instruction * instr = Processor::INSTRUCTIONS[instrId];
+        instr->setParams(bitString);
         """
-        if not self.instructionCache:
-            codeString += 'instr->totalInstrCycles = 0;\n'
-        codeString += """instr->setParams(bitString);
-            try{
-                #ifndef DISABLE_TOOLS
-                if(!(this->toolManager.newIssue(""" + pcVar + """, instr))){
-                #endif
-                numCycles = instr->behavior();
+        codeString += getInstrIssueCode(self, trace, 'instr')
+        codeString += """Processor::instrCache.insert(std::pair< unsigned int, CacheElem >(bitString, CacheElem()));
+            instrCacheEnd = Processor::instrCache.end();
+            }
         """
-        if trace:
-            codeString += """
-                instr->printTrace();
-            """
-        codeString += """
-                #ifndef DISABLE_TOOLS
-                }
-            """
-        if trace:
-            codeString += """else{
-                std::cerr << "Not executed Instruction because Tools anulled it" << std::endl << std::endl;
-            }"""
-        codeString += """
-                #endif
-            }
-            catch(annull_exception &etc){
-        """
-        if trace:
-            codeString += """
-                    instr->printTrace();
-                    std::cerr << "Skipped Instruction " << instr->getInstructionName() << std::endl << std::endl;
-            """
-        codeString += """
-                numCycles = 0;
-            }
-            """
-        if self.instructionCache:
-            codeString += """template_map< """ + str(fetchWordType) + ', ' + str(fetchWordType) + ' >::iterator freqInstrMapIter = freqInstrMap.find(' + mapKey + ');'
-            codeString += """
-                if(freqInstrMapIter == freqInstrMapEnd){
-                    freqInstrMap.insert(std::pair< """ + str(fetchWordType) + ', ' + str(fetchWordType) + ' >(' + mapKey + """, 1));
-                    freqInstrMapEnd = freqInstrMap.end();
-                }
-                else{
-                    if(freqInstrMapIter->second > """ + str(self.cacheLimit) + """){
-                // ... and then add the instruction to the cache
-            """
-        if self.instructionCache:
-            codeString += 'instrCache.insert(std::pair< ' + str(fetchWordType) + ', Instruction * >(' + mapKey + ', instr));'
-            if not self.externalClock:
-                codeString += """
-                    instrCacheEnd = Processor::instrCache.end();"""
-            codeString += """
-                        Processor::INSTRUCTIONS[instrId] = instr->replicate();
-                    }
-                    else{
-                        freqInstrMapIter->second = freqInstrMapIter->second + 1;
-                    }
-                }
-            }
-            """
+
         if self.irqs:
             codeString += '}\n'
         if self.externalClock:
@@ -2031,7 +2007,7 @@ def getCPPProc(self, model, trace, namespace):
     if self.instructionCache:
         cacheAttribute = cxx_writer.writer_code.Attribute('instrCache',
                         cxx_writer.writer_code.TemplateType('template_map',
-                            [fetchWordType, IntructionTypePtr], hash_map_include), 'pri', True)
+                            [fetchWordType, CacheElemType], hash_map_include), 'pri', True)
         processorElements.append(cacheAttribute)
     numProcAttribute = cxx_writer.writer_code.Attribute('numInstances',
                             cxx_writer.writer_code.intType, 'pri', True, '0')
@@ -2186,9 +2162,9 @@ def getCPPProc(self, model, trace, namespace):
         Processor::INSTRUCTIONS = NULL;
     """
     if self.instructionCache:
-        destrCode += """template_map< """ + str(fetchWordType) + """, Instruction * >::const_iterator cacheIter, cacheEnd;
+        destrCode += """template_map< """ + str(fetchWordType) + """, CacheElem >::const_iterator cacheIter, cacheEnd;
         for(cacheIter = Processor::instrCache.begin(), cacheEnd = Processor::instrCache.end(); cacheIter != cacheEnd; cacheIter++){
-            delete cacheIter->second;
+            delete cacheIter->second.instr;
         }
         """
     if self.abi:
@@ -2200,7 +2176,7 @@ def getCPPProc(self, model, trace, namespace):
     processorDecl = cxx_writer.writer_code.SCModule('Processor', processorElements, namespaces = [namespace])
     processorDecl.addConstructor(publicConstr)
     processorDecl.addDestructor(publicDestr)
-    return processorDecl
+    return [cacheType, processorDecl]
 
 def getCPPIf(self, model, namespace):
     # creates the interface which is used by the tools
