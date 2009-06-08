@@ -548,10 +548,10 @@ template<class wordSize> class utimesSysCall : public SyscallCB<wordSize>{
         }
         else{
             struct timeval times[2];
-            this->processorInstance.readMem(timesAddr, times[0].tv_sec, 4);
-            this->processorInstance.readMem(timesAddr + 4, times[0].tv_usec, 4);
-            this->processorInstance.readMem(timesAddr + 8, times[1].tv_sec, 4);
-            this->processorInstance.readMem(timesAddr + 12, times[1].tv_usec, 4);
+            times[0].tv_sec = this->processorInstance.readMem(timesAddr, 4);
+            times[0].tv_usec = this->processorInstance.readMem(timesAddr + 4, 4);
+            times[1].tv_sec = this->processorInstance.readMem(timesAddr + 8, 4);
+            times[1].tv_usec = this->processorInstance.readMem(timesAddr + 12, 4);
             ret = ::utimes((char *)pathname, times);
         }
 
