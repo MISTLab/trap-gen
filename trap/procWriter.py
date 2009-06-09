@@ -1494,7 +1494,7 @@ def getCPPProc(self, model, trace, namespace):
             """
             codeString += getInstrIssueCode(self, trace, 'instr')
             codeString += """unsigned int & curCount = cachedInstr->second.count;
-                if(curCount < 40){
+                if(curCount < """ + str(self.cacheLimit) + """){
                     curCount++;
                 }
                 else{
