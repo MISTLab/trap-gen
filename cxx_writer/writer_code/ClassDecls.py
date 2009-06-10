@@ -189,16 +189,16 @@ class Attribute(ClassMember, Variable):
     """Attribute of a class; note how, a part from the visibility,
     it is simply a normal variable"""
 
-    def __init__(self, name, type, visibility, static = False, initValue = ''):
+    def __init__(self, name, varType, visibility, static = False, initValue = ''):
         ClassMember.__init__(self, visibility)
-        Variable.__init__(self, name, type, static, initValue)
+        Variable.__init__(self, name, varType, static, initValue)
 
     def writeDeclaration(self, writer):
         if self.docstring:
             self.printDocString(writer)
         if self.static:
             writer.write('static ')
-        self.type.writeDeclaration(writer)
+        self.varType.writeDeclaration(writer)
         writer.write(' ' + self.name + ';\n')
 
     def writeImplementation(self, writer, className = '', namespaces = []):
@@ -207,7 +207,7 @@ class Attribute(ClassMember, Variable):
         elif self.static:
             if self.docstring:
                 self.printDocString(writer)
-            self.type.writeDeclaration(writer)
+            self.varType.writeDeclaration(writer)
             writer.write(' ')
             for namespace in namespaces:
                 writer.write(namespace + '::')

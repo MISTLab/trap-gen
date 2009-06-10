@@ -255,8 +255,9 @@ sc_uint64PtrType = sc_uint64Type.makePointer()
 sc_eventPtrType = sc_eventType.makePointer()
 sc_modulePtrType = sc_moduleType.makePointer()
 sc_module_namePtrType = sc_module_nameType.makePointer()
-sc_timePtrType = sc_timeType.makeRef()
+sc_timePtrType = sc_timeType.makePointer()
 stringPtrType = stringType.makePointer()
+voidPtrType = voidType.makePointer()
 
 class Parameter(DumpElement):
     """Represents a parameter of a function; this parameter can be either input or output
@@ -306,21 +307,38 @@ class Variable(DumpElement):
     sense that it is not a member of a class; it can, anyway, be a variable
     of a method"""
 
-    def __init__(self, name, type, static = False, initValue = '', namespaces = []):
+    def __init__(self, name, varType, static = False, initValue = '', namespaces = []):
         DumpElement.__init__(self, name)
-        self.type = type
+        self.varType = varType
         self.static = static
         self.namespaces = namespaces
         self.initValue = initValue
 
     def writeDeclaration(self, writer):
+        pass
+        #for namespace in self.namespaces:
+            #writer.write('namespace ' + namespace + '{\n')
+        #if self.docstring:
+            #self.printDocString(writer)
+        #writer.write('extern ')
+        #if self.static:
+            #writer.write('static ')
+        #self.varType.writeDeclaration(writer)
+        #writer.write(' ' + self.name)
+        #if self.initValue:
+            #writer.write(' = ' + self.initValue)
+        #writer.write(';\n')
+        #for namespace in self.namespaces:
+            #writer.write('};\n')
+
+    def writeImplementation(self, writer):
         for namespace in self.namespaces:
             writer.write('namespace ' + namespace + '{\n')
         if self.docstring:
             self.printDocString(writer)
         if self.static:
             writer.write('static ')
-        self.type.writeDeclaration(writer)
+        self.varType.writeDeclaration(writer)
         writer.write(' ' + self.name)
         if self.initValue:
             writer.write(' = ' + self.initValue)
@@ -328,11 +346,8 @@ class Variable(DumpElement):
         for namespace in self.namespaces:
             writer.write('};\n')
 
-    def writeImplementation(self, writer):
-        self.writeDeclaration(writer)
-
     def getIncludes(self):
-        return copy.copy(self.type.getIncludes())
+        return copy.copy(self.varType.getIncludes())
 
     def __str__(self):
         varStr = ''
@@ -340,7 +355,7 @@ class Variable(DumpElement):
             varStr += self.docstring
         if self.static:
             varStr += 'static '
-        varStr += str(self.type)
+        varStr += str(self.varType)
         varStr += ' ' + self.name
         if self.initValue:
             varStr += ' = ' + self.initValue

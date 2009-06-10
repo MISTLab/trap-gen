@@ -2001,8 +2001,9 @@ def getCPPProc(self, model, trace, namespace):
     if self.abi:
         bodyInits += 'this->abiIf = new ' + str(interfaceType) + '(' + abiIfInit + ');\n'
 
+    # TODO: reset this to private
     instructionsAttribute = cxx_writer.writer_code.Attribute('INSTRUCTIONS',
-                            IntructionTypePtr.makePointer(), 'pri', True, 'NULL')
+                            IntructionTypePtr.makePointer(), 'pu', True, 'NULL')
     processorElements.append(instructionsAttribute)
     if self.instructionCache:
         cacheAttribute = cxx_writer.writer_code.Attribute('instrCache',
@@ -4012,6 +4013,9 @@ def getMainCode(self, model, namespace):
     if self.endOp:
         code += '//Ok, simulation has ended: lets call cleanup methods\nprocInst.endOp();\n'
     code += """
+    for(int i = 0; i < """ + str(len(self.isa.instructions)) + """; i++){
+        std::cerr << "Instruction " << Processor::INSTRUCTIONS[i]->getInstructionName() << " MyNew " << Processor::INSTRUCTIONS[i]->getMyAllocCount() << " stdNew " << Processor::INSTRUCTIONS[i]->getStdAllocCount() << std::endl;
+    }
     return 0;
     """
     mainCode = cxx_writer.writer_code.Code(code)
