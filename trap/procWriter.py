@@ -1403,16 +1403,17 @@ def getCPPProc(self, model, trace, namespace):
     codeString = ''
 
     # Here I declare the type which shall be contained in the cache
-    instrAttr = cxx_writer.writer_code.Attribute('instr', IntructionTypePtr, 'pu')
-    countAttr = cxx_writer.writer_code.Attribute('count', cxx_writer.writer_code.uintType, 'pu')
-    cacheTypeElements = [instrAttr, countAttr]
-    cacheType = cxx_writer.writer_code.ClassDeclaration('CacheElem', cacheTypeElements, namespaces = [namespace])
-    instrParam = cxx_writer.writer_code.Parameter('instr', IntructionTypePtr)
-    countParam = cxx_writer.writer_code.Parameter('count', cxx_writer.writer_code.uintType)
-    cacheTypeConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', [instrParam, countParam], ['instr(instr)', 'count(count)'])
-    cacheType.addConstructor(cacheTypeConstr)
-    emptyCacheTypeConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', [], ['instr(NULL)', 'count(1)'])
-    cacheType.addConstructor(emptyCacheTypeConstr)
+    if self.instructionCache:
+        instrAttr = cxx_writer.writer_code.Attribute('instr', IntructionTypePtr, 'pu')
+        countAttr = cxx_writer.writer_code.Attribute('count', cxx_writer.writer_code.uintType, 'pu')
+        cacheTypeElements = [instrAttr, countAttr]
+        cacheType = cxx_writer.writer_code.ClassDeclaration('CacheElem', cacheTypeElements, namespaces = [namespace])
+        instrParam = cxx_writer.writer_code.Parameter('instr', IntructionTypePtr)
+        countParam = cxx_writer.writer_code.Parameter('count', cxx_writer.writer_code.uintType)
+        cacheTypeConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', [instrParam, countParam], ['instr(instr)', 'count(count)'])
+        cacheType.addConstructor(cacheTypeConstr)
+        emptyCacheTypeConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', [], ['instr(NULL)', 'count(1)'])
+        cacheType.addConstructor(emptyCacheTypeConstr)
 
     # An here I start declaring the real processor content
     if not model.startswith('acc'):
@@ -1519,10 +1520,11 @@ def getCPPProc(self, model, trace, namespace):
         instr->setParams(bitString);
         """
         codeString += getInstrIssueCode(self, trace, 'instr')
-        codeString += """this->instrCache.insert(std::pair< unsigned int, CacheElem >(bitString, CacheElem()));
-            instrCacheEnd = this->instrCache.end();
-            }
-        """
+        if self.instructionCache:
+            codeString += """this->instrCache.insert(std::pair< unsigned int, CacheElem >(bitString, CacheElem()));
+                instrCacheEnd = this->instrCache.end();
+                }
+            """
 
         if self.irqs:
             codeString += '}\n'
@@ -2176,7 +2178,10 @@ def getCPPProc(self, model, trace, namespace):
     processorDecl = cxx_writer.writer_code.SCModule('Processor', processorElements, namespaces = [namespace])
     processorDecl.addConstructor(publicConstr)
     processorDecl.addDestructor(publicDestr)
-    return [cacheType, processorDecl]
+    if self.instructionCache:
+        return [cacheType, processorDecl]
+    else:
+        return [processorDecl]
 
 def getCPPIf(self, model, namespace):
     # creates the interface which is used by the tools
