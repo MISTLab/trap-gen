@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <map>
 
 #include <boost/filesystem/path.hpp>
 
@@ -27,11 +28,11 @@ class MemAnalyzer{
     void createMemImage(boost::filesystem::path &outFile, double simTime = -1);
     ///Returns the first memory access that modifies the address addr after
     ///procCycle
-    MemAccessType getFirstModAfter(std::string addr, double simTime = 0);
+    std::map<unsigned int, MemAccessType> getFirstModAfter(std::string addr, unsigned int width, double simTime = 0);
     ///Returns the last memory access that modified addr
-    MemAccessType getLastMod(std::string addr);
+    std::map<unsigned int, MemAccessType> getLastMod(std::string addr, unsigned int width);
     ///Prints all the modifications done to address addr
-    void getAllModifications(std::string addr, boost::filesystem::path &outFile, double initSimTime = 0, double endSimTime = -1);
+    void getAllModifications(std::string addr, boost::filesystem::path &outFile, unsigned int width, double initSimTime = 0, double endSimTime = -1);
 };
 
 }

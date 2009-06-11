@@ -1,6 +1,6 @@
 /**
  *  dwt97.c - Fast discrete biorthogonal CDF 9/7 wavelet forward and inverse transform (lifting implementation)
- *  
+ *
  *  This code is provided "as is" and is given for educational purposes.
  *  2006 - Gregoire Pau - gregoire.pau@ebi.ac.uk
  */
@@ -29,7 +29,7 @@ void fwt97(double* x,int n) {
   a=-1.586134342;
   for (i=1;i<n-2;i+=2) {
     x[i]+=a*(x[i-1]+x[i+1]);
-  } 
+  }
   x[n-1]+=2*a*x[n-2];
 
   // Update 1
@@ -120,7 +120,7 @@ void iwt97(double* x,int n) {
   a=1.586134342;
   for (i=1;i<n-2;i+=2) {
     x[i]+=a*(x[i-1]+x[i+1]);
-  } 
+  }
   x[n-1]+=2*a*x[n-2];
 }
 
@@ -128,26 +128,26 @@ int main() {
   double x[16];
   int i;
 
-  // Makes a fancy cubic signal
+/*  // Makes a fancy cubic signal
   for (i=0;i<16;i++) x[i]=5+i+0.4*i*i-0.02*i*i*i;
-  
+
   // Prints original sigal x
   printf("Original signal:\n");
   for (i=0;i<16;i++) printf("x[%d]=%f\n",i,x[i]);
   printf("\n");
-
+*/
   // Do the forward 9/7 transform
   fwt97(x,16);
-  
+
   // Prints the wavelet coefficients
   printf("Wavelets coefficients:\n");
   for (i=0;i<16;i++) printf("wc[%d]=%f\n",i,x[i]);
   printf("\n");
 
   // Do the inverse 9/7 transform
-  iwt97(x,16); 
+  iwt97(x,16);
 
-  // Prints the reconstructed signal 
+  // Prints the reconstructed signal
   printf("Reconstructed signal:\n");
   for (i=0;i<16;i++) printf("xx[%d]=%f\n",i,x[i]);
   return 0;

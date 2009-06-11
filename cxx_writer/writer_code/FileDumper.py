@@ -216,7 +216,7 @@ class Folder:
 
     def createWscript(self, configure, tests, projectName, version):
         wscriptFile = open('wscript', 'wt')
-        printOnFile('#!/usr/bin/env python\n', wscriptFile)
+        printOnFile('#!/usr/bin/env python', wscriptFile)
         printOnFile('# -*- coding: iso-8859-1 -*-\n', wscriptFile)
         if configure:
             printOnFile('import sys, Options\n', wscriptFile)
@@ -247,7 +247,7 @@ class Folder:
                         printOnFile('        ' + codeFile.name, wscriptFile)
                 printOnFile('    \"\"\"', wscriptFile)
                 if tests:
-                    printOnFile('    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM BOOST_THREAD SYSTEMC TLM TRAP\'', wscriptFile)
+                    printOnFile('    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM BOOST_THREAD SYSTEMC TLM TRAP BFD LIBERTY\'', wscriptFile)
                 else:
                     printOnFile('    obj.uselib = \'BOOST BOOST_FILESYSTEM BOOST_THREAD SYSTEMC TLM TRAP\'', wscriptFile)
 

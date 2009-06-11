@@ -399,7 +399,7 @@ class decoderCreator:
         decodeClass = cxx_writer.writer_code.ClassDeclaration('Decoder', [decodeMethod], namespaces = [namespace])
         return decodeClass
 
-    def getCPPTests(self):
+    def getCPPTests(self, namespace = ''):
         # Creates the tests for the decoder; I normally create the
         # tests with boost_test_framework.
         # What I have to do is feeding all the instruction patterns
@@ -412,7 +412,7 @@ class decoderCreator:
         allTests = []
         testCount = 0
         for instrId, instruction in self.instrId.items():
-            code = 'Decoder dec;\n'
+            code = namespace + '::Decoder dec;\n'
             pattern = instruction[0]
             try:
                 pattern[0][0]

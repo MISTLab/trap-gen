@@ -36,7 +36,8 @@ if __name__ == "__main__":
     # Lets now print the csv file with all the benchmarks
     fileHandle = open('TRAP_stats.csv', 'w')
     fileCsvWriter = csv.writer(fileHandle, delimiter = ';')
-    for bench, speedRuns in benchSpeed.items():
+    orderedBenchSpeed = sorted(benchSpeed.items(), lambda x, y: cmp(numpy.average(y[1]), numpy.average(x[1])))
+    for bench, speedRuns in orderedBenchSpeed:
         fileCsvWriter.writerow([bench] + [str(i) for i in speedRuns] + [str(numpy.average(speedRuns)), str(numpy.std(speedRuns))])
     fileHandle.close()
 

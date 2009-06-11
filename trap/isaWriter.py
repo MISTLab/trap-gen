@@ -503,48 +503,47 @@ def getCPPInstr(self, model, processor, trace, namespace):
             classElements.append(cxx_writer.writer_code.Attribute(var.name, var.varType, 'pro',  var.static))
 
     # Finally now I have to override the basic new operator in
-    # order to speed up memory allocation
-    num_allocated = processor.alloc_buffer_size*self.frequency
-    poolDecl = cxx_writer.writer_code.Variable(self.name + '_pool[' + str(num_allocated) + '*sizeof(' + self.name + ')]', cxx_writer.writer_code.ucharType, namespaces = [namespace])
-    operatorNewCode = """
-    if(""" + self.name + """::allocated < """ + str(num_allocated) + """){
-        """ + self.name + """::allocated++;
-        return """ + self.name + """_pool + (""" + self.name + """::allocated - 1)*sizeof(""" + self.name + """);
-    }
-    else{
-        """ + self.name + """::allocatedOut++;
-        void * newMem = ::malloc(bytesToAlloc);
-        if(newMem == NULL)
-            throw std::bad_alloc();
-        return newMem;
-    }
-    """
-    operatorNewBody =  cxx_writer.writer_code.Code(operatorNewCode)
-    operatorNewBody.addInclude('cstddef')
-    operatorNewBody.addInclude('cstdlib')
-    operatorNewBody.addInclude('new')
-    operatorNewParams = [cxx_writer.writer_code.Parameter('bytesToAlloc', cxx_writer.writer_code.Type('std::size_t'))]
-    operatorNewDecl = cxx_writer.writer_code.MemberOperator('new', operatorNewBody, cxx_writer.writer_code.voidPtrType, 'pu', operatorNewParams)
-    classElements.append(operatorNewDecl)
-    operatorDelCode = """
-        if(m != NULL && (m < """ + self.name + """_pool || m > (""" + self.name + """_pool + """ + str(num_allocated - 1) + """*sizeof(""" + self.name + """)))){
-            ::free(m);
-        }
-    """
-    operatorDelBody =  cxx_writer.writer_code.Code(operatorDelCode)
-    operatorDelParams = [cxx_writer.writer_code.Parameter('m', cxx_writer.writer_code.voidPtrType)]
-    operatorDelDecl = cxx_writer.writer_code.MemberOperator('delete', operatorDelBody, cxx_writer.writer_code.voidType, 'pu', operatorDelParams)
-    classElements.append(operatorDelDecl)
-    num_allocatedAttribute = cxx_writer.writer_code.Attribute('allocated', cxx_writer.writer_code.uintType, 'pri', initValue = '0', static = True)
-    classElements.append(num_allocatedAttribute)
+    # order to speed up memory allocation (***** Commented since it does not give any speedup ******)
+    #num_allocated = processor.alloc_buffer_size*self.frequency
+    #poolDecl = cxx_writer.writer_code.Variable(self.name + '_pool[' + str(num_allocated) + '*sizeof(' + self.name + ')]', cxx_writer.writer_code.ucharType, namespaces = [namespace])
+    #operatorNewCode = """
+    #if(""" + self.name + """::allocated < """ + str(num_allocated) + """){
+        #""" + self.name + """::allocated++;
+        #return """ + self.name + """_pool + (""" + self.name + """::allocated - 1)*sizeof(""" + self.name + """);
+    #}
+    #else{
+        #void * newMem = ::malloc(bytesToAlloc);
+        #if(newMem == NULL)
+            #throw std::bad_alloc();
+        #return newMem;
+    #}
+    #"""
+    #operatorNewBody =  cxx_writer.writer_code.Code(operatorNewCode)
+    #operatorNewBody.addInclude('cstddef')
+    #operatorNewBody.addInclude('cstdlib')
+    #operatorNewBody.addInclude('new')
+    #operatorNewParams = [cxx_writer.writer_code.Parameter('bytesToAlloc', cxx_writer.writer_code.Type('std::size_t'))]
+    #operatorNewDecl = cxx_writer.writer_code.MemberOperator('new', operatorNewBody, cxx_writer.writer_code.voidPtrType, 'pu', operatorNewParams)
+    #classElements.append(operatorNewDecl)
+    #operatorDelCode = """
+        #if(m != NULL && (m < """ + self.name + """_pool || m > (""" + self.name + """_pool + """ + str(num_allocated - 1) + """*sizeof(""" + self.name + """)))){
+            #::free(m);
+        #}
+    #"""
+    #operatorDelBody =  cxx_writer.writer_code.Code(operatorDelCode)
+    #operatorDelParams = [cxx_writer.writer_code.Parameter('m', cxx_writer.writer_code.voidPtrType)]
+    #operatorDelDecl = cxx_writer.writer_code.MemberOperator('delete', operatorDelBody, cxx_writer.writer_code.voidType, 'pu', operatorDelParams)
+    #classElements.append(operatorDelDecl)
+    #num_allocatedAttribute = cxx_writer.writer_code.Attribute('allocated', cxx_writer.writer_code.uintType, 'pri', initValue = '0', static = True)
+    #classElements.append(num_allocatedAttribute)
 
     ########################## TODO: to eliminate, only for statistics ####################
-    out_poolAttribute = cxx_writer.writer_code.Attribute('allocatedOut', cxx_writer.writer_code.uintType, 'pri', static = True)
-    classElements.append(out_poolAttribute)
-    returnStatsDecl = cxx_writer.writer_code.Method('getMyAllocCount', cxx_writer.writer_code.Code('return ' + self.name + '::allocated;'), cxx_writer.writer_code.uintType, 'pu')
-    classElements.append(returnStatsDecl)
-    returnStatsDecl = cxx_writer.writer_code.Method('getStdAllocCount', cxx_writer.writer_code.Code('return ' + self.name + '::allocatedOut;'), cxx_writer.writer_code.uintType, 'pu')
-    classElements.append(returnStatsDecl)
+    #out_poolAttribute = cxx_writer.writer_code.Attribute('allocatedOut', cxx_writer.writer_code.uintType, 'pri', static = True)
+    #classElements.append(out_poolAttribute)
+    #returnStatsDecl = cxx_writer.writer_code.Method('getMyAllocCount', cxx_writer.writer_code.Code('return ' + self.name + '::allocated;'), cxx_writer.writer_code.uintType, 'pu')
+    #classElements.append(returnStatsDecl)
+    #returnStatsDecl = cxx_writer.writer_code.Method('getStdAllocCount', cxx_writer.writer_code.Code('return ' + self.name + '::allocatedOut;'), cxx_writer.writer_code.uintType, 'pu')
+    #classElements.append(returnStatsDecl)
     ########################################################################################
 
     # Now I have to declare the constructor
@@ -554,9 +553,10 @@ def getCPPInstr(self, model, processor, trace, namespace):
     instructionDecl.addConstructor(publicConstr)
     publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
     instructionDecl.addDestructor(publicDestr)
-    return [poolDecl, instructionDecl]
+    #return [poolDecl, instructionDecl] *** Again removed, related to the instruction pre-allocation
+    return [instructionDecl]
 
-def getCPPInstrTest(self, processor, model, trace):
+def getCPPInstrTest(self, processor, model, trace, namespace = ''):
     # Returns the code testing the current instruction: note that a test
     # consists in setting the instruction variables, performing the instruction
     # behavior and then comparing the registers with what we expect.
@@ -565,7 +565,7 @@ def getCPPInstrTest(self, processor, model, trace):
     destrDecls = ''
     from procWriter import resourceType
     for reg in processor.regs:
-        archElemsDeclStr += str(resourceType[reg.name]) + ' ' + reg.name + ';\n'
+        archElemsDeclStr += namespace + '::' + str(resourceType[reg.name]) + ' ' + reg.name + ';\n'
         baseInitElement += reg.name + ', '
     for regB in processor.regBanks:
         if (regB.constValue and len(regB.constValue) < regB.numRegs)  or (regB.delay and len(regB.delay) < regB.numRegs):
@@ -580,10 +580,10 @@ def getCPPInstrTest(self, processor, model, trace):
             destrDecls += 'delete [] ' + regB.name + ';\n'
         baseInitElement += regB.name + ', '
     for alias in processor.aliasRegs:
-        archElemsDeclStr += str(resourceType[alias.name]) + ' ' + alias.name + ';\n'
+        archElemsDeclStr += namespace + '::' + str(resourceType[alias.name]) + ' ' + alias.name + ';\n'
         baseInitElement += alias.name + ', '
     for aliasB in processor.aliasRegBanks:
-        archElemsDeclStr += str(resourceType[aliasB.name].makePointer()) + ' ' + aliasB.name + ' = new ' + str(resourceType[aliasB.name]) + '[' + str(aliasB.numRegs) + '];\n'
+        archElemsDeclStr += namespace + '::' + str(resourceType[aliasB.name].makePointer()) + ' ' + aliasB.name + ' = new ' + namespace + '::' + str(resourceType[aliasB.name]) + '[' + str(aliasB.numRegs) + '];\n'
         baseInitElement += aliasB.name + ', '
         destrDecls += 'delete [] ' + aliasB.name + ';\n'
     memAliasInit = ''
@@ -598,11 +598,11 @@ def getCPPInstrTest(self, processor, model, trace):
             memDebugInit += ', totalCycles'
         if processor.memory[3]:
             memDebugInit += ', ' + processor.memory[3]
-        archElemsDeclStr += 'LocalMemory ' + processor.memory[0] + '(' + str(processor.memory[1]) + memDebugInit + memAliasInit + ');\n'
+        archElemsDeclStr += namespace + '::LocalMemory ' + processor.memory[0] + '(' + str(processor.memory[1]) + memDebugInit + memAliasInit + ');\n'
         baseInitElement += processor.memory[0] + ', '
     # Note how I declare local memories even for TLM ports. I use 1MB as default dimension
     for tlmPorts in processor.tlmPorts.keys():
-        archElemsDeclStr += 'LocalMemory ' + tlmPorts + '(' + str(1024*1024) + memAliasInit + ');\n'
+        archElemsDeclStr += namespace + '::LocalMemory ' + tlmPorts + '(' + str(1024*1024) + memAliasInit + ');\n'
         baseInitElement += tlmPorts + ', '
     # Now I declare the PIN stubs for the outgoing PIN ports
     # and alts themselves
@@ -620,7 +620,7 @@ def getCPPInstrTest(self, processor, model, trace):
             else:
                 pinPortTypeName += 'out_'
             pinPortTypeName += str(pinPort.portWidth)
-            archElemsDeclStr += pinPortTypeName + ' ' + pinPort.name + '(sc_core::sc_gen_unique_name(\"' + pinPort.name + '_PIN\"));\n'
+            archElemsDeclStr += namespace + '::' + pinPortTypeName + ' ' + pinPort.name + '(sc_core::sc_gen_unique_name(\"' + pinPort.name + '_PIN\"));\n'
             archElemsDeclStr += 'PINTarget<' + str(pinPort.portWidth) + '> ' + pinPort.name + '_target(sc_core::sc_gen_unique_name(\"' + pinPort.name + '_PIN\"));\n'
             archElemsDeclStr += pinPort.name + '.initSocket.bind(' + pinPort.name + '_target.socket);\n'
             baseInitElement += pinPort.name + ', '
@@ -772,10 +772,10 @@ def getCPPClasses(self, processor, model, trace, namespace):
     instructionElements.append(getMnemonicDecl)
 
     ########################## TODO: to eliminate, only for statistics ####################
-    returnStatsDecl = cxx_writer.writer_code.Method('getMyAllocCount', emptyBody, cxx_writer.writer_code.uintType, 'pu', virtual = True)
-    instructionElements.append(returnStatsDecl)
-    returnStatsDecl = cxx_writer.writer_code.Method('getStdAllocCount', emptyBody, cxx_writer.writer_code.uintType, 'pu', virtual = True)
-    instructionElements.append(returnStatsDecl)
+    #returnStatsDecl = cxx_writer.writer_code.Method('getMyAllocCount', emptyBody, cxx_writer.writer_code.uintType, 'pu', virtual = True)
+    #instructionElements.append(returnStatsDecl)
+    #returnStatsDecl = cxx_writer.writer_code.Method('getStdAllocCount', emptyBody, cxx_writer.writer_code.uintType, 'pu', virtual = True)
+    #instructionElements.append(returnStatsDecl)
     ########################################################################################
 
     if model.startswith('acc'):

@@ -292,11 +292,11 @@ class Processor:
     functional processor in case a local memory is used (in case TLM ports
     are used the systemc parameter is not taken into account)
     """
-    def __init__(self, name, version, systemc = True, coprocessor = False, instructionCache = True, fastFetch = False, externalClock = False, cacheLimit = 40, alloc_buffer_size = 50):
+    def __init__(self, name, version, systemc = True, coprocessor = False, instructionCache = True, fastFetch = False, externalClock = False, cacheLimit = 40):
         self.name = name
         self.version = version
         self.isBigEndian = None
-        self.alloc_buffer_size = alloc_buffer_size
+        #self.alloc_buffer_size = alloc_buffer_size # Commented since preallocating instruction does not give any speedup
         self.wordSize = None
         self.byteSize = None
         self.cacheLimit = cacheLimit
@@ -772,13 +772,13 @@ class Processor:
         # is not among this ports, it is treated separately)
         return procWriter.getCPPExternalPorts(self, model, namespace)
 
-    def getTestMainCode(self, namespace):
+    def getTestMainCode(self):
         # Returns the code for the file which contains the main
         # routine for the execution of the tests.
         # actually it is nothing but a file which includes
         # boost/test/auto_unit_test.hpp and defines
         # BOOST_AUTO_TEST_MAIN and BOOST_TEST_DYN_LINK
-        return procWriter.getTestMainCode(self, namespace)
+        return procWriter.getTestMainCode(self)
 
     def getMainCode(self, model, namespace):
         # Returns the code which instantiate the processor

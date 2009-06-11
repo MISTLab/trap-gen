@@ -1417,7 +1417,7 @@ def getCPPProc(self, model, trace, namespace):
     # An here I start declaring the real processor content
     if not model.startswith('acc'):
         if self.instructionCache:
-            codeString += 'template_map< ' + str(fetchWordType) + """, CacheElem >::iterator instrCacheEnd = Processor::instrCache.end();
+            codeString += 'template_map< ' + str(fetchWordType) + """, CacheElem >::iterator instrCacheEnd = this->instrCache.end();
             """
             if self.fastFetch:
                 mapKey = 'curPC'
@@ -1474,7 +1474,7 @@ def getCPPProc(self, model, trace, namespace):
         if trace:
             codeString += 'std::cerr << \"Current PC: \" << std::hex << std::showbase << curPC << std::endl;\n'
         if self.instructionCache:
-            codeString += 'template_map< ' + str(fetchWordType) + ', CacheElem >::iterator cachedInstr = Processor::instrCache.find(' + mapKey + ');'
+            codeString += 'template_map< ' + str(fetchWordType) + ', CacheElem >::iterator cachedInstr = this->instrCache.find(' + mapKey + ');'
             # I have found the instruction in the cache
             codeString += """
             if(cachedInstr != instrCacheEnd){
@@ -1519,8 +1519,8 @@ def getCPPProc(self, model, trace, namespace):
         instr->setParams(bitString);
         """
         codeString += getInstrIssueCode(self, trace, 'instr')
-        codeString += """Processor::instrCache.insert(std::pair< unsigned int, CacheElem >(bitString, CacheElem()));
-            instrCacheEnd = Processor::instrCache.end();
+        codeString += """this->instrCache.insert(std::pair< unsigned int, CacheElem >(bitString, CacheElem()));
+            instrCacheEnd = this->instrCache.end();
             }
         """
 
@@ -2001,14 +2001,13 @@ def getCPPProc(self, model, trace, namespace):
     if self.abi:
         bodyInits += 'this->abiIf = new ' + str(interfaceType) + '(' + abiIfInit + ');\n'
 
-    # TODO: reset this to private
     instructionsAttribute = cxx_writer.writer_code.Attribute('INSTRUCTIONS',
-                            IntructionTypePtr.makePointer(), 'pu', True, 'NULL')
+                            IntructionTypePtr.makePointer(), 'pri', True, 'NULL')
     processorElements.append(instructionsAttribute)
     if self.instructionCache:
         cacheAttribute = cxx_writer.writer_code.Attribute('instrCache',
                         cxx_writer.writer_code.TemplateType('template_map',
-                            [fetchWordType, CacheElemType], hash_map_include), 'pri', True)
+                            [fetchWordType, CacheElemType], hash_map_include), 'pri')
         processorElements.append(cacheAttribute)
     numProcAttribute = cxx_writer.writer_code.Attribute('numInstances',
                             cxx_writer.writer_code.intType, 'pri', True, '0')
@@ -2081,7 +2080,7 @@ def getCPPProc(self, model, trace, namespace):
                 curPipeInit = [self.fetchReg[0], 'Processor::INSTRUCTIONS', memName] + curPipeInit
                 curPipeInit = ['numInstructions'] + curPipeInit
                 if self.instructionCache:
-                    curPipeInit = ['Processor::instrCache'] + curPipeInit
+                    curPipeInit = ['this->instrCache'] + curPipeInit
             if pipeStage.checkTools:
                 curPipeInit = [self.fetchReg[0], 'toolManager'] + curPipeInit
             initString += ')'
@@ -2164,7 +2163,7 @@ def getCPPProc(self, model, trace, namespace):
     """
     if self.instructionCache:
         destrCode += """template_map< """ + str(fetchWordType) + """, CacheElem >::const_iterator cacheIter, cacheEnd;
-        for(cacheIter = Processor::instrCache.begin(), cacheEnd = Processor::instrCache.end(); cacheIter != cacheEnd; cacheIter++){
+        for(cacheIter = this->instrCache.begin(), cacheEnd = this->instrCache.end(); cacheIter != cacheEnd; cacheIter++){
             delete cacheIter->second.instr;
         }
         """
@@ -2436,7 +2435,7 @@ def getCPPExternalPorts(self, model, namespace):
     memIfType = cxx_writer.writer_code.Type('MemoryInterface', 'memory.hpp')
     tlm_dmiType = cxx_writer.writer_code.Type('tlm::tlm_dmi', 'tlm.h')
     TLMMemoryType = cxx_writer.writer_code.Type('TLMMemory')
-    tlminitsocketType = cxx_writer.writer_code.TemplateType('tlm_utils::simple_initiator_socket', [TLMMemoryType, self.wordSize], 'tlm_utils/simple_initiator_socket.h')
+    tlminitsocketType = cxx_writer.writer_code.TemplateType('tlm_utils::simple_initiator_socket', [TLMMemoryType, self.wordSize*self.byteSize], 'tlm_utils/simple_initiator_socket.h')
     payloadType = cxx_writer.writer_code.Type('tlm::tlm_generic_payload', 'tlm.h')
     phaseType = cxx_writer.writer_code.Type('tlm::tlm_phase', 'tlm.h')
     sync_enumType = cxx_writer.writer_code.Type('tlm::tlm_sync_enum', 'tlm.h')
@@ -3757,7 +3756,7 @@ def getIRQTests(self, trace, namespace):
 
     return testFuns
 
-def getTestMainCode(self):
+def getTestMainCode(self, namespace):
     # Returns the code for the file which contains the main
     # routine for the execution of the tests.
     global testNames
@@ -3853,10 +3852,10 @@ def getMainCode(self, model, namespace):
         //wtih the processor
         """
         if model.endswith('LT'):
-            code += """MemoryLT<""" + str(len(self.tlmPorts)) + """, """ + str(self.wordSize) + """> mem("procMem", 1024*1024*10, sc_time(latency*10e9*2, SC_NS));
+            code += """MemoryLT<""" + str(len(self.tlmPorts)) + """, """ + str(self.wordSize*self.byteSize) + """> mem("procMem", 1024*1024*10, sc_time(latency*10e9*2, SC_NS));
             """
         else:
-            code += """MemoryAT<""" + str(len(self.tlmPorts)) + """, """ + str(self.wordSize) + """> mem("procMem", 1024*1024*10, sc_time(latency*10e9*2, SC_NS));
+            code += """MemoryAT<""" + str(len(self.tlmPorts)) + """, """ + str(self.wordSize*self.byteSize) + """> mem("procMem", 1024*1024*10, sc_time(latency*10e9*2, SC_NS));
             """
         numPort = 0
         for tlmPortName, fetch in self.tlmPorts.items():
@@ -4013,9 +4012,6 @@ def getMainCode(self, model, namespace):
     if self.endOp:
         code += '//Ok, simulation has ended: lets call cleanup methods\nprocInst.endOp();\n'
     code += """
-    for(int i = 0; i < """ + str(len(self.isa.instructions)) + """; i++){
-        std::cerr << "Instruction " << Processor::INSTRUCTIONS[i]->getInstructionName() << " MyNew " << Processor::INSTRUCTIONS[i]->getMyAllocCount() << " stdNew " << Processor::INSTRUCTIONS[i]->getStdAllocCount() << std::endl;
-    }
     return 0;
     """
     mainCode = cxx_writer.writer_code.Code(code)

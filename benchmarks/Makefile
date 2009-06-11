@@ -5,7 +5,12 @@ TARGETS = AES crc engine fir2 hanoi pocsag tolstoy bcnt des fft lms queens blit 
 all: $(TARGETS)
 
 $(TARGETS): $(addsuffix .c, $(TARGETS))
-	$(CC) -o $@ $(CFLAGS) $(addsuffix .c, $@) -lm
+ifneq ("$(CC_CROSS)", "")
+	$(CC_CROSS) -o $@ $(CFLAGS) $(addsuffix .c, $@) -lm
+else
+	echo "CC_CROSS environmental variable not set"
+	exit 1
+endif
 
 run: $(TARGETS)
 	./benchmarkProc.py $(SIMULATOR) 5 $(TARGETS)

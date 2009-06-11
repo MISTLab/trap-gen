@@ -57,7 +57,7 @@ import LEON3Isa
 import LEON3Tests
 
 # Lets now start building the processor
-processor = trap.Processor('LEON3', version = '0.0.1', systemc = False, instructionCache = True, fastFetch = False, cacheLimit = 20, alloc_buffer_size = 2)
+processor = trap.Processor('LEON3', version = '0.0.1', systemc = False, instructionCache = True, fastFetch = False, cacheLimit = 40)
 processor.setBigEndian() # big endian
 processor.setWordsize(4, 8) # 4 bytes per word, 8 bits per byte
 processor.setISA(LEON3Isa.isa) # lets set the instruction set
