@@ -3761,7 +3761,7 @@ def getIRQTests(self, trace, namespace):
 
     return testFuns
 
-def getTestMainCode(self, namespace):
+def getTestMainCode(self):
     # Returns the code for the file which contains the main
     # routine for the execution of the tests.
     global testNames
