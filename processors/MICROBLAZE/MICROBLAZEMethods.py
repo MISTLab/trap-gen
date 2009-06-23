@@ -31,6 +31,8 @@
 #   or see <http://www.gnu.org/licenses/>.
 #
 #   (c) Luca Fossati, fossati@elet.polimi.it
+#       Yanick Fratantonio, yanick.fratantonio@mail.polimi.it
+#       Luca Di Minervino, luca.diminervino@mail.polimi.it
 #
 ####################################################################################
 
@@ -90,7 +92,7 @@ IMM_reset = trap.HelperOperation('IMM_reset', opCode)
 opCode = cxx_writer.writer_code.Code("""
 	ESR[key_DS] = DSFLAG ? 0x1 : 0x0;
 	if ( ESR[key_DS] ) {
-		BTR = PC; /* In this moment, TARGET value is in PC */
+		BTR = PC; /* In this moment, PC contains the branch target value */
 		GPR[17] = 0xffffffff;
 	} else {
 		GPR[17] = PC; /* In this moment, PC points to the NEXT instruction */		
@@ -112,7 +114,7 @@ handleMemoryException_method.setSignature(parameters = [cxx_writer.writer_code.P
 opCode = cxx_writer.writer_code.Code("""
 	ESR[key_DS] = DSFLAG ? 0x1 : 0x0;
 	if ( ESR[key_DS] ) {
-		BTR = PC; /* In this moment, TARGET value is in PC */
+		BTR = PC; /* In this moment, PC contains the branch target value */
 		GPR[17] = 0xffffffff;
 	} else {
 		GPR[17] = PC; /* In this moment, PC points to the NEXT instruction */		

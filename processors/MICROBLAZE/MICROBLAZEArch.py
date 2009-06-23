@@ -31,6 +31,8 @@
 #   or see <http://www.gnu.org/licenses/>.
 #
 #   (c) Luca Fossati, fossati@elet.polimi.it
+#       Yanick Fratantonio, yanick.fratantonio@mail.polimi.it
+#       Luca Di Minervino, luca.diminervino@mail.polimi.it
 #
 ####################################################################################
 
@@ -67,10 +69,10 @@ processor.setISA(MICROBLAZEIsa.isa) #lets set the instruction set
 
 memorySize = 5*1024*1024
 
-# TODO: general description of each register
 #GPR = General Purpouse Registers
 regBank = trap.RegisterBank('GPR', 32, 32) #GPR is the name, 32 registers of 32 bits
 regBank.setDefaultValue(memorySize - 16, 1)
+regBank.setConst(0, 0)
 processor.addRegBank(regBank)
 
 # We define each special register as a single isolated register
@@ -172,8 +174,8 @@ processor.setABI(abi)
 
 # Finally we can dump the processor on file
 #processor.write(folder = 'processor', models = ['funcLT'], dumpDecoderName = 'decoder.dot')
-processor.write(folder = 'processor', models = ['funcLT'], trace = True)
-#processor.write(folder = 'processor', models = ['funcLT'])
+#processor.write(folder = 'processor', models = ['funcLT'], trace = True)
+processor.write(folder = 'processor', models = ['funcLT'])
 #processor.write(folder = 'processor', models = ['funcAT'], trace = True)
 #processor.write(folder = 'processor', models = ['accAT', 'funcLT'])
 #processor.write(folder = 'processor', models = ['accAT'])

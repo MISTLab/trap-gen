@@ -31,6 +31,8 @@
 #   or see <http://www.gnu.org/licenses/>.
 #
 #   (c) Luca Fossati, fossati@elet.polimi.it
+#       Yanick Fratantonio, yanick.fratantonio@mail.polimi.it
+#       Luca Di Minervino, luca.diminervino@mail.polimi.it
 #
 ####################################################################################
 
