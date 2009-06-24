@@ -2337,9 +2337,9 @@ def getCPPIf(self, model, namespace):
             readMemBody += '{\nTHROW_EXCEPTION(\"Address \" << std::hex << address << \" out of range\");\n}'
     readMemCode = cxx_writer.writer_code.Code(readMemBody)
     readMemParam1 = cxx_writer.writer_code.Parameter('address', wordType.makeRef().makeConst())
-    readMemParam2 = cxx_writer.writer_code.Parameter('length', cxx_writer.writer_code.intType, initValue = 'sizeof(' + str(wordType) + ')')
-    readMemMethod = cxx_writer.writer_code.Method('readMem', readMemCode, wordType, 'pu', [readMemParam1, readMemParam2])
+    readMemMethod = cxx_writer.writer_code.Method('readMem', readMemCode, wordType, 'pu', [readMemParam1])
     ifClassElements.append(readMemMethod)
+
     readByteMemBody = ''
     if not self.abi.memories:
         readByteMemBody += 'THROW_EXCEPTION(\"No memory accessible from the ABI or processor ' + self.name + '\");'
@@ -2371,8 +2371,7 @@ def getCPPIf(self, model, namespace):
     writeMemCode.addInclude('trap_utils.hpp')
     writeMemParam1 = cxx_writer.writer_code.Parameter('address', wordType.makeRef().makeConst())
     writeMemParam2 = cxx_writer.writer_code.Parameter('datum', wordType)
-    writeMemParam3 = cxx_writer.writer_code.Parameter('length', cxx_writer.writer_code.intType, initValue = 'sizeof(' + str(wordType) + ')')
-    writeMemMethod = cxx_writer.writer_code.Method('writeMem', writeMemCode, cxx_writer.writer_code.voidType, 'pu', [writeMemParam1, writeMemParam2, writeMemParam3])
+    writeMemMethod = cxx_writer.writer_code.Method('writeMem', writeMemCode, cxx_writer.writer_code.voidType, 'pu', [writeMemParam1, writeMemParam2])
     ifClassElements.append(writeMemMethod)
     writeMemBody = ''
     if not self.abi.memories:
