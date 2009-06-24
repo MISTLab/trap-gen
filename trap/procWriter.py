@@ -1681,6 +1681,9 @@ def getCPPProc(self, model, trace, namespace):
     if self.abi:
         interfaceAttribute = cxx_writer.writer_code.Attribute('abiIf', interfaceType.makePointer(), 'pu')
         processorElements.append(interfaceAttribute)
+        interfaceMethodCode = cxx_writer.writer_code.Code('return *this->abiIf;')
+        interfaceMethod = cxx_writer.writer_code.Method('getInterface', interfaceMethodCode, interfaceType.makeRef(), 'pu')
+        processorElements.append(interfaceMethod)
     toolManagerAttribute = cxx_writer.writer_code.Attribute('toolManager', ToolsManagerType, 'pu')
     processorElements.append(toolManagerAttribute)
 

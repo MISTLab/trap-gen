@@ -43,6 +43,8 @@
 #ifndef TOOLSIF_HPP
 #define TOOLSIF_HPP
 
+#include <cstdlib>
+
 namespace trap{
 
 ///Base class for the tools which need to interact with memory,
