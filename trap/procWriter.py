@@ -1654,6 +1654,9 @@ def getCPPProc(self, model, trace, namespace):
                 initString += regB.name + '_' + pipeStage.name + '[i] = ' + regB.name + '[i];\n'
             initString += '}\n'
 
+    for irqPort in self.irqs:
+        initString += 'this->' + irqPort.name + ' = -1;\n'
+
     resetOpTemp.prependCode(initString)
     if self.beginOp:
         resetOpTemp.appendCode('//user-defined initialization\nthis->beginOp();\n')
