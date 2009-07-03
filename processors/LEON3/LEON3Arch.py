@@ -297,6 +297,8 @@ abi.setECallPostCode(post_code)
 abi.setOffset('PC', -4)
 abi.returnCall([('PC', 'LR', 8), ('NPC', 'LR', 12)])
 abi.addMemory('dataMem')
+abi.setCallInstr([LEON3Isa.call_Instr, (LEON3Isa.save_imm_Instr, LEON3Isa.save_reg_Instr)])
+abi.setReturnCallInstr([(LEON3Isa.restore_imm_Instr, LEON3Isa.restore_reg_Instr), (LEON3Isa.jump_imm_Instr, LEON3Isa.jump_reg_Instr)])
 processor.setABI(abi)
 
 # Finally we can dump the processor on file

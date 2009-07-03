@@ -2251,6 +2251,15 @@ def getCPPIf(self, model, namespace):
             returnCallCode += returnReg[0] + '.immediateWrite(' + returnReg[1] + ' + ' + str(returnReg[2]) + ');\n'
         ifClassElements.append(cxx_writer.writer_code.Method('returnFromCall', cxx_writer.writer_code.Code(returnCallCode), cxx_writer.writer_code.voidType, 'pu', noException = True))
 
+    instructionBaseType = cxx_writer.writer_code.Type('InstructionBase', 'instructionBase.hpp')
+    baseInstrParam = cxx_writer.writer_code.Parameter('instr', instructionBaseType.makePointer().makeConst())
+    isRoutineEntryCode = cxx_writer.writer_code.Code('')
+    isRoutineEntryMethod = cxx_writer.writer_code.Method('isRoutineEntry', isRoutineEntryCode, cxx_writer.writer_code.boolType, 'pu', [baseInstrParam])
+    ifClassElements.append(isRoutineEntryMethod)
+    isRoutineExitCode = cxx_writer.writer_code.Code('')
+    isRoutineExitMethod = cxx_writer.writer_code.Method('isRoutineExit', isRoutineExitCode, cxx_writer.writer_code.boolType, 'pu', [baseInstrParam])
+    ifClassElements.append(isRoutineExitMethod)
+
     codeLimitCode = cxx_writer.writer_code.Code('return this->PROGRAM_LIMIT;')
     codeLimitMethod = cxx_writer.writer_code.Method('getCodeLimit', codeLimitCode, wordType, 'pu')
     ifClassElements.append(codeLimitMethod)

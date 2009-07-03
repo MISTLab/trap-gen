@@ -40,6 +40,9 @@
  *
 \***************************************************************************/
 
+#ifndef INSTRUCTIONBASE_HPP
+#define INSTRUCTIONBASE_HPP
+
 #include <string>
 
 /// Base class for all instructions; it enables access to the instruction
@@ -49,3 +52,5 @@ class InstructionBase{
         virtual std::string getInstructionName() = 0;
         virtual std::string getMnemonic() = 0;
 };
+
+#endif

@@ -1289,9 +1289,23 @@ class ABI:
         # we have to associate the address range to each of them
         self.memories = {}
         self.emulOffset = 0
+        # C++ Code which has to be executed during emulation of system calls in order to
+        # correctly enter a and return from a system call
         self.preCallCode = None
         self.postCallCode = None
+        # Registers which have to be updated in order to correctly return from a function call
         self.returnCallReg = None
+        # Sequences of instructions which identify a call to a routine and the return from the call
+        # to a routine; such sequences are in the form [a, b, (c, d)] which means that, for example,
+        # we enter in a new routine when instructions a, b, and c or d are executed in sequence
+        self.callInstr = []
+        self.returnCallInstr = []
+
+    def setCallInstr(self, instrList):
+        self.callInstr = instrList
+
+    def setReturnCallInstr(self, instrList):
+        self.returnCallInstr = instrList
 
     def returnCall(self, regList):
         self.returnCallReg = regList
