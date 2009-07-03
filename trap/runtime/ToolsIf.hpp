@@ -44,6 +44,7 @@
 #define TOOLSIF_HPP
 
 #include <cstdlib>
+#include "instructionBase.hpp"
 
 namespace trap{
 
@@ -69,7 +70,7 @@ template<class issueWidth> class ToolsIf{
     ///the tool can then take the appropriate actions.
     ///the return value specifies whether the processor should skip
     ///the issue of the current instruction
-    virtual bool newIssue(const issueWidth &curPC, const void *curInstr) throw() = 0;
+    virtual bool newIssue(const issueWidth &curPC, const InstructionBase *curInstr) throw() = 0;
     virtual ~ToolsIf(){}
 };
 
@@ -102,7 +103,7 @@ template<class issueWidth> class ToolsManager{
     ///the tool can then take the appropriate actions.
     ///the return value specifies whether the processor should skip
     ///the issue of the current instruction
-    inline bool newIssue(const issueWidth &curPC, const void *curInstr) const throw(){
+    inline bool newIssue(const issueWidth &curPC, const InstructionBase *curInstr) const throw(){
         bool skipInstruction = false;
         for(int i = 0; i < this->activeToolsNum; i++){
             skipInstruction |= this->activeTools[i]->newIssue(curPC, curInstr);

@@ -79,6 +79,7 @@
 
 #include "ABIIf.hpp"
 #include "ToolsIf.hpp"
+#include "instructionBase.hpp"
 
 #include "BreakpointManager.hpp"
 #include "WatchpointManager.hpp"
@@ -918,7 +919,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     }
 
     ///Method called at every cycle from the processor's main loop
-    bool newIssue(const issueWidth &curPC, const void *curInstr) throw(){
+    bool newIssue(const issueWidth &curPC, const InstructionBase *curInstr) throw(){
         if(!this->firstRun){
             this->checkStep();
             this->checkBreakpoint(curPC);

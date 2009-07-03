@@ -15,4 +15,4 @@ def build(bld):
     obj.target = 'tools'
     obj.install_path = None
 
-    bld.install_files('${PREFIX}/include', 'ABIIf.hpp trap.hpp ToolsIf.hpp')
+    bld.install_files('${PREFIX}/include', 'ABIIf.hpp trap.hpp ToolsIf.hpp instructionBase.hpp')

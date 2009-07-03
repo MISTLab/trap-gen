@@ -766,10 +766,6 @@ def getCPPClasses(self, processor, model, trace, namespace):
     setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
     setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam], pure = True, noException = True)
     instructionElements.append(setparamsDecl)
-    getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', emptyBody, cxx_writer.writer_code.stringType, 'pu', pure = True)
-    instructionElements.append(getIstructionNameDecl)
-    getMnemonicDecl = cxx_writer.writer_code.Method('getMnemonic', emptyBody, cxx_writer.writer_code.stringType, 'pu', pure = True)
-    instructionElements.append(getMnemonicDecl)
 
     ########################## TODO: to eliminate, only for statistics ####################
     #returnStatsDecl = cxx_writer.writer_code.Method('getMyAllocCount', emptyBody, cxx_writer.writer_code.uintType, 'pu', virtual = True)
@@ -1009,7 +1005,8 @@ def getCPPClasses(self, processor, model, trace, namespace):
         initElements.append(constant[1] + '(' + str(constant[2]) + ')')
 
     publicConstr = cxx_writer.writer_code.Constructor(cxx_writer.writer_code.Code(constrBody), 'pu', baseInstrConstrParams, initElements)
-    instructionDecl = cxx_writer.writer_code.ClassDeclaration('Instruction', instructionElements, namespaces = [namespace])
+    instructionBaseType = cxx_writer.writer_code.Type('InstructionBase', 'instructionBase.hpp')
+    instructionDecl = cxx_writer.writer_code.ClassDeclaration('Instruction', instructionElements, [instructionBaseType], namespaces = [namespace])
     instructionDecl.addConstructor(publicConstr)
     publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
     instructionDecl.addDestructor(publicDestr)
