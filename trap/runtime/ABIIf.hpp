@@ -98,8 +98,10 @@ template<class regWidth> class ABIIf{
     virtual void writeMem( const regWidth & address, regWidth datum) = 0;
     virtual void writeCharMem( const regWidth & address, unsigned char datum ) = 0;
     virtual regWidth getCodeLimit() = 0;
-    virtual bool isRoutineEntry(const InstructionBase * instr) = 0;
-    virtual bool isRoutineExit(const InstructionBase * instr) = 0;
+    virtual bool isRoutineEntry(const InstructionBase * instr) throw() = 0;
+    virtual bool isRoutineExit(const InstructionBase * instr) throw() = 0;
+    virtual unsigned char * getState() const throw() = 0;
+    virtual void setState(unsigned char * state) throw() = 0;
     virtual ~ABIIf(){}
 };
 

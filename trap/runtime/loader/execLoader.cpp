@@ -52,9 +52,6 @@ extern "C" {
 
 #include "execLoader.hpp"
 
-
-
-
 trap::ExecLoader::ExecLoader(std::string fileName){
     this->programData = NULL;
     this->execImage = NULL;

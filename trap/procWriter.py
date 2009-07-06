@@ -2251,14 +2251,108 @@ def getCPPIf(self, model, namespace):
             returnCallCode += returnReg[0] + '.immediateWrite(' + returnReg[1] + ' + ' + str(returnReg[2]) + ');\n'
         ifClassElements.append(cxx_writer.writer_code.Method('returnFromCall', cxx_writer.writer_code.Code(returnCallCode), cxx_writer.writer_code.voidType, 'pu', noException = True))
 
+    # Here is the code for recognizing if we are in the routine entry or
+    # exit; we behave like a state machine,moving to the beginning when
+    # an instruction out of the sequence is met
+    entryStateAttribute = cxx_writer.writer_code.Attribute('routineEntryState', cxx_writer.writer_code.intType, 'pri')
+    exitStateAttribute = cxx_writer.writer_code.Attribute('routineExitState', cxx_writer.writer_code.intType, 'pri')
+    vector_strType = cxx_writer.writer_code.TemplateType('std::vector', [cxx_writer.writer_code.stringType], 'vector')
+    vector_v_strType = cxx_writer.writer_code.TemplateType('std::vector', [vector_strType], 'vector')
+    entryStateAttribute = cxx_writer.writer_code.Attribute('routineEntrySequence', vector_v_strType, 'pri')
+    exitStateAttribute = cxx_writer.writer_code.Attribute('routineExitSequence', vector_v_strType, 'pri')
+    routineStatesInit = """this->routineExitState = 0;
+    this->routineEntryState = 0;
+    std::vector<std::string> tempVec;
+    """
+    for instrList in self.abi.callInstr:
+        routineStatesInit += 'tempVec.clear();\n'
+        if type(instrList) == isa.Instruction:
+            routineStatesInit += 'tempVec.push_back(' + instrList.name + ');\n'
+        else:
+            for instr in instrList:
+                routineStatesInit += 'tempVec.push_back(' + instr.name + ');\n'
+        routineStatesInit += 'this->routineEntrySequence.push_back(tempVec);\n'
+    for instrList in self.abi.returnCallInstr:
+        routineStatesInit += 'tempVec.clear();\n'
+        if type(instrList) == isa.Instruction:
+            routineStatesInit += 'tempVec.push_back(' + instrList.name + ');\n'
+        else:
+            for instr in instrList:
+                routineStatesInit += 'tempVec.push_back(' + instr.name + ');\n'
+        routineStatesInit += 'this->routineExitSequence.push_back(tempVec);\n'
+    ifClassElements.append(exitStateAttribute)
     instructionBaseType = cxx_writer.writer_code.Type('InstructionBase', 'instructionBase.hpp')
     baseInstrParam = cxx_writer.writer_code.Parameter('instr', instructionBaseType.makePointer().makeConst())
-    isRoutineEntryCode = cxx_writer.writer_code.Code('')
-    isRoutineEntryMethod = cxx_writer.writer_code.Method('isRoutineEntry', isRoutineEntryCode, cxx_writer.writer_code.boolType, 'pu', [baseInstrParam])
+    isRoutineEntryBody = """std::vector<std::string> nextNames = this->routineEntrySequence[this->routineEntryState];
+    std::vector<std::string>::const_iterator namesIter, namesEnd;
+    for(namesIter = nextNames.begin(), namesEnd = nextNames.end(); namesIter != namesEnd; namesIter++){
+        if(instr->getInstructionName() == *namesIter){
+            if(this->routineEntryState == (""" + str(len(self.abi.callInstr)) + """ -1)){
+                this->routineEntryState = 0;
+                return true;
+            }
+            this->routineEntryState++;
+            return false;
+        }
+    }
+    this->routineEntryState = 0;
+    return false;
+    """
+    isRoutineEntryCode = cxx_writer.writer_code.Code(isRoutineEntryBody)
+    isRoutineEntryMethod = cxx_writer.writer_code.Method('isRoutineEntry', isRoutineEntryCode, cxx_writer.writer_code.boolType, 'pu', [baseInstrParam], noException = True)
     ifClassElements.append(isRoutineEntryMethod)
-    isRoutineExitCode = cxx_writer.writer_code.Code('')
-    isRoutineExitMethod = cxx_writer.writer_code.Method('isRoutineExit', isRoutineExitCode, cxx_writer.writer_code.boolType, 'pu', [baseInstrParam])
+    isRoutineExitBody = """std::vector<std::string> nextNames = this->routineExitSequence[this->routineExitState];
+    std::vector<std::string>::const_iterator namesIter, namesEnd;
+    for(namesIter = nextNames.begin(), namesEnd = nextNames.end(); namesIter != namesEnd; namesIter++){
+        if(instr->getInstructionName() == *namesIter){
+            if(this->routineExitState == (""" + str(len(self.abi.returnCallInstr)) + """ -1)){
+                this->routineExitState = 0;
+                return true;
+            }
+            this->routineExitState++;
+            return false;
+        }
+    }
+    this->routineExitState = 0;
+    return false;
+    """
+    isRoutineExitCode = cxx_writer.writer_code.Code(isRoutineExitBody)
+    isRoutineExitMethod = cxx_writer.writer_code.Method('isRoutineExit', isRoutineExitCode, cxx_writer.writer_code.boolType, 'pu', [baseInstrParam], noException = True)
     ifClassElements.append(isRoutineExitMethod)
+
+    # Here I add the methods mecessary to save and restore the complete
+    # processor status (useful, for example, to implement hardware context-switches,
+    # or simulation chepointing)
+    totalStateSize = 0
+    for reg in self.regs:
+        totalStateSize += reg.bitWidth/self.byteSize
+    for regB in self.regBanks:
+        totalStateSize += (regB.bitWidth*regB.numRegs)/self.byteSize
+    getStateBody = 'unsigned char * curState = new unsigned char[' + str(totalStateSize) + '];\n'
+    getStateBody += 'unsigned char * curStateTemp = curState;\n'
+    for reg in self.regs:
+        regWType = resolveBitType('BIT<' + str(reg.bitWidth) + '>')
+        getStateBody += '*((' + str(regWType.makePointer()) + ')curStateTemp) = this->' + reg.name + '.readNewValue();\ncurStateTemp += ' + str(reg.bitWidth/self.byteSize) + ';\n'
+    for regB in self.regBanks:
+        regWType = resolveBitType('BIT<' + str(regB.bitWidth) + '>')
+        for i in range(0, regB.numRegs):
+            getStateBody += '*((' + str(regWType.makePointer()) + ')curStateTemp) = this->' + regB.name + '[' + str(i) + '].readNewValue();\ncurStateTemp += ' + str(regB.bitWidth/self.byteSize) + ';\n'
+    getStateBody += 'return curState;'
+    getStateCode = cxx_writer.writer_code.Code(getStateBody)
+    getStateMethod = cxx_writer.writer_code.Method('getState', getStateCode, cxx_writer.writer_code.charPtrType, 'pu', noException = True, const = True)
+    ifClassElements.append(getStateMethod)
+    setStateBody = 'unsigned char * curStateTemp = state;\n'
+    for reg in self.regs:
+        regWType = resolveBitType('BIT<' + str(reg.bitWidth) + '>')
+        setStateBody += 'this->' + reg.name + '.immediateWrite(*((' + str(regWType.makePointer()) + ')curStateTemp));\ncurStateTemp += ' + str(reg.bitWidth/self.byteSize) + ';\n'
+    for regB in self.regBanks:
+        regWType = resolveBitType('BIT<' + str(regB.bitWidth) + '>')
+        for i in range(0, regB.numRegs):
+            setStateBody += 'this->' + regB.name + '[' + str(i) + '].immediateWrite(*((' + str(regWType.makePointer()) + ')curStateTemp));\ncurStateTemp += ' + str(regB.bitWidth/self.byteSize) + ';\n'
+    setStateCode = cxx_writer.writer_code.Code(setStateBody)
+    stateParam = cxx_writer.writer_code.Parameter('state', cxx_writer.writer_code.charPtrType)
+    getStateMethod = cxx_writer.writer_code.Method('setState', setStateCode, cxx_writer.writer_code.voidType, 'pu', [stateParam], noException = True)
+    ifClassElements.append(setStateMethod)
 
     codeLimitCode = cxx_writer.writer_code.Code('return this->PROGRAM_LIMIT;')
     codeLimitMethod = cxx_writer.writer_code.Method('getCodeLimit', codeLimitCode, wordType, 'pu')
@@ -2404,7 +2498,7 @@ def getCPPIf(self, model, namespace):
 
     ABIIfType = cxx_writer.writer_code.TemplateType('ABIIf', [wordType], 'ABIIf.hpp')
     ifClassDecl = cxx_writer.writer_code.ClassDeclaration(self.name + '_ABIIf', ifClassElements, [ABIIfType], namespaces = [namespace])
-    publicIfConstr = cxx_writer.writer_code.Constructor(cxx_writer.writer_code.Code(''), 'pu', baseInstrConstrParams, initElements)
+    publicIfConstr = cxx_writer.writer_code.Constructor(cxx_writer.writer_code.Code(routineStatesInit), 'pu', baseInstrConstrParams, initElements)
     emptyBody = cxx_writer.writer_code.Code('')
     opDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
     ifClassDecl.addDestructor(opDestr)

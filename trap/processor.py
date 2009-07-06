@@ -737,6 +737,9 @@ class Processor:
                 # Single register or alias: I check that it exists
                 if not self.isRegExisting(i):
                     raise Exception('Register ' + i + ' used in the ABI does not exists')
+        # warning in case details are not specified
+        if not self.abi.returnCallInstr or not self.abi.callInstr:
+            print('Warning:returnCallInstr or  callInstr not specified in the ABI: the profiler may give uncorrect results')
         ################# TODO: check also the memories #######################
 
     def getCPPRegisters(self, model, namespace):
