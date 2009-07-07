@@ -397,7 +397,7 @@ def getCPPInstr(self, model, processor, trace, namespace):
     replicateDecl = cxx_writer.writer_code.Method('replicate', replicateBody, instructionType.makePointer(), 'pu', noException = True, const = True)
     classElements.append(replicateDecl)
     getIstructionNameBody = cxx_writer.writer_code.Code('return \"' + self.name + '\";')
-    getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', getIstructionNameBody, cxx_writer.writer_code.stringType, 'pu')
+    getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', getIstructionNameBody, cxx_writer.writer_code.stringType, 'pu', const = True)
     classElements.append(getIstructionNameDecl)
 
     # We need to create the attribute for the variables referenced by the non-constant parts of the instruction;
@@ -494,7 +494,7 @@ def getCPPInstr(self, model, processor, trace, namespace):
     getMnemonicCode += 'return oss.str();'
     getMnemonicBody = cxx_writer.writer_code.Code(getMnemonicCode)
     getMnemonicBody.addInclude('sstream')
-    getMnemonicDecl = cxx_writer.writer_code.Method('getMnemonic', getMnemonicBody, cxx_writer.writer_code.stringType, 'pu')
+    getMnemonicDecl = cxx_writer.writer_code.Method('getMnemonic', getMnemonicBody, cxx_writer.writer_code.stringType, 'pu', const = True)
     classElements.append(getMnemonicDecl)
 
     # Now I declare the instruction variables
@@ -1057,10 +1057,10 @@ def getCPPClasses(self, processor, model, trace, namespace):
     setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam], noException = True)
     invalidInstrElements.append(setparamsDecl)
     getIstructionNameBody = cxx_writer.writer_code.Code('return \"InvalidInstruction\";')
-    getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', getIstructionNameBody, cxx_writer.writer_code.stringType, 'pu')
+    getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', getIstructionNameBody, cxx_writer.writer_code.stringType, 'pu', const = True)
     invalidInstrElements.append(getIstructionNameDecl)
     getMnemonicBody = cxx_writer.writer_code.Code('return \"invalid\";')
-    getMnemonicDecl = cxx_writer.writer_code.Method('getMnemonic', getMnemonicBody, cxx_writer.writer_code.stringType, 'pu')
+    getMnemonicDecl = cxx_writer.writer_code.Method('getMnemonic', getMnemonicBody, cxx_writer.writer_code.stringType, 'pu', const = True)
     invalidInstrElements.append(getMnemonicDecl)
     if model.startswith('acc'):
         if hasCheckHazard:
@@ -1098,10 +1098,10 @@ def getCPPClasses(self, processor, model, trace, namespace):
         setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam], noException = True)
         NOPInstructionElements.append(setparamsDecl)
         getIstructionNameBody = cxx_writer.writer_code.Code('return \"NOPInstruction\";')
-        getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', getIstructionNameBody, cxx_writer.writer_code.stringType, 'pu')
+        getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', getIstructionNameBody, cxx_writer.writer_code.stringType, 'pu', const = True)
         NOPInstructionElements.append(getIstructionNameDecl)
         getMnemonicBody = cxx_writer.writer_code.Code('return \"nop\";')
-        getMnemonicDecl = cxx_writer.writer_code.Method('getMnemonic', getMnemonicBody, cxx_writer.writer_code.stringType, 'pu')
+        getMnemonicDecl = cxx_writer.writer_code.Method('getMnemonic', getMnemonicBody, cxx_writer.writer_code.stringType, 'pu', const = True)
         NOPInstructionElements.append(getMnemonicDecl)
         if hasCheckHazard:
             if processor.externalClock:

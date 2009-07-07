@@ -45,12 +45,16 @@
 
 #include <string>
 
+namespace trap{
+
 /// Base class for all instructions; it enables access to the instruction
 /// fields from the tools
 class InstructionBase{
     public:
-        virtual std::string getInstructionName() = 0;
-        virtual std::string getMnemonic() = 0;
+        virtual std::string getInstructionName() const = 0;
+        virtual std::string getMnemonic() const = 0;
 };
+
+}
 
 #endif

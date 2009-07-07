@@ -2255,32 +2255,36 @@ def getCPPIf(self, model, namespace):
     # exit; we behave like a state machine,moving to the beginning when
     # an instruction out of the sequence is met
     entryStateAttribute = cxx_writer.writer_code.Attribute('routineEntryState', cxx_writer.writer_code.intType, 'pri')
+    ifClassElements.append(entryStateAttribute)
     exitStateAttribute = cxx_writer.writer_code.Attribute('routineExitState', cxx_writer.writer_code.intType, 'pri')
+    ifClassElements.append(exitStateAttribute)
     vector_strType = cxx_writer.writer_code.TemplateType('std::vector', [cxx_writer.writer_code.stringType], 'vector')
     vector_v_strType = cxx_writer.writer_code.TemplateType('std::vector', [vector_strType], 'vector')
-    entryStateAttribute = cxx_writer.writer_code.Attribute('routineEntrySequence', vector_v_strType, 'pri')
-    exitStateAttribute = cxx_writer.writer_code.Attribute('routineExitSequence', vector_v_strType, 'pri')
+    entrySequenceAttribute = cxx_writer.writer_code.Attribute('routineEntrySequence', vector_v_strType, 'pri')
+    ifClassElements.append(entrySequenceAttribute)
+    exitSequenceAttribute = cxx_writer.writer_code.Attribute('routineExitSequence', vector_v_strType, 'pri')
+    ifClassElements.append(exitSequenceAttribute)
     routineStatesInit = """this->routineExitState = 0;
     this->routineEntryState = 0;
     std::vector<std::string> tempVec;
     """
+    from isa import Instruction
     for instrList in self.abi.callInstr:
         routineStatesInit += 'tempVec.clear();\n'
-        if type(instrList) == isa.Instruction:
-            routineStatesInit += 'tempVec.push_back(' + instrList.name + ');\n'
+        if isinstance(instrList, Instruction):
+            routineStatesInit += 'tempVec.push_back("' + instrList.name + '");\n'
         else:
             for instr in instrList:
-                routineStatesInit += 'tempVec.push_back(' + instr.name + ');\n'
+                routineStatesInit += 'tempVec.push_back("' + instr.name + '");\n'
         routineStatesInit += 'this->routineEntrySequence.push_back(tempVec);\n'
     for instrList in self.abi.returnCallInstr:
         routineStatesInit += 'tempVec.clear();\n'
-        if type(instrList) == isa.Instruction:
-            routineStatesInit += 'tempVec.push_back(' + instrList.name + ');\n'
+        if isinstance(instrList, Instruction):
+            routineStatesInit += 'tempVec.push_back("' + instrList.name + '");\n'
         else:
             for instr in instrList:
-                routineStatesInit += 'tempVec.push_back(' + instr.name + ');\n'
+                routineStatesInit += 'tempVec.push_back("' + instr.name + '");\n'
         routineStatesInit += 'this->routineExitSequence.push_back(tempVec);\n'
-    ifClassElements.append(exitStateAttribute)
     instructionBaseType = cxx_writer.writer_code.Type('InstructionBase', 'instructionBase.hpp')
     baseInstrParam = cxx_writer.writer_code.Parameter('instr', instructionBaseType.makePointer().makeConst())
     isRoutineEntryBody = """std::vector<std::string> nextNames = this->routineEntrySequence[this->routineEntryState];
@@ -2339,7 +2343,7 @@ def getCPPIf(self, model, namespace):
             getStateBody += '*((' + str(regWType.makePointer()) + ')curStateTemp) = this->' + regB.name + '[' + str(i) + '].readNewValue();\ncurStateTemp += ' + str(regB.bitWidth/self.byteSize) + ';\n'
     getStateBody += 'return curState;'
     getStateCode = cxx_writer.writer_code.Code(getStateBody)
-    getStateMethod = cxx_writer.writer_code.Method('getState', getStateCode, cxx_writer.writer_code.charPtrType, 'pu', noException = True, const = True)
+    getStateMethod = cxx_writer.writer_code.Method('getState', getStateCode, cxx_writer.writer_code.ucharPtrType, 'pu', noException = True, const = True)
     ifClassElements.append(getStateMethod)
     setStateBody = 'unsigned char * curStateTemp = state;\n'
     for reg in self.regs:
@@ -2350,8 +2354,8 @@ def getCPPIf(self, model, namespace):
         for i in range(0, regB.numRegs):
             setStateBody += 'this->' + regB.name + '[' + str(i) + '].immediateWrite(*((' + str(regWType.makePointer()) + ')curStateTemp));\ncurStateTemp += ' + str(regB.bitWidth/self.byteSize) + ';\n'
     setStateCode = cxx_writer.writer_code.Code(setStateBody)
-    stateParam = cxx_writer.writer_code.Parameter('state', cxx_writer.writer_code.charPtrType)
-    getStateMethod = cxx_writer.writer_code.Method('setState', setStateCode, cxx_writer.writer_code.voidType, 'pu', [stateParam], noException = True)
+    stateParam = cxx_writer.writer_code.Parameter('state', cxx_writer.writer_code.ucharPtrType)
+    setStateMethod = cxx_writer.writer_code.Method('setState', setStateCode, cxx_writer.writer_code.voidType, 'pu', [stateParam], noException = True)
     ifClassElements.append(setStateMethod)
 
     codeLimitCode = cxx_writer.writer_code.Code('return this->PROGRAM_LIMIT;')
@@ -2437,8 +2441,8 @@ def getCPPIf(self, model, namespace):
         if len(self.abi.memories) == 1:
             readMemBody += 'return this->' + self.abi.memories.keys()[0] + '.read_word_dbg(address);'
         else:
-            for memName, range in self.abi.memories.items():
-                readMemBody += 'if(address >= ' + hex(range[0]) + ' && address <= ' + hex(range[1]) + '){\n'
+            for memName, mem_range in self.abi.memories.items():
+                readMemBody += 'if(address >= ' + hex(mem_range[0]) + ' && address <= ' + hex(mem_range[1]) + '){\n'
                 readMemBody += 'return this->' + self.abi.memories.keys()[0] + '.read_word_dbg(address);\n}\nelse '
             readMemBody += '{\nTHROW_EXCEPTION(\"Address \" << std::hex << address << \" out of range\");\n}'
     readMemCode = cxx_writer.writer_code.Code(readMemBody)
@@ -2453,8 +2457,8 @@ def getCPPIf(self, model, namespace):
         if len(self.abi.memories) == 1:
             readByteMemBody += 'return this->' + self.abi.memories.keys()[0] + '.read_byte_dbg(address);'
         else:
-            for memName, range in self.abi.memories.items():
-                readByteMemBody += 'if(address >= ' + hex(range[0]) + ' && address <= ' + hex(range[1]) + '){\n'
+            for memName, mem_range in self.abi.memories.items():
+                readByteMemBody += 'if(address >= ' + hex(mem_range[0]) + ' && address <= ' + hex(mem_range[1]) + '){\n'
                 readByteMemBody += 'return this->' + self.abi.memories.keys()[0] + '.read_byte_dbg(address);\n}\nelse '
             readByteMemBody += '{\nTHROW_EXCEPTION(\"Address \" << std::hex << address << \" out of range\");\n}'
     readByteMemCode = cxx_writer.writer_code.Code(readByteMemBody)
@@ -2469,8 +2473,8 @@ def getCPPIf(self, model, namespace):
         if len(self.abi.memories) == 1:
             writeMemBody += 'this->' + self.abi.memories.keys()[0] + '.write_word_dbg(address, datum);'
         else:
-            for memName, range in self.abi.memories.items():
-                writeMemBody += 'if(address >= ' + hex(range[0]) + ' && address <= ' + hex(range[1]) + '){\n'
+            for memName, mem_range in self.abi.memories.items():
+                writeMemBody += 'if(address >= ' + hex(mem_range[0]) + ' && address <= ' + hex(mem_range[1]) + '){\n'
                 writeMemBody += 'this->' + self.abi.memories.keys()[0] + '.write_word_dbg(address, datum);\n}\nelse '
             writeMemBody += '{\nTHROW_EXCEPTION(\"Address \" << std::hex << address << \" out of range\");\n}'
     writeMemCode = cxx_writer.writer_code.Code(writeMemBody)
@@ -2486,8 +2490,8 @@ def getCPPIf(self, model, namespace):
         if len(self.abi.memories) == 1:
             writeMemBody += 'this->' + self.abi.memories.keys()[0] + '.write_byte_dbg(address, datum);'
         else:
-            for memName, range in self.abi.memories.items():
-                writeMemBody += 'if(address >= ' + hex(range[0]) + ' && address <= ' + hex(range[1]) + '){\n'
+            for memName, mem_range in self.abi.memories.items():
+                writeMemBody += 'if(address >= ' + hex(mem_range[0]) + ' && address <= ' + hex(mem_range[1]) + '){\n'
                 writeMemBody += 'this->' + self.abi.memories.keys()[0] + '.write_byte_dbg(address, datum);\n}\nelse '
             writeMemBody += '{\nTHROW_EXCEPTION(\"Address \" << std::hex << address << \" out of range\");\n}'
     writeMemCode = cxx_writer.writer_code.Code(writeMemBody)
