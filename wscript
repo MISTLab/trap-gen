@@ -81,18 +81,14 @@ def configure(conf):
         conf.env.append_unique('CPPFLAGS', '-DPIC' )
         conf.env.append_unique('LINKFLAGS', '-fPIC' )
         if sys.platform != 'darwin':
-            conf.env.append_unique('LINKFLAGS','-Wl,-E')
+            conf.env.append_unique('LINKFLAGS', '-Wl,-E')
+        else:
+            conf.env.append_unique('LINKFLAGS', ['-undefined', 'suppress', '-flat_namespace'])
 
-    for flag in conf.env['CPPFLAGS']:
-        conf.check_cc(cflags=flag, mandatory=1)
-    for flag in conf.env['CCFLAGS']:
-        conf.check_cc(cflags=flag, mandatory=1)
-    for flag in conf.env['CXXFLAGS']:
-        conf.check_cxx(cxxflags=flag, mandatory=1)
-    for flag in conf.env['LINKFLAGS']:
-        conf.check_cxx(linkflags=flag, mandatory=1)
-    for flag in conf.env['STLINKFLAGS']:
-        conf.check_cxx(linkflags=flag, mandatory=1)
+    conf.check_cc(cflags=conf.env['CFLAGS'], mandatory=1, msg='Checking for C compilation flags')
+    conf.check_cc(cflags=conf.env['CCFLAGS'], mandatory=1, msg='Checking for C compilation flags')
+    conf.check_cxx(cxxflags=conf.env['CXXFLAGS'], mandatory=1, msg='Checking for G++ compilation flags')
+    conf.check_cxx(linkflags=conf.env['LINKFLAGS'], mandatory=1, msg='Checking for link flags')
 
     ########################################
     # Setting the host endianess
@@ -249,7 +245,7 @@ def configure(conf):
     #########################################################
     if sys.platform == 'darwin':
         conf.check_cc(lib='z', uselib_store='BFD', mandatory=1)
-        conf.check_cc(lib='intl', uselib_store='BFD', mandatory=1)
+        conf.check_cc(lib='intl', uselib_store='BFD', mandatory=1, libpath=searchDirs)
 
     ##################################################
     # Check for pthread library/flag
