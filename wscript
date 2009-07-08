@@ -80,8 +80,7 @@ def configure(conf):
         conf.env.append_unique('CCFLAGS', '-fPIC' )
         conf.env.append_unique('CPPFLAGS', '-DPIC' )
         conf.env.append_unique('LINKFLAGS', '-fPIC' )
-        if sys.platform != 'darwin':
-            conf.env.append_unique('LINKFLAGS','-Wl,-E')
+        conf.env.append_unique('LINKFLAGS','-Wl,-E')
 
     for flag in conf.env['CPPFLAGS']:
         conf.check_cc(cflags=flag, mandatory=1)
@@ -237,6 +236,14 @@ def configure(conf):
             conf.check_cc(header_name='bfd.h', uselib='BFD', uselib_store='BFD', mandatory=1, includes=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'include'))))])
         else:
             conf.check_cc(header_name='bfd.h', uselib='BFD', uselib_store='BFD', mandatory=1)
+
+    #########################################################
+    # Check for zlib and libintl, needed by binutils under
+    # MAC-OSX
+    #########################################################
+    if sys.platform == 'darwin':
+        conf.check_cc(lib='z', uselib_store='BFD', mandatory=1)
+        conf.check_cc(lib='intl', uselib_store='BFD', mandatory=1)
 
     ##################################################
     # Check for pthread library/flag
