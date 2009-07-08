@@ -80,7 +80,8 @@ def configure(conf):
         conf.env.append_unique('CCFLAGS', '-fPIC' )
         conf.env.append_unique('CPPFLAGS', '-DPIC' )
         conf.env.append_unique('LINKFLAGS', '-fPIC' )
-        conf.env.append_unique('LINKFLAGS','-Wl,-E')
+        if sys.platform != 'darwin':
+            conf.env.append_unique('LINKFLAGS','-Wl,-E')
 
     for flag in conf.env['CPPFLAGS']:
         conf.check_cc(cflags=flag, mandatory=1)
@@ -125,7 +126,12 @@ def configure(conf):
         result = os.popen(compilerExecutable + ' -print-search-dirs')
         searchDirs = []
         localLibPath = os.path.join('/', 'usr', 'lib64')
+        if os.path.exists(localLibPath):
+            searchDirs.append(localLibPath)
         localLibPath = os.path.join('/', 'usr', 'local', 'lib')
+        if os.path.exists(localLibPath):
+            searchDirs.append(localLibPath)
+        localLibPath = os.path.join('/', 'sw', 'lib')
         if os.path.exists(localLibPath):
             searchDirs.append(localLibPath)
         gccLines = result.readlines()
