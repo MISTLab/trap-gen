@@ -40,26 +40,42 @@
  *
 \***************************************************************************/
 
-#ifndef INSTRUCTIONBASE_HPP
-#define INSTRUCTIONBASE_HPP
+#include "profInfo.hpp"
+
+#include <systemc.h>
 
 #include <string>
 
-namespace trap{
+#include <boost/lexical_cast.hpp>
 
-/// Base class for all instructions; it enables access to the instruction
-/// fields from the tools
-class InstructionBase{
-    public:
-        ///Returns the instruction name
-        virtual std::string getInstructionName() const throw() = 0;
-        ///Returns the instruction mnemonic, so how the current
-        ///instruction translated to assebmly code
-        virtual std::string getMnemonic() const throw() = 0;
-        ///Gets the ID of the instruction as returned by the decoder
-        virtual unsigned int getId() const throw() = 0;
-};
-
+///Total number of instructions executed
+unsigned long long trap::ProfInstruction::numTotalCalls = 0;
+///dump these information to a string,  in the command separated values (CVS) format
+std::string trap::ProfInstruction::printCsv(){
+    double instrTime = (this->time.to_default_time_units())/(sc_time(1, SC_NS).to_default_time_units());
+    return this->name + ";" + boost::lexical_cast<std::string>(this->numCalls) + ";" + boost::lexical_cast<std::string>(((double)this->numCalls*100)/ProfInstruction::numTotalCalls) + ";" + boost::lexical_cast<std::string>(instrTime) + ";" + boost::lexical_cast<std::string>((instrTime*100)/ProfInstruction::numTotalCalls);
+}
+///Prints the description of the informations which describe an instruction,  in the command separated values (CVS) format
+std::string trap::ProfInstruction::printCsvHeader(){
+    return "name;numCalls;percCalls;time;percTime";
+}
+///Empty constructor, performs the initialization of the statistics
+trap::ProfInstruction::ProfInstruction(){
+    this->numCalls = 1;
+    this->time = SC_ZERO_TIME;
 }
 
-#endif
+
+///Total number of function calls
+unsigned long long trap::ProfFunction::numTotalCalls = 0;
+///dump these information to a string, in the command separated values (CVS) format
+std::string trap::ProfFunction::printCsv(){
+    return "";
+}
+///Prints the description of the informations which describe a function, in the command separated values (CVS) format
+std::string trap::ProfFunction::printCsvHeader(){
+    return "";
+}
+///Empty constructor, performs the initialization of the statistics
+trap::ProfFunction::ProfFunction(){
+}

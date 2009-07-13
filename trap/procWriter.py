@@ -3907,6 +3907,7 @@ def getMainCode(self, model, namespace):
     """
     if self.abi:
         code += """("debugger,d", "activates the use of the software debugger")
+        ("profiler,p", boost::program_options::value<std::string>(), "activates the use of the software profiler, specifying the name of the output file")
         """
     if self.systemc or model.startswith('acc') or model.endswith('AT'):
         code += """("frequency,f", boost::program_options::value<double>(), "processor clock frequency specified in MHz [Default 1MHz]")
@@ -4029,6 +4030,8 @@ def getMainCode(self, model, namespace):
         else:
             code += 'OSEmulator< ' + str(wordType) + ', 0 > osEmu(*(procInst.abiIf), ' + str(self.abi.emulOffset) + ');\n'
         code += """GDBStub< """ + str(wordType) + """ > gdbStub(*(procInst.abiIf));
+        Profiler< """ + str(wordType) + """ > profiler(*(procInst.abiIf), vm["application"].as<std::string>());
+
         osEmu.initSysCalls(vm["application"].as<std::string>());
         std::vector<std::string> options;
         options.push_back(vm["application"].as<std::string>());
@@ -4113,7 +4116,11 @@ def getMainCode(self, model, namespace):
         if self.memory:
             code += 'procInst.' + self.memory[0] + '.setDebugger(&gdbStub);\n'
         code += '}\n'
-    code += """
+    code += """if(vm.count("profiler") != 0){
+                procInst.toolManager.addTool(profiler);
+                profiler.setOutputFile(vm["profiler"].as<std::string>());
+            }
+
     //Now we can start the execution
     boost::timer t;
     sc_start();
@@ -4148,6 +4155,7 @@ def getMainCode(self, model, namespace):
     mainCode.addInclude('execLoader.hpp')
     if self.abi:
         mainCode.addInclude('GDBStub.hpp')
+        mainCode.addInclude('profiler.hpp')
         if model.startswith('acc'):
             mainCode.addInclude('osEmulatorCA.hpp')
         else:

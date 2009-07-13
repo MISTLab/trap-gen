@@ -4,14 +4,14 @@
 import os, Options
 
 def build(bld):
-#    obj = bld.new_task_gen('cxx')
-#    obj.source="""
-#        execLoader.cpp
-#    """
-#    obj.uselib = 'BFD'
-#    obj.includes = '. ../utils'
-#    obj.export_incdirs = '.'
-#    obj.name = 'loader'
-#    obj.target = 'loader'
-#    obj.install_path = None
-    bld.install_files('${PREFIX}/include', 'profiler.hpp')
+    obj = bld.new_task_gen('cxx')
+    obj.source="""
+        profInfo.cpp
+    """
+    obj.uselib = 'BFD SYSTEMC'
+    obj.includes = '. ../utils'
+    obj.export_incdirs = '.'
+    obj.name = 'profiler'
+    obj.target = 'profiler'
+    obj.install_path = None
+    bld.install_files('${PREFIX}/include', 'profiler.hpp profInfo.hpp')
