@@ -55,7 +55,10 @@ std::string trap::ProfInstruction::printCsv(){
     double instrTime = (this->time.to_default_time_units())/(sc_time(1, SC_NS).to_default_time_units());
     std::string csvLine(this->name + ";");
     csvLine += boost::lexical_cast<std::string>(this->numCalls) + ";";
-    csvLine += boost::lexical_cast<std::string>(((double)this->numCalls*100)/ProfInstruction::numTotalCalls) + ";";
+    double percCalls = ((double)this->numCalls*100)/ProfInstruction::numTotalCalls;
+    if(percCalls < 10e-3)
+        percCalls = 0;
+    csvLine += boost::lexical_cast<std::string>(percCalls) + ";";
     csvLine += boost::lexical_cast<std::string>(instrTime) + ";";
     csvLine += boost::lexical_cast<std::string>(instrTime/this->numCalls);
     return csvLine;
@@ -79,7 +82,10 @@ std::string trap::ProfFunction::printCsv(){
     double funExclTime = (this->exclTime.to_default_time_units())/(sc_time(1, SC_NS).to_default_time_units());
     std::string csvLine(this->name + ";");
     csvLine += boost::lexical_cast<std::string>(this->numCalls) + ";";
-    csvLine += boost::lexical_cast<std::string>(((double)this->numCalls*100)/ProfFunction::numTotalCalls) + ";";
+    double percCalls = ((double)this->numCalls*100)/ProfFunction::numTotalCalls;
+    if(percCalls < 10e-3)
+        percCalls = 0;
+    csvLine += boost::lexical_cast<std::string>(percCalls) + ";";
     csvLine += boost::lexical_cast<std::string>(this->totalNumInstr) + ";";
     csvLine += boost::lexical_cast<std::string>(this->exclNumInstr) + ";";
     csvLine += boost::lexical_cast<std::string>(((double)this->exclNumInstr)/this->numCalls) + ";";

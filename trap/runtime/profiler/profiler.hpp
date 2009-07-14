@@ -73,14 +73,15 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
             this->oldInstrTime = sc_time_stamp();
         }
         //Update the new instruction statistics
-        template_map<unsigned int, ProfInstruction>::iterator foundInstr = this->instructions.find(curInstr->getId());
+        unsigned int instrId = curInstr->getId();
+        template_map<unsigned int, ProfInstruction>::iterator foundInstr = this->instructions.find(instrId);
         if(foundInstr != this->instructionsEnd){
             foundInstr->second.numCalls++;
             this->oldInstruction = &(foundInstr->second);
         }
         else{
-            this->instructions[curInstr->getId()].name = curInstr->getInstructionName();
-            this->oldInstruction = &(this->instructions[curInstr->getId()]);
+            this->instructions[instrId].name = curInstr->getInstructionName();
+            this->oldInstruction = &(this->instructions[instrId]);
             this->instructionsEnd = this->instructions.end();
         }
     }
@@ -103,6 +104,7 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
             }
             else{
                 curFun = &(this->functions[curPC]);
+                this->functionsEnd = this->functions.end();
                 curFun->name = this->bfdInstance.symbolAt(curPC);
                 curFun->address = curPC;
             }
@@ -110,14 +112,18 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
             curFun->totalNumInstr++;
 
             //Now I have to update the statistics on the number of instructions executed on the
-            //instruction stack
+            //instruction stack so far
+            sc_time curTimeDelta = sc_time_stamp() - this->oldFunTime;
             for(stackIterator = this->currentStack.begin(), stackEnd = this->currentStack.end(); stackIterator != stackEnd; stackIterator++){
-                if(curFun->address != (*stackIterator)->address)
-                    (*stackIterator)->totalNumInstr++;
+                (*stackIterator)->totalNumInstr += this->oldFunInstructions;
+                (*stackIterator)->totalTime += curTimeDelta;
             }
-
+            if(this->currentStack.size() > 0){
+                this->currentStack.back()->exclNumInstr += this->oldFunInstructions;
+                this->currentStack.back()->exclTime += curTimeDelta;
+            }
             // finally I can push the element on the stack
-            currentStack.push_back(curFun);
+            this->currentStack.push_back(curFun);
             //..and record the call time of the function
             this->oldFunTime = sc_time_stamp();
             this->oldFunInstructions = 0;
@@ -137,15 +143,14 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
             curFun->totalNumInstr += this->oldFunInstructions;
             sc_time curTimeDelta = sc_time_stamp() - this->oldFunTime;
             curFun->totalTime += curTimeDelta;
+            curFun->exclTime += curTimeDelta;
             //Now I pop the instruction from the stack
             this->currentStack.pop_back();
             //Now I have to update the statistics on the number of instructions executed on the
             //instruction stack
-            for(stackIterator = this->currentStack.begin(), stackEnd = this->currentStack.end(); stackIterator != stackEnd; stackIterator++){
-                if(curFun->address != (*stackIterator)->address){
-                    (*stackIterator)->totalNumInstr += this->oldFunInstructions;
-                    (*stackIterator)->totalTime += curTimeDelta;
-                }
+            for(stackIterator = this->currentStack.begin(), this->currentStack.end(); stackIterator != stackEnd; stackIterator++){
+                (*stackIterator)->totalNumInstr += this->oldFunInstructions;
+                (*stackIterator)->totalTime += curTimeDelta;
             }
         }
         else{
