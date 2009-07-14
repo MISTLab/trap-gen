@@ -53,11 +53,16 @@ unsigned long long trap::ProfInstruction::numTotalCalls = 0;
 ///dump these information to a string,  in the command separated values (CVS) format
 std::string trap::ProfInstruction::printCsv(){
     double instrTime = (this->time.to_default_time_units())/(sc_time(1, SC_NS).to_default_time_units());
-    return this->name + ";" + boost::lexical_cast<std::string>(this->numCalls) + ";" + boost::lexical_cast<std::string>(((double)this->numCalls*100)/ProfInstruction::numTotalCalls) + ";" + boost::lexical_cast<std::string>(instrTime) + ";" + boost::lexical_cast<std::string>((instrTime*100)/ProfInstruction::numTotalCalls);
+    std::string csvLine(this->name + ";");
+    csvLine += boost::lexical_cast<std::string>(this->numCalls) + ";";
+    csvLine += boost::lexical_cast<std::string>(((double)this->numCalls*100)/ProfInstruction::numTotalCalls) + ";";
+    csvLine += boost::lexical_cast<std::string>(instrTime) + ";";
+    csvLine += boost::lexical_cast<std::string>(instrTime/this->numCalls);
+    return csvLine;
 }
 ///Prints the description of the informations which describe an instruction,  in the command separated values (CVS) format
 std::string trap::ProfInstruction::printCsvHeader(){
-    return "name;numCalls;percCalls;time;percTime";
+    return "name;numCalls;numCalls %;time;Time per call";
 }
 ///Empty constructor, performs the initialization of the statistics
 trap::ProfInstruction::ProfInstruction(){
@@ -70,12 +75,28 @@ trap::ProfInstruction::ProfInstruction(){
 unsigned long long trap::ProfFunction::numTotalCalls = 0;
 ///dump these information to a string, in the command separated values (CVS) format
 std::string trap::ProfFunction::printCsv(){
-    return "";
+    double funTotTime = (this->totalTime.to_default_time_units())/(sc_time(1, SC_NS).to_default_time_units());
+    double funExclTime = (this->exclTime.to_default_time_units())/(sc_time(1, SC_NS).to_default_time_units());
+    std::string csvLine(this->name + ";");
+    csvLine += boost::lexical_cast<std::string>(this->numCalls) + ";";
+    csvLine += boost::lexical_cast<std::string>(((double)this->numCalls*100)/ProfFunction::numTotalCalls) + ";";
+    csvLine += boost::lexical_cast<std::string>(this->totalNumInstr) + ";";
+    csvLine += boost::lexical_cast<std::string>(this->exclNumInstr) + ";";
+    csvLine += boost::lexical_cast<std::string>(((double)this->exclNumInstr)/this->numCalls) + ";";
+    csvLine += boost::lexical_cast<std::string>(funTotTime) + ";";
+    csvLine += boost::lexical_cast<std::string>(funExclTime) + ";";
+    csvLine += boost::lexical_cast<std::string>(funExclTime/this->numCalls);
+    return csvLine;
 }
 ///Prints the description of the informations which describe a function, in the command separated values (CVS) format
 std::string trap::ProfFunction::printCsvHeader(){
-    return "";
+    return "name;numCalls;numCalls %;totalNumInstr;exclNumInstr;NumInstr per call;totalTime;exclTime;Time per call";
 }
 ///Empty constructor, performs the initialization of the statistics
 trap::ProfFunction::ProfFunction(){
+    this->numCalls = 1;
+    this->totalTime = SC_ZERO_TIME;
+    this->exclTime = SC_ZERO_TIME;
+    this->totalNumInstr = 0;
+    this->exclNumInstr = 0;
 }

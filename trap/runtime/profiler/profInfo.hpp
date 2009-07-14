@@ -70,6 +70,8 @@ struct ProfInstruction{
 ///Represents all the profiling data which can be
 ///associated with a single function
 struct ProfFunction{
+    ///Address of the function
+    unsigned int address;
     ///Name of the function
     std::string name;
     ///Number of times this function is called
@@ -77,7 +79,9 @@ struct ProfFunction{
     ///Total number of function calls
     static unsigned long long numTotalCalls;
     ///The number of assembly instructions executed in total inside the function
-    unsigned long long numInstr;
+    unsigned long long totalNumInstr;
+    ///The number of assembly instructions executed exclusively inside the function
+    unsigned long long exclNumInstr;
     ///Total time spent in the function
     sc_time totalTime;
     ///Time spent exclusively in the function

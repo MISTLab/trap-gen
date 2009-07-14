@@ -198,21 +198,35 @@ trap::BFDFrontend::~BFDFrontend(){
 //     return foundSyms;
 // }
 
-///Given an address, it returns the symbol found there,
-///"" if no symbol is found at the specified address; note
+///Given an address, it returns the symbols found there,(more than one
+///symbol can be mapped to an address). Note
 ///That if address is in the middle of a function, the symbol
 ///returned refers to the function itself
-std::list<std::string> trap::BFDFrontend::symbolAt(unsigned int address){
+std::list<std::string> trap::BFDFrontend::symbolsAt(unsigned int address){
     std::map<unsigned int, std::list<std::string> >::iterator symMap1 = this->addrToSym.find(address);
     if(symMap1 == this->addrToSym.end()){
         std::map<unsigned int, std::string>::iterator symMap2 = this->addrToFunction.find(address);
-        std::list<std::string> emptyList;
+        std::list<std::string> functionsList;
         if(symMap2 != this->addrToFunction.end())
-            emptyList.push_back(symMap2->second);
-        return emptyList;
+            functionsList.push_back(symMap2->second);
+        return functionsList;
     }
 
     return symMap1->second;
+}
+
+///Given an address, it returns the first symbol found there
+///"" if no symbol is found at the specified address; note
+///That if address is in the middle of a function, the symbol
+///returned refers to the function itself
+std::string trap::BFDFrontend::symbolAt(unsigned int address){
+    std::map<unsigned int, std::list<std::string> >::iterator symMap1 = this->addrToSym.find(address);
+    if(symMap1 == this->addrToSym.end()){
+        std::map<unsigned int, std::string>::iterator symMap2 = this->addrToFunction.find(address);
+        if(symMap2 != this->addrToFunction.end())
+            return symMap2->second;
+    }
+    return symMap1->second.front();
 }
 
 ///Given the name of a symbol it returns its value

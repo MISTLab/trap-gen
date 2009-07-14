@@ -99,11 +99,16 @@ class BFDFrontend{
     BFDFrontend(std::string binaryName);
     ~BFDFrontend();
     static BFDFrontend & getInstance(std::string fileName = "");
-    ///Given an address, it returns the symbol found there,
+    ///Given an address, it returns the symbols found there,(more than one
+    ///symbol can be mapped to an address). Note
+    ///That if address is in the middle of a function, the symbol
+    ///returned refers to the function itself
+    std::list<std::string> symbolsAt(unsigned int address);
+    ///Given an address, it returns the first symbol found there
     ///"" if no symbol is found at the specified address; note
     ///That if address is in the middle of a function, the symbol
     ///returned refers to the function itself
-    std::list<std::string> symbolAt(unsigned int address);
+    std::string symbolAt(unsigned int address);
     ///Given the name of a symbol it returns its value
     ///(which usually is its address);
     ///valid is set to false if no symbol with the specified

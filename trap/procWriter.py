@@ -2289,9 +2289,10 @@ def getCPPIf(self, model, namespace):
     baseInstrParam = cxx_writer.writer_code.Parameter('instr', instructionBaseType.makePointer().makeConst())
     isRoutineEntryBody = """std::vector<std::string> nextNames = this->routineEntrySequence[this->routineEntryState];
     std::vector<std::string>::const_iterator namesIter, namesEnd;
+    std::string curName = instr->getInstructionName();
     for(namesIter = nextNames.begin(), namesEnd = nextNames.end(); namesIter != namesEnd; namesIter++){
-        if(instr->getInstructionName() == *namesIter){
-            if(this->routineEntryState == (""" + str(len(self.abi.callInstr)) + """ -1)){
+        if(curName == *namesIter){
+            if(this->routineEntryState == """ + str(len(self.abi.callInstr) -1) + """){
                 this->routineEntryState = 0;
                 return true;
             }
@@ -2307,9 +2308,10 @@ def getCPPIf(self, model, namespace):
     ifClassElements.append(isRoutineEntryMethod)
     isRoutineExitBody = """std::vector<std::string> nextNames = this->routineExitSequence[this->routineExitState];
     std::vector<std::string>::const_iterator namesIter, namesEnd;
+    std::string curName = instr->getInstructionName();
     for(namesIter = nextNames.begin(), namesEnd = nextNames.end(); namesIter != namesEnd; namesIter++){
-        if(instr->getInstructionName() == *namesIter){
-            if(this->routineExitState == (""" + str(len(self.abi.returnCallInstr)) + """ -1)){
+        if(curName == *namesIter){
+            if(this->routineExitState == """ + str(len(self.abi.returnCallInstr) -1) + """){
                 this->routineExitState = 0;
                 return true;
             }
@@ -3901,24 +3903,30 @@ def getMainCode(self, model, namespace):
     wordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>')
     code = 'using namespace ' + namespace + ';\nusing namespace trap;\n\n'
     code += """
-    boost::program_options::options_description desc("Processor simulator for """ + self.name + """");
+    boost::program_options::options_description desc("Processor simulator for """ + self.name + """", 120);
     desc.add_options()
         ("help,h", "produces the help message")
     """
     if self.abi:
         code += """("debugger,d", "activates the use of the software debugger")
-        ("profiler,p", boost::program_options::value<std::string>(), "activates the use of the software profiler, specifying the name of the output file")
+        ("profiler,p", boost::program_options::value<std::string>(),
+            "activates the use of the software profiler, specifying the name of the output file")
         """
     if self.systemc or model.startswith('acc') or model.endswith('AT'):
-        code += """("frequency,f", boost::program_options::value<double>(), "processor clock frequency specified in MHz [Default 1MHz]")
+        code += """("frequency,f", boost::program_options::value<double>(),
+                    "processor clock frequency specified in MHz [Default 1MHz]")
         """
-    code += """("application,a", boost::program_options::value<std::string>(), "application to be executed on the simulator")
+    code += """("application,a", boost::program_options::value<std::string>(),
+                                    "application to be executed on the simulator")
                ("disassembler,i", "prints the disassembly of the application")
             """
     if self.abi:
-        code += """("arguments,r", boost::program_options::value<std::string>(), "command line arguments (if any) of the application being simulated")
-            ("environment,e", boost::program_options::value<std::string>(), "environmental variables (if any) which can be accesses by the application being simulated")
-            ("sysconf,s", boost::program_options::value<std::string>(), "configuration information (if any) which can be accesses by the application being simulated")
+        code += """("arguments,r", boost::program_options::value<std::string>(),
+                    "command line arguments (if any) of the application being simulated")
+            ("environment,e", boost::program_options::value<std::string>(),
+                "environmental variables (if any) visible to the application being simulated")
+            ("sysconf,s", boost::program_options::value<std::string>(),
+                    "configuration information (if any) visible to the application being simulated")
         """
     code += """;
 
@@ -3941,7 +3949,7 @@ def getMainCode(self, model, namespace):
         return 0;
     }
     if(vm.count("application") == 0){
-        std::cerr << "It is necessary to specify the application which has to be simulated using the --application command line option" << std::endl << std::endl;
+        std::cerr << "It is necessary to specify the application which has to be simulated" << " using the --application command line option" << std::endl << std::endl;
         std::cerr << desc << std::endl;
         return -1;
     }"""
