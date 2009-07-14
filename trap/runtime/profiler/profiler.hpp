@@ -106,7 +106,6 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
                 curFun->name = this->bfdInstance.symbolAt(curPC);
                 curFun->address = curPC;
             }
-            std::cerr << "Routine Entry " << curFun->name << std::endl;
             curFun->exclNumInstr++;
             curFun->totalNumInstr++;
 
@@ -134,7 +133,6 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
             #endif
             //Lets update the statistics for the current instruction
             ProfFunction * curFun = this->currentStack.back();
-            std::cerr << "Routine Exit " << curFun->name << std::endl;
             curFun->exclNumInstr += this->oldFunInstructions;
             curFun->totalNumInstr += this->oldFunInstructions;
             sc_time curTimeDelta = sc_time_stamp() - this->oldFunTime;

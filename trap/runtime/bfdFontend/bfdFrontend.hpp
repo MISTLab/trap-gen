@@ -79,6 +79,7 @@ class BFDFrontend{
     std::map<unsigned int, std::list<std::string> > addrToSym;
     std::map<unsigned int, std::string> addrToFunction;
     std::map<std::string, unsigned int> symToAddr;
+    std::map<unsigned int, std::pair<std::string, unsigned int> > addrToSrc;
 
     //end address and start address (not necessarily the entry point) of the loadable part of the binary file
     std::pair<unsigned int, unsigned int> codeSize;
@@ -89,7 +90,7 @@ class BFDFrontend{
     ///Accesses the BFD internal structures in order to get correspondence among machine code and
     ///the source code
     void readSrc();
-    ///Accesses the BFD internal structures in order to get the dissassbly of the symbols
+    ///Accesses the BFD internal structures in order to get the symbols
     void readSyms();
     ///In case it is not possible to open the BFD because it is not possible to determine
     ///it target, this function extracts the list of possible targets
@@ -116,8 +117,16 @@ class BFDFrontend{
     unsigned int getSymAddr(std::string symbol, bool &valid);
     ///Returns the name of the executable file
     std::string getExecName();
+    ///Specifies whether the address is the entry point of a rountine
+    bool isRoutineEntry(unsigned int address);
+    ///Specifies whether the address is the exit point of a rountine
+    bool isRoutineExit(unsigned int address);
     ///Returns the end address of the loadable code
     unsigned int getBinaryEnd();
+    ///Given an address, it sets fileName to the name of the source file
+    ///which contains the code and line to the line in that file. Returns
+    ///false if the address is not valid
+    bool getSrcFile(unsigned int address, std::string &fileName, unsigned int &line);
 //    ///It returns all the symbols that match the given regular expression
 //    std::map<std::string,  unsigned int> findFunction(boost::regex &regEx);
 };

@@ -2271,7 +2271,9 @@ def getCPPIf(self, model, namespace):
     from isa import Instruction
     for instrList in self.abi.callInstr:
         routineStatesInit += 'tempVec.clear();\n'
-        if isinstance(instrList, Instruction):
+        if not instrList:
+            routineStatesInit += 'tempVec.push_back("");\n'
+        elif isinstance(instrList, Instruction):
             routineStatesInit += 'tempVec.push_back("' + instrList.name + '");\n'
         else:
             for instr in instrList:
@@ -2279,7 +2281,9 @@ def getCPPIf(self, model, namespace):
         routineStatesInit += 'this->routineEntrySequence.push_back(tempVec);\n'
     for instrList in self.abi.returnCallInstr:
         routineStatesInit += 'tempVec.clear();\n'
-        if isinstance(instrList, Instruction):
+        if not instrList:
+            routineStatesInit += 'tempVec.push_back("");\n'
+        elif isinstance(instrList, Instruction):
             routineStatesInit += 'tempVec.push_back("' + instrList.name + '");\n'
         else:
             for instr in instrList:
@@ -2291,7 +2295,7 @@ def getCPPIf(self, model, namespace):
     std::vector<std::string>::const_iterator namesIter, namesEnd;
     std::string curName = instr->getInstructionName();
     for(namesIter = nextNames.begin(), namesEnd = nextNames.end(); namesIter != namesEnd; namesIter++){
-        if(curName == *namesIter){
+        if(curName == *namesIter || *namesIter == ""){
             if(this->routineEntryState == """ + str(len(self.abi.callInstr) -1) + """){
                 this->routineEntryState = 0;
                 return true;
@@ -2310,7 +2314,7 @@ def getCPPIf(self, model, namespace):
     std::vector<std::string>::const_iterator namesIter, namesEnd;
     std::string curName = instr->getInstructionName();
     for(namesIter = nextNames.begin(), namesEnd = nextNames.end(); namesIter != namesEnd; namesIter++){
-        if(curName == *namesIter){
+        if(curName == *namesIter || *namesIter == ""){
             if(this->routineExitState == """ + str(len(self.abi.returnCallInstr) -1) + """){
                 this->routineExitState = 0;
                 return true;

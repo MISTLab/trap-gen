@@ -159,6 +159,7 @@ trap::BFDFrontend::BFDFrontend(std::string binaryName){
 
     //Now I call the various functions which extract all the necessary information form the BFD
     this->readSyms();
+    this->readSrc();
 
     //Finally I deallocate part of the memory
     std::vector<Section>::iterator sectionsIter, sectionsEnd;
@@ -288,6 +289,38 @@ void trap::BFDFrontend::readSyms(){
     }
 }
 
+///Accesses the BFD internal structures in order to get correspondence among machine code and
+///the source code
+void trap::BFDFrontend::readSrc(){
+    std::vector<Section>::iterator sectionsIter, sectionsEnd;
+    for(sectionsIter = this->secList.begin(), sectionsEnd = this->secList.end(); sectionsIter != sectionsEnd; sectionsIter++){
+        for(bfd_vma i = 0; i < sectionsIter->datasize; i += this->wordsize){
+            const char *filename = NULL;
+            const char *functionname = NULL;
+            unsigned int line = 0;
+
+            if(!bfd_find_nearest_line (this->execImage, sectionsIter->descriptor, this->sy, i, &filename,
+                        &functionname, &line)){
+                continue;
+            }
+
+            if (filename != NULL && *filename == '\0')
+                filename = NULL;
+            if (functionname != NULL && *functionname == '\0')
+                functionname = NULL;
+
+            if (functionname != NULL && this->addrToFunction.find(i + sectionsIter->startAddr) == this->addrToFunction.end()){
+                char *name = bfd_demangle (this->execImage, functionname, DMGL_ANSI | DMGL_PARAMS);
+                if(name == NULL)
+                    name = (char *)functionname;
+                this->addrToFunction[i + sectionsIter->startAddr] = name;
+            }
+            if (line > 0 && this->addrToSrc.find(i + sectionsIter->startAddr) == this->addrToSrc.end())
+                this->addrToSrc[i + sectionsIter->startAddr] = std::pair<std::string, unsigned int>(filename == NULL ? "???" : filename, line);
+        }
+    }
+}
+
 ///Returns the name of the executable file
 std::string trap::BFDFrontend::getExecName(){
     return this->execName;
@@ -298,6 +331,50 @@ unsigned int trap::BFDFrontend::getBinaryEnd(){
     return (this->codeSize.first + this->wordsize);
 }
 
+///Specifies whether the address is the entry point of a rountine
+bool trap::BFDFrontend::isRoutineEntry(unsigned int address){
+    std::map<unsigned int, std::string>::iterator funNameIter = this->addrToFunction.find(address);
+    if(funNameIter == this->addrToFunction.end())
+        return false;
+    std::string curName = funNameIter->second;
+    funNameIter = this->addrToFunction.find(address + this->wordsize);
+    if(funNameIter != this->addrToFunction.end() && curName == funNameIter->second){
+        funNameIter = this->addrToFunction.find(address - this->wordsize);
+        if(funNameIter == this->addrToFunction.end() || curName != funNameIter->second)
+            return true;
+    }
+    return false;
+}
+
+///Specifies whether the address is the exit point of a rountine
+bool trap::BFDFrontend::isRoutineExit(unsigned int address){
+    std::map<unsigned int, std::string>::iterator funNameIter = this->addrToFunction.find(address);
+    if(funNameIter == this->addrToFunction.end())
+        return false;
+    std::string curName = funNameIter->second;
+    funNameIter = this->addrToFunction.find(address - this->wordsize);
+    if(funNameIter != this->addrToFunction.end() && curName == funNameIter->second){
+        funNameIter = this->addrToFunction.find(address + this->wordsize);
+        if(funNameIter == this->addrToFunction.end() || curName != funNameIter->second)
+            return true;
+    }
+    return false;
+}
+
+///Given an address, it sets fileName to the name of the source file
+///which contains the code and line to the line in that file. Returns
+///false if the address is not valid
+bool trap::BFDFrontend::getSrcFile(unsigned int address, std::string &fileName, unsigned int &line){
+    std::map<unsigned int, std::pair<std::string, unsigned int> >::iterator srcMap = this->addrToSrc.find(address);
+    if(srcMap == this->addrToSrc.end()){
+        return false;
+    }
+    else{
+        fileName = srcMap->second.first;
+        line = srcMap->second.second;
+        return true;
+    }
+}
 
 std::string trap::BFDFrontend::getMatchingFormats (char **p){
     std::string match = "";
