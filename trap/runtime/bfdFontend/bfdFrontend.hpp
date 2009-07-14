@@ -102,8 +102,7 @@ class BFDFrontend{
     ///Given an address, it returns the symbol found there,
     ///"" if no symbol is found at the specified address; note
     ///That if address is in the middle of a function, the symbol
-    ///returned refers to the function itself (but this only if
-    ///the object was created with parameter readSrc = true)
+    ///returned refers to the function itself
     std::list<std::string> symbolAt(unsigned int address);
     ///Given the name of a symbol it returns its value
     ///(which usually is its address);

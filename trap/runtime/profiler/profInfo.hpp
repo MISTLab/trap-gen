@@ -72,8 +72,6 @@ struct ProfInstruction{
 struct ProfFunction{
     ///Name of the function
     std::string name;
-    ///path of the file in which the function is declared
-    std::string path;
     ///Number of times this function is called
     unsigned long long numCalls;
     ///Total number of function calls

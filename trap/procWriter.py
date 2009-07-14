@@ -4118,13 +4118,15 @@ def getMainCode(self, model, namespace):
         code += '}\n'
     code += """if(vm.count("profiler") != 0){
                 procInst.toolManager.addTool(profiler);
-                profiler.setOutputFile(vm["profiler"].as<std::string>());
             }
 
     //Now we can start the execution
     boost::timer t;
     sc_start();
     double elapsedSec = t.elapsed();
+    if(vm.count("profiler") != 0){
+        profiler.printCsvStats(vm["profiler"].as<std::string>());
+    }
     std::cout << "Elapsed " << elapsedSec << " sec." << std::endl;
     std::cout << "Executed " << procInst.numInstructions << " instructions" << std::endl;
     std::cout << "Execution Speed " << (double)procInst.numInstructions/(elapsedSec*1e6) << " MIPS" << std::endl;

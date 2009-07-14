@@ -25,6 +25,7 @@
 #endif
 
 #include <string>
+#include <vector>
 
 #include <systemc.h>
 
@@ -47,18 +48,16 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
     //instance of the BFD frontend containing information on the software
     //running on the processor
     BFDFrontend & bfdInstance;
-    //name of the files on which the profiler should write the output
-    std::string fileName;
     //Statistic on the instructions
     template_map<unsigned int, ProfInstruction> instructions;
     ProfInstruction *oldInstruction;
     sc_time oldInstrTime;
     template_map<unsigned int, ProfInstruction>::iterator instructionsEnd;
     //Statistic on the functions
-    template_map<unsigned int, ProfFunction> functions;
-    ProfFunction *oldFunction;
+    template_map<issueWidth, ProfFunction> functions;
+    std::vector<ProfFunction *> currentStack;
     sc_time oldFunTime;
-    template_map<unsigned int, ProfFunction>::iterator functionsEnd;
+    template_map<issueWidth, ProfFunction>::iterator functionsEnd;
 
     ///Based on the new instruction just issued, the statistics on the instructions
     ///are updated
@@ -85,6 +84,29 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
     ///Based on the new instruction just issued, the statistics on the functions
     ///are updated
     inline void updateFunctionStats(const issueWidth &curPC, const InstructionBase *curInstr) throw(){
+        //First of all I have to check whether I am entering in a new
+        //function. If we are not entering in a new function, I have
+        //to check whether we are exiting from the current function;
+        //if no of the two sitations happen, I do not perform anything
+        if(this->processorInstance.isRoutineEntry(curInstr)){
+            ProfFunction::numTotalCalls++;
+
+            ProfFunction * curFun = NULL;
+            template_map<issueWidth, ProfFunction>::iterator curFunction = this->functions.find(curPC);
+            if(curFunction != this->functionsEnd){
+                curFun = &(curFunction->second);
+            }
+            else{
+                curFun = &(this->functions[curPC]);
+                curFun->name = this->bfdFrontend.symbolAt(curPC).front();
+            }
+            currentStack.push_back(curFun);
+        }
+        else if(this->processorInstance.isRoutineExit(curInstr)){
+            //Here I have to update the statistics for the
+            //function on the top of the stack and pop it from
+            //the stack
+        }
     }
   public:
     Profiler(ABIIf<issueWidth> &processorInstance, std::string execName) : processorInstance(processorInstance),
@@ -98,9 +120,9 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
     }
     ~Profiler(){
     }
-    ///sets the file name on which the profiler should write the output
-    void setOutputFile(std::string fileName){
-        this->fileName = fileName;
+    ///Prints the compuated statistics in the form of a csv file
+    void printCsvStats(std::string fileName){
+
     }
 
     ///Function called by the processor at every new instruction issue.

@@ -9,7 +9,7 @@ def build(bld):
         profInfo.cpp
     """
     obj.uselib = 'BFD SYSTEMC'
-    obj.includes = '. ../utils'
+    obj.includes = '. ../utils ../bfdFrontend'
     obj.export_incdirs = '.'
     obj.name = 'profiler'
     obj.target = 'profiler'
