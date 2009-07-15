@@ -128,6 +128,15 @@ template<class issueWidth, int stageOffset> class OSEmulatorCA : public ToolsIf<
         OSEmulatorBase::heapPointer = (unsigned int)this->processorInstance.getCodeLimit() + sizeof(issueWidth);
         this->syscCallbacksEnd = this->syscCallbacks.end();
     }
+    std::set<std::string> getRegisteredFunctions(){
+        BFDFrontend &bfdFE = BFDFrontend::getInstance();
+        std::set<std::string> registeredFunctions;
+        template_map<issueWidth, SyscallCB<issueWidth>* >::iterator emuIter, emuEnd;
+        for(emuIter, emuEnd; emuIter, emuEnd; emuIter++){
+            registeredFunctions.insert(bfdFE.symbolAt(emuIter->first));
+        }
+        return registeredFunctions;
+    }
     void initSysCalls(std::string execName){
         BFDFrontend::getInstance(execName);
         //Now I perform the registration of the basic System Calls

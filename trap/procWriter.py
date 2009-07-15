@@ -4129,6 +4129,7 @@ def getMainCode(self, model, namespace):
             code += 'procInst.' + self.memory[0] + '.setDebugger(&gdbStub);\n'
         code += '}\n'
     code += """if(vm.count("profiler") != 0){
+                profiler.addIgnoredFunctions(osEmu.getRegisteredFunctions());
                 procInst.toolManager.addTool(profiler);
             }
 

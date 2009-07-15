@@ -105,4 +105,5 @@ trap::ProfFunction::ProfFunction(){
     this->exclTime = SC_ZERO_TIME;
     this->totalNumInstr = 0;
     this->exclNumInstr = 0;
+    this->alreadyExamined = false;
 }

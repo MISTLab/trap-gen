@@ -61,6 +61,9 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
     sc_time oldFunTime;
     unsigned int oldFunInstructions;
     typename template_map<issueWidth, ProfFunction>::iterator functionsEnd;
+    //names of the routines which should be ignored from
+    //entry or exit
+    std::set<std::string> ignored;
 
     ///Based on the new instruction just issued, the statistics on the instructions
     ///are updated
@@ -95,6 +98,11 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
         //to check whether we are exiting from the current function;
         //if no of the two sitations happen, I do not perform anything
         if(this->processorInstance.isRoutineEntry(curInstr)){
+            std::string funName = this->bfdInstance.symbolAt(curPC);
+            if(this->ignored.find(funName) != this->ignored.end()){
+                this->oldFunInstructions++;
+                return;
+            }
             ProfFunction::numTotalCalls++;
             ProfFunction * curFun = NULL;
             typename template_map<issueWidth, ProfFunction>::iterator curFunction = this->functions.find(curPC);
@@ -105,52 +113,80 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
             else{
                 curFun = &(this->functions[curPC]);
                 this->functionsEnd = this->functions.end();
-                curFun->name = this->bfdInstance.symbolAt(curPC);
+                curFun->name = funName;
                 curFun->address = curPC;
             }
             curFun->exclNumInstr++;
             curFun->totalNumInstr++;
 
+            std::cerr << "entering in " << curFun->name << std::endl;
+
             //Now I have to update the statistics on the number of instructions executed on the
             //instruction stack so far
             sc_time curTimeDelta = sc_time_stamp() - this->oldFunTime;
-            for(stackIterator = this->currentStack.begin(), stackEnd = this->currentStack.end(); stackIterator != stackEnd; stackIterator++){
-                (*stackIterator)->totalNumInstr += this->oldFunInstructions;
-                (*stackIterator)->totalTime += curTimeDelta;
-            }
+
             if(this->currentStack.size() > 0){
+                std::cerr << "from " << this->currentStack.back()->name << std::endl;
                 this->currentStack.back()->exclNumInstr += this->oldFunInstructions;
                 this->currentStack.back()->exclTime += curTimeDelta;
+            }
+
+            for(stackIterator = this->currentStack.begin(), stackEnd = this->currentStack.end(); stackIterator != stackEnd; stackIterator++){
+                if(!(*stackIterator)->alreadyExamined){
+                    (*stackIterator)->totalNumInstr += this->oldFunInstructions;
+                    (*stackIterator)->totalTime += curTimeDelta;
+                    (*stackIterator)->alreadyExamined = true;
+                }
             }
             // finally I can push the element on the stack
             this->currentStack.push_back(curFun);
             //..and record the call time of the function
             this->oldFunTime = sc_time_stamp();
             this->oldFunInstructions = 0;
+            //and reset the aòready examined flag
+            for(stackIterator = this->currentStack.begin(), stackEnd = this->currentStack.end(); stackIterator != stackEnd; stackIterator++){
+                (*stackIterator)->alreadyExamined = false;
+            }
         }
         else if(this->processorInstance.isRoutineExit(curInstr)){
+            std::string funName = this->bfdInstance.symbolAt(curPC);
+            if(this->ignored.find(funName) != this->ignored.end()){
+                this->oldFunInstructions++;
+                return;
+            }
             //Here I have to update the timing statistics for the
             //function on the top of the stack and pop it from
             //the stack
             #ifndef NDEBUG
             if(this->currentStack.size() == 0){
-                THROW_ERROR("We are exiting from a routine at address " << std::hex << std::showbase << curPC << " but the stack is empty");
+                THROW_ERROR("We are exiting from a routine at address " << std::hex << std::showbase << curPC << " name: " << this->bfdInstance.symbolAt(curPC) << " but the stack is empty");
             }
             #endif
             //Lets update the statistics for the current instruction
             ProfFunction * curFun = this->currentStack.back();
             curFun->exclNumInstr += this->oldFunInstructions;
-            curFun->totalNumInstr += this->oldFunInstructions;
             sc_time curTimeDelta = sc_time_stamp() - this->oldFunTime;
-            curFun->totalTime += curTimeDelta;
             curFun->exclTime += curTimeDelta;
-            //Now I pop the instruction from the stack
-            this->currentStack.pop_back();
+
+            std::cerr << "exiting from " << curFun->name << std::endl;
+
             //Now I have to update the statistics on the number of instructions executed on the
             //instruction stack
-            for(stackIterator = this->currentStack.begin(), this->currentStack.end(); stackIterator != stackEnd; stackIterator++){
-                (*stackIterator)->totalNumInstr += this->oldFunInstructions;
-                (*stackIterator)->totalTime += curTimeDelta;
+            for(stackIterator = this->currentStack.begin(), stackEnd = this->currentStack.end(); stackIterator != stackEnd; stackIterator++){
+                if(!(*stackIterator)->alreadyExamined){
+                    (*stackIterator)->totalNumInstr += this->oldFunInstructions;
+                    (*stackIterator)->totalTime += curTimeDelta;
+                    (*stackIterator)->alreadyExamined = true;
+                }
+            }
+            //I restore the already examined flag
+            for(stackIterator = this->currentStack.begin(), stackEnd = this->currentStack.end(); stackIterator != stackEnd; stackIterator++){
+                (*stackIterator)->alreadyExamined = false;
+            }
+            //Now I pop the instruction from the stack
+            this->currentStack.pop_back();
+            if(this->currentStack.size() > 0){
+                std::cerr << "going into " << this->currentStack.back()->name << std::endl;
             }
         }
         else{
@@ -199,6 +235,13 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
         this->updateFunctionStats(curPC, curInstr);
 
         return false;
+    }
+
+    void addIgnoredFunction(std::string &toIgnore){
+        this->ignored.insert(toIgnore);
+    }
+    void addIgnoredFunctions(std::set<std::string> &toIgnore){
+        this->ignored.insert(toIgnore.begin(), toIgnore.end());
     }
 };
 

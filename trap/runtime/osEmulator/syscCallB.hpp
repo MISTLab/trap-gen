@@ -89,6 +89,7 @@ namespace trap{
 
 class OSEmulatorBase{
     public:
+    virtual std::set<std::string> getRegisteredFunctions() = 0;
     static void correct_flags(int &val);
     static void set_environ(std::string name,  std::string value);
     static void set_sysconf(std::string name,  int value);

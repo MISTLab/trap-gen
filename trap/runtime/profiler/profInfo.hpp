@@ -86,6 +86,9 @@ struct ProfFunction{
     sc_time totalTime;
     ///Time spent exclusively in the function
     sc_time exclTime;
+    ///Used to coorectly keep track of the increment of the time, instruction count, etc.
+    ///in recursive functions
+    bool alreadyExamined;
     ///dump these information to a string, in the command separated values (CVS) format
     std::string printCsv();
     ///Prints the description of the informations which describe a function, in the command separated values (CVS) format
