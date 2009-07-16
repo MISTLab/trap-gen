@@ -187,16 +187,15 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
             }
             //Now I pop the instruction from the stack
             this->currentStack.pop_back();
-            #ifndef NDEBUG
-            if(this->currentStack.size() > 0 && curPC >= this->bfdInstance.getBinaryStart()){
-                if(this->currentStack.back()->name != this->bfdInstance.symbolAt(curPC)){
-                    THROW_ERROR("Error, we returned into a function different from the one on our fake stack: " << this->currentStack.back()->name << " != " << this->bfdInstance.symbolAt(curPC) << " address " << std::hex << std::showbase << curPC);
-                }
+            if(this->currentStack.size() > 0){
                 std::cerr << "going into " << this->currentStack.back()->name << " " << std::hex << std::showbase << curPC << std::endl;
             }
-            #endif
         }
         else{
+            if(this->currentStack.size() > 0){
+                std::cerr << "we are inside " << this->currentStack.back()->name << " " << std::hex << std::showbase << curPC << std::endl;
+                std::cerr << "in reality we are " << this->bfdInstance.symbolAt(curPC) << std::endl;
+            }
             this->oldFunInstructions++;
         }
         this->prevPC = curPC;
