@@ -55,6 +55,7 @@
 #include <iostream>
 #include <string>
 #include <map>
+#include <set>
 #include <systemc.h>
 #include <cstdio>
 #include <cstdlib>

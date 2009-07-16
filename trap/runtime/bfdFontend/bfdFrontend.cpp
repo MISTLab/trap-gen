@@ -168,14 +168,6 @@ trap::BFDFrontend::BFDFrontend(std::string binaryName){
     }
     this->secList.clear();
     free(this->sy);
-
-    if(this->execImage != NULL){
-        if(!bfd_close_all_done(this->execImage)){
-            //An Error has occurred; lets see what it is
-            THROW_ERROR("Error in closing the binary parser --> " << bfd_errmsg(bfd_get_error()));
-        }
-        this->execImage = NULL;
-    }
 }
 
 trap::BFDFrontend::~BFDFrontend(){

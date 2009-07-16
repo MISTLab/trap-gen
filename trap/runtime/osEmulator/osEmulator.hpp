@@ -129,8 +129,8 @@ template<class issueWidth, int stageOffset> class OSEmulator : public ToolsIf<is
     std::set<std::string> getRegisteredFunctions(){
         BFDFrontend &bfdFE = BFDFrontend::getInstance();
         std::set<std::string> registeredFunctions;
-        template_map<issueWidth, SyscallCB<issueWidth>* >::iterator emuIter, emuEnd;
-        for(emuIter, emuEnd; emuIter, emuEnd; emuIter++){
+        typename template_map<issueWidth, SyscallCB<issueWidth>* >::iterator emuIter, emuEnd;
+        for(emuIter = this->syscCallbacks.begin(), emuEnd = this->syscCallbacks.end(); emuIter != emuEnd; emuIter++){
             registeredFunctions.insert(bfdFE.symbolAt(emuIter->first));
         }
         return registeredFunctions;

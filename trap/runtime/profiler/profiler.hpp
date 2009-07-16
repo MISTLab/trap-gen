@@ -65,6 +65,8 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
     //entry or exit
     std::set<std::string> ignored;
 
+    issueWidth prevPC;
+
     ///Based on the new instruction just issued, the statistics on the instructions
     ///are updated
     inline void updateInstructionStats(const issueWidth &curPC, const InstructionBase *curInstr) throw(){
@@ -119,14 +121,14 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
             curFun->exclNumInstr++;
             curFun->totalNumInstr++;
 
-            std::cerr << "entering in " << curFun->name << std::endl;
+            std::cerr << "entering in " << curFun->name << " " << std::hex << std::showbase << curPC << std::endl;
 
             //Now I have to update the statistics on the number of instructions executed on the
             //instruction stack so far
             sc_time curTimeDelta = sc_time_stamp() - this->oldFunTime;
 
             if(this->currentStack.size() > 0){
-                std::cerr << "from " << this->currentStack.back()->name << std::endl;
+                std::cerr << "from " << this->currentStack.back()->name << " " << std::hex << std::showbase << this->prevPC << std::endl;
                 this->currentStack.back()->exclNumInstr += this->oldFunInstructions;
                 this->currentStack.back()->exclTime += curTimeDelta;
             }
@@ -168,7 +170,7 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
             sc_time curTimeDelta = sc_time_stamp() - this->oldFunTime;
             curFun->exclTime += curTimeDelta;
 
-            std::cerr << "exiting from " << curFun->name << std::endl;
+            std::cerr << "exiting from " << curFun->name << " " << std::hex << std::showbase << this->prevPC << std::endl;
 
             //Now I have to update the statistics on the number of instructions executed on the
             //instruction stack
@@ -185,13 +187,19 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
             }
             //Now I pop the instruction from the stack
             this->currentStack.pop_back();
+            #ifndef NDEBUG
             if(this->currentStack.size() > 0){
-                std::cerr << "going into " << this->currentStack.back()->name << std::endl;
+                if(this->currentStack.back()->name != this->bfdInstance.symbolAt(curPC)){
+                    THROW_ERROR("Error, we are into a function different from the one on our fake stack: " << this->currentStack.back()->name << " != " << this->bfdInstance.symbolAt(curPC));
+                }
+                std::cerr << "going into " << this->currentStack.back()->name << " " << std::hex << std::showbase << curPC << std::endl;
             }
+            #endif
         }
         else{
             this->oldFunInstructions++;
         }
+        this->prevPC = curPC;
     }
   public:
     Profiler(ABIIf<issueWidth> &processorInstance, std::string execName) : processorInstance(processorInstance),
@@ -240,7 +248,7 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
     void addIgnoredFunction(std::string &toIgnore){
         this->ignored.insert(toIgnore);
     }
-    void addIgnoredFunctions(std::set<std::string> &toIgnore){
+    void addIgnoredFunctions(const std::set<std::string> &toIgnore){
         this->ignored.insert(toIgnore.begin(), toIgnore.end());
     }
 };

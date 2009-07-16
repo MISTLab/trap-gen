@@ -4129,7 +4129,9 @@ def getMainCode(self, model, namespace):
             code += 'procInst.' + self.memory[0] + '.setDebugger(&gdbStub);\n'
         code += '}\n'
     code += """if(vm.count("profiler") != 0){
-                profiler.addIgnoredFunctions(osEmu.getRegisteredFunctions());
+                std::set<std::string> toIgnoreFuns = osEmu.getRegisteredFunctions();
+                toIgnoreFuns.erase("main");
+                profiler.addIgnoredFunctions(toIgnoreFuns);
                 procInst.toolManager.addTool(profiler);
             }
 
@@ -4183,6 +4185,7 @@ def getMainCode(self, model, namespace):
     mainCode.addInclude('boost/filesystem/path.hpp')
     mainCode.addInclude('string')
     mainCode.addInclude('vector')
+    mainCode.addInclude('set')
     parameters = [cxx_writer.writer_code.Parameter('argc', cxx_writer.writer_code.intType), cxx_writer.writer_code.Parameter('argv', cxx_writer.writer_code.charPtrType.makePointer())]
     function = cxx_writer.writer_code.Function('sc_main', mainCode, cxx_writer.writer_code.intType, parameters)
     return function
