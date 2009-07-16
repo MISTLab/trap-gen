@@ -216,8 +216,12 @@ std::string trap::BFDFrontend::symbolAt(unsigned int address){
     std::map<unsigned int, std::list<std::string> >::iterator symMap1 = this->addrToSym.find(address);
     if(symMap1 == this->addrToSym.end()){
         std::map<unsigned int, std::string>::iterator symMap2 = this->addrToFunction.find(address);
-        if(symMap2 != this->addrToFunction.end())
+        if(symMap2 != this->addrToFunction.end()){
             return symMap2->second;
+        }
+        else{
+            return "";
+        }
     }
     return symMap1->second.front();
 }
@@ -366,6 +370,11 @@ bool trap::BFDFrontend::getSrcFile(unsigned int address, std::string &fileName, 
         line = srcMap->second.second;
         return true;
     }
+}
+
+///Returns the start address of the loadable code
+unsigned int trap::BFDFrontend::getBinaryStart(){
+    return this->codeSize.second;
 }
 
 std::string trap::BFDFrontend::getMatchingFormats (char **p){

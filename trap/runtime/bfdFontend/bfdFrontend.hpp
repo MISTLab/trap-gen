@@ -123,6 +123,8 @@ class BFDFrontend{
     bool isRoutineExit(unsigned int address);
     ///Returns the end address of the loadable code
     unsigned int getBinaryEnd();
+    ///Returns the start address of the loadable code
+    unsigned int getBinaryStart();
     ///Given an address, it sets fileName to the name of the source file
     ///which contains the code and line to the line in that file. Returns
     ///false if the address is not valid
