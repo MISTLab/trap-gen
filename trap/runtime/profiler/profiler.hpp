@@ -190,13 +190,18 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
             #ifndef NDEBUG
             if(this->currentStack.size() > 0){
                 if(this->currentStack.back()->name != this->bfdInstance.symbolAt(curPC)){
-                    THROW_ERROR("Error, we are into a function different from the one on our fake stack: " << this->currentStack.back()->name << " != " << this->bfdInstance.symbolAt(curPC));
+                    THROW_ERROR("Error, we returned into a function different from the one on our fake stack: " << this->currentStack.back()->name << " != " << this->bfdInstance.symbolAt(curPC) << " address " << std::hex << std::showbase << curPC);
                 }
                 std::cerr << "going into " << this->currentStack.back()->name << " " << std::hex << std::showbase << curPC << std::endl;
             }
             #endif
         }
         else{
+            if(this->currentStack.size() > 0){
+                if(this->currentStack.back()->name != this->bfdInstance.symbolAt(curPC)){
+                    THROW_ERROR("Error, we are inside a function different from the one on our fake stack: " << this->currentStack.back()->name << " != " << this->bfdInstance.symbolAt(curPC) << " address " << std::hex << std::showbase << curPC);
+                }
+            }
             this->oldFunInstructions++;
         }
         this->prevPC = curPC;
