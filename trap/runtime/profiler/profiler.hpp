@@ -64,8 +64,9 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
     //names of the routines which should be ignored from
     //entry or exit
     std::set<std::string> ignored;
+    bool exited;
 
-    issueWidth prevPC;
+    //issueWidth prevPC;
 
     ///Based on the new instruction just issued, the statistics on the instructions
     ///are updated
@@ -95,6 +96,30 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
     inline void updateFunctionStats(const issueWidth &curPC, const InstructionBase *curInstr) throw(){
         std::vector<ProfFunction *>::iterator stackIterator, stackEnd;
 
+        if(this->exited){
+            std::string curFunName = this->bfdInstance.symbolAt(curPC);
+            if(this->currentStack.size() > 1 && this->currentStack.back()->name != curFunName){
+                // There have been a problem ... we haven't come back to where we came from
+                std::vector<ProfFunction *>::reverse_iterator stackIterator_r, stackEnd_r;
+                stackIterator_r = this->currentStack.rbegin();
+                bool haveToPop = false;
+                unsigned int numToPop = 0;
+                for(stackIterator_r++, stackEnd_r = this->currentStack.rend(); stackIterator_r != stackEnd_r; stackIterator_r++){
+                    if((*stackIterator_r)->name == curFunName){
+                        haveToPop = true;
+                        break;
+                    }
+                    numToPop++;
+                }
+                if(haveToPop){
+                    this->currentStack.erase(this->currentStack.begin() + (this->currentStack.size() -numToPop -1), this->currentStack.end());
+                }
+/*                else
+                    std::cerr << "just exited I should have gone into " << this->bfdInstance.symbolAt(curPC) << std::endl;*/
+            }
+            this->exited = false;
+        }
+
         //First of all I have to check whether I am entering in a new
         //function. If we are not entering in a new function, I have
         //to check whether we are exiting from the current function;
@@ -118,17 +143,15 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
                 curFun->name = funName;
                 curFun->address = curPC;
             }
-            curFun->exclNumInstr++;
-            curFun->totalNumInstr++;
 
-            std::cerr << "entering in " << curFun->name << " " << std::hex << std::showbase << curPC << std::endl;
+            //std::cerr << "entering in " << curFun->name << " " << std::hex << std::showbase << curPC << std::endl;
 
             //Now I have to update the statistics on the number of instructions executed on the
             //instruction stack so far
             sc_time curTimeDelta = sc_time_stamp() - this->oldFunTime;
 
             if(this->currentStack.size() > 0){
-                std::cerr << "from " << this->currentStack.back()->name << " " << std::hex << std::showbase << this->prevPC << std::endl;
+                //std::cerr << "from " << this->currentStack.back()->name << " " << std::hex << std::showbase << this->prevPC << std::endl;
                 this->currentStack.back()->exclNumInstr += this->oldFunInstructions;
                 this->currentStack.back()->exclTime += curTimeDelta;
             }
@@ -145,7 +168,7 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
             //..and record the call time of the function
             this->oldFunTime = sc_time_stamp();
             this->oldFunInstructions = 0;
-            //and reset the aòready examined flag
+            //and reset the already examined flag
             for(stackIterator = this->currentStack.begin(), stackEnd = this->currentStack.end(); stackIterator != stackEnd; stackIterator++){
                 (*stackIterator)->alreadyExamined = false;
             }
@@ -170,7 +193,7 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
             sc_time curTimeDelta = sc_time_stamp() - this->oldFunTime;
             curFun->exclTime += curTimeDelta;
 
-            std::cerr << "exiting from " << curFun->name << " " << std::hex << std::showbase << this->prevPC << std::endl;
+            //std::cerr << "exiting from " << curFun->name << " " << std::hex << std::showbase << this->prevPC << std::endl;
 
             //Now I have to update the statistics on the number of instructions executed on the
             //instruction stack
@@ -187,18 +210,17 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
             }
             //Now I pop the instruction from the stack
             this->currentStack.pop_back();
-            if(this->currentStack.size() > 0){
+            this->exited = true;
+            this->oldFunInstructions = 0;
+            this->oldFunTime = sc_time_stamp();
+/*            if(this->currentStack.size() > 0){
                 std::cerr << "going into " << this->currentStack.back()->name << " " << std::hex << std::showbase << curPC << std::endl;
-            }
+            }*/
         }
         else{
-            if(this->currentStack.size() > 0){
-                std::cerr << "we are inside " << this->currentStack.back()->name << " " << std::hex << std::showbase << curPC << std::endl;
-                std::cerr << "in reality we are " << this->bfdInstance.symbolAt(curPC) << std::endl;
-            }
             this->oldFunInstructions++;
         }
-        this->prevPC = curPC;
+        //this->prevPC = curPC;
     }
   public:
     Profiler(ABIIf<issueWidth> &processorInstance, std::string execName) : processorInstance(processorInstance),
@@ -209,6 +231,7 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
         this->oldFunTime = SC_ZERO_TIME;
         this->functionsEnd = this->functions.end();
         this->oldFunInstructions = 0;
+        this->exited = false;
     }
 
     ~Profiler(){
