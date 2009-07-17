@@ -44,7 +44,10 @@
 #define ABIIF_HPP
 
 #include <vector>
-#include "utils.hpp"
+#include "trap_utils.hpp"
+#include "instructionBase.hpp"
+
+namespace trap{
 
 template<class regWidth> class ABIIf{
     public:
@@ -90,12 +93,18 @@ template<class regWidth> class ABIIf{
     virtual void setArgs( const std::vector< regWidth > & args ) throw() = 0;
     virtual regWidth readGDBReg( const unsigned int & gdbId ) const throw() = 0;
     virtual void setGDBReg( const regWidth & newValue, const unsigned int & gdbId ) throw() = 0;
-    virtual regWidth readMem( const regWidth & address, int length = sizeof(regWidth) ) = 0;
+    virtual regWidth readMem( const regWidth & address) = 0;
     virtual unsigned char readCharMem( const regWidth & address) = 0;
-    virtual void writeMem( const regWidth & address, regWidth datum, int length = sizeof(regWidth) ) = 0;
+    virtual void writeMem( const regWidth & address, regWidth datum) = 0;
     virtual void writeCharMem( const regWidth & address, unsigned char datum ) = 0;
     virtual regWidth getCodeLimit() = 0;
+    virtual bool isRoutineEntry(const InstructionBase * instr) throw() = 0;
+    virtual bool isRoutineExit(const InstructionBase * instr) throw() = 0;
+    virtual unsigned char * getState() const throw() = 0;
+    virtual void setState(unsigned char * state) throw() = 0;
     virtual ~ABIIf(){}
+};
+
 };
 
 #endif

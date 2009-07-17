@@ -43,7 +43,7 @@ class ClassMember:
     class, i.e. attributes and methods"""
 
     def __init__(self, visibility):
-        if visibility != 'pri' and visibility != 'pro' and visibility != 'pu':
+        if not visibility in ['pri', 'pro', 'pu']:
             raise Exception(str(visibility) + ' is not a valid visibility attribute')
         self.visibility = visibility
 
@@ -63,13 +63,15 @@ class Method(ClassMember, Function):
             self.virtual = True
         self.const = const
 
-    def writeImplementation(self, writer, className = ''):
+    def writeImplementation(self, writer, className = '', namespaces = []):
         if self.inline or self.pure:
             return
         if self.docstring:
             self.printDocString(writer)
         self.retType.writeDeclaration(writer)
         writer.write(' ')
+        for namespace in namespaces:
+            writer.write(namespace + '::')
         if className:
             writer.write(className + '::')
         writer.write(self.name + '(')
@@ -104,13 +106,15 @@ class MemberOperator(ClassMember, Operator):
             self.virtual = True
         self.const = const
 
-    def writeImplementation(self, writer, className = ''):
+    def writeImplementation(self, writer, className = '', namespaces = []):
         if self.inline or self.pure:
             return
         if self.docstring:
             self.printDocString(writer)
         self.retType.writeDeclaration(writer)
         writer.write(' ')
+        for namespace in namespaces:
+            writer.write(namespace + '::')
         if className:
             writer.write(className + '::')
         writer.write(self.name + '(')
@@ -134,12 +138,14 @@ class MemberOperator(ClassMember, Operator):
 class Constructor(ClassMember, Function):
     def __init__(self, body, visibility, parameters = [], initList = []):
         ClassMember.__init__(self, visibility)
-        Function.__init__(self, '', body, Type(''), parameters, False)
+        Function.__init__(self, '', body, Type(''), parameters)
         self.initList = initList
 
-    def writeImplementation(self, writer, className = ''):
+    def writeImplementation(self, writer, className = '', namespaces = []):
         if self.docstring:
             self.printDocString(writer)
+        for namespace in namespaces:
+            writer.write(namespace + '::')
         if className:
             writer.write(className + '::')
         writer.write(self.name + '(')
@@ -165,12 +171,14 @@ class Constructor(ClassMember, Function):
 class Destructor(ClassMember, Function):
     def __init__(self, body, visibility, virtual = False):
         ClassMember.__init__(self, visibility)
-        Function.__init__(self, '', body, Type(''), [], False)
+        Function.__init__(self, '', body, Type(''), [])
         self.virtual = virtual
 
-    def writeImplementation(self, writer, className = ''):
+    def writeImplementation(self, writer, className = '', namespaces = []):
         if self.docstring:
             self.printDocString(writer)
+        for namespace in namespaces:
+            writer.write(namespace + '::')
         if className:
             writer.write(className + '::')
         writer.write(self.name + '(){\n')
@@ -181,27 +189,29 @@ class Attribute(ClassMember, Variable):
     """Attribute of a class; note how, a part from the visibility,
     it is simply a normal variable"""
 
-    def __init__(self, name, type, visibility, static = False, initValue = ''):
+    def __init__(self, name, varType, visibility, static = False, initValue = ''):
         ClassMember.__init__(self, visibility)
-        Variable.__init__(self, name, type, static, initValue)
+        Variable.__init__(self, name, varType, static, initValue)
 
     def writeDeclaration(self, writer):
         if self.docstring:
             self.printDocString(writer)
         if self.static:
             writer.write('static ')
-        self.type.writeDeclaration(writer)
+        self.varType.writeDeclaration(writer)
         writer.write(' ' + self.name + ';\n')
 
-    def writeImplementation(self, writer, className = ''):
+    def writeImplementation(self, writer, className = '', namespaces = []):
         if not className:
             self.writeDeclaration(writer)
         elif self.static:
             if self.docstring:
                 self.printDocString(writer)
-            self.type.writeDeclaration(writer)
-            writer.write(' ' + className)
-            writer.write('::' + self.name)
+            self.varType.writeDeclaration(writer)
+            writer.write(' ')
+            for namespace in namespaces:
+                writer.write(namespace + '::')
+            writer.write(className + '::' + self.name)
             if self.initValue:
                 writer.write(' = ' + self.initValue)
             writer.write(';\n')
@@ -217,12 +227,13 @@ class ClassDeclaration(DumpElement):
     and public and they are dumped in that order; if a member does
     not have the visibility attribute it is considered public."""
 
-    def __init__(self, className, members = [], superclasses = [], template = [], virtual_superclasses = []):
+    def __init__(self, className, members = [], superclasses = [], template = [], virtual_superclasses = [], namespaces = []):
         DumpElement.__init__(self, className)
         self.members = members
         self.superclasses = superclasses
         self.virtual_superclasses = virtual_superclasses
         self.template = template
+        self.namespaces = namespaces
         self.innerClasses = []
 
     def addMember(self, member):
@@ -271,6 +282,8 @@ class ClassDeclaration(DumpElement):
 
     def writeDeclaration(self, writer):
         self.computeMemVisibility()
+        for namespace in self.namespaces:
+            writer.write('namespace ' + namespace + '{\n\n')
         # Now I can simply print the declarations
         if self.docstring:
             self.printDocString(writer)
@@ -339,8 +352,10 @@ class ClassDeclaration(DumpElement):
                 else:
                     i.writeDeclaration(writer)
         writer.write('};\n\n')
+        for namespace in self.namespaces:
+            writer.write('};\n\n')
 
-    def writeImplementation(self, writer, outerName = ''):
+    def writeImplementation(self, writer, namespaces = []):
         if self.template:
             return
         # Now I print the implementation; note
@@ -348,15 +363,12 @@ class ClassDeclaration(DumpElement):
         # matter anymore
         for i in self.innerClasses:
             try:
-                i.writeImplementation(writer, self.name)
+                i.writeImplementation(writer, namespaces + self.namespaces + [self.name])
             except AttributeError:
                 pass
         for i in self.members:
             try:
-                if outerName:
-                    i.writeImplementation(writer, outerName + '::' + self.name)
-                else:
-                    i.writeImplementation(writer, self.name)
+                i.writeImplementation(writer, self.name, namespaces + self.namespaces)
             except AttributeError:
                 pass
 
@@ -378,8 +390,8 @@ class ClassDeclaration(DumpElement):
 class SCModule(ClassDeclaration):
     """Represents an SC module; the biggest difference with respect to a
     normal class lies in the presence of defines inside the class declaration"""
-    def __init__(self, className, members = [], superclasses = [], template = []):
-        ClassDeclaration.__init__(self, className, members, superclasses + [sc_moduleType], template)
+    def __init__(self, className, members = [], superclasses = [], template = [], namespaces = []):
+        ClassDeclaration.__init__(self, className, members, superclasses + [sc_moduleType], template, [], namespaces)
 
     def computeMemVisibility(self):
         self.private = []

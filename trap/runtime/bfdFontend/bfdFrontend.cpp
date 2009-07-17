@@ -54,7 +54,7 @@ extern "C" {
 #include <list>
 #include <iostream>
 
-#include "utils.hpp"
+#include "trap_utils.hpp"
 
 #include <boost/regex.hpp>
 
@@ -77,9 +77,9 @@ extern "C" {
 #define DMGL_GNU_V3      (1 << 14)
 #define DMGL_GNAT        (1 << 15)
 
-BFDFrontend * BFDFrontend::curInstance = NULL;
+trap::BFDFrontend * trap::BFDFrontend::curInstance = NULL;
 
-BFDFrontend & BFDFrontend::getInstance(std::string fileName){
+trap::BFDFrontend & trap::BFDFrontend::getInstance(std::string fileName){
     if(BFDFrontend::curInstance == NULL){
         if(fileName != "")
             BFDFrontend::curInstance = new BFDFrontend(fileName);
@@ -89,7 +89,7 @@ BFDFrontend & BFDFrontend::getInstance(std::string fileName){
     return *BFDFrontend::curInstance;
 }
 
-BFDFrontend::BFDFrontend(std::string binaryName){
+trap::BFDFrontend::BFDFrontend(std::string binaryName){
     char ** matching = NULL;
     this->sy = NULL;
 
@@ -159,6 +159,7 @@ BFDFrontend::BFDFrontend(std::string binaryName){
 
     //Now I call the various functions which extract all the necessary information form the BFD
     this->readSyms();
+    this->readSrc();
 
     //Finally I deallocate part of the memory
     std::vector<Section>::iterator sectionsIter, sectionsEnd;
@@ -167,17 +168,9 @@ BFDFrontend::BFDFrontend(std::string binaryName){
     }
     this->secList.clear();
     free(this->sy);
-
-    if(this->execImage != NULL){
-        if(!bfd_close_all_done(this->execImage)){
-            //An Error has occurred; lets see what it is
-            THROW_ERROR("Error in closing the binary parser --> " << bfd_errmsg(bfd_get_error()));
-        }
-        this->execImage = NULL;
-    }
 }
 
-BFDFrontend::~BFDFrontend(){
+trap::BFDFrontend::~BFDFrontend(){
     if(this->execImage != NULL){
         if(!bfd_close_all_done(this->execImage)){
             //An Error has occurred; lets see what it is
@@ -198,28 +191,46 @@ BFDFrontend::~BFDFrontend(){
 //     return foundSyms;
 // }
 
-///Given an address, it returns the symbol found there,
-///"" if no symbol is found at the specified address; note
+///Given an address, it returns the symbols found there,(more than one
+///symbol can be mapped to an address). Note
 ///That if address is in the middle of a function, the symbol
 ///returned refers to the function itself
-std::list<std::string> BFDFrontend::symbolAt(unsigned int address){
+std::list<std::string> trap::BFDFrontend::symbolsAt(unsigned int address){
     std::map<unsigned int, std::list<std::string> >::iterator symMap1 = this->addrToSym.find(address);
     if(symMap1 == this->addrToSym.end()){
         std::map<unsigned int, std::string>::iterator symMap2 = this->addrToFunction.find(address);
-        std::list<std::string> emptyList;
+        std::list<std::string> functionsList;
         if(symMap2 != this->addrToFunction.end())
-            emptyList.push_back(symMap2->second);
-        return emptyList;
+            functionsList.push_back(symMap2->second);
+        return functionsList;
     }
 
     return symMap1->second;
+}
+
+///Given an address, it returns the first symbol found there
+///"" if no symbol is found at the specified address; note
+///That if address is in the middle of a function, the symbol
+///returned refers to the function itself
+std::string trap::BFDFrontend::symbolAt(unsigned int address){
+    std::map<unsigned int, std::list<std::string> >::iterator symMap1 = this->addrToSym.find(address);
+    if(symMap1 == this->addrToSym.end()){
+        std::map<unsigned int, std::string>::iterator symMap2 = this->addrToFunction.find(address);
+        if(symMap2 != this->addrToFunction.end()){
+            return symMap2->second;
+        }
+        else{
+            return "";
+        }
+    }
+    return symMap1->second.front();
 }
 
 ///Given the name of a symbol it returns its value
 ///(which usually is its address);
 ///valid is set to false if no symbol with the specified
 ///name is found
-unsigned int BFDFrontend::getSymAddr(std::string symbol, bool &valid){
+unsigned int trap::BFDFrontend::getSymAddr(std::string symbol, bool &valid){
     std::map<std::string, unsigned int>::iterator addrMap = this->symToAddr.find(symbol);
     if(addrMap == this->symToAddr.end()){
         valid = false;
@@ -231,15 +242,8 @@ unsigned int BFDFrontend::getSymAddr(std::string symbol, bool &valid){
     }
 }
 
-void BFDFrontend::sprintf_wrapper(char *str, const char *format, ...) {
-    va_list ap;
-    va_start(ap, format);
-    vsprintf(str+strlen(str),format, ap);
-    va_end(ap);
-}
-
 ///Accesses the BFD internal structures in order to get the dissassbly of the symbols
-void BFDFrontend::readSyms(){
+void trap::BFDFrontend::readSyms(){
     //make sure there are symbols in the file
     if ((bfd_get_file_flags (execImage) & HAS_SYMS) == 0)
         return;
@@ -281,18 +285,99 @@ void BFDFrontend::readSyms(){
     }
 }
 
+///Accesses the BFD internal structures in order to get correspondence among machine code and
+///the source code
+void trap::BFDFrontend::readSrc(){
+    std::vector<Section>::iterator sectionsIter, sectionsEnd;
+    for(sectionsIter = this->secList.begin(), sectionsEnd = this->secList.end(); sectionsIter != sectionsEnd; sectionsIter++){
+        for(bfd_vma i = 0; i < sectionsIter->datasize; i += this->wordsize){
+            const char *filename = NULL;
+            const char *functionname = NULL;
+            unsigned int line = 0;
+
+            if(!bfd_find_nearest_line (this->execImage, sectionsIter->descriptor, this->sy, i, &filename,
+                        &functionname, &line)){
+                continue;
+            }
+
+            if (filename != NULL && *filename == '\0')
+                filename = NULL;
+            if (functionname != NULL && *functionname == '\0')
+                functionname = NULL;
+
+            if (functionname != NULL && this->addrToFunction.find(i + sectionsIter->startAddr) == this->addrToFunction.end()){
+                char *name = bfd_demangle (this->execImage, functionname, DMGL_ANSI | DMGL_PARAMS);
+                if(name == NULL)
+                    name = (char *)functionname;
+                this->addrToFunction[i + sectionsIter->startAddr] = name;
+            }
+            if (line > 0 && this->addrToSrc.find(i + sectionsIter->startAddr) == this->addrToSrc.end())
+                this->addrToSrc[i + sectionsIter->startAddr] = std::pair<std::string, unsigned int>(filename == NULL ? "???" : filename, line);
+        }
+    }
+}
+
 ///Returns the name of the executable file
-std::string BFDFrontend::getExecName(){
+std::string trap::BFDFrontend::getExecName(){
     return this->execName;
 }
 
 ///Returns the end address of the loadable code
-unsigned int BFDFrontend::getBinaryEnd(){
+unsigned int trap::BFDFrontend::getBinaryEnd(){
     return (this->codeSize.first + this->wordsize);
 }
 
+///Specifies whether the address is the entry point of a rountine
+bool trap::BFDFrontend::isRoutineEntry(unsigned int address){
+    std::map<unsigned int, std::string>::iterator funNameIter = this->addrToFunction.find(address);
+    if(funNameIter == this->addrToFunction.end())
+        return false;
+    std::string curName = funNameIter->second;
+    funNameIter = this->addrToFunction.find(address + this->wordsize);
+    if(funNameIter != this->addrToFunction.end() && curName == funNameIter->second){
+        funNameIter = this->addrToFunction.find(address - this->wordsize);
+        if(funNameIter == this->addrToFunction.end() || curName != funNameIter->second)
+            return true;
+    }
+    return false;
+}
 
-std::string BFDFrontend::getMatchingFormats (char **p){
+///Specifies whether the address is the exit point of a rountine
+bool trap::BFDFrontend::isRoutineExit(unsigned int address){
+    std::map<unsigned int, std::string>::iterator funNameIter = this->addrToFunction.find(address);
+    if(funNameIter == this->addrToFunction.end())
+        return false;
+    std::string curName = funNameIter->second;
+    funNameIter = this->addrToFunction.find(address - this->wordsize);
+    if(funNameIter != this->addrToFunction.end() && curName == funNameIter->second){
+        funNameIter = this->addrToFunction.find(address + this->wordsize);
+        if(funNameIter == this->addrToFunction.end() || curName != funNameIter->second)
+            return true;
+    }
+    return false;
+}
+
+///Given an address, it sets fileName to the name of the source file
+///which contains the code and line to the line in that file. Returns
+///false if the address is not valid
+bool trap::BFDFrontend::getSrcFile(unsigned int address, std::string &fileName, unsigned int &line){
+    std::map<unsigned int, std::pair<std::string, unsigned int> >::iterator srcMap = this->addrToSrc.find(address);
+    if(srcMap == this->addrToSrc.end()){
+        return false;
+    }
+    else{
+        fileName = srcMap->second.first;
+        line = srcMap->second.second;
+        return true;
+    }
+}
+
+///Returns the start address of the loadable code
+unsigned int trap::BFDFrontend::getBinaryStart(){
+    return this->codeSize.second;
+}
+
+std::string trap::BFDFrontend::getMatchingFormats (char **p){
     std::string match = "";
     if(p != NULL){
         while (*p){

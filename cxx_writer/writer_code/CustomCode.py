@@ -91,7 +91,7 @@ class Code:
         if self.variables:
             writer.write('{\n')
             for i in self.variables:
-                i.writeDeclaration(writer)
+                i.writeImplementation(writer)
         else:
             if self.code:
                 self.code += '\n'

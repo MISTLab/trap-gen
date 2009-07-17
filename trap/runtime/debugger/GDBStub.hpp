@@ -75,14 +75,17 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include "utils.hpp"
+#include "trap_utils.hpp"
 
 #include "ABIIf.hpp"
 #include "ToolsIf.hpp"
+#include "instructionBase.hpp"
 
 #include "BreakpointManager.hpp"
 #include "WatchpointManager.hpp"
 #include "GDBConnectionManager.hpp"
+
+namespace trap{
 
 template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public MemoryToolsIf<issueWidth>, public sc_module{
   private:
@@ -573,6 +576,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
                 this->valueToBytes(rsp.data, memContent);
             }
             catch(...){
+                std::cerr << "GDB Stub: error in reading memory at address " << std::hex << std::showbase << req.address + i << std::endl;
                 this->valueToBytes(rsp.data, 0);
             }
         }
@@ -663,10 +667,10 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
         for(dataIter = req.data.begin(), dataEnd = req.data.end(); dataIter != dataEnd; dataIter++){
             try{
                 this->processorInstance.writeCharMem(req.address + bytes, *dataIter);
-                std::cerr << std::hex << std::showbase << "Writing in memory " << (unsigned int)*dataIter << " at address " << req.address + bytes << std::endl;
                 bytes++;
             }
             catch(...){
+                std::cerr << "Error in writing in memory " << std::hex << std::showbase << (unsigned int)*dataIter << " at address " << std::hex << std::showbase << req.address + bytes << std::endl;
                 error = true;
                 break;
             }
@@ -915,7 +919,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     }
 
     ///Method called at every cycle from the processor's main loop
-    bool newIssue(const issueWidth &curPC, const void *curInstr) throw(){
+    bool newIssue(const issueWidth &curPC, const InstructionBase *curInstr) throw(){
         if(!this->firstRun){
             this->checkStep();
             this->checkBreakpoint(curPC);
@@ -946,6 +950,8 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
             this->setStopped(WATCH_stop);
         }
     }
+};
+
 };
 
 #endif

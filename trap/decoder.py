@@ -384,7 +384,7 @@ class decoderCreator:
         code += '}\n'
         return code
 
-    def getCPPClass(self, fetchSizeType):
+    def getCPPClass(self, fetchSizeType, namespace = ''):
         # Creates the representation of the decoder as a C++ class
         import cxx_writer
         from isa import resolveBitType
@@ -394,13 +394,12 @@ class decoderCreator:
         else:
             codeString = self.createTableDecoder(self.rootNote)
         code = cxx_writer.writer_code.Code(codeString)
-        code.addInclude('utils.hpp')
         parameters = [cxx_writer.writer_code.Parameter('instrCode', fetchSizeType)]
         decodeMethod = cxx_writer.writer_code.Method('decode', code, cxx_writer.writer_code.intType, 'pu', parameters, const = True, noException = True)
-        decodeClass = cxx_writer.writer_code.ClassDeclaration('Decoder', [decodeMethod])
+        decodeClass = cxx_writer.writer_code.ClassDeclaration('Decoder', [decodeMethod], namespaces = [namespace])
         return decodeClass
 
-    def getCPPTests(self):
+    def getCPPTests(self, namespace = ''):
         # Creates the tests for the decoder; I normally create the
         # tests with boost_test_framework.
         # What I have to do is feeding all the instruction patterns
@@ -413,7 +412,7 @@ class decoderCreator:
         allTests = []
         testCount = 0
         for instrId, instruction in self.instrId.items():
-            code = 'Decoder dec;\n'
+            code = namespace + '::Decoder dec;\n'
             pattern = instruction[0]
             try:
                 pattern[0][0]

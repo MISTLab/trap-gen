@@ -51,9 +51,11 @@
 #include <string>
 #include <cstring>
 
-#include <utils.hpp>
+#include <trap_utils.hpp>
 
 DECLARE_EXTENDED_PHASE(internal_ph);
+
+namespace trap{
 
 template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryAT: public sc_module{
     public:
@@ -71,6 +73,14 @@ template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryAT: publi
         // Reset memory
         this->mem = new unsigned char[size];
         memset(this->mem, 0, size);
+        end_module();
+    }
+
+    ~MemoryAT(){
+        delete this->mem;
+        for(int i = 0; i < N_INITIATORS; i++){
+            delete this->socket[i];
+        }
     }
 
     // TLM-2 non-blocking transport method
@@ -229,6 +239,8 @@ template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryAT: publi
     bool  transactionInProgress;
     sc_event transactionCompleted;
     tlm_utils::peq_with_cb_and_phase<MemoryAT> m_peq;
+};
+
 };
 
 #endif

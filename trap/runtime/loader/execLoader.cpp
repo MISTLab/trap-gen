@@ -44,7 +44,7 @@
 #include <map>
 #include <iostream>
 
-#include "utils.hpp"
+#include "trap_utils.hpp"
 
 extern "C" {
 #include <bfd.h>
@@ -52,8 +52,7 @@ extern "C" {
 
 #include "execLoader.hpp"
 
-
-ExecLoader::ExecLoader(std::string fileName){
+trap::ExecLoader::ExecLoader(std::string fileName){
     this->programData = NULL;
     this->execImage = NULL;
     this->progDim = 0;
@@ -74,7 +73,7 @@ ExecLoader::ExecLoader(std::string fileName){
     this->loadProgramData();
 }
 
-ExecLoader::~ExecLoader(){
+trap::ExecLoader::~ExecLoader(){
     if(this->execImage != NULL){
         if(!bfd_close_all_done(this->execImage)){
             //An Error has occurred; lets see what it is
@@ -86,21 +85,21 @@ ExecLoader::~ExecLoader(){
     }
 }
 
-unsigned int ExecLoader::getProgStart(){
+unsigned int trap::ExecLoader::getProgStart(){
     if(this->execImage == NULL){
         THROW_ERROR("The binary parser not yet correcly created");
     }
     return bfd_get_start_address(this->execImage);
 }
 
-unsigned int ExecLoader::getProgDim(){
+unsigned int trap::ExecLoader::getProgDim(){
     if(this->execImage == NULL){
         THROW_ERROR("The binary parser not yet correcly created");
     }
     return this->progDim;
 }
 
-unsigned char * ExecLoader::getProgData(){
+unsigned char * trap::ExecLoader::getProgData(){
     if(this->execImage == NULL){
         THROW_ERROR("The binary parser not yet correcly created");
     }
@@ -110,14 +109,14 @@ unsigned char * ExecLoader::getProgData(){
     return this->programData;
 }
 
-unsigned int ExecLoader::getDataStart(){
+unsigned int trap::ExecLoader::getDataStart(){
     if(this->execImage == NULL){
         THROW_ERROR("The binary parser not yet correcly created");
     }
     return this->dataStart;
 }
 
-void ExecLoader::loadProgramData(){
+void trap::ExecLoader::loadProgramData(){
     bfd_section *p = NULL;
     std::map<unsigned long, unsigned char> memMap;
     for (p = this->execImage->sections; p != NULL; p = p->next){
@@ -160,7 +159,7 @@ void ExecLoader::loadProgramData(){
     }
 }
 
-std::string ExecLoader::getMatchingFormats (char **p){
+std::string trap::ExecLoader::getMatchingFormats (char **p){
     std::string match = "";
     if(p != NULL){
         while (*p){

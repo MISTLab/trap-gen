@@ -70,6 +70,8 @@
 #endif
 #endif
 
+namespace trap{
+
 template <class AddressType> struct Breakpoint{
     enum Type{MEM_break=0, HW_break};
     AddressType address;
@@ -124,6 +126,8 @@ template <class AddressType> class BreakpointManager{
     template_map<AddressType, Breakpoint<AddressType> > & getBreakpoints() throw(){
         return this->breakpoints;
     }
+};
+
 };
 
 #endif

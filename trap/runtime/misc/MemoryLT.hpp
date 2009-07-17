@@ -49,7 +49,9 @@
 #include <boost/lexical_cast.hpp>
 #include <string>
 
-#include <utils.hpp>
+#include <trap_utils.hpp>
+
+namespace trap{
 
 template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryLT: public sc_module{
     public:
@@ -66,9 +68,12 @@ template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryLT: publi
 
         // Reset memory
         this->mem = new unsigned char[this->size];
+        memset(this->mem, 0, size);
+        end_module();
     }
 
     ~MemoryLT(){
+        delete this->mem;
         for(int i = 0; i < N_INITIATORS; i++){
             delete this->socket[i];
         }
@@ -154,6 +159,8 @@ template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryLT: publi
     const sc_time latency;
     unsigned int size;
     unsigned char * mem;
+};
+
 };
 
 #endif

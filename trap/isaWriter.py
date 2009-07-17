@@ -75,7 +75,7 @@ def getCppMethod(self, model, processor):
     # Returns the code implementing a helper method
     for var in self.localvars:
         self.code.addVariable(var)
-    self.code.addInclude('utils.hpp')
+    self.code.addInclude('trap_utils.hpp')
     import copy
     codeTemp = copy.deepcopy(self.code)
 
@@ -122,7 +122,7 @@ def getCppOperation(self, parameters = False):
     aliasType = cxx_writer.writer_code.Type('Alias', 'alias.hpp')
     for var in self.localvars:
         self.code.addVariable(var)
-    self.code.addInclude('utils.hpp')
+    self.code.addInclude('trap_utils.hpp')
     metodParams = []
     if parameters:
         for elem in self.archElems:
@@ -135,7 +135,7 @@ def getCppOperation(self, parameters = False):
     methodDecl = cxx_writer.writer_code.Method(self.name, self.code, cxx_writer.writer_code.voidType, 'pro', metodParams, inline = True, noException = not self.exception)
     return methodDecl
 
-def getCppOpClass(self):
+def getCppOpClass(self, namespace):
     # Returns a class (directly deriving from instruction) implementing the
     # method corresponding to the current operation
     global baseInstrConstrParams
@@ -145,7 +145,7 @@ def getCppOpClass(self):
     emptyBody = cxx_writer.writer_code.Code('')
     for var in self.localvars:
         self.code.addVariable(var)
-    self.code.addInclude('utils.hpp')
+    self.code.addInclude('trap_utils.hpp')
     classElements = []
     # Now I also need to declare the instruction variables and referenced architectural elements
     metodParams = []
@@ -155,17 +155,17 @@ def getCppOpClass(self):
     for elem in self.archVars:
         metodParams.append(cxx_writer.writer_code.Parameter(elem, cxx_writer.writer_code.uintRefType))
     for var in self.instrvars:
-        metodParams.append(cxx_writer.writer_code.Parameter(var.name, var.type.makeRef()))
+        metodParams.append(cxx_writer.writer_code.Parameter(var.name, var.varType.makeRef()))
     methodDecl = cxx_writer.writer_code.Method(self.name, self.code, cxx_writer.writer_code.voidType, 'pro', metodParams, inline = True, noException = not self.exception)
     classElements.append(methodDecl)
     opConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, ['Instruction(' + baseInstrInitElement + ')'])
-    opDecl = cxx_writer.writer_code.ClassDeclaration(self.name + '_op', classElements, virtual_superclasses = [instructionType])
+    opDecl = cxx_writer.writer_code.ClassDeclaration(self.name + '_op', classElements, virtual_superclasses = [instructionType], namespaces = [namespace])
     opDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
     opDecl.addDestructor(opDestr)
     opDecl.addConstructor(opConstr)
     return opDecl
 
-def getCPPInstr(self, model, processor, trace):
+def getCPPInstr(self, model, processor, trace, namespace):
     # Returns the code implementing the current instruction: we have to provide the
     # implementation of all the abstract methods and call from the behavior method
     # all the different behaviors contained in the type hierarchy of this class
@@ -195,7 +195,7 @@ def getCPPInstr(self, model, processor, trace):
                     toInline.append(beh.name)
                 for var in beh.instrvars:
                     if not var.name in behVars:
-                        classElements.append(cxx_writer.writer_code.Attribute(var.name, var.type, 'pro',  var.static))
+                        classElements.append(cxx_writer.writer_code.Attribute(var.name, var.varType, 'pro',  var.static))
                         behVars.append(var.name)
     if not baseClasses:
         baseClasses.append(instructionType)
@@ -316,7 +316,7 @@ def getCPPInstr(self, model, processor, trace):
                     for regToUnlock in self.machineCode.bitCorrespondence.keys():
                         if 'out' in self.machineCode.bitDirection[regToUnlock] and not regToUnlock in self.specialOutRegsWB.values():
                             behaviorCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
-                    for regToUnlock, correspondence in self.bitCorrespondence.keys():
+                    for regToUnlock in self.bitCorrespondence.keys():
                         if 'out' in self.bitDirection[regToUnlock] and not regToUnlock in self.specialOutRegsWB.values():
                             behaviorCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
                     for regToUnlock in self.specialOutRegs:
@@ -377,12 +377,13 @@ def getCPPInstr(self, model, processor, trace):
             lockDecl = cxx_writer.writer_code.Method('lockRegs', lockBody, cxx_writer.writer_code.voidType, 'pu')
             classElements.append(lockDecl)
             getUnlockCode = ''
-            for regToUnlock in self.specialOutRegsWB.values():
-                getUnlockCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
+            for regsToUnlock in self.specialOutRegsWB.values():
+                for regToUnlock in regsToUnlock:
+                    getUnlockCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
             for regToUnlock in self.machineCode.bitCorrespondence.keys():
                 if 'out' in self.machineCode.bitDirection[regToUnlock] and not regToUnlock in self.specialOutRegsWB.values():
                     getUnlockCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
-            for regToUnlock, correspondence in self.bitCorrespondence.keys():
+            for regToUnlock in self.bitCorrespondence.keys():
                 if 'out' in self.bitDirection[regToUnlock] and not regToUnlock in self.specialOutRegsWB.values():
                     getUnlockCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
             for regToUnlock in self.specialOutRegs:
@@ -396,8 +397,11 @@ def getCPPInstr(self, model, processor, trace):
     replicateDecl = cxx_writer.writer_code.Method('replicate', replicateBody, instructionType.makePointer(), 'pu', noException = True, const = True)
     classElements.append(replicateDecl)
     getIstructionNameBody = cxx_writer.writer_code.Code('return \"' + self.name + '\";')
-    getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', getIstructionNameBody, cxx_writer.writer_code.stringType, 'pu')
+    getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', getIstructionNameBody, cxx_writer.writer_code.stringType, 'pu', noException = True, const = True)
     classElements.append(getIstructionNameDecl)
+    getIdBody = cxx_writer.writer_code.Code('return ' + str(self.id) + ';')
+    getIdDecl = cxx_writer.writer_code.Method('getId', getIdBody, cxx_writer.writer_code.uintType, 'pu', noException = True, const = True)
+    classElements.append(getIdDecl)
 
     # We need to create the attribute for the variables referenced by the non-constant parts of the instruction;
     # they are the bitCorrespondence variable of the machine code (they establish the correspondence with either registers
@@ -493,23 +497,69 @@ def getCPPInstr(self, model, processor, trace):
     getMnemonicCode += 'return oss.str();'
     getMnemonicBody = cxx_writer.writer_code.Code(getMnemonicCode)
     getMnemonicBody.addInclude('sstream')
-    getMnemonicDecl = cxx_writer.writer_code.Method('getMnemonic', getMnemonicBody, cxx_writer.writer_code.stringType, 'pu')
+    getMnemonicDecl = cxx_writer.writer_code.Method('getMnemonic', getMnemonicBody, cxx_writer.writer_code.stringType, 'pu', noException = True, const = True)
     classElements.append(getMnemonicDecl)
 
     # Now I declare the instruction variables
     for var in self.variables:
         if not var.name in behVars:
-            classElements.append(cxx_writer.writer_code.Attribute(var.name, var.type, 'pro',  var.static))
+            classElements.append(cxx_writer.writer_code.Attribute(var.name, var.varType, 'pro',  var.static))
+
+    # Finally now I have to override the basic new operator in
+    # order to speed up memory allocation (***** Commented since it does not give any speedup ******)
+    #num_allocated = processor.alloc_buffer_size*self.frequency
+    #poolDecl = cxx_writer.writer_code.Variable(self.name + '_pool[' + str(num_allocated) + '*sizeof(' + self.name + ')]', cxx_writer.writer_code.ucharType, namespaces = [namespace])
+    #operatorNewCode = """
+    #if(""" + self.name + """::allocated < """ + str(num_allocated) + """){
+        #""" + self.name + """::allocated++;
+        #return """ + self.name + """_pool + (""" + self.name + """::allocated - 1)*sizeof(""" + self.name + """);
+    #}
+    #else{
+        #void * newMem = ::malloc(bytesToAlloc);
+        #if(newMem == NULL)
+            #throw std::bad_alloc();
+        #return newMem;
+    #}
+    #"""
+    #operatorNewBody =  cxx_writer.writer_code.Code(operatorNewCode)
+    #operatorNewBody.addInclude('cstddef')
+    #operatorNewBody.addInclude('cstdlib')
+    #operatorNewBody.addInclude('new')
+    #operatorNewParams = [cxx_writer.writer_code.Parameter('bytesToAlloc', cxx_writer.writer_code.Type('std::size_t'))]
+    #operatorNewDecl = cxx_writer.writer_code.MemberOperator('new', operatorNewBody, cxx_writer.writer_code.voidPtrType, 'pu', operatorNewParams)
+    #classElements.append(operatorNewDecl)
+    #operatorDelCode = """
+        #if(m != NULL && (m < """ + self.name + """_pool || m > (""" + self.name + """_pool + """ + str(num_allocated - 1) + """*sizeof(""" + self.name + """)))){
+            #::free(m);
+        #}
+    #"""
+    #operatorDelBody =  cxx_writer.writer_code.Code(operatorDelCode)
+    #operatorDelParams = [cxx_writer.writer_code.Parameter('m', cxx_writer.writer_code.voidPtrType)]
+    #operatorDelDecl = cxx_writer.writer_code.MemberOperator('delete', operatorDelBody, cxx_writer.writer_code.voidType, 'pu', operatorDelParams)
+    #classElements.append(operatorDelDecl)
+    #num_allocatedAttribute = cxx_writer.writer_code.Attribute('allocated', cxx_writer.writer_code.uintType, 'pri', initValue = '0', static = True)
+    #classElements.append(num_allocatedAttribute)
+
+    ########################## TODO: to eliminate, only for statistics ####################
+    #out_poolAttribute = cxx_writer.writer_code.Attribute('allocatedOut', cxx_writer.writer_code.uintType, 'pri', static = True)
+    #classElements.append(out_poolAttribute)
+    #returnStatsDecl = cxx_writer.writer_code.Method('getMyAllocCount', cxx_writer.writer_code.Code('return ' + self.name + '::allocated;'), cxx_writer.writer_code.uintType, 'pu')
+    #classElements.append(returnStatsDecl)
+    #returnStatsDecl = cxx_writer.writer_code.Method('getStdAllocCount', cxx_writer.writer_code.Code('return ' + self.name + '::allocatedOut;'), cxx_writer.writer_code.uintType, 'pu')
+    #classElements.append(returnStatsDecl)
+    ########################################################################################
+
     # Now I have to declare the constructor
     from procWriter import baseInstrInitElement
     publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, constrInitList)
-    instructionDecl = cxx_writer.writer_code.ClassDeclaration(self.name, classElements, superclasses = baseClasses)
+    instructionDecl = cxx_writer.writer_code.ClassDeclaration(self.name, classElements, superclasses = baseClasses, namespaces = [namespace])
     instructionDecl.addConstructor(publicConstr)
     publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
     instructionDecl.addDestructor(publicDestr)
-    return instructionDecl
+    #return [poolDecl, instructionDecl] *** Again removed, related to the instruction pre-allocation
+    return [instructionDecl]
 
-def getCPPInstrTest(self, processor, model, trace):
+def getCPPInstrTest(self, processor, model, trace, namespace = ''):
     # Returns the code testing the current instruction: note that a test
     # consists in setting the instruction variables, performing the instruction
     # behavior and then comparing the registers with what we expect.
@@ -518,7 +568,7 @@ def getCPPInstrTest(self, processor, model, trace):
     destrDecls = ''
     from procWriter import resourceType
     for reg in processor.regs:
-        archElemsDeclStr += str(resourceType[reg.name]) + ' ' + reg.name + ';\n'
+        archElemsDeclStr += namespace + '::' + str(resourceType[reg.name]) + ' ' + reg.name + ';\n'
         baseInitElement += reg.name + ', '
     for regB in processor.regBanks:
         if (regB.constValue and len(regB.constValue) < regB.numRegs)  or (regB.delay and len(regB.delay) < regB.numRegs):
@@ -533,10 +583,10 @@ def getCPPInstrTest(self, processor, model, trace):
             destrDecls += 'delete [] ' + regB.name + ';\n'
         baseInitElement += regB.name + ', '
     for alias in processor.aliasRegs:
-        archElemsDeclStr += str(resourceType[alias.name]) + ' ' + alias.name + ';\n'
+        archElemsDeclStr += namespace + '::' + str(resourceType[alias.name]) + ' ' + alias.name + ';\n'
         baseInitElement += alias.name + ', '
     for aliasB in processor.aliasRegBanks:
-        archElemsDeclStr += str(resourceType[aliasB.name].makePointer()) + ' ' + aliasB.name + ' = new ' + str(resourceType[aliasB.name]) + '[' + str(aliasB.numRegs) + '];\n'
+        archElemsDeclStr += namespace + '::' + str(resourceType[aliasB.name].makePointer()) + ' ' + aliasB.name + ' = new ' + namespace + '::' + str(resourceType[aliasB.name]) + '[' + str(aliasB.numRegs) + '];\n'
         baseInitElement += aliasB.name + ', '
         destrDecls += 'delete [] ' + aliasB.name + ';\n'
     memAliasInit = ''
@@ -551,11 +601,11 @@ def getCPPInstrTest(self, processor, model, trace):
             memDebugInit += ', totalCycles'
         if processor.memory[3]:
             memDebugInit += ', ' + processor.memory[3]
-        archElemsDeclStr += 'LocalMemory ' + processor.memory[0] + '(' + str(processor.memory[1]) + memDebugInit + memAliasInit + ');\n'
+        archElemsDeclStr += namespace + '::LocalMemory ' + processor.memory[0] + '(' + str(processor.memory[1]) + memDebugInit + memAliasInit + ');\n'
         baseInitElement += processor.memory[0] + ', '
     # Note how I declare local memories even for TLM ports. I use 1MB as default dimension
     for tlmPorts in processor.tlmPorts.keys():
-        archElemsDeclStr += 'LocalMemory ' + tlmPorts + '(' + str(1024*1024) + memAliasInit + ');\n'
+        archElemsDeclStr += namespace + '::LocalMemory ' + tlmPorts + '(' + str(1024*1024) + memAliasInit + ');\n'
         baseInitElement += tlmPorts + ', '
     # Now I declare the PIN stubs for the outgoing PIN ports
     # and alts themselves
@@ -573,7 +623,7 @@ def getCPPInstrTest(self, processor, model, trace):
             else:
                 pinPortTypeName += 'out_'
             pinPortTypeName += str(pinPort.portWidth)
-            archElemsDeclStr += pinPortTypeName + ' ' + pinPort.name + '(sc_core::sc_gen_unique_name(\"' + pinPort.name + '_PIN\"));\n'
+            archElemsDeclStr += namespace + '::' + pinPortTypeName + ' ' + pinPort.name + '(sc_core::sc_gen_unique_name(\"' + pinPort.name + '_PIN\"));\n'
             archElemsDeclStr += 'PINTarget<' + str(pinPort.portWidth) + '> ' + pinPort.name + '_target(sc_core::sc_gen_unique_name(\"' + pinPort.name + '_PIN\"));\n'
             archElemsDeclStr += pinPort.name + '.initSocket.bind(' + pinPort.name + '_target.socket);\n'
             baseInitElement += pinPort.name + ', '
@@ -616,10 +666,9 @@ def getCPPInstrTest(self, processor, model, trace):
                     curIndex += 1
     tests = []
     for test in self.tests:
-        code = ''
         # First of all I create the instance of the instruction and of all the
         # processor elements
-        code += archElemsDeclStr + '\n' + aliasInit + '\n'
+        code = archElemsDeclStr + '\n' + aliasInit + '\n'
         code += self.name + ' toTest' + baseInitElement + ';\n'
         # Now I set the value of the instruction fields
         instrCode = ['0' for i in range(0, self.machineCode.instrLen)]
@@ -683,7 +732,7 @@ def getCPPInstrTest(self, processor, model, trace):
         tests.append(curTestFunction)
     return tests
 
-def getCPPClasses(self, processor, model, trace):
+def getCPPClasses(self, processor, model, trace, namespace):
     # I go over each instruction and print the class representing it
     from isa import resolveBitType
     global archWordType
@@ -720,10 +769,13 @@ def getCPPClasses(self, processor, model, trace):
     setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
     setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam], pure = True, noException = True)
     instructionElements.append(setparamsDecl)
-    getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', emptyBody, cxx_writer.writer_code.stringType, 'pu', pure = True)
-    instructionElements.append(getIstructionNameDecl)
-    getMnemonicDecl = cxx_writer.writer_code.Method('getMnemonic', emptyBody, cxx_writer.writer_code.stringType, 'pu', pure = True)
-    instructionElements.append(getMnemonicDecl)
+
+    ########################## TODO: to eliminate, only for statistics ####################
+    #returnStatsDecl = cxx_writer.writer_code.Method('getMyAllocCount', emptyBody, cxx_writer.writer_code.uintType, 'pu', virtual = True)
+    #instructionElements.append(returnStatsDecl)
+    #returnStatsDecl = cxx_writer.writer_code.Method('getStdAllocCount', emptyBody, cxx_writer.writer_code.uintType, 'pu', virtual = True)
+    #instructionElements.append(returnStatsDecl)
+    ########################################################################################
 
     if model.startswith('acc'):
         # Now I have to add the code for checking data hazards
@@ -739,7 +791,7 @@ def getCPPClasses(self, processor, model, trace):
                     if not processor.pipes[processor.pipes.index(pipeStage) - 1].checkHazard:
                         hasWb = True
         if hasCheckHazard:
-            if externalClock:
+            if processor.externalClock:
                 checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.boolType, 'pu', pure = True)
             else:
                 checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.voidType, 'pu', pure = True)
@@ -769,7 +821,7 @@ def getCPPClasses(self, processor, model, trace):
         if not processor.systemc and not model.startswith('acc') and not model.endswith('AT'):
             printTraceCode += 'std::cerr << \"Simulated time \" << std::dec << this->totalCycles << std::endl;\n'
         else:
-            printTraceCode += 'std::cerr << \"Simulated time \" << sc_time_stamp().to_double();\n'
+            printTraceCode += 'std::cerr << \"Simulated time \" << sc_time_stamp().to_double() << std::endl;\n'
         printTraceCode += 'std::cerr << \"Instruction: \" << this->getInstructionName() << std::endl;\n'
         printTraceCode += 'std::cerr << \"Mnemonic: \" << this->getMnemonic() << std::endl;\n'
         if self.traceRegs:
@@ -956,7 +1008,8 @@ def getCPPClasses(self, processor, model, trace):
         initElements.append(constant[1] + '(' + str(constant[2]) + ')')
 
     publicConstr = cxx_writer.writer_code.Constructor(cxx_writer.writer_code.Code(constrBody), 'pu', baseInstrConstrParams, initElements)
-    instructionDecl = cxx_writer.writer_code.ClassDeclaration('Instruction', instructionElements)
+    instructionBaseType = cxx_writer.writer_code.Type('InstructionBase', 'instructionBase.hpp')
+    instructionDecl = cxx_writer.writer_code.ClassDeclaration('Instruction', instructionElements, [instructionBaseType], namespaces = [namespace])
     instructionDecl.addConstructor(publicConstr)
     publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
     instructionDecl.addDestructor(publicDestr)
@@ -971,7 +1024,7 @@ def getCPPClasses(self, processor, model, trace):
             for behaviors in instr.postbehaviors.values() + instr.prebehaviors.values():
                 for beh in behaviors:
                     if not behClass.has_key(beh.name) and beh.inline and beh.numUsed > 1 and not beh.name in alreadyDeclared:
-                        behClass[beh.name] = beh.getCppOpClass()
+                        behClass[beh.name] = beh.getCppOpClass(namespace)
                         classes.append(behClass[beh.name])
 
     #########################################################################
@@ -1007,14 +1060,17 @@ def getCPPClasses(self, processor, model, trace):
     setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam], noException = True)
     invalidInstrElements.append(setparamsDecl)
     getIstructionNameBody = cxx_writer.writer_code.Code('return \"InvalidInstruction\";')
-    getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', getIstructionNameBody, cxx_writer.writer_code.stringType, 'pu')
+    getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', getIstructionNameBody, cxx_writer.writer_code.stringType, 'pu', noException = True, const = True)
     invalidInstrElements.append(getIstructionNameDecl)
     getMnemonicBody = cxx_writer.writer_code.Code('return \"invalid\";')
-    getMnemonicDecl = cxx_writer.writer_code.Method('getMnemonic', getMnemonicBody, cxx_writer.writer_code.stringType, 'pu')
+    getMnemonicDecl = cxx_writer.writer_code.Method('getMnemonic', getMnemonicBody, cxx_writer.writer_code.stringType, 'pu', noException = True, const = True)
     invalidInstrElements.append(getMnemonicDecl)
+    getIdBody = cxx_writer.writer_code.Code('return ' + str(len(self.instructions)) + ';')
+    getIdDecl = cxx_writer.writer_code.Method('getId', getIdBody, cxx_writer.writer_code.uintType, 'pu', noException = True, const = True)
+    invalidInstrElements.append(getIdDecl)
     if model.startswith('acc'):
         if hasCheckHazard:
-            if externalClock:
+            if processor.externalClock:
                 checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', cxx_writer.writer_code.Code('return false;'), cxx_writer.writer_code.boolType, 'pu')
             else:
                 checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.voidType, 'pu')
@@ -1025,7 +1081,7 @@ def getCPPClasses(self, processor, model, trace):
             invalidInstrElements.append(getUnlockDecl)
     from procWriter import baseInstrInitElement
     publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, ['Instruction(' + baseInstrInitElement + ')'])
-    invalidInstrDecl = cxx_writer.writer_code.ClassDeclaration('InvalidInstr', invalidInstrElements, [instructionDecl.getType()])
+    invalidInstrDecl = cxx_writer.writer_code.ClassDeclaration('InvalidInstr', invalidInstrElements, [instructionDecl.getType()], namespaces = [namespace])
     invalidInstrDecl.addConstructor(publicConstr)
     publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
     invalidInstrDecl.addDestructor(publicDestr)
@@ -1048,13 +1104,17 @@ def getCPPClasses(self, processor, model, trace):
         setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam], noException = True)
         NOPInstructionElements.append(setparamsDecl)
         getIstructionNameBody = cxx_writer.writer_code.Code('return \"NOPInstruction\";')
-        getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', getIstructionNameBody, cxx_writer.writer_code.stringType, 'pu')
+        getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', getIstructionNameBody, cxx_writer.writer_code.stringType, 'pu', noException = True, const = True)
         NOPInstructionElements.append(getIstructionNameDecl)
         getMnemonicBody = cxx_writer.writer_code.Code('return \"nop\";')
-        getMnemonicDecl = cxx_writer.writer_code.Method('getMnemonic', getMnemonicBody, cxx_writer.writer_code.stringType, 'pu')
+        getMnemonicDecl = cxx_writer.writer_code.Method('getMnemonic', getMnemonicBody, cxx_writer.writer_code.stringType, 'pu', noException = True, const = True)
         NOPInstructionElements.append(getMnemonicDecl)
+        getIdBody = cxx_writer.writer_code.Code('return (unsigned int)-1;')
+        getIdDecl = cxx_writer.writer_code.Method('getId', getIdBody, cxx_writer.writer_code.uintType, 'pu', noException = True, const = True)
+        NOPInstructionElements.append(getIdDecl)
+
         if hasCheckHazard:
-            if externalClock:
+            if processor.externalClock:
                 checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', cxx_writer.writer_code.Code('return false;'), cxx_writer.writer_code.boolType, 'pu')
             else:
                 checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.voidType, 'pu')
@@ -1065,17 +1125,17 @@ def getCPPClasses(self, processor, model, trace):
             NOPInstructionElements.append(getUnlockDecl)
         from procWriter import baseInstrInitElement
         publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, ['Instruction(' + baseInstrInitElement + ')'])
-        NOPInstructionElements = cxx_writer.writer_code.ClassDeclaration('NOPInstruction', NOPInstructionElements, [instructionDecl.getType()])
+        NOPInstructionElements = cxx_writer.writer_code.ClassDeclaration('NOPInstruction', NOPInstructionElements, [instructionDecl.getType()], namespaces = [namespace])
         NOPInstructionElements.addConstructor(publicConstr)
         publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
         NOPInstructionElements.addDestructor(publicDestr)
         classes.append(NOPInstructionElements)
     # Now I go over all the other instructions and I declare them
     for instr in self.instructions.values():
-        classes.append(instr.getCPPClass(model, processor, trace))
+        classes += instr.getCPPClass(model, processor, trace, namespace)
     return classes
 
-def getCPPTests(self, processor, modelType, trace):
+def getCPPTests(self, processor, modelType, trace, namespace):
     if not processor.memory:
         return None
     # for each instruction I print the test: I do have to add some custom
@@ -1083,5 +1143,5 @@ def getCPPTests(self, processor, modelType, trace):
     # part of the instructions
     tests = []
     for instr in self.instructions.values():
-        tests += instr.getCPPTest(processor, modelType, trace)
+        tests += instr.getCPPTest(processor, modelType, trace, namespace)
     return tests

@@ -74,6 +74,9 @@
 #include "ToolsIf.hpp"
 
 #include "syscCallB.hpp"
+#include "instructionBase.hpp"
+
+namespace trap{
 
 template<class issueWidth, int stageOffset> class OSEmulatorCA : public ToolsIf<issueWidth>, OSEmulatorBase{
   private:
@@ -124,6 +127,15 @@ template<class issueWidth, int stageOffset> class OSEmulatorCA : public ToolsIf<
                                                                                     NOPInstr(NOPInstr), routineOffset(routineOffset){
         OSEmulatorBase::heapPointer = (unsigned int)this->processorInstance.getCodeLimit() + sizeof(issueWidth);
         this->syscCallbacksEnd = this->syscCallbacks.end();
+    }
+    std::set<std::string> getRegisteredFunctions(){
+        BFDFrontend &bfdFE = BFDFrontend::getInstance();
+        std::set<std::string> registeredFunctions;
+        typename template_map<issueWidth, SyscallCB<issueWidth>* >::iterator emuIter, emuEnd;
+        for(emuIter = this->syscCallbacks.begin(), emuEnd = this->syscCallbacks.end(); emuIter != emuEnd; emuIter++){
+            registeredFunctions.insert(bfdFE.symbolAt(emuIter->first));
+        }
+        return registeredFunctions;
     }
     void initSysCalls(std::string execName){
         BFDFrontend::getInstance(execName);
@@ -271,7 +283,7 @@ template<class issueWidth, int stageOffset> class OSEmulatorCA : public ToolsIf<
         if(!this->register_syscall("main", *mainCallBack))
             THROW_EXCEPTION("Fatal Error, unable to find main function in current application");
     }
-    bool newIssue(const issueWidth &curPC, const void *curInstr) throw(){
+    bool newIssue(const issueWidth &curPC, const InstructionBase *curInstr) throw(){
         //I have to go over all the registered system calls and check if there is one
         //that matches the current program counter. In case I simply call the corresponding
         //callback.
@@ -284,6 +296,8 @@ template<class issueWidth, int stageOffset> class OSEmulatorCA : public ToolsIf<
         return false;
     }
     virtual ~OSEmulatorCA(){}
+};
+
 };
 
 #endif

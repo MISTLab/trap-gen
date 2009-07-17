@@ -40,22 +40,26 @@
  *
 \***************************************************************************/
 
-#ifndef CUSTOMEXCEPTION_HPP
-#define CUSTOMEXCEPTION_HPP
+#ifndef INSTRUCTIONBASE_HPP
+#define INSTRUCTIONBASE_HPP
 
-#include <cstdlib>
 #include <string>
-#include <exception>
-#include <stdexcept>
-#include <iostream>
-#include <execinfo.h>
 
 namespace trap{
-class annull_exception: public std::runtime_error{
+
+/// Base class for all instructions; it enables access to the instruction
+/// fields from the tools
+class InstructionBase{
     public:
-    annull_exception() : std::runtime_error(""){}
-    annull_exception(const char * message) : std::runtime_error(message){}
+        ///Returns the instruction name
+        virtual std::string getInstructionName() const throw() = 0;
+        ///Returns the instruction mnemonic, so how the current
+        ///instruction translated to assebmly code
+        virtual std::string getMnemonic() const throw() = 0;
+        ///Gets the ID of the instruction as returned by the decoder
+        virtual unsigned int getId() const throw() = 0;
 };
-};
+
+}
 
 #endif

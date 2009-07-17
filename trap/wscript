@@ -7,8 +7,16 @@ def build(bld):
     bld.add_subdirs('runtime memAnalyzer')
 
     obj = bld.new_task_gen('cxx', 'staticlib')
-    obj.add_objects = 'loader syscall bfdFrontend tools debugger utils'
-    obj.name = 'trap'
+    obj.add_objects = 'loader syscall bfdFrontend tools debugger utils profiler'
+    obj.name = 'trap_static'
+    obj.uselib = 'BOOST_THREAD BOOST_REGEX BOOST_SYSTEM BOOST_FILESYSTEM SYSTEMC BFD'
+    obj.target = 'trap'
+    obj.install_path = os.path.join('${PREFIX}', 'lib')
+
+    obj = bld.new_task_gen('cxx', 'cshlib')
+    obj.add_objects = 'loader syscall bfdFrontend tools debugger utils profiler'
+    obj.name = 'trap_dyn'
+    obj.uselib = 'BOOST_THREAD BOOST_REGEX BOOST_SYSTEM BOOST_FILESYSTEM SYSTEMC BFD'
     obj.target = 'trap'
     obj.install_path = os.path.join('${PREFIX}', 'lib')
 

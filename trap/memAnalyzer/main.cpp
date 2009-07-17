@@ -1,3 +1,4 @@
+#include <map>
 #include <string>
 #include <iostream>
 
@@ -7,10 +8,12 @@
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/path.hpp>
 
-#include "utils.hpp"
+#include "trap_utils.hpp"
 
 #include "memAccessType.hpp"
 #include "analyzer.hpp"
+
+using namespace trap;
 
 int main(int argc, char *argv[]){
     boost::program_options::options_description desc("Memory Analyzer");
@@ -18,11 +21,12 @@ int main(int argc, char *argv[]){
     ("help,h", "produces the help message")
     ("operation,o", boost::program_options::value<int>(), "specifies the operation which we want to execute [1: create memory image - 2: get all modifications to a specified address - 3: gets the first modification to an address after a given simulation time 4: - gets the last modification to an address]")
     ("dump,d", boost::program_options::value<std::string>(), "the name of the dump file")
-    ("outFile,f", boost::program_options::value<std::string>(), "the name of the output file for the operations which need it")
+    ("outFile,f", boost::program_options::value<std::string>(), "the name of the output file for the operations which need it (1 and 2)")
     ("address,a", boost::program_options::value<std::string>(), "the address of which we want to get the modifications")
     ("startTime,s", boost::program_options::value<double>(), "the time at which we want to analyze the modifications (start time if needed by the chosen option)")
     ("endTime,e", boost::program_options::value<double>(), "the end time until which we want to get the modification")
     ("memSize,m", boost::program_options::value<std::string>(), "the maximum memory size [default 5MB]")
+    ("width,w", boost::program_options::value<unsigned int>(), "the width of each data operation in bytes [default 4 bytes] (used only by 2, 3, 4)")
     ;
 
     boost::program_options::variables_map vm;
@@ -45,6 +49,10 @@ int main(int argc, char *argv[]){
         return -1;
     }
     std::string memSize = boost::lexical_cast<std::string>(5242880);
+    unsigned int width = 4;
+    if(vm.count("width") > 0){
+        width = vm["width"].as<unsigned int>();
+    }
     if(vm.count("memSize") > 0){
         memSize = vm["memSize"].as<std::string>();
     }
@@ -84,7 +92,7 @@ int main(int argc, char *argv[]){
                 endTime = vm["endTime"].as<double>();
             }
             boost::filesystem::path outFilePath = boost::filesystem::system_complete(boost::filesystem::path(vm["outFile"].as<std::string>(), boost::filesystem::native));
-            analyzer.getAllModifications(vm["address"].as<std::string>(), outFilePath, startTime, endTime);
+            analyzer.getAllModifications(vm["address"].as<std::string>(), outFilePath, width, startTime, endTime);
         break;}
         case 3:{
             if(vm.count("address") == 0){
@@ -92,14 +100,17 @@ int main(int argc, char *argv[]){
                 std::cerr << desc << std::endl;
                 return -1;
             }
-            MemAccessType modification;
+            std::map<unsigned int, MemAccessType> modification;
             if(vm.count("startTime") == 0){
-                modification = analyzer.getFirstModAfter(vm["address"].as<std::string>());
+                modification = analyzer.getFirstModAfter(vm["address"].as<std::string>(), width);
             }
             else{
-                modification = analyzer.getFirstModAfter(vm["address"].as<std::string>(), vm["startTime"].as<double>());
+                modification = analyzer.getFirstModAfter(vm["address"].as<std::string>(), width, vm["startTime"].as<double>());
             }
-            std::cout << "Address " << std::hex << std::showbase << modification.address << " - Value " << std::hex << std::showbase << modification.val << " - PC " << std::hex << std::showbase << modification.programCounter << " - Time " << std::dec << modification.simulationTime << std::endl;
+            std::map<unsigned int, MemAccessType>::iterator modIter, modEnd;
+            for(modIter = modification.begin(), modEnd = modification.end(); modIter != modEnd; modIter++){
+                std::cout << "Address " << std::hex << std::showbase << modIter->second.address << " - Value " << std::hex << std::showbase << modIter->second.val << " - PC " << std::hex << std::showbase << modIter->second.programCounter << " - Time " << std::dec << modIter->second.simulationTime << std::endl;
+            }
         break;}
         case 4:{
             if(vm.count("address") == 0){
@@ -107,8 +118,11 @@ int main(int argc, char *argv[]){
                 std::cerr << desc << std::endl;
                 return -1;
             }
-            MemAccessType modification = analyzer.getFirstModAfter(vm["address"].as<std::string>());
-            std::cout << "Address " << std::hex << std::showbase << modification.address << " - Value " << std::hex << std::showbase << modification.val << " - PC " << std::hex << std::showbase << modification.programCounter << " - Time " << std::dec << modification.simulationTime << std::endl;
+            std::map<unsigned int, MemAccessType> modification = analyzer.getFirstModAfter(vm["address"].as<std::string>(), width);
+            std::map<unsigned int, MemAccessType>::iterator modIter, modEnd;
+            for(modIter = modification.begin(), modEnd = modification.end(); modIter != modEnd; modIter++){
+                std::cout << "Address " << std::hex << std::showbase << modIter->second.address << " - Value " << std::hex << std::showbase << modIter->second.val << " - PC " << std::hex << std::showbase << modIter->second.programCounter << " - Time " << std::dec << modIter->second.simulationTime << std::endl;
+            }
         break;}
         default:
             THROW_EXCEPTION("Error, unrecognized option " << vm["operation"].as<int>());

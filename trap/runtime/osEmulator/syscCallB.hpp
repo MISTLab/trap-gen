@@ -47,7 +47,7 @@
 #pragma warning( disable : 4244 )
 #endif
 
-#include "utils.hpp"
+#include "trap_utils.hpp"
 
 #include "ABIIf.hpp"
 #include <systemc.h>
@@ -55,6 +55,7 @@
 #include <iostream>
 #include <string>
 #include <map>
+#include <set>
 #include <systemc.h>
 #include <cstdio>
 #include <cstdlib>
@@ -63,6 +64,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <utime.h>
+#include <sys/time.h>
 #ifdef __GNUC__
 #include <unistd.h>
 #else
@@ -83,8 +86,11 @@ extern int errno;
 #endif
 #include <ctime>
 
+namespace trap{
+
 class OSEmulatorBase{
     public:
+    virtual std::set<std::string> getRegisteredFunctions() = 0;
     static void correct_flags(int &val);
     static void set_environ(std::string name,  std::string value);
     static void set_sysconf(std::string name,  int value);
@@ -299,7 +305,7 @@ template<class wordSize> class sbrkSysCall : public SyscallCB<wordSize>{
         }
         catch(...){
             this->processorInstance.setRetVal(-1);
-            std::cerr << "SBRK: tried to allocate " << increment << " bytes of memory starting at address 0x" << std::hex << base << std::dec << " but it seems there is not enough memory" << std::endl;
+            std::cerr << "SBRK: tried to allocate " << increment << " bytes of memory starting at address " << std::hex << std::showbase << base << std::dec << " but it seems there is not enough memory" << std::endl;
         }
 
         this->processorInstance.returnFromCall();
@@ -356,20 +362,20 @@ template<class wordSize> class fstatSysCall : public SyscallCB<wordSize>{
         int ret = ::_fstat(fd, &buf_stat);
         #endif
         if(ret >= 0 && retAddr != 0){
-            this->processorInstance.writeMem(retAddr, buf_stat.st_dev, 2);
-            this->processorInstance.writeMem(retAddr + 2, buf_stat.st_ino, 2);
-            this->processorInstance.writeMem(retAddr + 4, buf_stat.st_mode, 4);
-            this->processorInstance.writeMem(retAddr + 8, buf_stat.st_nlink, 2);
-            this->processorInstance.writeMem(retAddr + 10, buf_stat.st_uid, 2);
-            this->processorInstance.writeMem(retAddr + 12, buf_stat.st_gid, 2);
-            this->processorInstance.writeMem(retAddr + 14, buf_stat.st_rdev, 2);
-            this->processorInstance.writeMem(retAddr + 16, buf_stat.st_size, 4);
-            this->processorInstance.writeMem(retAddr + 20, buf_stat.st_atime, 4);
-            this->processorInstance.writeMem(retAddr + 28, buf_stat.st_mtime, 4);
-            this->processorInstance.writeMem(retAddr + 36, buf_stat.st_ctime, 4);
+            this->processorInstance.writeMem(retAddr, buf_stat.st_dev);
+            this->processorInstance.writeMem(retAddr + 2, buf_stat.st_ino);
+            this->processorInstance.writeMem(retAddr + 4, buf_stat.st_mode);
+            this->processorInstance.writeMem(retAddr + 8, buf_stat.st_nlink);
+            this->processorInstance.writeMem(retAddr + 10, buf_stat.st_uid);
+            this->processorInstance.writeMem(retAddr + 12, buf_stat.st_gid);
+            this->processorInstance.writeMem(retAddr + 14, buf_stat.st_rdev);
+            this->processorInstance.writeMem(retAddr + 16, buf_stat.st_size);
+            this->processorInstance.writeMem(retAddr + 20, buf_stat.st_atime);
+            this->processorInstance.writeMem(retAddr + 28, buf_stat.st_mtime);
+            this->processorInstance.writeMem(retAddr + 36, buf_stat.st_ctime);
 			#ifdef __GNUC__
-            this->processorInstance.writeMem(retAddr + 44, buf_stat.st_blksize, 4);
-            this->processorInstance.writeMem(retAddr + 48, buf_stat.st_blocks, 4);
+            this->processorInstance.writeMem(retAddr + 44, buf_stat.st_blksize);
+            this->processorInstance.writeMem(retAddr + 48, buf_stat.st_blocks);
 			#endif
         }
         this->processorInstance.setRetVal(ret);
@@ -406,20 +412,20 @@ template<class wordSize> class statSysCall : public SyscallCB<wordSize>{
         int ret = ::_stat((char *)pathname, &buf_stat);
         #endif
         if(ret >= 0 && retAddr != 0){
-            this->processorInstance.writeMem(retAddr, buf_stat.st_dev, 2);
-            this->processorInstance.writeMem(retAddr + 2, buf_stat.st_ino, 2);
-            this->processorInstance.writeMem(retAddr + 4, buf_stat.st_mode, 4);
-            this->processorInstance.writeMem(retAddr + 8, buf_stat.st_nlink, 2);
-            this->processorInstance.writeMem(retAddr + 10, buf_stat.st_uid, 2);
-            this->processorInstance.writeMem(retAddr + 12, buf_stat.st_gid, 2);
-            this->processorInstance.writeMem(retAddr + 14, buf_stat.st_rdev, 2);
-            this->processorInstance.writeMem(retAddr + 16, buf_stat.st_size, 4);
-            this->processorInstance.writeMem(retAddr + 20, buf_stat.st_atime, 4);
-            this->processorInstance.writeMem(retAddr + 28, buf_stat.st_mtime, 4);
-            this->processorInstance.writeMem(retAddr + 36, buf_stat.st_ctime, 4);
+            this->processorInstance.writeMem(retAddr, buf_stat.st_dev);
+            this->processorInstance.writeMem(retAddr + 2, buf_stat.st_ino);
+            this->processorInstance.writeMem(retAddr + 4, buf_stat.st_mode);
+            this->processorInstance.writeMem(retAddr + 8, buf_stat.st_nlink);
+            this->processorInstance.writeMem(retAddr + 10, buf_stat.st_uid);
+            this->processorInstance.writeMem(retAddr + 12, buf_stat.st_gid);
+            this->processorInstance.writeMem(retAddr + 14, buf_stat.st_rdev);
+            this->processorInstance.writeMem(retAddr + 16, buf_stat.st_size);
+            this->processorInstance.writeMem(retAddr + 20, buf_stat.st_atime);
+            this->processorInstance.writeMem(retAddr + 28, buf_stat.st_mtime);
+            this->processorInstance.writeMem(retAddr + 36, buf_stat.st_ctime);
             #ifdef __GNUC__
-            this->processorInstance.writeMem(retAddr + 44, buf_stat.st_blksize, 4);
-            this->processorInstance.writeMem(retAddr + 48, buf_stat.st_blocks, 4);
+            this->processorInstance.writeMem(retAddr + 44, buf_stat.st_blksize);
+            this->processorInstance.writeMem(retAddr + 48, buf_stat.st_blocks);
             #endif
         }
         this->processorInstance.setRetVal(ret);
@@ -471,13 +477,13 @@ template<class wordSize> class timesSysCall : public SyscallCB<wordSize>{
             buf.tms_stime = curSimTime;
             buf.tms_cutime = curSimTime;
             buf.tms_cstime = curSimTime;
-            this->processorInstance.writeMem(timesRetLoc, buf.tms_utime, 4);
+            this->processorInstance.writeMem(timesRetLoc, buf.tms_utime);
             timesRetLoc += 4;
-            this->processorInstance.writeMem(timesRetLoc, buf.tms_stime, 4);
+            this->processorInstance.writeMem(timesRetLoc, buf.tms_stime);
             timesRetLoc += 4;
-            this->processorInstance.writeMem(timesRetLoc, buf.tms_cutime, 4);
+            this->processorInstance.writeMem(timesRetLoc, buf.tms_cutime);
             timesRetLoc += 4;
-            this->processorInstance.writeMem(timesRetLoc, buf.tms_cstime, 4);
+            this->processorInstance.writeMem(timesRetLoc, buf.tms_cstime);
         }
         this->processorInstance.setRetVal(curSimTime);
         this->processorInstance.returnFromCall();
@@ -501,7 +507,7 @@ template<class wordSize> class timeSysCall : public SyscallCB<wordSize>{
         int t = callArgs[0];
         int ret = this->initialTime + (int)(sc_time_stamp().to_double()/1.0e+12);
         if (t != 0)
-            this->processorInstance.writeMem(t, ret, 4);
+            this->processorInstance.writeMem(t, ret);
         this->processorInstance.setRetVal(ret);
         this->processorInstance.returnFromCall();
         this->processorInstance.postCall();
@@ -526,7 +532,34 @@ template<class wordSize> class utimesSysCall : public SyscallCB<wordSize>{
     public:
     utimesSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     bool operator()(){
-        THROW_EXCEPTION("utimes syscall still have to be completed");
+        this->processorInstance.preCall();
+        //Lets get the system call arguments
+        std::vector< wordSize > callArgs = this->processorInstance.readArgs();
+
+        char pathname[256];
+        for(int i = 0; i < 256; i++){
+            pathname[i] = (char)this->processorInstance.readCharMem(callArgs[0] + i);
+            if(pathname[i] == '\x0')
+                break;
+        }
+
+        int ret = -1;
+        int timesAddr = callArgs[1];
+        if(timesAddr == 0){
+            ret = ::utimes((char *)pathname, NULL);
+        }
+        else{
+            struct timeval times[2];
+            times[0].tv_sec = this->processorInstance.readMem(timesAddr);
+            times[0].tv_usec = this->processorInstance.readMem(timesAddr + 4);
+            times[1].tv_sec = this->processorInstance.readMem(timesAddr + 8);
+            times[1].tv_usec = this->processorInstance.readMem(timesAddr + 12);
+            ret = ::utimes((char *)pathname, times);
+        }
+
+        this->processorInstance.setRetVal(ret);
+        this->processorInstance.returnFromCall();
+        this->processorInstance.postCall();
         return true;
     }
 };
@@ -535,7 +568,48 @@ template<class wordSize> class lstatSysCall : public SyscallCB<wordSize>{
     public:
     lstatSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
     bool operator()(){
-        THROW_EXCEPTION("lstat syscall still have to be completed");
+        this->processorInstance.preCall();
+        //Lets get the system call arguments
+        std::vector< wordSize > callArgs = this->processorInstance.readArgs();
+
+        #ifdef __GNUC__
+        struct stat buf_stat;
+        #else
+        struct _stat buf_stat;
+        #endif
+
+        char pathname[256];
+        for(int i = 0; i < 256; i++){
+            pathname[i] = (char)this->processorInstance.readCharMem(callArgs[0] + i);
+            if(pathname[i] == '\x0')
+                break;
+        }
+        int retAddr = callArgs[1];
+        #ifdef __GNUC__
+        int ret = ::lstat((char *)pathname, &buf_stat);
+        #else
+        int ret = ::_lstat((char *)pathname, &buf_stat);
+        #endif
+        if(ret >= 0 && retAddr != 0){
+            this->processorInstance.writeMem(retAddr, buf_stat.st_dev);
+            this->processorInstance.writeMem(retAddr + 2, buf_stat.st_ino);
+            this->processorInstance.writeMem(retAddr + 4, buf_stat.st_mode);
+            this->processorInstance.writeMem(retAddr + 8, buf_stat.st_nlink);
+            this->processorInstance.writeMem(retAddr + 10, buf_stat.st_uid);
+            this->processorInstance.writeMem(retAddr + 12, buf_stat.st_gid);
+            this->processorInstance.writeMem(retAddr + 14, buf_stat.st_rdev);
+            this->processorInstance.writeMem(retAddr + 16, buf_stat.st_size);
+            this->processorInstance.writeMem(retAddr + 20, buf_stat.st_atime);
+            this->processorInstance.writeMem(retAddr + 28, buf_stat.st_mtime);
+            this->processorInstance.writeMem(retAddr + 36, buf_stat.st_ctime);
+            #ifdef __GNUC__
+            this->processorInstance.writeMem(retAddr + 44, buf_stat.st_blksize);
+            this->processorInstance.writeMem(retAddr + 48, buf_stat.st_blocks);
+            #endif
+        }
+        this->processorInstance.setRetVal(ret);
+        this->processorInstance.returnFromCall();
+        this->processorInstance.postCall();
         return true;
     }
 };
@@ -683,9 +757,9 @@ template<class wordSize> class gettimeofdaySysCall : public SyscallCB<wordSize>{
             double curSimTime = sc_time_stamp().to_double();
             unsigned int tv_sec = (unsigned int)(curSimTime/1.0e+12);
             unsigned int tv_usec = (unsigned int)((curSimTime - tv_sec*1.0e+12)/1.0e+6);
-            this->processorInstance.writeMem(timesRetLoc, tv_sec, 4);
+            this->processorInstance.writeMem(timesRetLoc, tv_sec);
             timesRetLoc += 4;
-            this->processorInstance.writeMem(timesRetLoc, tv_usec, 4);
+            this->processorInstance.writeMem(timesRetLoc, tv_usec);
         }
         this->processorInstance.setRetVal(0);
         this->processorInstance.returnFromCall();
@@ -821,7 +895,7 @@ template<class wordSize> class mainSysCall : public SyscallCB<wordSize>{
         unsigned int argNumAddr = OSEmulatorBase::heapPointer;
         std::vector<std::string>::iterator argsIter, argsEnd;
         for(argsIter = OSEmulatorBase::programArgs.begin(), argsEnd = OSEmulatorBase::programArgs.end(); argsIter != argsEnd; argsIter++){
-            this->processorInstance.writeMem(argNumAddr, argAddr, 4);
+            this->processorInstance.writeMem(argNumAddr, argAddr);
             argNumAddr += 4;
             for(unsigned int i = 0; i < argsIter->size(); i++){
                 this->processorInstance.writeCharMem(argAddr + i, argsIter->c_str()[i]);
@@ -829,7 +903,7 @@ template<class wordSize> class mainSysCall : public SyscallCB<wordSize>{
             this->processorInstance.writeCharMem(argAddr + argsIter->size(), 0);
             argAddr += argsIter->size() + 1;
         }
-        this->processorInstance.writeMem(argNumAddr, 0, 4);
+        this->processorInstance.writeMem(argNumAddr, 0);
 
         mainArgs.push_back(OSEmulatorBase::programArgs.size());
         mainArgs.push_back(OSEmulatorBase::heapPointer);
@@ -1010,5 +1084,7 @@ template<class wordSize> class sysconfSysCall : public SyscallCB<wordSize>{
         return true;
     }
 };
+
+}
 
 #endif

@@ -216,7 +216,7 @@ class Folder:
 
     def createWscript(self, configure, tests, projectName, version):
         wscriptFile = open('wscript', 'wt')
-        printOnFile('#!/usr/bin/env python\n', wscriptFile)
+        printOnFile('#!/usr/bin/env python', wscriptFile)
         printOnFile('# -*- coding: iso-8859-1 -*-\n', wscriptFile)
         if configure:
             printOnFile('import sys, Options\n', wscriptFile)
@@ -247,7 +247,7 @@ class Folder:
                         printOnFile('        ' + codeFile.name, wscriptFile)
                 printOnFile('    \"\"\"', wscriptFile)
                 if tests:
-                    printOnFile('    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM BOOST_THREAD SYSTEMC TLM TRAP\'', wscriptFile)
+                    printOnFile('    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM BOOST_THREAD SYSTEMC TLM TRAP BFD LIBERTY\'', wscriptFile)
                 else:
                     printOnFile('    obj.uselib = \'BOOST BOOST_FILESYSTEM BOOST_THREAD SYSTEMC TLM TRAP\'', wscriptFile)
 
@@ -307,6 +307,23 @@ class Folder:
         conf.env['STLINKFLAGS'] = conf.env['STLINKFLAGS'].split(' ')
     if type(conf.env['RPATH']) == type(''):
         conf.env['RPATH'] = conf.env['RPATH'].split(' ')
+
+    ##############################################################
+    # Since I want to build fast simulators, if the user didn't
+    # specify any flags I set optimized flags
+    #############################################################
+    if not conf.env['CXXFLAGS'] and not conf.env['CCFLAGS']:
+        testFlags = ['-O2', '-march=native', '-pipe', '-finline-functions', '-ftracer', '-fomit-frame-pointer']
+        if conf.check_cxx(cxxflags=testFlags, msg='Checking for optimization flags') and conf.check_cc(cflags=testFlags, msg='Checking for optimization flags'):
+            conf.env.append_unique('CXXFLAGS', testFlags)
+            conf.env.append_unique('CCFLAGS', testFlags)
+            conf.env.append_unique('CPPFLAGS', '-DNDEBUG')
+        else:
+            testFlags = ['-O2', '-pipe', '-finline-functions', '-fomit-frame-pointer']
+            if conf.check_cxx(cxxflags=testFlags, msg='Checking for optimization flags') and conf.check_cc(cflags=testFlags, msg='Checking for optimization flags'):
+                conf.env.append_unique('CXXFLAGS', testFlags)
+                conf.env.append_unique('CCFLAGS', testFlags)
+                conf.env.append_unique('CPPFLAGS', '-DNDEBUG')
 
     #######################################################
     # Determining gcc search dirs
@@ -396,16 +413,16 @@ class Folder:
         conf.env.append_unique('CPPFLAGS','/D_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1')
         conf.env.append_unique('CPPFLAGS','/D_CRT_SECURE_NO_WARNINGS=1')
 
-    if conf.env['CPPFLAGS']:
-        conf.check_cc(cflags=conf.env['CPPFLAGS'], mandatory=1)
-    if conf.env['CCFLAGS']:
-        conf.check_cc(cflags=conf.env['CCFLAGS'], mandatory=1)
-    if conf.env['CXXFLAGS']:
-        conf.check_cxx(cxxflags=conf.env['CXXFLAGS'], mandatory=1)
-    if conf.env['LINKFLAGS']:
-        conf.check_cxx(linkflags=conf.env['LINKFLAGS'], mandatory=1)
-    if conf.env['STLINKFLAGS']:
-        conf.check_cxx(linkflags=conf.env['STLINKFLAGS'], mandatory=1)
+    for flag in conf.env['CPPFLAGS']:
+        conf.check_cc(cflags=flag, mandatory=1)
+    for flag in conf.env['CCFLAGS']:
+        conf.check_cc(cflags=flag, mandatory=1)
+    for flag in conf.env['CXXFLAGS']:
+        conf.check_cxx(cxxflags=flag, mandatory=1)
+    for flag in conf.env['LINKFLAGS']:
+        conf.check_cxx(linkflags=flag, mandatory=1)
+    for flag in conf.env['STLINKFLAGS']:
+        conf.check_cxx(linkflags=flag, mandatory=1)
 
     ########################################
     # Setting the host endianess
@@ -460,7 +477,7 @@ class Folder:
         for bfdlib in foundStatic:
             if bfdlib in foundShared:
                 bfd_lib_name = bfdlib
-            break
+                break
         if not bfd_lib_name:
             if foundShared:
                 bfd_lib_name = foundShared[0]
@@ -468,8 +485,8 @@ class Folder:
                 bfd_lib_name = foundStatic[0]
 
         if Options.options.static_build:
-            conf.check_cc(lib='iberty', uselib_store='LIBERTY', mandatory=1, libpath=searchDirs)
-        conf.check_cc(lib=bfd_lib_name, uselib_store='BFD', mandatory=1, libpath=searchDirs)
+            conf.check_cc(lib='iberty', uselib_store='LIBERTY', mandatory=1, libpath=searchDirs, errmsg='not found, use --with-bfd option')
+        conf.check_cc(lib=bfd_lib_name, uselib_store='BFD', mandatory=1, libpath=searchDirs, errmsg='not found, use --with-bfd option')
         if Options.options.bfddir and foundShared:
             conf.env.append_unique('RPATH', os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'lib')))))
         if Options.options.bfddir:
@@ -504,44 +521,6 @@ class Folder:
         pthread_uselib = []
 
     ##################################################
-    # Check for TRAP runtime libraries and headers
-    ##################################################
-    trapDirLib = ''
-    trapDirInc = ''
-    if Options.options.trapdir:
-        trapDirLib = os.path.abspath(os.path.expandvars(os.path.expanduser(os.path.join(Options.options.trapdir, 'lib'))))
-        trapDirInc = os.path.abspath(os.path.expandvars(os.path.expanduser(os.path.join(Options.options.trapdir, 'include'))))
-        conf.check_cxx(lib='trap', uselib_store='TRAP', mandatory=1, libpath=trapDirLib)
-        conf.check_cxx(header_name='trap.hpp', uselib='TRAP', uselib_store='TRAP', mandatory=1, includes=trapDirInc)
-        conf.check_cxx(fragment='''
-            #include "trap.hpp"
-
-            #ifndef TRAP_REVISION
-            #error TRAP_REVISION not defined in file trap.hpp
-            #endif
-
-            #if TRAP_REVISION < 419
-            #error Wrong version of the TRAP runtime: too old
-            #endif
-            int main(int argc, char * argv[]){return 0;}
-        ''', msg='Check for TRAP version', uselib='TRAP', mandatory=1, includes=trapDirInc)
-    else:
-        conf.check_cxx(lib='trap', uselib_store='TRAP', mandatory=1)
-        conf.check_cxx(header_name='trap.hpp', uselib='TRAP', uselib_store='TRAP', mandatory=1)
-        conf.check_cxx(fragment='''
-            #include "trap.hpp"
-
-            #ifndef TRAP_REVISION
-            #error TRAP_REVISION not defined in file trap.hpp
-            #endif
-
-            #if TRAP_REVISION < 63
-            #error Wrong version of the TRAP runtime: too old
-            #endif
-            int main(int argc, char * argv[]){return 0;}
-        ''', msg='Check for TRAP version', uselib='TRAP', mandatory=1)
-
-    ##################################################
     # Is SystemC compiled? Check for SystemC library
     # Notice that we can't rely on lib-linux, therefore I have to find the actual platform...
     ##################################################
@@ -564,7 +543,7 @@ class Folder:
             sysclib = [os.path.abspath(os.path.join(syscpath[0], '..', 'msvc71', 'SystemC', 'Release'))]
         else:
             sysclib = glob.glob(os.path.join(os.path.abspath(os.path.join(syscpath[0], '..')), 'lib-*'))
-    conf.check_cxx(lib='systemc', uselib_store='SYSTEMC', mandatory=1, libpath=sysclib)
+    conf.check_cxx(lib='systemc', uselib_store='SYSTEMC', mandatory=1, libpath=sysclib, errmsg='not found, use --with-systemc option')
 
     if not os.path.exists(os.path.join(syscpath[0] , 'sysc' , 'qt')):
         conf.env.append_unique('CPPFLAGS', '-DSC_USE_PTHREADS')
@@ -572,7 +551,7 @@ class Folder:
     ##################################################
     # Check for SystemC header and test the library
     ##################################################
-    conf.check_cxx(header_name='systemc.h', uselib='SYSTEMC', uselib_store='SYSTEMC', mandatory=1, includes=syscpath)
+    conf.check_cxx(header_name='systemc.h', uselib='SYSTEMC', uselib_store='SYSTEMC', mandatory=1, includes=syscpath, errmsg='not found, use --with-systemc option')
     conf.check_cxx(fragment='''
         #include <systemc.h>
 
@@ -591,7 +570,7 @@ class Folder:
                 return 0;
             };
         }
-    ''', msg='Check for SystemC version (2.2.0 or greater required)', uselib='SYSTEMC', mandatory=1)
+    ''', msg='Check for SystemC version', uselib='SYSTEMC', mandatory=1, errmsg='Error, at least version 2.2.0 required')
 
     ##################################################
     # Check for TLM header
@@ -605,7 +584,7 @@ class Folder:
         tlmPath = os.path.join(tlmPath, 'include')
     tlmPath = [os.path.join(tlmPath, 'tlm')]
 
-    conf.check_cxx(header_name='tlm.h', uselib='SYSTEMC', uselib_store='TLM', mandatory=1, includes=tlmPath)
+    conf.check_cxx(header_name='tlm.h', uselib='SYSTEMC', uselib_store='TLM', mandatory=1, includes=tlmPath, errmsg='not found, use --with-tlm option')
     conf.check_cxx(fragment='''
         #include <systemc.h>
         #include <tlm.h>
@@ -627,7 +606,48 @@ class Folder:
         extern "C" int sc_main(int argc, char **argv){
             return 0;
         }
-    ''', msg='Check for TLM version (2.0 or greater required)', uselib='SYSTEMC TLM', mandatory=1)
+    ''', msg='Check for TLM version', uselib='SYSTEMC TLM', mandatory=1, errmsg='Error, at least version 2.0 required')
+
+    ##################################################
+    # Check for TRAP runtime libraries and headers
+    ##################################################
+    trapDirLib = ''
+    trapDirInc = ''
+    if Options.options.trapdir:
+        trapDirLib = os.path.abspath(os.path.expandvars(os.path.expanduser(os.path.join(Options.options.trapdir, 'lib'))))
+        trapDirInc = os.path.abspath(os.path.expandvars(os.path.expanduser(os.path.join(Options.options.trapdir, 'include'))))
+        conf.check_cxx(lib='trap', uselib='BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM BFD SYSTEMC', uselib_store='TRAP', mandatory=1, libpath=trapDirLib, errmsg='not found, use --with-trap option')
+        foundShared = glob.glob(os.path.join(trapDirLib, conf.env['shlib_PATTERN'].split('%s')[0] + 'trap' + conf.env['shlib_PATTERN'].split('%s')[1]))
+        if foundShared:
+            conf.env.append_unique('RPATH', conf.env['LIBPATH_TRAP'])
+        conf.check_cxx(header_name='trap.hpp', uselib='TRAP BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM BFD SYSTEMC', uselib_store='TRAP', mandatory=1, includes=trapDirInc)
+        conf.check_cxx(fragment='''
+            #include "trap.hpp"
+
+            #ifndef TRAP_REVISION
+            #error TRAP_REVISION not defined in file trap.hpp
+            #endif
+
+            #if TRAP_REVISION < 420
+            #error Wrong version of the TRAP runtime: too old
+            #endif
+            int main(int argc, char * argv[]){return 0;}
+        ''', msg='Check for TRAP version', uselib='TRAP BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM BFD SYSTEMC', mandatory=1, includes=trapDirInc, errmsg='Error, at least revision 420 required')
+    else:
+        conf.check_cxx(lib='trap', uselib='BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM BFD SYSTEMC', uselib_store='TRAP', mandatory=1, errmsg='not found, use --with-trap option')
+        conf.check_cxx(header_name='trap.hpp', uselib='BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM BFD SYSTEMC TRAP', uselib_store='TRAP', mandatory=1)
+        conf.check_cxx(fragment='''
+            #include "trap.hpp"
+
+            #ifndef TRAP_REVISION
+            #error TRAP_REVISION not defined in file trap.hpp
+            #endif
+
+            #if TRAP_REVISION < 420
+            #error Wrong version of the TRAP runtime: too old
+            #endif
+            int main(int argc, char * argv[]){return 0;}
+        ''', msg='Check for TRAP version', uselib='TRAP BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM BFD SYSTEMC', mandatory=1, errmsg='Error, at least revision 420 required')
 
 """, wscriptFile)
             # Finally now I can add the options
