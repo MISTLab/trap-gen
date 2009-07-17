@@ -43,6 +43,6 @@
 #ifndef TRAP_HPP
 #define TRAP_HPP
 
-#define TRAP_REVISION 420
+#define TRAP_REVISION 492
 
 #endif
