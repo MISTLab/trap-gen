@@ -303,9 +303,11 @@ branch_Instr.setMachineCode(branch, {}, 'TODO')
 branch_Instr.setCode(opCode, 'execute')
 branch_Instr.addBehavior(IncrementPC, 'fetch')
 branch_Instr.addBehavior(condCheckOp, 'execute')
-branch_Instr.addTest({'cond': 0xe, 'l': 0, 'offset': 0x400}, {'PC': 0x00445560, 'LINKR': 8}, {'PC': 0x00446560, 'LINKR': 8})
+#branch_Instr.addTest({'cond': 0xe, 'l': 0, 'offset': 0x400}, {'PC': 0x00445560, 'LINKR': 8}, {'PC': 0x00446560, 'LINKR': 8})
+branch_Instr.addTest({'cond': 0xe, 'l': 0, 'offset': 0x000400}, {'PC': 0x00445560, 'LINKR': 8}, {'PC': 0x00446560, 'LINKR': 8})
 branch_Instr.addTest({'cond': 0xe, 'l': 1, 'offset': 0x400}, {'PC': 0x00445560, 'LINKR': 8}, {'PC': 0x00446560, 'LINKR': 0x0044555C})
 isa.addInstruction(branch_Instr)
+
 opCode = cxx_writer.writer_code.Code("""
 // Note how the T bit is not considered since we do not bother with
 // thumb mode
@@ -457,8 +459,8 @@ cmn_imm_Instr.setCode(opCode, 'execute')
 cmn_imm_Instr.addBehavior(IncrementPC, 'fetch')
 cmn_imm_Instr.addBehavior(condCheckOp, 'execute')
 cmn_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
-cmn_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rotate': 0x00000000, 'immediate': 3   }, {'CPSR': 0x20000000, 'CPSR' : 0x00000000,'REGS[9]': 3}, {'CPSR': 0x00000000})
-cmn_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rotate': 0xe       , 'immediate': 0x3f}, {'CPSR': 0x60000000, 'CPSR' : 0x00000000,'REGS[9]': 3}, {'CPSR': 0x00000000})
+cmn_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rotate': 0x00000000, 'immediate': 3   }, {'CPSR': 0x20000000, 'REGS[9]': 3}, {'CPSR': 0x00000000})
+cmn_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rotate': 0xe       , 'immediate': 0x3f}, {'CPSR': 0x60000000, 'REGS[9]': 3}, {'CPSR': 0x00000000})
 isa.addInstruction(cmn_imm_Instr)
 
 # CMP instruction family
@@ -543,8 +545,8 @@ cmp_imm_Instr.setCode(opCode, 'execute')
 cmp_imm_Instr.addBehavior(IncrementPC, 'fetch')
 cmp_imm_Instr.addBehavior(condCheckOp, 'execute')
 cmp_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
-#cmp_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rotate': 0x00000000, 'immediate': 3   }, {'CPSR': 0x20000000, 'CPSR' : 0x00000000,'REGS[9]': 3}, {'CPSR': 0x00000000})
-#cmp_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rotate': 0xe       , 'immediate': 0x3f}, {'CPSR': 0x60000000, 'CPSR' : 0x00000000,'REGS[9]': 3}, {'CPSR': 0x00000000})
+cmp_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rotate': 0x00000000, 'immediate': 0x00000003}, {'CPSR': 0x00000000, 'REGS[9]': 0x00000003}, {'CPSR': 0x60000000})
+cmp_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rotate': 0x0000000e, 'immediate': 0x0000003f}, {'CPSR': 0x00000000, 'REGS[9]': 0x000003f0}, {'CPSR': 0x60000000})
 isa.addInstruction(cmp_imm_Instr)
 # EOR instruction family
 opCode = cxx_writer.writer_code.Code("""
@@ -573,6 +575,7 @@ eor_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 's
 eor_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 3}, {'CPSR' : 0x20000000, 'REGS[9]': 3, 'REGS[8]': 0xffffffff}, {'REGS[10]': 0xfffffffc})
 eor_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 16, 'shift_op': 3}, {'REGS[9]': 3, 'REGS[8]': 0x00020020}, {'REGS[10]': 0x00200001})
 isa.addInstruction(eor_shift_imm_Instr)
+
 eor_shift_reg_Instr = trap.Instruction('EOR_sr', True, frequency = 4)
 eor_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [0, 0, 0, 1]}, 'TODO')
 eor_shift_reg_Instr.setCode(opCode, 'execute')
@@ -582,7 +585,48 @@ eor_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
 eor_shift_reg_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 eor_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
 eor_shift_reg_Instr.addVariable(('result', 'BIT<32>'))
+#if ConditionPassed(cond) then
+#    Rd = Rn EOR shifter_operand
+eor_shift_reg_Instr.addTest({'cond' : 0xe, 's': 1, 'rn': 9, 'rd' : 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'REGS[0]': 0x00000000, 'REGS[9]': 0x0000ffff, 'REGS[8]': 0x00000f0f, 'REGS[10]' : 0x00000000}, 
+                            {'REGS[10]':0x0000f0f0})
+#if ConditionPassed(cond) then
+#    Rd = Rn EOR shifter_operand
+#    if S == 1 and Rd == R15 then
+#        CPSR = SPSR
+#eor_shift_reg_Instr.addTest({'cond' : 0xe, 's': 1, 'rn': 9, 'rd' : 15, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+#                            {'CPSR' : 0x40000000, 'SPSR' : 0x20000000}, 
+#                            {'CPSR' : 0x20000000, 'SPSR' : 0x20000000})
+#    else if S == 1 then
+#       Normal case
+eor_shift_reg_Instr.addTest({'cond' : 0xe, 's': 1, 'rn': 9, 'rd' : 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'REGS[0]': 0x00000000, 'REGS[9]': 0xffffabcd, 'REGS[8]': 0xffff0000, 'REGS[10]' : 0x00000000}, 
+                            {'REGS[10]':0x0000abcd})
+#       N Flag = Rd[31]
+eor_shift_reg_Instr.addTest({'cond' : 0xe, 's': 1, 'rn': 9, 'rd' : 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x00000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0xf0000000, 'REGS[8]': 0x70000000, 'REGS[10]' : 0x00000000}, 
+                            {'CPSR' : 0x80000000, 'REGS[10]':0x80000000})
+#       Z Flag = if Rd == 0 then 1 else 0
+eor_shift_reg_Instr.addTest({'cond' : 0xe, 's': 1, 'rn': 9, 'rd' : 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x00000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000000, 'REGS[8]': 0x00000000, 'REGS[10]' : 0x00000000}, 
+                            {'CPSR' : 0x40000000, 'REGS[10]':0x00000000})
+#       C Flag = shifter_carry_out (Exp: Logic shift left by register shifter_carry_out = C Flag)
+eor_shift_reg_Instr.addTest({'cond' : 0xe, 's': 1, 'rn': 9, 'rd' : 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x20000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000000, 'REGS[8]': 0x00000000, 'REGS[10]' : 0x00000000}, 
+                            {'CPSR' : 0x60000000, 'REGS[10]':0x00000000})
+#       V Flag = unaffected
+eor_shift_reg_Instr.addTest({'cond' : 0xe, 's': 1, 'rn': 9, 'rd' : 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x10000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0xffffabcd, 'REGS[8]': 0xffff0000, 'REGS[10]' : 0x00000000}, 
+                            {'CPSR' : 0x10000000, 'REGS[10]':0x0000abcd})
+        
+#    end if
+#else
+eor_shift_reg_Instr.addTest({'cond' : 0x0, 's': 1, 'rn': 9, 'rd' : 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x20000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x0000ffff, 'REGS[8]': 0x00000f0f, 'REGS[10]' : 0x00000000}, 
+                            {'CPSR' : 0x20000000, 'REGS[10]':0x00000000})
+#end if 
 isa.addInstruction(eor_shift_reg_Instr)
+
 eor_imm_Instr = trap.Instruction('EOR_i', True, frequency = 4)
 eor_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [0, 0, 0, 1]}, 'TODO')
 eor_imm_Instr.setCode(opCode, 'execute')
@@ -592,8 +636,48 @@ eor_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
 eor_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 eor_imm_Instr.addBehavior(UpdatePC, 'execute', False)
 eor_imm_Instr.addVariable(('result', 'BIT<32>'))
-isa.addInstruction(eor_imm_Instr)
 
+
+#if ConditionPassed(cond) then
+#    Rd = Rn EOR shifter_operand
+eor_imm_Instr.addTest({'cond' : 0xe, 's': 1, 'rn': 9, 'rd' : 10, 'rotate': 0x00000000, 'immediate': 0x0000000f}, 
+                      {'REGS[9]': 0x0000ffff,'REGS[10]' : 0x00000000}, 
+                      {'REGS[10]':0x0000fff0})
+#if ConditionPassed(cond) then
+#    Rd = Rn EOR shifter_operand
+#    if S == 1 and Rd == R15 then
+#        CPSR = SPSR
+#eor_shift_reg_Instr.addTest({'cond' : 0xe, 's': 1, 'rn': 9, 'rd' : 15, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+#                            {'CPSR' : 0x40000000, 'SPSR' : 0x20000000}, 
+#                            {'CPSR' : 0x20000000, 'SPSR' : 0x20000000})
+#    else if S == 1 then
+#       Normal case
+eor_imm_Instr.addTest({'cond' : 0xe, 's': 1, 'rn': 9, 'rd' : 10, 'rotate': 0x00000000, 'immediate': 0x00000001}, 
+                      {'REGS[9]': 0x0000ffff,'REGS[10]' : 0x00000000}, 
+                      {'REGS[10]':0x0000fffe})
+#       N Flag = Rd[31]
+eor_imm_Instr.addTest({'cond' : 0xe, 's': 1, 'rn': 9, 'rd' : 10, 'rotate': 0x00000000, 'immediate': 0x00000000}, 
+                      {'CPSR' : 0x00000000, 'REGS[9]': 0xf0000000,'REGS[10]' : 0x00000000}, 
+                      {'CPSR' : 0x80000000, 'REGS[10]':0xf0000000})
+#       Z Flag = if Rd == 0 then 1 else 0
+eor_imm_Instr.addTest({'cond' : 0xe, 's': 1, 'rn': 9, 'rd' : 10, 'rotate': 0x00000000, 'immediate': 0x00000000}, 
+                      {'CPSR' : 0x00000000, 'REGS[9]': 0x00000000,'REGS[10]' : 0x00000000}, 
+                      {'CPSR' : 0x40000000, 'REGS[10]':0x00000000})
+#       C Flag = shifter_carry_out (Exp: Logic shift left by register shifter_carry_out = C Flag)
+eor_imm_Instr.addTest({'cond' : 0xe, 's': 1, 'rn': 9, 'rd' : 10, 'rotate': 0x00000000, 'immediate': 0x00000000}, 
+                      {'CPSR' : 0x20000000, 'REGS[9]': 0x00000000, 'REGS[10]' : 0x00000000}, 
+                      {'CPSR' : 0x60000000, 'REGS[10]':0x00000000})
+#       V Flag = unaffected
+eor_imm_Instr.addTest({'cond' : 0xe, 's': 1, 'rn': 9, 'rd' : 10, 'rotate': 0x00000000, 'immediate': 0x00000000}, 
+                      {'CPSR' : 0x10000000, 'REGS[9]': 0x000000cd, 'REGS[10]' : 0x00000000}, 
+                      {'CPSR' : 0x10000000, 'REGS[10]':0x000000cd})
+#    end if
+#else
+eor_imm_Instr.addTest({'cond' : 0x0, 's': 1, 'rn': 9, 'rd' : 10, 'rotate': 0x00000000, 'immediate': 0x00000000}, 
+                      {'CPSR' : 0x20000000, 'REGS[9]': 0x0000ffff, 'REGS[8]': 0x0000000f, 'REGS[10]' : 0x00000000}, 
+                      {'CPSR' : 0x20000000, 'REGS[10]':0x00000000})
+#end if 
+isa.addInstruction(eor_imm_Instr)
 # LDM instruction family
 opCode = cxx_writer.writer_code.Code("""
 unsigned int numRegsToLoad = 0;
@@ -784,7 +868,7 @@ ldr_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 's
 ldr_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'dataMem[0x08]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x08})
 isa.addInstruction(ldr_off_Instr)
 
-# LDRB instruction family
+# LDRB instruction family [B = 1 ; L = 1]
 # Normal load instruction
 opCode = cxx_writer.writer_code.Code("""
 rd = dataMem.read_byte(address);
@@ -796,6 +880,23 @@ ldrb_imm_Instr.setCode(opCode, 'execute')
 ldrb_imm_Instr.addBehavior(IncrementPC, 'fetch')
 ldrb_imm_Instr.addBehavior(condCheckOp, 'execute')
 ldrb_imm_Instr.addBehavior(ls_imm_Op, 'execute')
+#Load Register Byte(LDRB): immediate offset address mode [I = 0]
+
+#1 - Immediate offset post-indexed
+ldrb_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0}, {'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrb_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0}, {'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrb_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x18})
+ldrb_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x08})
+#2 - Immediate offset pre-indexed addressing
+ldrb_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0}, {'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrb_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0}, {'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrb_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0}, {'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrb_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0}, {'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrb_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'dataMem[0x18]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrb_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'dataMem[0x08]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrb_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'dataMem[0x18]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x18})
+ldrb_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'dataMem[0x08]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x08})
+
 isa.addInstruction(ldrb_imm_Instr)
 ldrb_off_Instr = trap.Instruction('LDRB_off', True, frequency = 4)
 ldrb_off_Instr.setMachineCode(ls_regOff, {'b': [1], 'l': [1]}, 'TODO')
@@ -803,7 +904,34 @@ ldrb_off_Instr.setCode(opCode, 'execute')
 ldrb_off_Instr.addBehavior(IncrementPC, 'fetch')
 ldrb_off_Instr.addBehavior(condCheckOp, 'execute')
 ldrb_off_Instr.addBehavior(ls_reg_Op, 'execute')
+#Load Register Byte(LDRB):  scaled/register offset address mode
+ldrb_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrb_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrb_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x18})
+ldrb_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x08})
+ldrb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'dataMem[0x18]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'dataMem[0x08]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'dataMem[0x18]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x18})
+ldrb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'dataMem[0x08]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x08})
+
+ldrb_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrb_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrb_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x18})
+ldrb_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x08})
+ldrb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'dataMem[0x18]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'dataMem[0x08]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'dataMem[0x18]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x18})
+ldrb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'dataMem[0x08]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x08})
 isa.addInstruction(ldrb_off_Instr)
+
 # LDRH instruction family
 opCode = cxx_writer.writer_code.Code("""
 rd = dataMem.read_half(address);
@@ -816,6 +944,7 @@ ldrh_off_Instr.addBehavior(IncrementPC, 'fetch')
 ldrh_off_Instr.addBehavior(condCheckOp, 'execute')
 ldrh_off_Instr.addBehavior(ls_sh_Op, 'execute')
 isa.addInstruction(ldrh_off_Instr)
+
 # LDRS H/B instruction family
 opCode = cxx_writer.writer_code.Code("""
 rd = dataMem.read_half(address);
