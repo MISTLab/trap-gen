@@ -969,7 +969,9 @@ ldrsb_off_Instr.addBehavior(condCheckOp, 'execute')
 ldrsb_off_Instr.addBehavior(ls_sh_Op, 'execute')
 isa.addInstruction(ldrsb_off_Instr)
 
-# Mutiply instruction family
+#--------------------------- 
+#Mutiply instruction family
+#---------------------------
 opCode = cxx_writer.writer_code.Code("""
 rd = ((int)rm * (int)rs) + (int)REGS[rn];
 
@@ -992,8 +994,48 @@ mla_Instr.setCode(opCode, 'execute')
 mla_Instr.addBehavior(IncrementPC, 'fetch')
 mla_Instr.addBehavior(condCheckOp, 'execute')
 mla_Instr.addBehavior(UpdatePSRmul, 'execute', False)
+
+# Operation
+#if ConditionPassed(cond) then
+#   Rd = (Rm * Rs + Rn)[31:0]
+#   if S == 1 then
+#       N Flag = Rd[31]
+#       Z Flag = if Rd == 0 then 1 else 0
+#       C Flag = unaffected
+#       V Flag = unaffected
+mla_Instr.addTest({'cond' : 0xe, 's': 0, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'REGS[10]' :0x00000000,'REGS[9]' : 0x00000001,'REGS[8]' : 0x00000002,'REGS[7]' : 0x00000002}, 
+                  {'REGS[10]' :0x00000005})
+
+mla_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'REGS[10]' :0x00000000,'REGS[9]' : 0x00000001,'REGS[8]' : 0x00000002,'REGS[7]' : 0x00000002}, 
+                  {'REGS[10]' :0x00000005})
+
+mla_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x00000000,'REGS[10]' :0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0xffffffff,'REGS[7]' : 0x00000001}, 
+                  {'CPSR': 0x80000000,'REGS[10]' :0xffffffff})
+
+mla_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x00000000,'REGS[10]' :0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0x00000000,'REGS[7]' : 0x00000000}, 
+                  {'CPSR': 0x40000000,'REGS[10]' :0x00000000})
+
+mla_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x10000000,'REGS[10]' :0x00000000,'REGS[9]' : 0x00000001,'REGS[8]' : 0x00000002,'REGS[7]' : 0x00000002}, 
+                  {'CPSR': 0x10000000})
+
+mla_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x20000000,'REGS[10]' :0x00000000,'REGS[9]' : 0x00000001,'REGS[8]' : 0x00000002,'REGS[7]' : 0x00000002}, 
+                  {'CPSR': 0x20000000})
+#else 
+mla_Instr.addTest({'cond' : 0x0, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x20000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000001,'REGS[8]' : 0x00000002,'REGS[7]' : 0x00000002}, 
+                  {'CPSR': 0x20000000, 'REGS[10]':0x00000000})
+#end if
 isa.addInstruction(mla_Instr)
 
+#-------------------
+# MUL instruction
+#-------------------
 opCode = cxx_writer.writer_code.Code("""
 rd = (int)rm * (int)rs;
 
@@ -1016,8 +1058,46 @@ mul_Instr.setCode(opCode, 'execute')
 mul_Instr.addBehavior(IncrementPC, 'fetch')
 mul_Instr.addBehavior(condCheckOp, 'execute')
 mul_Instr.addBehavior(UpdatePSRmul, 'execute', False)
-isa.addInstruction(mul_Instr)
+# Operation
+#if ConditionPassed(cond) then
+#   Rd = (Rm * Rs)[31:0]
+#   if S == 1 then
+#       N Flag = Rd[31]
+#       Z Flag = if Rd == 0 then 1 else 0
+#       C Flag = unaffected
+#       V Flag = unaffected
+mul_Instr.addTest({'cond' : 0xe, 's': 0, 'rd' : 10, 'rm': 9, 'rs': 8}, 
+                  {'REGS[10]' :0x00000000,'REGS[9]' : 0x00000002,'REGS[8]' : 0x00000002}, 
+                  {'REGS[10]' :0x00000004})
 
+mul_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rm': 9, 'rs': 8}, 
+                  {'REGS[10]' :0x00000000,'REGS[9]' : 0x00000002,'REGS[8]' : 0x00000002}, 
+                  {'REGS[10]' :0x00000004})
+
+mul_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rm': 9, 'rs': 8}, 
+                  {'CPSR': 0x00000000,'REGS[10]' :0x00000000,'REGS[9]' : 0xffffffff,'REGS[8]' : 0x00000001}, 
+                  {'CPSR': 0x80000000,'REGS[10]' :0xffffffff})
+
+mul_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10,'rm': 9, 'rs': 8}, 
+                  {'CPSR': 0x00000000,'REGS[10]' :0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0x00000000}, 
+                  {'CPSR': 0x40000000,'REGS[10]' :0x00000000})
+
+mul_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10,'rm': 9, 'rs': 8}, 
+                  {'CPSR': 0x10000000,'REGS[10]' :0x00000000,'REGS[9]' : 0x00000002,'REGS[8]' : 0x00000002}, 
+                  {'CPSR': 0x10000000})
+
+mul_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10,'rm': 9, 'rs': 8}, 
+                  {'CPSR': 0x20000000,'REGS[10]' :0x00000000,'REGS[9]' : 0x00000002,'REGS[8]' : 0x00000002}, 
+                  {'CPSR': 0x20000000})
+#else 
+mul_Instr.addTest({'cond' : 0x0, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x20000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000001,'REGS[8]' : 0x00000002,'REGS[7]' : 0x00000002}, 
+                  {'CPSR': 0x20000000, 'REGS[10]':0x00000000})
+#end if
+isa.addInstruction(mul_Instr)
+#-------------------
+# SMLAL instruction
+#-------------------
 opCode = cxx_writer.writer_code.Code("""
 //Perform the operation
 long long result = (long long)((((long long)(((long long)((int)rm)) * ((long long)((int)rs)))) + (((long long)rd) << 32)) + (int)REGS[rn]);
@@ -1044,6 +1124,16 @@ smlal_Instr.setCode(opCode, 'execute')
 smlal_Instr.addBehavior(IncrementPC, 'fetch')
 smlal_Instr.addBehavior(condCheckOp, 'execute')
 smlal_Instr.addBehavior(UpdatePSRmul, 'execute', False)
+#Operation
+#if ConditionPassed(cond) then
+#    RdLo = (Rm * Rs)[31:0] + RdLo /* Signed multiplication */
+#    RdHi = (Rm * Rs)[63:32] + RdHi + CarryFrom((Rm * Rs)[31:0] + RdLo)
+#    if S == 1 then
+#        N Flag = RdHi[31]
+#        Z Flag = if (RdHi == 0) and (RdLo == 0) then 1 else 0
+#        C Flag = unaffected    /* See "C and V flags" note */
+#        V Flag = unaffected    /* See "C and V flags" note */
+
 isa.addInstruction(smlal_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
