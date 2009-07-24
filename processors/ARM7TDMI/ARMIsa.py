@@ -1204,8 +1204,8 @@ smull_Instr.addTest({'cond' : 0xe, 's': 0, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7
 #        C Flag = unaffected
 #        V Flag = unaffected
 smull_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
-                  {'CPSR': 0x00000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0xf0000000,'REGS[7]' : 0x00000008}, 
-                  {'CPSR': 0x80000000, 'REGS[10]': 0x00000007,'REGS[9]' : 0x80000000})
+                  {'CPSR': 0x00000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0xfffffffe,'REGS[7]' : 0x00000008}, 
+                  {'CPSR': 0x80000000, 'REGS[10]': 0xffffffff,'REGS[9]' : 0xfffffff0})
 
 smull_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
                   {'CPSR': 0x00000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0x00000000,'REGS[7]' : 0x00000000}, 
@@ -1216,9 +1216,9 @@ smull_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7
                   {'CPSR': 0x00000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000006})
 #The SMLALS instruction is defined to leave the C and V flags unchanged 
 #in ARM  architecture version 5 and above. 
-#smull_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
-#                  {'CPSR': 0x30000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0xffffffff,'REGS[7]' : 0xffffffff}, 
-#                  {'CPSR': 0xb0000000, 'REGS[10]': 0xfffffffe,'REGS[9]' : 0x00000001})
+smull_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x30000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0xffffffff,'REGS[7]' : 0x00000002}, 
+                  {'CPSR': 0xb0000000, 'REGS[10]': 0xffffffff,'REGS[9]' : 0xfffffffe})
 #else
 smull_Instr.addTest({'cond' : 0x0, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
                   {'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0x00000002,'REGS[7]' : 0x00000002}, 
