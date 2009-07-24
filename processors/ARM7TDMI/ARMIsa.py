@@ -1128,12 +1128,38 @@ smlal_Instr.addBehavior(UpdatePSRmul, 'execute', False)
 #if ConditionPassed(cond) then
 #    RdLo = (Rm * Rs)[31:0] + RdLo /* Signed multiplication */
 #    RdHi = (Rm * Rs)[63:32] + RdHi + CarryFrom((Rm * Rs)[31:0] + RdLo)
+smlal_Instr.addTest({'cond' : 0xe, 's': 0, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'REGS[10]': 0x0000ffff,'REGS[9]' : 0x00000000,'REGS[8]' : 0x00000002,'REGS[7]' : 0x00000002}, 
+                  {'REGS[10]': 0x0000ffff,'REGS[9]' : 0x00000004})
+smlal_Instr.addTest({'cond' : 0xe, 's': 0, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'REGS[10]': 0x0000000b,'REGS[9]' : 0x00000002,'REGS[8]' : 0x7fffffff,'REGS[7]' : 0x00000008}, 
+                  {'REGS[10]': 0x0000000e,'REGS[9]' : 0xfffffffa})
 #    if S == 1 then
 #        N Flag = RdHi[31]
 #        Z Flag = if (RdHi == 0) and (RdLo == 0) then 1 else 0
-#        C Flag = unaffected    /* See "C and V flags" note */
-#        V Flag = unaffected    /* See "C and V flags" note */
+#        C Flag = unaffected
+#        V Flag = unaffected
+smlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x00000000, 'REGS[10]': 0xf000000b,'REGS[9]' : 0x00000002,'REGS[8]' : 0x7fffffff,'REGS[7]' : 0x00000008}, 
+                  {'CPSR': 0x80000000, 'REGS[10]': 0xf000000e,'REGS[9]' : 0xfffffffa})
 
+smlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x00000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0x00000000,'REGS[7]' : 0x00000000}, 
+                  {'CPSR': 0x40000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000})
+
+smlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x40000000, 'REGS[10]': 0x00000001,'REGS[9]' : 0x00000001,'REGS[8]' : 0x00000000,'REGS[7]' : 0x00000002}, 
+                  {'CPSR': 0x00000000, 'REGS[10]': 0x00000001,'REGS[9]' : 0x00000001})
+#The SMLALS instruction is defined to leave the C and V flags unchanged 
+#in ARM  architecture version 5 and above. 
+smlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x30000000, 'REGS[10]': 0xfffffff0,'REGS[9]' : 0x00000002,'REGS[8]' : 0x7fffffff,'REGS[7]' : 0x00000008}, 
+                  {'CPSR': 0xb0000000, 'REGS[10]': 0xfffffff3,'REGS[9]' : 0xfffffffa})
+#else
+smlal_Instr.addTest({'cond' : 0x0, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0x00000002,'REGS[7]' : 0x00000002}, 
+                  {'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000 })
+#endif
 isa.addInstruction(smlal_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
@@ -1162,6 +1188,42 @@ smull_Instr.setCode(opCode, 'execute')
 smull_Instr.addBehavior(IncrementPC, 'fetch')
 smull_Instr.addBehavior(condCheckOp, 'execute')
 smull_Instr.addBehavior(UpdatePSRmul, 'execute', False)
+#Operation
+#if ConditionPassed(cond) then
+#    RdLo = (Rm * Rs)[31:0] /* Signed multiplication */
+#    RdHi = (Rm * Rs)[63:32]
+smull_Instr.addTest({'cond' : 0xe, 's': 0, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'REGS[10]': 0x0000ffff,'REGS[9]' : 0x00000000,'REGS[8]' : 0x00000002,'REGS[7]' : 0x00000002}, 
+                  {'REGS[10]': 0x00000000,'REGS[9]' : 0x00000004})
+smull_Instr.addTest({'cond' : 0xe, 's': 0, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'REGS[10]': 0x0000000b,'REGS[9]' : 0x00000002,'REGS[8]' : 0x7fffffff,'REGS[7]' : 0x00000008}, 
+                  {'REGS[10]': 0x00000003,'REGS[9]' : 0xfffffff8})
+#    if S == 1 then
+#        N Flag = RdHi[31]
+#        Z Flag = if (RdHi == 0) and (RdLo == 0) then 1 else 0
+#        C Flag = unaffected
+#        V Flag = unaffected
+smull_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x00000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0xf0000000,'REGS[7]' : 0x00000008}, 
+                  {'CPSR': 0x80000000, 'REGS[10]': 0x00000007,'REGS[9]' : 0x80000000})
+
+smull_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x00000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0x00000000,'REGS[7]' : 0x00000000}, 
+                  {'CPSR': 0x40000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000})
+
+smull_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x40000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0x00000003,'REGS[7]' : 0x00000002}, 
+                  {'CPSR': 0x00000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000006})
+#The SMLALS instruction is defined to leave the C and V flags unchanged 
+#in ARM  architecture version 5 and above. 
+#smull_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+#                  {'CPSR': 0x30000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0xffffffff,'REGS[7]' : 0xffffffff}, 
+#                  {'CPSR': 0xb0000000, 'REGS[10]': 0xfffffffe,'REGS[9]' : 0x00000001})
+#else
+smull_Instr.addTest({'cond' : 0x0, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0x00000002,'REGS[7]' : 0x00000002}, 
+                  {'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000 })
+#endif
 isa.addInstruction(smull_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
