@@ -1148,8 +1148,26 @@ smlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7
                   {'CPSR': 0x40000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000})
 
 smlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x00000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0xffffffff,'REGS[8]' : 0x00000001,'REGS[7]' : 0x00000001}, 
+                  {'CPSR': 0x40000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000})
+
+smlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x00000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000001,'REGS[8]' : 0xffffffff,'REGS[7]' : 0x00000001}, 
+                  {'CPSR': 0x40000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000})
+
+smlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
                   {'CPSR': 0x40000000, 'REGS[10]': 0x00000001,'REGS[9]' : 0x00000001,'REGS[8]' : 0x00000000,'REGS[7]' : 0x00000002}, 
                   {'CPSR': 0x00000000, 'REGS[10]': 0x00000001,'REGS[9]' : 0x00000001})
+
+smlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x40000000, 'REGS[10]': 0x00000001,'REGS[9]' : 0x00000000,'REGS[8]' : 0x00000000,'REGS[7]' : 0x00000002}, 
+                  {'CPSR': 0x00000000, 'REGS[10]': 0x00000001,'REGS[9]' : 0x00000000})
+
+#Failed case
+smlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x40000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000001,'REGS[8]' : 0x00000000,'REGS[7]' : 0x00000002}, 
+                  {'CPSR': 0x00000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000001})
+
 #The SMLALS instruction is defined to leave the C and V flags unchanged 
 #in ARM  architecture version 5 and above. 
 smlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
@@ -1161,7 +1179,9 @@ smlal_Instr.addTest({'cond' : 0x0, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7
                   {'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000 })
 #endif
 isa.addInstruction(smlal_Instr)
-
+#-------------------
+# SMULL instruction
+#-------------------
 opCode = cxx_writer.writer_code.Code("""
 //Perform the operation
 long long result = (long long)(((long long)((int)rm)) * ((long long)((int)rs)));
@@ -1212,6 +1232,10 @@ smull_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7
                   {'CPSR': 0x40000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000})
 
 smull_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x40000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0x20000000,'REGS[7]' : 0x00000008}, 
+                  {'CPSR': 0x00000000, 'REGS[10]': 0x00000001,'REGS[9]' : 0x00000000})
+# Failed case
+smull_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
                   {'CPSR': 0x40000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0x00000003,'REGS[7]' : 0x00000002}, 
                   {'CPSR': 0x00000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000006})
 #The SMLALS instruction is defined to leave the C and V flags unchanged 
@@ -1221,11 +1245,14 @@ smull_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7
                   {'CPSR': 0xb0000000, 'REGS[10]': 0xffffffff,'REGS[9]' : 0xfffffffe})
 #else
 smull_Instr.addTest({'cond' : 0x0, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
-                  {'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0x00000002,'REGS[7]' : 0x00000002}, 
-                  {'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000 })
+                  {'CPSR': 0x30000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0x00000002,'REGS[7]' : 0x00000002}, 
+                  {'CPSR': 0x30000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000 })
 #endif
 isa.addInstruction(smull_Instr)
 
+#-------------------
+# UMLAL instruction
+#-------------------
 opCode = cxx_writer.writer_code.Code("""
 //Perform the operation
 unsigned long long result = (unsigned long long)(((unsigned long long)(((unsigned long long)((unsigned int)rm)) * ((unsigned long long)((unsigned int)rs)))) + (((unsigned long long)rd) << 32) + (unsigned int)REGS[rn]);
@@ -1252,8 +1279,67 @@ umlal_Instr.setCode(opCode, 'execute')
 umlal_Instr.addBehavior(IncrementPC, 'fetch')
 umlal_Instr.addBehavior(condCheckOp, 'execute')
 umlal_Instr.addBehavior(UpdatePSRmul, 'execute', False)
-isa.addInstruction(umlal_Instr)
+#if ConditionPassed(cond) then
+#    RdLo = (Rm * Rs)[31:0] + RdLo    /* Unsigned multiplication */
+#    RdHi = (Rm * Rs)[63:32] + RdHi + CarryFrom((Rm * Rs)[31:0] + RdLo)
+umlal_Instr.addTest({'cond' : 0xe, 's': 0, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'REGS[10]': 0x0000ffff,'REGS[9]' : 0x00000001,'REGS[8]' : 0x00000002,'REGS[7]' : 0x00000002}, 
+                  {'REGS[10]': 0x0000ffff,'REGS[9]' : 0x00000005})
+umlal_Instr.addTest({'cond' : 0xe, 's': 0, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'REGS[10]': 0x0000000b,'REGS[9]' : 0x00000002,'REGS[8]' : 0x80000000,'REGS[7]' : 0x00000002}, 
+                  {'REGS[10]': 0x0000000c,'REGS[9]' : 0x00000002})
+#    if S == 1 then
+#        N Flag = RdHi[31]
+umlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x80000000, 'REGS[10]': 0x0000ffff,'REGS[9]' : 0x00000001,'REGS[8]' : 0x00000002,'REGS[7]' : 0x00000002}, 
+                  {'CPSR': 0x00000000, 'REGS[10]': 0x0000ffff,'REGS[9]' : 0x00000005})
 
+umlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x00000000, 'REGS[10]': 0x80000000,'REGS[9]' : 0x00000001,'REGS[8]' : 0x00000002,'REGS[7]' : 0x00000002}, 
+                  {'CPSR': 0x80000000, 'REGS[10]': 0x80000000,'REGS[9]' : 0x00000005})
+
+#        Z Flag = if (RdHi == 0) and (RdLo == 0) then 1 else 0
+umlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x00000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0x00000000,'REGS[7]' : 0x00000000}, 
+                  {'CPSR': 0x40000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000})
+
+umlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x00000000, 'REGS[10]': 0xffffffff,'REGS[9]' : 0xffffffff,'REGS[8]' : 0x00000001,'REGS[7]' : 0x00000001}, 
+                  {'CPSR': 0x40000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000})
+
+umlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x00000000, 'REGS[10]': 0xffffffff,'REGS[9]' : 0x00000001,'REGS[8]' : 0xffffffff,'REGS[7]' : 0x00000001}, 
+                  {'CPSR': 0x40000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000})
+
+umlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x40000000, 'REGS[10]': 0x00000001,'REGS[9]' : 0x00000001,'REGS[8]' : 0x00000000,'REGS[7]' : 0x00000002}, 
+                  {'CPSR': 0x00000000, 'REGS[10]': 0x00000001,'REGS[9]' : 0x00000001})
+
+umlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x40000000, 'REGS[10]': 0x00000001,'REGS[9]' : 0x00000000,'REGS[8]' : 0x00000000,'REGS[7]' : 0x00000002}, 
+                  {'CPSR': 0x00000000, 'REGS[10]': 0x00000001,'REGS[9]' : 0x00000000})
+#Failed case
+umlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x40000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000001,'REGS[8]' : 0x00000000,'REGS[7]' : 0x00000002}, 
+                  {'CPSR': 0x00000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000001})
+#        C Flag = unaffected unaffected
+#        V Flag = unaffected unaffected
+umlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x30000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0xffffffff,'REGS[8]' : 0x00000001,'REGS[7]' : 0x00000001}, 
+                  {'CPSR': 0x30000000, 'REGS[10]': 0x00000001,'REGS[9]' : 0x00000000})
+#Failed case
+umlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x30000000, 'REGS[10]': 0xffffffff,'REGS[9]' : 0x00000001,'REGS[8]' : 0xffffffff,'REGS[7]' : 0x00000002}, 
+                  {'CPSR': 0x30000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0xffffffff})
+#else
+umlal_Instr.addTest({'cond' : 0x0, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x30000000,'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0x00000002,'REGS[7]' : 0x00000002}, 
+                  {'CPSR': 0x30000000,'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000 })
+#end
+isa.addInstruction(umlal_Instr)
+#-------------------
+# UMULL instruction
+#-------------------
 opCode = cxx_writer.writer_code.Code("""
 //Perform the operation
 unsigned long long result = (unsigned long long)(((unsigned long long)((unsigned int)rm)) * ((unsigned long long)((unsigned int)rs)));
@@ -1280,8 +1366,52 @@ umull_Instr.setCode(opCode, 'execute')
 umull_Instr.addBehavior(IncrementPC, 'fetch')
 umull_Instr.addBehavior(condCheckOp, 'execute')
 umull_Instr.addBehavior(UpdatePSRmul, 'execute', False)
-isa.addInstruction(umull_Instr)
 
+#if ConditionPassed(cond) then
+#    RdHi = (Rm * Rs)[63:32]    /* Unsigned multiplication */
+#    RdLo = (Rm * Rs)[31:0]
+umull_Instr.addTest({'cond' : 0xe, 's': 0, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'REGS[10]': 0x0000ffff,'REGS[9]' : 0x00000001,'REGS[8]' : 0x00000002,'REGS[7]' : 0x00000002}, 
+                  {'REGS[10]': 0x00000000,'REGS[9]' : 0x00000004})
+umull_Instr.addTest({'cond' : 0xe, 's': 0, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'REGS[10]': 0x0000000b,'REGS[9]' : 0x00000002,'REGS[8]' : 0x80000000,'REGS[7]' : 0x00000002}, 
+                  {'REGS[10]': 0x00000001,'REGS[9]' : 0x00000000})
+#    if S == 1 then
+#        N Flag = RdHi[31]
+
+# Failed case
+umull_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x80000000, 'REGS[10]': 0xf0000000,'REGS[9]' : 0x00000001,'REGS[8]' : 0x00000002,'REGS[7]' : 0x00000002}, 
+                  {'CPSR': 0x00000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000004})
+
+umull_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x00000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0xffffffff,'REGS[7]' : 0xffffffff}, 
+                  {'CPSR': 0x80000000, 'REGS[10]': 0xfffffffe,'REGS[9]' : 0x00000001})
+#        Z Flag = if (RdHi == 0) and (RdLo == 0) then 1 else 0
+umull_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x00000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0x00000000,'REGS[7]' : 0x00000000}, 
+                  {'CPSR': 0x40000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000})
+
+umull_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x40000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0x20000000,'REGS[7]' : 0x00000008}, 
+                  {'CPSR': 0x00000000, 'REGS[10]': 0x00000001,'REGS[9]' : 0x00000000})
+# Failed case
+umull_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x40000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0x00000003,'REGS[7]' : 0x00000002}, 
+                  {'CPSR': 0x00000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000006})
+#        C Flag = unaffected    /* See "C and V flags" note */
+#        V Flag = unaffected    /* See "C and V flags" note */
+umull_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x30000000, 'REGS[10]': 0xffffffff,'REGS[9]' : 0x00000001,'REGS[8]' : 0xffffffff,'REGS[7]' : 0x00000002}, 
+                  {'CPSR': 0x30000000, 'REGS[10]': 0x00000001,'REGS[9]' : 0xfffffffe})
+umull_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x30000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0xffffffff,'REGS[7]' : 0xffffffff}, 
+                  {'CPSR': 0xb0000000, 'REGS[10]': 0xfffffffe,'REGS[9]' : 0x00000001})
+#else
+umlal_Instr.addTest({'cond' : 0x0, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
+                  {'CPSR': 0x30000000,'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0x00000002,'REGS[7]' : 0x00000002}, 
+                  {'CPSR': 0x30000000,'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000 })
+isa.addInstruction(umull_Instr)
 # MOV instruction family
 opCode = cxx_writer.writer_code.Code("""
 rd = operand;
