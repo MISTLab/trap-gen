@@ -1426,7 +1426,43 @@ mov_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
 mov_shift_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 mov_shift_imm_Instr.addBehavior(UpdatePC, 'execute', False)
 mov_shift_imm_Instr.addVariable(('result', 'BIT<32>'))
+
+#if ConditionPassed(cond) then
+#    Rd = shifter_operand
+#    if S == 1 and Rd == R15 then
+#    	CPSR = SPSR
+#mov_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rd': 15, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'SPSR' : 0x80000000, 'REGS[8]': 3}, {'CPSR' : 0x80000000, 'REGS[15]': 3})  #spsr syntax error?????
+#    else if S == 1 then
+#    	N Flag = Rd[31]
+#    	Z Flag = if Rd == 0 then 1 else 0
+#    	C Flag = shifter_carry_out
+#    	V Flag = unaffected
+mov_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[8]': 3}, {'CPSR' : 0x20000000, 'REGS[10]': 3})
+mov_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[8]': 0xffffffff}, {'CPSR' : 0x80000000, 'REGS[10]': 0xffffffff})
+# Rd=0 then Z flag=1
+mov_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[8]': 0}, {'CPSR' : 0x40000000, 'REGS[10]': 0}) 
+# Rd different from 0 then Z flag=0
+mov_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[8]': 0xffffffff}, {'CPSR' : 0xa0000000, 'REGS[10]': 0xffffffff})
+#shift_imm > 0
+mov_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rd': 10, 'rm': 8, 'shift_amm': 1, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[8]': 3}, {'CPSR' : 0x00000000, 'REGS[10]': 6})
+#S=0
+mov_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000,'REGS[8]': 3}, {'CPSR' : 0x20000000, 'REGS[10]': 3})
+#else Condition Faild : do not update CPSR
+mov_shift_imm_Instr.addTest({'cond': 0x0, 's': 1, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000,'REGS[8]': 3}, {'CPSR' : 0x20000000})
+#endif
+#logical shift right
+mov_shift_imm_Instr.addTest({'cond': 0xe, 's':1, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 1}, {'CPSR' : 0x00000000, 'REGS[8]': 3}, {'CPSR' : 0x40000000, 'REGS[10]': 0}) 
+mov_shift_imm_Instr.addTest({'cond': 0xe, 's':1, 'rd': 10, 'rm': 8, 'shift_amm': 1, 'shift_op': 1}, {'CPSR' : 0x20000000, 'REGS[8]': 3}, {'CPSR' : 0x20000000, 'REGS[10]': 1})
+#arithmetic shift right
+mov_shift_imm_Instr.addTest({'cond': 0xe, 's':1, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 2}, {'CPSR' : 0x20000000, 'REGS[8]': 3}, {'CPSR' : 0x40000000, 'REGS[10]': 0}) 
+mov_shift_imm_Instr.addTest({'cond': 0xe, 's':1, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 2}, {'CPSR' : 0x20000000, 'REGS[8]': 0xffffffff}, {'CPSR' : 0xa0000000, 'REGS[10]': 0xffffffff})
+mov_shift_imm_Instr.addTest({'cond': 0xe, 's':1, 'rd': 10, 'rm': 8, 'shift_amm': 1, 'shift_op': 2}, {'CPSR' : 0x00000000, 'REGS[8]': 0xffffffff}, {'CPSR' : 0xa0000000, 'REGS[10]': 0xffffffff})  
+#Rotate right by immediate
+mov_shift_imm_Instr.addTest({'cond': 0xe, 's':1, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 3}, {'CPSR' : 0x00000000, 'REGS[8]': 3}, {'CPSR' : 0x20000000, 'REGS[10]': 1})
+mov_shift_imm_Instr.addTest({'cond': 0xe, 's':1, 'rd': 10, 'rm': 8, 'shift_amm': 1, 'shift_op': 3}, {'CPSR' : 0x00000000, 'REGS[8]': 3}, {'CPSR' : 0xa0000000, 'REGS[10]': 0x80000001})
+
 isa.addInstruction(mov_shift_imm_Instr)
+
 mov_shift_reg_Instr = trap.Instruction('MOV_sr', True, frequency = 8)
 mov_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [1, 1, 0, 1]}, 'TODO')
 mov_shift_reg_Instr.setCode(opCode, 'execute')
@@ -1436,7 +1472,35 @@ mov_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
 mov_shift_reg_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 mov_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
 mov_shift_reg_Instr.addVariable(('result', 'BIT<32>'))
+
+#Logical shift left by register
+#if S == 1 then
+#    	N Flag = Rd[31]
+mov_shift_reg_Instr.addTest({'cond': 0xe, 's':1, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[0]': 0, 'REGS[8]': 0xffffffff}, {'CPSR' : 0xa0000000, 'REGS[10]': 0xffffffff})
+mov_shift_reg_Instr.addTest({'cond': 0xe, 's':1, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[0]': 1, 'REGS[8]': 3}, {'CPSR' : 0x00000000, 'REGS[10]': 6})
+#    	Z Flag = if Rd == 0 then 1 else 0
+mov_shift_reg_Instr.addTest({'cond': 0xe, 's':1, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 32, 'REGS[8]': 3}, {'CPSR' : 0x60000000, 'REGS[10]': 0})
+mov_shift_reg_Instr.addTest({'cond': 0xe, 's':1, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 33, 'REGS[8]': 3}, {'CPSR' : 0x40000000, 'REGS[10]': 0})
+#S=0 do not update CPSR
+mov_shift_reg_Instr.addTest({'cond': 0xe, 's':0, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 33, 'REGS[8]': 3}, {'CPSR' : 0x00000000, 'REGS[10]': 0})
+#condition does not satisfied
+mov_shift_reg_Instr.addTest({'cond': 0x0, 's':0, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x80000000, 'REGS[0]': 33, 'REGS[8]': 3}, {'CPSR' : 0x80000000})
+#Logical shift right by register
+mov_shift_reg_Instr.addTest({'cond': 0xe, 's':1, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 1}, {'CPSR' : 0x20000000, 'REGS[0]': 0, 'REGS[8]': 0xffffffff}, {'CPSR' : 0xa0000000, 'REGS[10]': 0xffffffff})
+mov_shift_reg_Instr.addTest({'cond': 0xe, 's':1, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 1}, {'CPSR' : 0x20000000, 'REGS[0]': 1, 'REGS[8]': 3}, {'CPSR' : 0x20000000, 'REGS[10]': 1})
+mov_shift_reg_Instr.addTest({'cond': 0xe, 's':1, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 1}, {'CPSR' : 0x00000000, 'REGS[0]': 32, 'REGS[8]': 0xffffffff}, {'CPSR' : 0x60000000, 'REGS[10]': 0})
+mov_shift_reg_Instr.addTest({'cond': 0xe, 's':1, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 1}, {'CPSR' : 0x20000000, 'REGS[0]': 33, 'REGS[8]': 3}, {'CPSR' : 0x40000000, 'REGS[10]': 0})
+#Arithmetic shift right by register
+mov_shift_reg_Instr.addTest({'cond': 0xe, 's':1, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 2}, {'CPSR' : 0x20000000, 'REGS[0]': 0, 'REGS[8]': 0xffffffff}, {'CPSR' : 0xa0000000, 'REGS[10]': 0xffffffff})
+mov_shift_reg_Instr.addTest({'cond': 0xe, 's':1, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 2}, {'CPSR' : 0x00000000, 'REGS[0]': 1, 'REGS[8]': 3}, {'CPSR' : 0x20000000, 'REGS[10]': 1})
+mov_shift_reg_Instr.addTest({'cond': 0xe, 's':1, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 2}, {'CPSR' : 0x00000000, 'REGS[0]': 32, 'REGS[8]': 0xf0000000}, {'CPSR' : 0xa0000000, 'REGS[10]': 0xffffffff})
+mov_shift_reg_Instr.addTest({'cond': 0xe, 's':1, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 2}, {'CPSR' : 0x20000000, 'REGS[0]': 32, 'REGS[8]': 3}, {'CPSR' : 0x40000000, 'REGS[10]': 0})
+#Rotate right by register
+mov_shift_reg_Instr.addTest({'cond': 0xe, 's':1, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 3}, {'CPSR' : 0x20000000, 'REGS[0]': 0, 'REGS[8]': 0xffffffff}, {'CPSR' : 0xa0000000, 'REGS[10]': 0xffffffff})
+mov_shift_reg_Instr.addTest({'cond': 0xe, 's':1, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 3}, {'CPSR' : 0x00000000, 'REGS[0]': 1, 'REGS[8]': 3}, {'CPSR' : 0xa0000000, 'REGS[10]': 0x80000001})
+
 isa.addInstruction(mov_shift_reg_Instr)
+
 mov_imm_Instr = trap.Instruction('MOV_i', True, frequency = 8)
 mov_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [1, 1, 0, 1]}, 'TODO')
 mov_imm_Instr.setCode(opCode, 'execute')
@@ -1446,6 +1510,11 @@ mov_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
 mov_imm_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 mov_imm_Instr.addBehavior(UpdatePC, 'execute', False)
 mov_imm_Instr.addVariable(('result', 'BIT<32>'))
+
+mov_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rd': 10, 'rotate': 0, 'immediate': 3}, {'CPSR' : 0x20000000}, {'CPSR' : 0x20000000, 'REGS[10]':3})
+mov_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rd': 10, 'rotate': 0xe, 'immediate': 0x3f}, {'CPSR' : 0x20000000}, {'CPSR' : 0x00000000, 'REGS[10]':0x3f0})
+mov_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rd': 10, 'rotate': 0xe, 'immediate': 0x3f}, {'CPSR' : 0x20000000}, {'CPSR' : 0x20000000, 'REGS[10]':0x3f0})
+mov_imm_Instr.addTest({'cond': 0x0, 's': 0, 'rd': 10, 'rotate': 0xe, 'immediate': 0x3f}, {'CPSR' : 0x20000000}, {'CPSR' : 0x20000000 })
 isa.addInstruction(mov_imm_Instr)
 
 # MRS instruction
