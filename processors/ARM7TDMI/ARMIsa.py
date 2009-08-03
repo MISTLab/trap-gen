@@ -1431,7 +1431,7 @@ mov_shift_imm_Instr.addVariable(('result', 'BIT<32>'))
 #    Rd = shifter_operand
 #    if S == 1 and Rd == R15 then
 #    	CPSR = SPSR
-#mov_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rd': 15, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'SPSR' : 0x80000000, 'REGS[8]': 3}, {'CPSR' : 0x80000000, 'REGS[15]': 3})  #spsr syntax error?????
+#
 #    else if S == 1 then
 #    	N Flag = Rd[31]
 #    	Z Flag = if Rd == 0 then 1 else 0
@@ -2041,6 +2041,15 @@ isa.addInstruction(orr_imm_Instr)
 opCode = cxx_writer.writer_code.Code("""
 rd = (int)operand - (int)rn;
 """)
+#if ConditionPassed(cond) then
+#    Rd = shifter_operand - Rn
+#    if S == 1 and Rd == R15 then
+#       CPSR = SPSR
+#   else if S == 1 then
+#       N Flag = Rd[31]
+#       Z Flag = if Rd == 0 then 1 else 0
+#       C Flag = NOT BorrowFrom(shifter_operand - Rn)
+#       V Flag = OverflowFrom(shifter_operand - Rn)
 rsb_shift_imm_Instr = trap.Instruction('RSB_si', True, frequency = 4)
 rsb_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [0, 0, 1, 1]}, 'TODO')
 rsb_shift_imm_Instr.setCode(opCode, 'execute')
@@ -2049,7 +2058,31 @@ rsb_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
 rsb_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
 rsb_shift_imm_Instr.addBehavior(UpdatePSRSub, 'execute', False)
 rsb_shift_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+#Logical shift left by immediate
+#Z Flag = if Rd == 0 then 1 else 0
+rsb_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 0, 'CPSR' : 0x60000000})
+#C Flag = NOT BorrowFrom(shifter_operand - Rn)
+rsb_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[9]': 1, 'REGS[8]': 0xffffffff}, {'REGS[10]':0xfffffffe, 'CPSR' : 0x00000000})
+#V Flag = OverflowFrom(shifter_operand - Rn)
+rsb_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[9]': 1, 'REGS[8]': 0x80000000}, {'REGS[10]': 0x7fffffff, 'CPSR' : 0x90000000})
+#S=0 do not update CPSR
+rsb_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': 9, 'REGS[8]': 10}, {'REGS[10]': 1})
+rsb_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': -2, 'REGS[8]': 3}, {'REGS[10]': 5})
+rsb_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 1, 'shift_op': 0}, {'REGS[9]': 1, 'REGS[8]': 2}, {'REGS[10]': 3})
+#condition does not satisfied
+rsb_shift_imm_Instr.addTest({'cond': 0x0, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[9]': 1, 'REGS[8]': 0x80000000}, {'CPSR' : 0x20000000})
+#Logical shift right by immediate
+rsb_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 1}, {'REGS[9]': 5, 'REGS[8]': 4}, {'REGS[10]': -5})
+rsb_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 1, 'shift_op': 1}, {'REGS[9]': 3, 'REGS[8]': 6}, {'REGS[10]': 0})
+#arithmetic shift right by immediate
+rsb_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 2}, {'REGS[9]': -2, 'REGS[8]': 6}, {'REGS[10]': 2})
+rsb_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 2}, {'REGS[9]': 1, 'REGS[8]': 0xf0000000}, {'REGS[10]': 0xfffffffe})
+rsb_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 1, 'shift_op': 2}, {'REGS[9]': 0, 'REGS[8]': 2}, {'REGS[10]': 1})
+#Rotate right by immediate
+rsb_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 3}, {'REGS[9]': 6, 'REGS[8]': 0}, {'REGS[10]': -6})
+rsb_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 1, 'shift_op': 3}, {'REGS[9]': 1, 'REGS[8]': 1}, {'REGS[10]': 0x7fffffff})
 isa.addInstruction(rsb_shift_imm_Instr)
+
 rsb_shift_reg_Instr = trap.Instruction('RSB_sr', True, frequency = 4)
 rsb_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [0, 0, 1, 1]}, 'TODO')
 rsb_shift_reg_Instr.setCode(opCode, 'execute')
@@ -2058,7 +2091,31 @@ rsb_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
 rsb_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
 rsb_shift_reg_Instr.addBehavior(UpdatePSRSub, 'execute', False)
 rsb_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
+#logical shift left by register
+rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 0, 'REGS[9]': 3, 'REGS[8]': 3}, {'CPSR' : 0x60000000, 'REGS[10]': 0})
+rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[0]': 0, 'REGS[9]': 1, 'REGS[8]': 0xffffffff}, {'CPSR' : 0x00000000, 'REGS[10]': 0xfffffffe})
+#S=0 do not update CPSR
+rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[0]': 0, 'REGS[9]': -1, 'REGS[8]': 2}, {'CPSR' : 0x20000000, 'REGS[10]': 3})
+rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'REGS[0]': 1, 'REGS[9]': 2, 'REGS[8]': 1}, {'REGS[10]': 0})
+rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'REGS[0]': 32, 'REGS[9]': 45, 'REGS[8]': 3}, {'REGS[10]': -45})
+rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'REGS[0]': 33, 'REGS[9]': 34, 'REGS[8]': 3}, {'REGS[10]': -34})
+#condition does not satisfied
+rsb_shift_reg_Instr.addTest({'cond': 0x0, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[0]': 1, 'REGS[9]': 0xffffffff, 'REGS[8]': 1}, {'CPSR' : 0x20000000})
+#Logical shift right by register
+rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 1}, {'REGS[0]': 0, 'REGS[9]': 0x7fffffff, 'REGS[8]': 0}, {'REGS[10]': 0x80000001})
+rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 1}, {'REGS[0]': 1, 'REGS[9]': 3, 'REGS[8]': 8}, {'REGS[10]': 1})
+rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 1}, {'REGS[0]': 32, 'REGS[9]': 4, 'REGS[8]': 3}, {'REGS[10]': -4})
+rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 1}, {'REGS[0]': 33, 'REGS[9]': -4, 'REGS[8]': 3}, {'REGS[10]': 4})
+#Arithmetic shift right by register
+rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 2}, {'REGS[0]': 0, 'REGS[9]': 4, 'REGS[8]': 10}, {'REGS[10]': 6})
+rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 2}, {'REGS[0]': 1, 'REGS[9]': 4, 'REGS[8]': 10}, {'REGS[10]': 1})
+rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 2}, {'REGS[0]': 32, 'REGS[9]': 4, 'REGS[8]': 10}, {'REGS[10]': -4})
+rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 2}, {'REGS[0]': 32, 'REGS[9]': 0xf, 'REGS[8]': 0xf000f000}, {'REGS[10]': 0xfffffff0})
+#Rotate right by register
+rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 3}, {'REGS[0]': 0, 'REGS[9]': 5, 'REGS[8]': 10}, {'REGS[10]': 5})
+rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 3}, {'REGS[0]': 2, 'REGS[9]': 2, 'REGS[8]': 10}, {'REGS[10]': 0x80000000})
 isa.addInstruction(rsb_shift_reg_Instr)
+
 rsb_imm_Instr = trap.Instruction('RSB_i', True, frequency = 4)
 rsb_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [0, 0, 1, 1]}, 'TODO')
 rsb_imm_Instr.setCode(opCode, 'execute')
@@ -2067,6 +2124,13 @@ rsb_imm_Instr.addBehavior(condCheckOp, 'execute')
 rsb_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
 rsb_imm_Instr.addBehavior(UpdatePSRSub, 'execute', False)
 rsb_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+#test starts
+rsb_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 0xfc}, {'CPSR' : 0x00000000, 'REGS[9]': 0xc}, {'CPSR' : 0x20000000, 'REGS[10]': 0xf0})
+#S=0 do not update CPSR
+rsb_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 3}, {'REGS[9]': 3}, {'REGS[10]': 0})
+rsb_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rotate': 1, 'immediate': 0xfc}, {'REGS[9]': 0xf}, {'REGS[10]': 0x30})
+#condition does not satisfied
+rsb_imm_Instr.addTest({'cond': 0x0, 's': 1, 'rn': 9, 'rd': 10, 'rotate': 1, 'immediate': 0xfc}, {'CPSR' : 0x20000000, 'REGS[9]': 1}, {'CPSR' : 0x20000000})
 isa.addInstruction(rsb_imm_Instr)
 
 # RSC instruction family
