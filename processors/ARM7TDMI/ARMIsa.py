@@ -1100,7 +1100,7 @@ isa.addInstruction(mul_Instr)
 #-------------------
 opCode = cxx_writer.writer_code.Code("""
 //Perform the operation
-long long result = (long long)((((long long)(((long long)((int)rm)) * ((long long)((int)rs)))) + (((long long)rd) << 32)) + (int)REGS[rn]);
+result = (long long)((((long long)(((long long)((int)rm)) * ((long long)((int)rs)))) + (((long long)rd) << 32)) + (int)REGS[rn]);
 //Check if I have to update the processor flags
 rd = (int)((result >> 32) & 0x00000000FFFFFFFF);
 REGS[rn] = (int)(result & 0x00000000FFFFFFFF);
@@ -1123,7 +1123,8 @@ smlal_Instr.setMachineCode(multiply, {'opcode0': [0, 0, 0, 0, 1, 1, 1]}, 'TODO')
 smlal_Instr.setCode(opCode, 'execute')
 smlal_Instr.addBehavior(IncrementPC, 'fetch')
 smlal_Instr.addBehavior(condCheckOp, 'execute')
-smlal_Instr.addBehavior(UpdatePSRmul, 'execute', False)
+smlal_Instr.addBehavior(UpdatePSRmul_64, 'execute', False)
+smlal_Instr.addVariable(('result', 'BIT<64>'))
 #Operation
 #if ConditionPassed(cond) then
 #    RdLo = (Rm * Rs)[31:0] + RdLo /* Signed multiplication */
@@ -1163,7 +1164,6 @@ smlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7
                   {'CPSR': 0x40000000, 'REGS[10]': 0x00000001,'REGS[9]' : 0x00000000,'REGS[8]' : 0x00000000,'REGS[7]' : 0x00000002}, 
                   {'CPSR': 0x00000000, 'REGS[10]': 0x00000001,'REGS[9]' : 0x00000000})
 
-#Failed case
 smlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
                   {'CPSR': 0x40000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000001,'REGS[8]' : 0x00000000,'REGS[7]' : 0x00000002}, 
                   {'CPSR': 0x00000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000001})
@@ -1184,7 +1184,7 @@ isa.addInstruction(smlal_Instr)
 #-------------------
 opCode = cxx_writer.writer_code.Code("""
 //Perform the operation
-long long result = (long long)(((long long)((int)rm)) * ((long long)((int)rs)));
+result = (long long)(((long long)((int)rm)) * ((long long)((int)rs)));
 //Check if I have to update the processor flags
 rd = (int)((result >> 32) & 0x00000000FFFFFFFF);
 REGS[rn] = (int)(result & 0x00000000FFFFFFFF);
@@ -1207,7 +1207,8 @@ smull_Instr.setMachineCode(multiply, {'opcode0': [0, 0, 0, 0, 1, 1, 0]}, 'TODO')
 smull_Instr.setCode(opCode, 'execute')
 smull_Instr.addBehavior(IncrementPC, 'fetch')
 smull_Instr.addBehavior(condCheckOp, 'execute')
-smull_Instr.addBehavior(UpdatePSRmul, 'execute', False)
+smull_Instr.addBehavior(UpdatePSRmul_64, 'execute', False)
+smull_Instr.addVariable(('result', 'BIT<64>'))
 #Operation
 #if ConditionPassed(cond) then
 #    RdLo = (Rm * Rs)[31:0] /* Signed multiplication */
@@ -1234,7 +1235,6 @@ smull_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7
 smull_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
                   {'CPSR': 0x40000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0x20000000,'REGS[7]' : 0x00000008}, 
                   {'CPSR': 0x00000000, 'REGS[10]': 0x00000001,'REGS[9]' : 0x00000000})
-# Failed case
 smull_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
                   {'CPSR': 0x40000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0x00000003,'REGS[7]' : 0x00000002}, 
                   {'CPSR': 0x00000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000006})
@@ -1255,7 +1255,7 @@ isa.addInstruction(smull_Instr)
 #-------------------
 opCode = cxx_writer.writer_code.Code("""
 //Perform the operation
-unsigned long long result = (unsigned long long)(((unsigned long long)(((unsigned long long)((unsigned int)rm)) * ((unsigned long long)((unsigned int)rs)))) + (((unsigned long long)rd) << 32) + (unsigned int)REGS[rn]);
+result = (unsigned long long)(((unsigned long long)(((unsigned long long)((unsigned int)rm)) * ((unsigned long long)((unsigned int)rs)))) + (((unsigned long long)rd) << 32) + (unsigned int)REGS[rn]);
 //Check if I have to update the processor flags
 rd = (unsigned int)((result >> 32) & 0x00000000FFFFFFFF);
 REGS[rn] = (unsigned int)(result & 0x00000000FFFFFFFFLL);
@@ -1278,7 +1278,8 @@ umlal_Instr.setMachineCode(multiply, {'opcode0': [0, 0, 0, 0, 1, 0, 1]}, 'TODO')
 umlal_Instr.setCode(opCode, 'execute')
 umlal_Instr.addBehavior(IncrementPC, 'fetch')
 umlal_Instr.addBehavior(condCheckOp, 'execute')
-umlal_Instr.addBehavior(UpdatePSRmul, 'execute', False)
+umlal_Instr.addBehavior(UpdatePSRmul_64, 'execute', False)
+umlal_Instr.addVariable(('result', 'BIT<64>'))
 #if ConditionPassed(cond) then
 #    RdLo = (Rm * Rs)[31:0] + RdLo    /* Unsigned multiplication */
 #    RdHi = (Rm * Rs)[63:32] + RdHi + CarryFrom((Rm * Rs)[31:0] + RdLo)
@@ -1318,7 +1319,6 @@ umlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7
 umlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
                   {'CPSR': 0x40000000, 'REGS[10]': 0x00000001,'REGS[9]' : 0x00000000,'REGS[8]' : 0x00000000,'REGS[7]' : 0x00000002}, 
                   {'CPSR': 0x00000000, 'REGS[10]': 0x00000001,'REGS[9]' : 0x00000000})
-#Failed case
 umlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
                   {'CPSR': 0x40000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000001,'REGS[8]' : 0x00000000,'REGS[7]' : 0x00000002}, 
                   {'CPSR': 0x00000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000001})
@@ -1327,7 +1327,6 @@ umlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7
 umlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
                   {'CPSR': 0x30000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0xffffffff,'REGS[8]' : 0x00000001,'REGS[7]' : 0x00000001}, 
                   {'CPSR': 0x30000000, 'REGS[10]': 0x00000001,'REGS[9]' : 0x00000000})
-#Failed case
 umlal_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
                   {'CPSR': 0x30000000, 'REGS[10]': 0xffffffff,'REGS[9]' : 0x00000001,'REGS[8]' : 0xffffffff,'REGS[7]' : 0x00000002}, 
                   {'CPSR': 0x30000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0xffffffff})
@@ -1342,7 +1341,7 @@ isa.addInstruction(umlal_Instr)
 #-------------------
 opCode = cxx_writer.writer_code.Code("""
 //Perform the operation
-unsigned long long result = (unsigned long long)(((unsigned long long)((unsigned int)rm)) * ((unsigned long long)((unsigned int)rs)));
+result = (unsigned long long)(((unsigned long long)((unsigned int)rm)) * ((unsigned long long)((unsigned int)rs)));
 //Check if I have to update the processor flags
 rd = (unsigned int)((result >> 32) & 0x00000000FFFFFFFF);
 REGS[rn] = (unsigned int)(result & 0x00000000FFFFFFFFLL);
@@ -1365,7 +1364,8 @@ umull_Instr.setMachineCode(multiply, {'opcode0': [0, 0, 0, 0, 1, 0, 0]}, 'TODO')
 umull_Instr.setCode(opCode, 'execute')
 umull_Instr.addBehavior(IncrementPC, 'fetch')
 umull_Instr.addBehavior(condCheckOp, 'execute')
-umull_Instr.addBehavior(UpdatePSRmul, 'execute', False)
+umull_Instr.addBehavior(UpdatePSRmul_64, 'execute', False)
+umull_Instr.addVariable(('result', 'BIT<64>'))
 
 #if ConditionPassed(cond) then
 #    RdHi = (Rm * Rs)[63:32]    /* Unsigned multiplication */
@@ -1379,7 +1379,6 @@ umull_Instr.addTest({'cond' : 0xe, 's': 0, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7
 #    if S == 1 then
 #        N Flag = RdHi[31]
 
-# Failed case
 umull_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
                   {'CPSR': 0x80000000, 'REGS[10]': 0xf0000000,'REGS[9]' : 0x00000001,'REGS[8]' : 0x00000002,'REGS[7]' : 0x00000002}, 
                   {'CPSR': 0x00000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000004})
@@ -1395,7 +1394,6 @@ umull_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7
 umull_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
                   {'CPSR': 0x40000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0x20000000,'REGS[7]' : 0x00000008}, 
                   {'CPSR': 0x00000000, 'REGS[10]': 0x00000001,'REGS[9]' : 0x00000000})
-# Failed case
 umull_Instr.addTest({'cond' : 0xe, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7}, 
                   {'CPSR': 0x40000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0x00000003,'REGS[7]' : 0x00000002}, 
                   {'CPSR': 0x00000000, 'REGS[10]': 0x00000000,'REGS[9]' : 0x00000006})

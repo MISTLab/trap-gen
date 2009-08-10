@@ -643,6 +643,35 @@ if (s == 0x1){
 UpdatePSRmul = trap.HelperOperation('UpdatePSRmul', opCode)
 UpdatePSRmul.addUserInstructionElement('s')
 UpdatePSRmul.addUserInstructionElement('rd')
+
+#Begin test
+# In case the program counter is the updated register I have
+# to increment the latency of the operation
+opCode = cxx_writer.writer_code.Code("""
+if (s == 0x1){
+    if(rd_bit == 15){
+        //In case the destination register is the program counter I have to
+        //specify that I have a latency of two clock cycles
+        stall(2);
+        flush();
+    }else{
+        //Here I have to normally update the flags
+        // N flag if the results is negative
+        CPSR[key_N] = ((rd & 0x80000000) != 0);
+        //Update flag Z if the result is 0
+        CPSR[key_Z] = (result == 0);
+        //No updates performed to the C flag.
+        //No updates performed to the V flag.
+    }
+}    
+""")
+UpdatePSRmul_64 = trap.HelperOperation('UpdatePSRmul_64', opCode)
+UpdatePSRmul_64.addUserInstructionElement('s')
+UpdatePSRmul_64.addUserInstructionElement('rd')
+UpdatePSRmul_64.addInstuctionVar(('carry', 'BIT<1>'))
+UpdatePSRmul_64.addInstuctionVar(('result', 'BIT<64>'))
+#End test
+
 # In case the program counter is the updated register I have
 # to increment the latency of the operation
 opCode = cxx_writer.writer_code.Code("""
