@@ -1429,7 +1429,6 @@ mov_shift_imm_Instr.addVariable(('result', 'BIT<32>'))
 #    Rd = shifter_operand
 #    if S == 1 and Rd == R15 then
 #    	CPSR = SPSR
-#
 #    else if S == 1 then
 #    	N Flag = Rd[31]
 #    	Z Flag = if Rd == 0 then 1 else 0
@@ -2159,9 +2158,9 @@ rsc_shift_imm_Instr.addBehavior(UpdatePC, 'execute', False)
 #Logical shift left by immediate
 #Z Flag = if Rd == 0 then 1 else 0
 rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[9]': 2, 'REGS[8]': 3}, {'REGS[10]': 0, 'CPSR' : 0x80000000})
-#C Flag = NOT BorrowFrom(shifter_operand - Rn)
+#C Flag = NOT BorrowFrom(shifter_operand - Rn - NOT(C Flag))
 rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[9]': 1, 'REGS[8]': 0xffffffff}, {'REGS[10]':-2, 'CPSR' : 0x00000000})
-#V Flag = OverflowFrom(shifter_operand - Rn)
+#V Flag = OverflowFrom(shifter_operand - Rn - NOT(C Flag))
 rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[9]': 1, 'REGS[8]': 0x80000000}, {'REGS[10]': 0x7fffffff, 'CPSR' : 0x90000000})
 rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[9]': 1, 'REGS[8]': 0x80000000}, {'REGS[10]': 0x7ffffffe, 'CPSR' : 0x90000000})
 #S=0 do not update CPSR
@@ -2239,6 +2238,16 @@ if (CPSR[key_C] == 0){
     rd = ((int)rd) -1;
 }
 """)
+#if ConditionPassed(cond) then
+#    Rd = Rn - shifter_operand - NOT(C Flag)
+#    if S == 1 and Rd == R15 then
+#        CPSR = SPSR
+#    else if S == 1 then
+#        N Flag = Rd[31]
+#        Z Flag = if Rd == 0 then 1 else 0
+#        C Flag = NOT BorrowFrom(Rn - shifter_operand - NOT(C Flag))
+#        V Flag = OverflowFrom(Rn - shifter_operand - NOT(C Flag))
+
 sbc_shift_imm_Instr = trap.Instruction('SBC_si', True, frequency = 4)
 sbc_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [0, 1, 1, 0]}, 'TODO')
 sbc_shift_imm_Instr.setCode(opCode, 'execute')
@@ -2248,6 +2257,7 @@ sbc_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
 sbc_shift_imm_Instr.addBehavior(UpdatePSRSub, 'execute', False)
 sbc_shift_imm_Instr.addBehavior(UpdatePC, 'execute', False)
 isa.addInstruction(sbc_shift_imm_Instr)
+
 sbc_shift_reg_Instr = trap.Instruction('SBC_sr', True, frequency = 4)
 sbc_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [0, 1, 1, 0]}, 'TODO')
 sbc_shift_reg_Instr.setCode(opCode, 'execute')
@@ -2257,6 +2267,7 @@ sbc_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
 sbc_shift_reg_Instr.addBehavior(UpdatePSRSub, 'execute', False)
 sbc_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
 isa.addInstruction(sbc_shift_reg_Instr)
+
 sbc_imm_Instr = trap.Instruction('SBC_i', True, frequency = 4)
 sbc_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [0, 1, 1, 0]}, 'TODO')
 sbc_imm_Instr.setCode(opCode, 'execute')
@@ -2290,6 +2301,7 @@ sub_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
 sub_shift_reg_Instr.addBehavior(UpdatePSRSub, 'execute', False)
 sub_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
 isa.addInstruction(sub_shift_reg_Instr)
+
 sub_imm_Instr = trap.Instruction('SUB_i', True, frequency = 5)
 sub_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [0, 0, 1, 0]}, 'TODO')
 sub_imm_Instr.setCode(opCode, 'execute')
@@ -2298,6 +2310,13 @@ sub_imm_Instr.addBehavior(condCheckOp, 'execute')
 sub_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
 sub_imm_Instr.addBehavior(UpdatePSRSub, 'execute', False)
 sub_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+#test starts
+rsc_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 0xfc}, {'CPSR' : 0x20000000, 'REGS[9]': 0xc}, {'CPSR' : 0x80000000, 'REGS[10]': 0xf0})
+#S=0 do not update CPSR
+rsc_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 3}, {'CPSR' : 0x20000000, 'REGS[9]': 3}, {'CPSR' : 0x20000000, 'REGS[10]': 0})
+rsc_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rotate': 1, 'immediate': 0xfc}, {'CPSR' : 0x20000000, 'REGS[9]': 0xf}, {'CPSR' : 0x20000000, 'REGS[10]': 0x30})
+#condition does not satisfied
+rsc_imm_Instr.addTest({'cond': 0x0, 's': 1, 'rn': 9, 'rd': 10, 'rotate': 1, 'immediate': 0xfc}, {'CPSR' : 0x20000000, 'REGS[9]': 1}, {'CPSR' : 0x20000000})
 isa.addInstruction(sub_imm_Instr)
 
 # TEQ instruction family
@@ -2305,6 +2324,12 @@ opCode = cxx_writer.writer_code.Code("""
 result = rn ^ operand;
 UpdatePSRBitM(result, carry);
 """)
+#if ConditionPassed(cond) then
+#    alu_out = Rn EOR shifter_operand
+#    N Flag = alu_out[31]
+#    Z Flag = if alu_out == 0 then 1 else 0
+#    C Flag = shifter_carry_out
+#    V Flag = unaffected
 teq_shift_imm_Instr = trap.Instruction('TEQ_si', True, frequency = 5)
 teq_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [1, 0, 0, 1], 's': [1]}, 'TODO')
 teq_shift_imm_Instr.setCode(opCode, 'execute')
@@ -2312,7 +2337,33 @@ teq_shift_imm_Instr.addBehavior(IncrementPC, 'fetch')
 teq_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
 teq_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
 teq_shift_imm_Instr.addVariable(('result', 'BIT<32>'))
+# N flag = alu_out[31]
+teq_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000002}, {'CPSR': 0x00000000})
+teq_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[9]': 0xf0000002, 'REGS[8]': 0x00000003}, {'CPSR': 0xa0000000})
+# Z flag = (if alu_out == 0 then 1 else 0)
+teq_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000003}, {'CPSR': 0x40000000})
+teq_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000002}, {'CPSR': 0x20000000})
+# C Flag = shifter_carry_out
+teq_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[9]': 0x0ffffffd, 'REGS[8]': 0x00000003}, {'CPSR': 0x00000000})
+teq_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[9]': 0x00000002, 'REGS[8]': 0x00000003}, {'CPSR': 0x20000000})
+# V Flag = unaffected
+teq_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x10000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000002}, {'CPSR': 0x10000000})
+# shift_imm > 0
+teq_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'shift_amm': 1, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[9]': 0x00000002, 'REGS[8]': 0x00000003}, {'CPSR': 0x00000000})
+#Condition Faild 
+teq_shift_imm_Instr.addTest({'cond': 0x0, 's': 1, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000003}, {'CPSR': 0x00000000})
+#Logic shift right by immediate 
+teq_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 1}, {'CPSR' : 0x00000000, 'REGS[9]': 0xfffffff3, 'REGS[8]': 0xfffffff3}, {'CPSR': 0xa0000000})
+teq_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'shift_amm': 1, 'shift_op': 1}, {'CPSR' : 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000007}, {'CPSR': 0x60000000})
+#Arithmetic shift right by immediate
+teq_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 2}, {'CPSR' : 0x00000000, 'REGS[9]': 0xfffffff3, 'REGS[8]': 0x0ffffff3}, {'CPSR': 0x80000000})
+teq_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 2}, {'CPSR' : 0x00000000, 'REGS[9]': 0xffffffff, 'REGS[8]': 0x80000002}, {'CPSR': 0x60000000})
+teq_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'shift_amm': 1, 'shift_op': 2}, {'CPSR' : 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000003}, {'CPSR': 0x20000000})
+#Rotate right by immediate
+teq_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'shift_amm': 0, 'shift_op': 3}, {'CPSR' : 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000006}, {'CPSR': 0x40000000})
+teq_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'shift_amm': 8, 'shift_op': 3}, {'CPSR' : 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000300}, {'CPSR': 0x40000000})
 isa.addInstruction(teq_shift_imm_Instr)
+
 teq_shift_reg_Instr = trap.Instruction('TEQ_sr', True, frequency = 5)
 teq_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [1, 0, 0, 1], 's': [1]}, 'TODO')
 teq_shift_reg_Instr.setCode(opCode, 'execute')
@@ -2320,7 +2371,41 @@ teq_shift_reg_Instr.addBehavior(IncrementPC, 'fetch')
 teq_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
 teq_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
 teq_shift_reg_Instr.addVariable(('result', 'BIT<32>'))
+# N flag = alu_out[31]
+teq_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x80000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000002}, {'CPSR': 0x00000000})
+teq_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000002, 'REGS[8]': 0xf0000003}, {'CPSR': 0x80000000})
+# Z flag = (if alu_out == 0 then 1 else 0)
+teq_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000003}, {'CPSR': 0x40000000})
+teq_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000002}, {'CPSR': 0x00000000})
+# C Flag = shifter_carry_out
+teq_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0xfffffffd, 'REGS[8]': 0x00000003}, {'CPSR': 0xa0000000})
+teq_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0xfffffffd, 'REGS[8]': 0x00000003}, {'CPSR': 0x80000000})
+# V Flag = unaffected
+teq_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x10000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000002}, {'CPSR': 0x10000000})
+#Condition Faild : do not update CPSR
+teq_shift_reg_Instr.addTest({'cond': 0x0, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0xfffffffd, 'REGS[8]': 0x00000003}, {'CPSR': 0x20000000})
+# Rs[7:0] < 32
+teq_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 0x00000001, 'REGS[9]': 0x00000002, 'REGS[8]': 0x00000001}, {'CPSR': 0x40000000})
+# Rs[7:0] == 32
+teq_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 32, 'REGS[9]': 0x00000002, 'REGS[8]': 0xffffffff}, {'CPSR': 0x20000000})
+# Rs[7:0] > 32
+teq_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 33, 'REGS[9]': 0x00000002, 'REGS[8]': 0xffffffff}, {'CPSR': 0x00000000})
+#Logic shift right by register 
+teq_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 1}, {'CPSR' : 0x00000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000002}, {'CPSR': 0x00000000})
+teq_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 1}, {'CPSR' : 0x20000000, 'REGS[0]': 0x00000001, 'REGS[9]': 0x00000002, 'REGS[8]': 0x00000004}, {'CPSR': 0x40000000})
+teq_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 1}, {'CPSR' : 0x20000000, 'REGS[0]': 32, 'REGS[9]': 0x00000002, 'REGS[8]': 0x00000fff}, {'CPSR': 0x00000000})
+teq_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 1}, {'CPSR' : 0x20000000, 'REGS[0]': 33, 'REGS[9]': 0xffffffff, 'REGS[8]': 0xffffffff}, {'CPSR': 0x80000000})
+#Arithmetic shift right by register
+teq_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 2}, {'CPSR' : 0x20000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000002}, {'CPSR': 0x20000000})
+teq_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 2}, {'CPSR' : 0x00000000, 'REGS[0]': 0x00000001, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000007}, {'CPSR': 0x60000000})
+teq_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 2}, {'CPSR' : 0x20000000, 'REGS[0]': 32, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000003}, {'CPSR': 0x00000000})
+teq_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 2}, {'CPSR' : 0x00000000, 'REGS[0]': 32, 'REGS[9]': 0xffffffff, 'REGS[8]': 0x80000000}, {'CPSR': 0x60000000})
+#Rotate right by register
+teq_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 3}, {'CPSR' : 0x00000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000003}, {'CPSR': 0x40000000})
+teq_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 3}, {'CPSR' : 0x20000000, 'REGS[0]': 0x00000020, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000003}, {'CPSR': 0x40000000})
+teq_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 3}, {'CPSR' : 0x20000000, 'REGS[0]': 0x00000008, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000300}, {'CPSR': 0x40000000})
 isa.addInstruction(teq_shift_reg_Instr)
+
 teq_imm_Instr = trap.Instruction('TEQ_i', True, frequency = 5)
 teq_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [1, 0, 0, 1], 's': [1]}, 'TODO')
 teq_imm_Instr.setCode(opCode, 'execute')
@@ -2328,6 +2413,8 @@ teq_imm_Instr.addBehavior(IncrementPC, 'fetch')
 teq_imm_Instr.addBehavior(condCheckOp, 'execute')
 teq_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
 teq_imm_Instr.addVariable(('result', 'BIT<32>'))
+teq_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rotate': 0x00000000, 'immediate': 0x00000003}, {'CPSR': 0x00000000, 'REGS[9]': 0x00000003}, {'CPSR': 0x40000000})
+teq_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rotate': 4, 'immediate': 0x000000fa}, {'CPSR': 0x00000000, 'REGS[9]': 0xfa000000}, {'CPSR': 0x60000000})
 isa.addInstruction(teq_imm_Instr)
 
 # TST instruction family
