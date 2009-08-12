@@ -2053,15 +2053,45 @@ rsb_shift_imm_Instr.setCode(opCode, 'execute')
 rsb_shift_imm_Instr.addBehavior(IncrementPC, 'fetch')
 rsb_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
 rsb_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
-rsb_shift_imm_Instr.addBehavior(UpdatePSRSub, 'execute', False)
+rsb_shift_imm_Instr.addBehavior(UpdatePSRSubR, 'execute', False)
 rsb_shift_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+
 #Logical shift left by immediate
+  #Set N bit
+rsb_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x00000000, 'REGS[9]': 0x00000001, 'REGS[8]': 0xffffffff}, 
+                            {'CPSR' : 0xa0000000, 'REGS[10]':0xfffffffe} )
+  #Clear N bit
+rsb_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x80000000, 'REGS[9]' : 0x00000002, 'REGS[8]': 0x00000003}, 
+                            {'CPSR' : 0x20000000, 'REGS[10]': 0x00000001} )
 #Z Flag = if Rd == 0 then 1 else 0
-rsb_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[9]': 5, 'REGS[8]': 5}, {'REGS[10]': 0, 'CPSR' : 0x60000000})
+  #Set Z bit
+rsb_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x00000000, 'REGS[9]': 0x00000005, 'REGS[8]': 0x00000005}, 
+                            {'CPSR' : 0x60000000,'REGS[10]': 0x00000000} )
+  #Clear Z bit
+rsb_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x40000000, 'REGS[9]': 0x00000005, 'REGS[8]': 0x00000006}, 
+                            {'CPSR' : 0x20000000,'REGS[10]': 0x00000001} )
 #C Flag = NOT BorrowFrom(shifter_operand - Rn)
-rsb_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[9]': 1, 'REGS[8]': 0xffffffff}, {'REGS[10]':-2, 'CPSR' : 0x00000000})
+  #Set C bit
+rsb_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x00000000, 'REGS[9]' : 0x00000005, 'REGS[8]': 0x00000006}, 
+                            {'CPSR' : 0x20000000, 'REGS[10]': 0x00000001})
+  #Clear C bit
+rsb_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x20000000, 'REGS[9]' : 0x80000000, 'REGS[8]': 0x7fffffff}, 
+                            {'CPSR' : 0x90000000, 'REGS[10]': 0xffffffff})
 #V Flag = OverflowFrom(shifter_operand - Rn)
-rsb_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[9]': 1, 'REGS[8]': 0x80000000}, {'REGS[10]': 0x7fffffff, 'CPSR' : 0x90000000})
+rsb_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x00000000, 'REGS[9]': 0x00000001, 'REGS[8]': 0x80000000}, 
+                            {'CPSR' : 0x30000000, 'REGS[10]': 0x7fffffff})
+
+rsb_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x10000000, 'REGS[9]': 0x00000005, 'REGS[8]': 0x00000006}, 
+                            {'CPSR' : 0x20000000, 'REGS[10]': 0x00000001})
+
 #S=0 do not update CPSR
 rsb_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': 9, 'REGS[8]': 10}, {'REGS[10]': 1})
 rsb_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': -2, 'REGS[8]': 3}, {'REGS[10]': 5})

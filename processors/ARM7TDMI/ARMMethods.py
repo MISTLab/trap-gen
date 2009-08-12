@@ -600,6 +600,28 @@ UpdatePSRSub.addUserInstructionElement('s')
 UpdatePSRSub.addUserInstructionElement('rn')
 UpdatePSRSub.addUserInstructionElement('rd')
 UpdatePSRSub.addInstuctionVar(('operand', 'BIT<32>'))
+
+#Begin Fix Bug
+opCode = cxx_writer.writer_code.Code("""
+if (s == 0x1){
+    if(rd_bit == 15){
+        // In case the destination register is the program counter,
+        // I have to switch to the saved program status register
+        restoreSPSR();
+    }
+    else{
+        //Here I have to normally update the flags
+        UpdatePSRSubInner(operand, rn);
+    }
+}
+""")
+UpdatePSRSubR = trap.HelperOperation('UpdatePSRSubR', opCode)
+UpdatePSRSubR.addUserInstructionElement('s')
+UpdatePSRSubR.addUserInstructionElement('rn')
+UpdatePSRSubR.addUserInstructionElement('rd')
+UpdatePSRSubR.addInstuctionVar(('operand', 'BIT<32>'))
+#End Fix Bug
+
 # Now I define the behavior used by most of the data processing operations
 # for the update of the program status register
 opCode = cxx_writer.writer_code.Code("""
@@ -644,9 +666,6 @@ UpdatePSRmul = trap.HelperOperation('UpdatePSRmul', opCode)
 UpdatePSRmul.addUserInstructionElement('s')
 UpdatePSRmul.addUserInstructionElement('rd')
 
-#Begin test
-# In case the program counter is the updated register I have
-# to increment the latency of the operation
 opCode = cxx_writer.writer_code.Code("""
 if (s == 0x1){
     if(rd_bit == 15){
@@ -670,7 +689,6 @@ UpdatePSRmul_64.addUserInstructionElement('s')
 UpdatePSRmul_64.addUserInstructionElement('rd')
 UpdatePSRmul_64.addInstuctionVar(('carry', 'BIT<1>'))
 UpdatePSRmul_64.addInstuctionVar(('result', 'BIT<64>'))
-#End test
 
 # In case the program counter is the updated register I have
 # to increment the latency of the operation
