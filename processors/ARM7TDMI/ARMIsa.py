@@ -2693,7 +2693,39 @@ swap_Instr.addBehavior(IncrementPC, 'fetch')
 swap_Instr.addBehavior(condCheckOp, 'execute')
 swap_Instr.addVariable(('temp', 'BIT<32>'))
 swap_Instr.addVariable(('memLastBits', 'BIT<32>'))
+#if ConditionPassed(cond) then
+#    if Rn[1:0] == 0b00 then
+#        temp = Memory[Rn,4]
+#    else if Rn[1:0] == 0b01 then
+#        temp = Memory[Rn,4] Rotate_Right 8
+#    else if Rn[1:0] == 0b10 then
+#        temp = Memory[Rn,4] Rotate_Right 16
+#    else /* Rn[1:0] == 0b11 */
+#        temp = Memory[Rn,4] Rotate_Right 24
+#    Memory[Rn,4] = Rm
+#    Rd = temp
+swap_Instr.addTest({'cond'   : 0xe, 'rd' : 9, 'rn' : 0, 'rm': 8},
+                   {'REGS[0]': 0x00000010,'dataMem[0x00000010]': 123456, 'REGS[9]' : 0x00000000, 'REGS[8]' : 456789}, 
+                   {'REGS[9]': 123456    ,'dataMem[0x00000010]': 456789})
+
+swap_Instr.addTest({'cond'   : 0xe, 'rd' : 9, 'rn' : 0, 'rm': 8},
+                   {'REGS[0]': 0x00000011,'dataMem[0x00000011]': 0x0000abcd, 'REGS[9]' : 0x00000000, 'REGS[8]' : 0x10101010}, 
+                   {'REGS[9]': 0xcd0000ab,'dataMem[0x00000011]': 0x10101010})
+
+swap_Instr.addTest({'cond'   : 0xe, 'rd' : 9, 'rn' : 0, 'rm': 8},
+                   {'REGS[0]': 0x00000012,'dataMem[0x00000012]': 0x0000abcd, 'REGS[9]' : 0x00000000, 'REGS[8]' : 0x10101010}, 
+                   {'REGS[9]': 0xabcd0000,'dataMem[0x00000012]': 0x10101010})
+
+swap_Instr.addTest({'cond'   : 0xe, 'rd' : 9, 'rn' : 0, 'rm': 8},
+                   {'REGS[0]': 0x00000013,'dataMem[0x00000013]': 0x0000abcd, 'REGS[9]' : 0x00000000, 'REGS[8]' : 0x10101010}, 
+                   {'REGS[9]': 0x00abcd00,'dataMem[0x00000013]': 0x10101010})
+#else
+swap_Instr.addTest({'cond' : 0x0, 'rd' : 9, 'rn' : 0, 'rm': 8}, 
+                   {'REGS[0]': 0x00000010,'dataMem[0x00000010]': 123456, 'REGS[9]' : 0x00000000, 'REGS[8]' : 456789}, 
+                   {'REGS[9]': 0x00000000,'dataMem[0x00000010]': 123456})
+#end if
 isa.addInstruction(swap_Instr)
+
 opCode = cxx_writer.writer_code.Code("""
 temp = dataMem.read_byte(rn);
 dataMem.write_byte(rn, (unsigned char)(rm & 0x000000FF));
@@ -2706,4 +2738,16 @@ swapb_Instr.setCode(opCode, 'execute')
 swapb_Instr.addBehavior(IncrementPC, 'fetch')
 swapb_Instr.addBehavior(condCheckOp, 'execute')
 swapb_Instr.addVariable(('temp', 'BIT<8>'))
+#if ConditionPassed(cond) then0
+#    temp = Memory[Rn,1]
+#    Memory[Rn,1] = Rm[7:0]
+#    Rd = temp
+swapb_Instr.addTest({'cond'  : 0xe, 'rd' : 9, 'rn' : 0, 'rm': 8}, 
+                   {'REGS[0]': 0x0000000a,'dataMem[0x0000000a]': 0xcd, 'REGS[9]' : 0x00000000,'REGS[8]' : 0x000000ab}, 
+                   {'REGS[9]': 0x000000cd,'dataMem[0x0000000a]': 0xab})
+#else
+swapb_Instr.addTest({'cond' : 0x0, 'rd' : 9, 'rn' : 0, 'rm': 8}, 
+                   {'REGS[0]': 0x0000000a,'dataMem[0x0000000a]': 0xcd, 'REGS[9]' : 0x00000000,'REGS[8]' : 0x000000ab},  
+                   {'REGS[9]': 0x00000000,'dataMem[0x0000000a]': 0xcd})
+#endif
 isa.addInstruction(swapb_Instr)
