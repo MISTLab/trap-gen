@@ -2120,10 +2120,16 @@ rsb_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
 #logical shift left by register
 #N Flag = Rd[31]
 rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 0, 'REGS[9]': 3, 'REGS[8]': 3}, {'CPSR' : 0x60000000, 'REGS[10]': 0})
-#rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 0, 'REGS[9]': 1, 'REGS[8]': -1}, {'CPSR' : 0x80000000, 'REGS[10]': -2})
+rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 0, 'REGS[9]': 1, 'REGS[8]': -1}, {'CPSR' : 0x80000000, 'REGS[10]': -2})
 # Z Flag = if Rd == 0 then 1 else 0
 rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000003}, {'CPSR' : 0x60000000, 'REGS[10]': 0})
-rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000004}, {'CPSR' : 0x80000000, 'REGS[10]': 0})
+rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000004}, {'CPSR' : 0x20000000, 'REGS[10]': 1})
+# C Flag = NOT BorrowFrom(shifter_operand - Rn)
+rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000004, 'REGS[8]': 0x00000003}, {'CPSR': 0x80000000, 'REGS[10]': -1})
+rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000004, 'REGS[8]': 0x00000005}, {'CPSR': 0x20000000, 'REGS[10]': 1})
+# V Flag = OverflowFrom(shifter_operand - Rn)
+rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000001, 'REGS[8]': 0x80000000}, {'CPSR': 0x10000000, 'REGS[10]': 0x7fffffff})
+rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x10000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000004, 'REGS[8]': 0x00000005}, {'CPSR': 0x20000000, 'REGS[10]': 1})
 #S=0 do not update CPSR
 rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[0]': 0, 'REGS[9]': -1, 'REGS[8]': 2}, {'CPSR' : 0x20000000, 'REGS[10]': 3})
 rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'REGS[0]': 1, 'REGS[9]': 2, 'REGS[8]': 1}, {'REGS[10]': 0})
