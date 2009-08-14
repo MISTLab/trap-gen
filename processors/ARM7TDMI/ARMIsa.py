@@ -2116,7 +2116,7 @@ rsb_shift_reg_Instr.setCode(opCode, 'execute')
 rsb_shift_reg_Instr.addBehavior(IncrementPC, 'fetch')
 rsb_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
 rsb_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
-rsb_shift_reg_Instr.addBehavior(UpdatePSRSub, 'execute', False)
+rsb_shift_reg_Instr.addBehavior(UpdatePSRSubR, 'execute', False)
 rsb_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
 #logical shift left by register
 #N Flag = Rd[31]
@@ -2159,7 +2159,7 @@ rsb_imm_Instr.setCode(opCode, 'execute')
 rsb_imm_Instr.addBehavior(IncrementPC, 'fetch')
 rsb_imm_Instr.addBehavior(condCheckOp, 'execute')
 rsb_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
-rsb_imm_Instr.addBehavior(UpdatePSRSub, 'execute', False)
+rsb_imm_Instr.addBehavior(UpdatePSRSubR, 'execute', False)
 rsb_imm_Instr.addBehavior(UpdatePC, 'execute', False)
 #test starts
 rsb_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 0xfc}, {'CPSR' : 0x00000000, 'REGS[9]': 0xc}, {'CPSR' : 0x80000000, 'REGS[10]': 0xf0})
@@ -2688,6 +2688,55 @@ stm_Instr.setCode(opCodeDec, 'decode')
 stm_Instr.addBehavior(IncrementPC, 'fetch')
 stm_Instr.addBehavior(condCheckOp, 'execute')
 stm_Instr.addBehavior(LSM_reglist_Op, 'execute')
+
+stm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 's': 0, 'w': 0, 'rn': 0, 'reg_list': 0x02}, 
+                  {'REGS[0]': 0x10, 'REGS[1]': 1234}, {'dataMem[0x10]': 1234})
+stm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 's': 0, 'w': 0, 'rn': 0, 'reg_list': 0x02}, 
+                  {'REGS[0]': 0x10, 'REGS[1]': 1234}, {'dataMem[0x10]': 1234})
+stm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 's': 0, 'w': 1, 'rn': 0, 'reg_list': 0x02}, 
+                  {'REGS[0]': 0x10, 'REGS[1]': 1234}, {'dataMem[0x10]': 1234, 'REGS[0]': 0x14})
+stm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 's': 0, 'w': 0, 'rn': 0, 'reg_list': 0x0e}, 
+                  {'REGS[0]': 0x10, 'REGS[1]': 1, 'REGS[2]': 2, 'REGS[3]': 3}, 
+                  {'dataMem[0x10]': 1, 'dataMem[0x14]': 2, 'dataMem[0x18]': 3})
+stm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 's': 0, 'w': 1, 'rn': 0, 'reg_list': 0x0e}, 
+                  {'REGS[0]': 0x10, 'REGS[1]': 1, 'REGS[2]': 2, 'REGS[3]': 3}, 
+                  {'dataMem[0x10]': 1, 'dataMem[0x14]': 2, 'dataMem[0x18]': 3,'REGS[0]': 0x1c})
+stm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 's': 0, 'w': 0, 'rn': 0, 'reg_list': 0x02}, 
+                  {'REGS[0]': 0x10, 'REGS[1]': 1234}, {'dataMem[0x14]': 1234})
+stm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 's': 0, 'w': 0, 'rn': 0, 'reg_list': 0x02}, 
+                  {'REGS[0]': 0x10, 'REGS[1]': 1234}, {'dataMem[0x0c]': 1234})
+stm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 's': 0, 'w': 1, 'rn': 0, 'reg_list': 0x02}, 
+                  {'REGS[0]': 0x10, 'REGS[1]': 1234}, {'dataMem[0x14]': 1234, 'REGS[0]': 0x14})
+stm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 's': 0, 'w': 0, 'rn': 0, 'reg_list': 0x0e}, 
+                  {'REGS[0]': 0x10, 'REGS[1]': 3, 'REGS[2]': 2, 'REGS[3]': 1}, 
+                  {'dataMem[0x0c]': 1, 'dataMem[0x08]': 2, 'dataMem[0x04]': 3})
+stm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 's': 0, 'w': 1, 'rn': 0, 'reg_list': 0x0e}, 
+                  {'REGS[0]': 0x10, 'REGS[1]': 3, 'REGS[2]': 2, 'REGS[3]': 1}, 
+                  {'dataMem[0x0c]': 1, 'dataMem[0x08]': 2, 'dataMem[0x04]': 3, 'REGS[0]': 0x04})
+
+stm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 's': 1, 'w': 0, 'rn': 0, 'reg_list': 0x2000}, 
+                  {'CPSR' : 0x12, 'RB[0]': 0x10, 'RB[13]': 1234, 'RB[21]': 0x888}, 
+                  {'dataMem[0x10]': 1234})
+
+stm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 's': 1, 'w': 0, 'rn': 0, 'reg_list': 0x2000}, 
+                  {'CPSR' : 0x12, 'RB[0]': 0x10, 'RB[13]': 1234, 'RB[21]': 0x888}, 
+                  {'dataMem[0x10]': 1234})
+
+stm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 's': 1, 'w': 0, 'rn': 0, 'reg_list': 0x6000}, 
+                  {'CPSR'  : 0x12, 'RB[0]' : 0x10, 'RB[13]': 1, 'RB[14]': 2}, 
+                  {'dataMem[0x10]': 1, 'dataMem[0x14]': 2})
+
+stm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 's': 1, 'w': 0, 'rn': 0, 'reg_list': 0x2000}, 
+                  {'CPSR'  : 0x12 , 'RB[0]': 0x10  , 'RB[13]': 1234, 'RB[21]': 0x888}, 
+                  {'dataMem[0x14]': 1234})
+
+stm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 's': 1, 'w': 0, 'rn': 0, 'reg_list': 0x2000}, 
+                  {'CPSR'  : 0x12, 'RB[0]': 0x10, 'RB[13]': 1234, 'RB[21]': 0x888}, 
+                  {'dataMem[0x0c]': 1234})
+
+stm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 's': 1, 'w': 0, 'rn': 0, 'reg_list': 0x6000}, 
+                  {'CPSR' : 0x12, 'RB[0]': 0x10, 'RB[13]': 2, 'RB[14]': 1, 'RB[21]': 0x888}, 
+                  {'dataMem[0x0c]': 1, 'dataMem[0x08]': 2})
 isa.addInstruction(stm_Instr)
 
 # STR instruction family
@@ -2704,7 +2753,36 @@ str_imm_Instr.addBehavior(condCheckOp, 'execute')
 str_imm_Instr.addBehavior(ls_imm_Op, 'execute')
 str_imm_Instr.addVariable(('memLastBits', 'BIT<32>'))
 str_imm_Instr.addVariable(('value', 'BIT<32>'))
+#if ConditionPassed(cond) then
+#    Memory[address,4] = Rd
+str_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0}, {'dataMem[0x10]': 0,'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 123456, 'REGS[0]' : 0x10})
+str_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0}, {'dataMem[0x10]': 0,'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 123456, 'REGS[0]' : 0x10})
+str_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0}, {'dataMem[0x10]': 0,'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 123456, 'REGS[0]' : 0x10})
+str_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0}, {'dataMem[0x10]': 0,'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 123456, 'REGS[0]' : 0x10})
+str_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0}, {'dataMem[0x10]': 0,'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 123456, 'REGS[0]' : 0x10})
+str_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0}, {'dataMem[0x10]': 0,'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 123456, 'REGS[0]' : 0x10})
+str_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'dataMem[0x10]': 0,'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 123456, 'REGS[0]' : 0x18})
+str_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'dataMem[0x10]': 0,'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 123456, 'REGS[0]' : 0x08})
+str_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'dataMem[0x18]': 0,'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x18]': 123456, 'REGS[0]' : 0x10})
+str_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'dataMem[0x08]': 0,'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x08]': 123456, 'REGS[0]' : 0x10})
+str_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'dataMem[0x18]': 0,'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x18]': 123456, 'REGS[0]' : 0x18})
+str_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'dataMem[0x08]': 0,'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x08]': 123456, 'REGS[0]' : 0x08})
+#else
+str_imm_Instr.addTest({'cond': 0x0, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0}, {'dataMem[0x10]': 0,'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
+str_imm_Instr.addTest({'cond': 0x0, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0}, {'dataMem[0x10]': 0,'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
+str_imm_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0}, {'dataMem[0x10]': 0,'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
+str_imm_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0}, {'dataMem[0x10]': 0,'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
+str_imm_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0}, {'dataMem[0x10]': 0,'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
+str_imm_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0}, {'dataMem[0x10]': 0,'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
+str_imm_Instr.addTest({'cond': 0x0, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'dataMem[0x10]': 0,'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
+str_imm_Instr.addTest({'cond': 0x0, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'dataMem[0x10]': 0,'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
+str_imm_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'dataMem[0x18]': 0,'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x18]': 0, 'REGS[0]' : 0x10})
+str_imm_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'dataMem[0x08]': 0,'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x08]': 0, 'REGS[0]' : 0x10})
+str_imm_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'dataMem[0x18]': 0,'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x18]': 0, 'REGS[0]' : 0x10})
+str_imm_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'dataMem[0x08]': 0,'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x08]': 0, 'REGS[0]' : 0x10})
+#endif
 isa.addInstruction(str_imm_Instr)
+
 str_off_Instr = trap.Instruction('STR_off', True, frequency = 8)
 str_off_Instr.setMachineCode(ls_regOff, {'b': [0], 'l': [0]}, 'TODO')
 str_off_Instr.setCode(opCode, 'execute')
@@ -2713,6 +2791,59 @@ str_off_Instr.addBehavior(condCheckOp, 'execute')
 str_off_Instr.addBehavior(ls_reg_Op, 'execute')
 str_off_Instr.addVariable(('memLastBits', 'BIT<32>'))
 str_off_Instr.addVariable(('value', 'BIT<32>'))
+str_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 123456, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 123456, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 123456, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 123456, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 123456, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 123456, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 123456, 'REGS[0]' : 0x18})
+str_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 123456, 'REGS[0]' : 0x08})
+str_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x18]': 123456, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x08]': 123456, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x18]': 123456, 'REGS[0]' : 0x18})
+str_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x08]': 123456, 'REGS[0]' : 0x08})
+
+str_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 123456, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 123456, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 123456, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 123456, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 123456, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 123456, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 123456, 'REGS[0]' : 0x18})
+str_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 123456, 'REGS[0]' : 0x08})
+str_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x18]': 123456, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x08]': 123456, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x18]': 123456, 'REGS[0]' : 0x18})
+str_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x08]': 123456, 'REGS[0]' : 0x08})
+
+
+str_off_Instr.addTest({'cond': 0x0, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'dataMem[0x10]': 0,'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0x0, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'dataMem[0x10]': 0,'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'dataMem[0x10]': 0,'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'dataMem[0x10]': 0,'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'dataMem[0x10]': 0,'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'dataMem[0x10]': 0,'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0x0, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'dataMem[0x10]': 0,'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0x0, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'dataMem[0x10]': 0,'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'dataMem[0x18]': 0,'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x18]': 0, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'dataMem[0x08]': 0,'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x08]': 0, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'dataMem[0x18]': 0,'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x18]': 0, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'dataMem[0x08]': 0,'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x08]': 0, 'REGS[0]' : 0x10})
+
+str_off_Instr.addTest({'cond': 0x0, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'dataMem[0x10]': 0,'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0x0, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'dataMem[0x10]': 0,'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'dataMem[0x10]': 0,'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'dataMem[0x10]': 0,'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'dataMem[0x10]': 0,'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'dataMem[0x10]': 0,'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0x0, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'dataMem[0x10]': 0,'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0x0, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'dataMem[0x10]': 0,'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'dataMem[0x18]': 0,'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x18]': 0, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'dataMem[0x08]': 0,'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x08]': 0, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'dataMem[0x18]': 0,'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x18]': 0, 'REGS[0]' : 0x10})
+str_off_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2}, {'dataMem[0x08]': 0,'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123456}, {'dataMem[0x08]': 0, 'REGS[0]' : 0x10})
+
 isa.addInstruction(str_off_Instr)
 # STRB instruction family
 # Normal load instruction
@@ -2726,13 +2857,33 @@ strb_imm_Instr.setCode(opCode, 'execute')
 strb_imm_Instr.addBehavior(IncrementPC, 'fetch')
 strb_imm_Instr.addBehavior(condCheckOp, 'execute')
 strb_imm_Instr.addBehavior(ls_imm_Op, 'execute')
+#1 - Immediate offset post-indexed
+strb_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0}, {'REGS[0]' : 0x10, 'REGS[1]' : 123}, {'dataMem[0x10]': 123, 'REGS[0]' : 0x10})
+strb_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0}, {'REGS[0]' : 0x10, 'REGS[1]' : 123}, {'dataMem[0x10]': 123, 'REGS[0]' : 0x10})
+strb_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'REGS[1]': 123},{'dataMem[0x10]': 123, 'REGS[0]' : 0x18})
+strb_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'REGS[1]' : 123}, {'dataMem[0x10]': 123, 'REGS[0]' : 0x08})
+#2 - Immediate offset pre-indexed addressing
+strb_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0}, {'REGS[0]' : 0x10, 'REGS[1]' : 123}, {'dataMem[0x10]': 123, 'REGS[0]' : 0x10})
+strb_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0}, {'REGS[0]' : 0x10, 'REGS[1]' : 123}, {'dataMem[0x10]': 123, 'REGS[0]' : 0x10})
+strb_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0}, {'REGS[0]' : 0x10, 'REGS[1]' : 123}, {'dataMem[0x10]': 123, 'REGS[0]' : 0x10})
+strb_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0}, {'REGS[0]' : 0x10, 'REGS[1]' : 123}, {'dataMem[0x10]': 123, 'REGS[0]' : 0x10})
+strb_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'REGS[1]' : 123}, {'dataMem[0x18]': 123, 'REGS[0]' : 0x10})
+strb_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'REGS[1]' : 123}, {'dataMem[0x08]': 123, 'REGS[0]' : 0x10})
+strb_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'REGS[1]' : 123}, {'dataMem[0x18]': 123, 'REGS[0]' : 0x18})
+strb_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'REGS[1]' : 123}, {'dataMem[0x08]': 123, 'REGS[0]' : 0x08})
+
+strb_imm_Instr.addTest({'cond': 0x0, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0}  , {'dataMem[0x10]': 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123}, {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
+strb_imm_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'dataMem[0x10]': 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123}, {'dataMem[0x18]': 0, 'REGS[0]' : 0x10})
+strb_imm_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'dataMem[0x10]': 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123}, {'dataMem[0x08]': 0, 'REGS[0]' : 0x10})
 isa.addInstruction(strb_imm_Instr)
+
 strb_off_Instr = trap.Instruction('STRB_off', True, frequency = 4)
 strb_off_Instr.setMachineCode(ls_regOff, {'b': [1], 'l': [0]}, 'TODO')
 strb_off_Instr.setCode(opCode, 'execute')
 strb_off_Instr.addBehavior(IncrementPC, 'fetch')
 strb_off_Instr.addBehavior(condCheckOp, 'execute')
 strb_off_Instr.addBehavior(ls_reg_Op, 'execute')
+
 isa.addInstruction(strb_off_Instr)
 # STRH instruction family
 opCode = cxx_writer.writer_code.Code("""
