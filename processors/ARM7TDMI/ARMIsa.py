@@ -595,9 +595,6 @@ eor_shift_reg_Instr.addTest({'cond' : 0xe, 's': 1, 'rn': 9, 'rd' : 10, 'rm': 8, 
 #    Rd = Rn EOR shifter_operand
 #    if S == 1 and Rd == R15 then
 #        CPSR = SPSR
-#eor_shift_reg_Instr.addTest({'cond' : 0xe, 's': 1, 'rn': 9, 'rd' : 15, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
-#                            {'CPSR' : 0x40000000, 'SPSR' : 0x20000000}, 
-#                            {'CPSR' : 0x20000000, 'SPSR' : 0x20000000})
 #    else if S == 1 then
 #       Normal case
 eor_shift_reg_Instr.addTest({'cond' : 0xe, 's': 1, 'rn': 9, 'rd' : 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
@@ -679,6 +676,7 @@ eor_imm_Instr.addTest({'cond' : 0x0, 's': 1, 'rn': 9, 'rd' : 10, 'rotate': 0x000
                       {'CPSR' : 0x20000000, 'REGS[10]':0x00000000})
 #end if 
 isa.addInstruction(eor_imm_Instr)
+
 # LDM instruction family
 opCode = cxx_writer.writer_code.Code("""
 unsigned int numRegsToLoad = 0;
@@ -1411,6 +1409,7 @@ umlal_Instr.addTest({'cond' : 0x0, 's': 1, 'rd' : 10, 'rn' : 9, 'rm': 8, 'rs': 7
                   {'CPSR': 0x30000000,'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000,'REGS[8]' : 0x00000002,'REGS[7]' : 0x00000002}, 
                   {'CPSR': 0x30000000,'REGS[10]': 0x00000000,'REGS[9]' : 0x00000000 })
 isa.addInstruction(umull_Instr)
+
 # MOV instruction family
 opCode = cxx_writer.writer_code.Code("""
 rd = operand;
@@ -1548,12 +1547,34 @@ else{
     rd = CPSR;
 }
 """)
+#if ConditionPassed(cond) then
+#    if R == 1 then
+#         Rd = SPSR
+#    else
+#         Rd = CPSR
 mrs_Instr = trap.Instruction('mrs_Instr', True, frequency = 3)
 mrs_Instr.setMachineCode(move_imm2psr, {'opcode0': [0, 0, 0, 1, 0], 'opcode1': [0, 0], 'mask': [1, 1, 1, 1], 'rotate': [0, 0, 0, 0], 'immediate': [0, 0, 0, 0, 0, 0, 0, 0]}, 'TODO')
 mrs_Instr.setCode(opCode, 'execute')
 mrs_Instr.addBehavior(IncrementPC, 'fetch')
 mrs_Instr.addBehavior(condCheckOp, 'execute')
 mrs_Instr.setVarField('rd', ('REGS', 0), 'out')
+#    if R == 1 then
+#         Rd = SPSR
+# FIQ mode rd = SPSR[0];
+mrs_Instr.addTest({'cond': 0xe, 'r': 1, 'rd': 10}, {'CPSR' : 0x00000011,'SPSR[0]' : 0x50000000 }, {'REGS[10]':0x50000000})
+# IRQ mode rd = SPSR[1];
+mrs_Instr.addTest({'cond': 0xe, 'r': 1, 'rd': 10}, {'CPSR' : 0x00000012,'SPSR[1]' : 0x80000000 }, {'REGS[10]':0x80000000})
+# SVC mode rd = SPSR[2];
+mrs_Instr.addTest({'cond': 0xe, 'r': 1, 'rd': 10}, {'CPSR' : 0x00000013,'SPSR[2]' : 0x40000000 }, {'REGS[10]':0x40000000})
+# ABT mode rd = SPSR[3];
+mrs_Instr.addTest({'cond': 0xe, 'r': 1, 'rd': 10}, {'CPSR' : 0x00000017,'SPSR[3]' : 0x20000000 }, {'REGS[10]':0x20000000})
+# UND mode rd = SPSR[4];
+mrs_Instr.addTest({'cond': 0xe, 'r': 1, 'rd': 10}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0xa0000000 }, {'REGS[10]':0xa0000000})
+#    else
+#         Rd = CPSR
+mrs_Instr.addTest({'cond': 0xe, 'r': 0, 'rd': 10}, {'CPSR' : 0x20000000}, {'CPSR' : 0x20000000, 'REGS[10]':0x20000000})
+# condition failed 
+mrs_Instr.addTest({'cond': 0x0, 'r': 0, 'rd': 10}, {'CPSR' : 0x20000000}, {'CPSR' : 0x20000000})
 isa.addInstruction(mrs_Instr)
 
 # MSR instruction family
@@ -1698,6 +1719,83 @@ msr_imm_Instr.setCode(opCode, 'execute')
 msr_imm_Instr.addBehavior(IncrementPC, 'fetch')
 msr_imm_Instr.addBehavior(condCheckOp, 'execute')
 msr_imm_Instr.addVariable(('value', 'BIT<32>'))
+#if ConditionPassed(cond) then
+#    if opcode[25] == 1
+#        operand = 8_bit_immediate Rotate_Right (rotate_imm * 2)
+#    if R == 0 then
+#        if field_mask[0] == 1 and InAPrivilegedMode() then
+#            CPSR[7:0] = operand[7:0]
+msr_imm_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':0, 'rotate': 1, 'immediate': 0x40},{'CPSR' : 0x00000013}, {'CPSR' : 0x00000013})
+msr_imm_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':1, 'rotate': 1, 'immediate': 0x40},{'CPSR' : 0x00000012}, {'CPSR' : 0x00000010})
+# not InAPrivilegedMode, do not update CPSR
+msr_imm_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':1, 'rotate': 1, 'immediate': 0x40},{'CPSR' : 0x00000000}, {'CPSR' : 0x00000000})
+msr_imm_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':0, 'rotate': 1, 'immediate': 0x40},{'CPSR' : 0x00000000}, {'CPSR' : 0x00000000})
+#        if field_mask[1] == 1 and InAPrivilegedMode() then
+#            CPSR[15:8] = operand[15:8]
+msr_imm_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':2, 'rotate': 1, 'immediate': 0x40},{'CPSR' : 0x00002212}, {'CPSR' : 0x00000012})
+#        if field_mask[2] == 1 and InAPrivilegedMode() then
+#            CPSR[23:16] = operand[23:16]
+msr_imm_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':4, 'rotate': 1, 'immediate': 0x40},{'CPSR' : 0x00330012}, {'CPSR' : 0x00000012})
+#        if field_mask[3] == 1 then
+#            CPSR[31:24] = operand[31:24]
+msr_imm_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':8, 'rotate': 1, 'immediate': 0x40},{'CPSR' : 0x44000012}, {'CPSR' : 0x00000012})
+#    else /* R == 1 */
+#        if field_mask[0] == 1 and CurrentModeHasSPSR() then
+#            SPSR[7:0] = operand[7:0]
+#        if field_mask[1] == 1 and CurrentModeHasSPSR() then
+#            SPSR[15:8] = operand[15:8]
+#        if field_mask[2] == 1 and CurrentModeHasSPSR() then
+#            SPSR[23:16] = operand[23:16]
+#        if field_mask[3] == 1 and CurrentModeHasSPSR() then
+#            SPSR[31:24] = operand[31:24]
+# FIQ mode SPSR[0];
+msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rotate': 1, 'immediate': 0x40},
+		      {'CPSR' : 0x00000011, 'SPSR[0]' : 0x00000000}, {'CPSR' : 0x00000011,'SPSR[0]' : 0x00000010})
+msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rotate': 1, 'immediate': 0x40},
+		      {'CPSR' : 0x00000011, 'SPSR[0]' : 0x00002222}, {'CPSR' : 0x00000011,'SPSR[0]' : 0x00000022})
+msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rotate': 1, 'immediate': 0x40},
+		      {'CPSR' : 0x00000011, 'SPSR[0]' : 0x00441234}, {'CPSR' : 0x00000011,'SPSR[0]' : 0x00001234})
+msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rotate': 1, 'immediate': 0x40},
+		      {'CPSR' : 0x00000011, 'SPSR[0]' : 0x55000000}, {'CPSR' : 0x00000011,'SPSR[0]' : 0x00000000})
+# IRQ mode SPSR[1];
+msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rotate': 1, 'immediate': 0x40},
+		      {'CPSR' : 0x00000012, 'SPSR[1]' : 0x00000000}, {'CPSR' : 0x00000012,'SPSR[1]' : 0x00000010})
+msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rotate': 1, 'immediate': 0x40},
+		      {'CPSR' : 0x00000012, 'SPSR[1]' : 0x00002222}, {'CPSR' : 0x00000012,'SPSR[1]' : 0x00000022})
+msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rotate': 1, 'immediate': 0x40},
+		      {'CPSR' : 0x00000012, 'SPSR[1]' : 0x00441234}, {'CPSR' : 0x00000012,'SPSR[1]' : 0x00001234})
+msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rotate': 1, 'immediate': 0x40},
+		      {'CPSR' : 0x00000012, 'SPSR[1]' : 0x55000000}, {'CPSR' : 0x00000012,'SPSR[1]' : 0x00000000})
+# SVC mode SPSR[2];
+msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rotate': 1, 'immediate': 0x40},
+		      {'CPSR' : 0x00000013, 'SPSR[2]' : 0x00000000}, {'CPSR' : 0x00000013,'SPSR[2]' : 0x00000010})
+msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rotate': 1, 'immediate': 0x40},
+		      {'CPSR' : 0x00000013, 'SPSR[2]' : 0x00002222}, {'CPSR' : 0x00000013,'SPSR[2]' : 0x00000022})
+msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rotate': 1, 'immediate': 0x40},
+		      {'CPSR' : 0x00000013, 'SPSR[2]' : 0x00441234}, {'CPSR' : 0x00000013,'SPSR[2]' : 0x00001234})
+msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rotate': 1, 'immediate': 0x40},
+		      {'CPSR' : 0x00000013, 'SPSR[2]' : 0x55000000}, {'CPSR' : 0x00000013,'SPSR[2]' : 0x00000000})
+# ABT mode SPSR[3];
+msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rotate': 1, 'immediate': 0x40},
+		      {'CPSR' : 0x00000017, 'SPSR[3]' : 0x00000000}, {'CPSR' : 0x00000017,'SPSR[3]' : 0x00000010})
+msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rotate': 1, 'immediate': 0x40},
+		      {'CPSR' : 0x00000017, 'SPSR[3]' : 0x00002222}, {'CPSR' : 0x00000017,'SPSR[3]' : 0x00000022})
+msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rotate': 1, 'immediate': 0x40},
+		      {'CPSR' : 0x00000017, 'SPSR[3]' : 0x00441234}, {'CPSR' : 0x00000017,'SPSR[3]' : 0x00001234})
+msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rotate': 1, 'immediate': 0x40},
+		      {'CPSR' : 0x00000017, 'SPSR[3]' : 0x55000000}, {'CPSR' : 0x00000017,'SPSR[3]' : 0x00000000})
+# UND mode SPSR[4];
+msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rotate': 1, 'immediate': 0x40},
+		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x00000000}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x00000010})
+msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rotate': 1, 'immediate': 0x40},
+		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x00002222}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x00000022})
+msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rotate': 1, 'immediate': 0x40},
+		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x00441234}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x00001234})
+msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rotate': 1, 'immediate': 0x40},
+		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x55000000}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x00000000})
+# condition failed
+msr_imm_Instr.addTest({'cond': 0x0, 'r': 1, 'mask':4, 'rotate': 1, 'immediate': 0x40},
+		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x00441234}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x00441234})
 isa.addInstruction(msr_imm_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
@@ -1839,6 +1937,88 @@ msr_reg_Instr.setMachineCode(move_imm2psr_reg, {'opcode0': [0, 0, 0, 1, 0], 'opc
 msr_reg_Instr.setCode(opCode, 'execute')
 msr_reg_Instr.addBehavior(IncrementPC, 'fetch')
 msr_reg_Instr.addBehavior(condCheckOp, 'execute')
+#if ConditionPassed(cond) then
+#    if opcode[25] == 1
+#        operand = 8_bit_immediate Rotate_Right (rotate_imm * 2)
+#    else /* opcode[25] == 0 */
+#        operand = Rm
+#    if R == 0 then
+#        if field_mask[0] == 1 and InAPrivilegedMode() then
+#            CPSR[7:0] = operand[7:0]
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':0, 'rm': 8 },{'CPSR' : 0x00000013, 'REGS[8]': 0xffffff10}, {'CPSR' : 0x00000013})
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':1, 'rm': 8 },{'CPSR' : 0x00000013, 'REGS[8]': 0xffffff10}, {'CPSR' : 0x00000010})
+# not InAPrivilegedMode, do not update CPSR
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':1, 'rm': 8 },{'CPSR' : 0x00000000, 'REGS[8]': 0xffffff10}, {'CPSR' : 0x00000000})
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':0, 'rm': 8 },{'CPSR' : 0x00000000, 'REGS[8]': 0xffffff10}, {'CPSR' : 0x00000000})
+#        if field_mask[1] == 1 and InAPrivilegedMode() then
+#            CPSR[15:8] = operand[15:8]
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':2, 'rm': 8 },{'CPSR' : 0x00000013, 'REGS[8]': 0xffff2210}, {'CPSR' : 0x00002213})
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':2, 'rm': 8 },{'CPSR' : 0x00001113, 'REGS[8]': 0xffff0010}, {'CPSR' : 0x00000013})
+#        if field_mask[2] == 1 and InAPrivilegedMode() then
+#            CPSR[23:16] = operand[23:16]
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':4, 'rm': 8 },{'CPSR' : 0x00000013, 'REGS[8]': 0xff332210}, {'CPSR' : 0x00330013})
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':4, 'rm': 8 },{'CPSR' : 0x00110013, 'REGS[8]': 0xff002210}, {'CPSR' : 0x00000013})
+#        if field_mask[3] == 1 then
+#            CPSR[31:24] = operand[31:24]
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':8, 'rm': 8 },{'CPSR' : 0x00000013, 'REGS[8]': 0xff332210}, {'CPSR' : 0xff000013})
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':8, 'rm': 8 },{'CPSR' : 0xfe000013, 'REGS[8]': 0x00332210}, {'CPSR' : 0x00000013})
+#    else /* R == 1 */
+#        if field_mask[0] == 1 and CurrentModeHasSPSR() then
+#            SPSR[7:0] = operand[7:0]
+#        if field_mask[1] == 1 and CurrentModeHasSPSR() then
+#            SPSR[15:8] = operand[15:8]
+#        if field_mask[2] == 1 and CurrentModeHasSPSR() then
+#            SPSR[23:16] = operand[23:16]
+#        if field_mask[3] == 1 and CurrentModeHasSPSR() then
+#            SPSR[31:24] = operand[31:24]
+# FIQ mode SPSR[0];
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rm': 8 },
+		      {'CPSR' : 0x00000011, 'SPSR[0]' : 0x000000ab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000011,'SPSR[0]' : 0x000000f0})
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rm': 8 },
+		      {'CPSR' : 0x00000011, 'SPSR[0]' : 0x0000abab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000011,'SPSR[0]' : 0x0000f0ab})
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rm': 8 },
+		      {'CPSR' : 0x00000011, 'SPSR[0]' : 0x00ababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000011,'SPSR[0]' : 0x00f0abab})
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rm': 8 },
+		      {'CPSR' : 0x00000011, 'SPSR[0]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000011,'SPSR[0]' : 0xf0ababab})
+# IRQ mode SPSR[1];
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rm': 8 },
+		      {'CPSR' : 0x00000012, 'SPSR[1]' : 0x000000ab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000012,'SPSR[1]' : 0x000000f0})
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rm': 8 },
+		      {'CPSR' : 0x00000012, 'SPSR[1]' : 0x0000abab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000012,'SPSR[1]' : 0x0000f0ab})
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rm': 8 },
+		      {'CPSR' : 0x00000012, 'SPSR[1]' : 0x00ababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000012,'SPSR[1]' : 0x00f0abab})
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rm': 8 },
+		      {'CPSR' : 0x00000012, 'SPSR[1]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000012,'SPSR[1]' : 0xf0ababab})
+# SVC mode SPSR[2];
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rm': 8 },
+		      {'CPSR' : 0x00000013, 'SPSR[2]' : 0x000000ab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000013,'SPSR[2]' : 0x000000f0})
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rm': 8 },
+		      {'CPSR' : 0x00000013, 'SPSR[2]' : 0x0000abab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000013,'SPSR[2]' : 0x0000f0ab})
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rm': 8 },
+		      {'CPSR' : 0x00000013, 'SPSR[2]' : 0x00ababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000013,'SPSR[2]' : 0x00f0abab})
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rm': 8 },
+		      {'CPSR' : 0x00000013, 'SPSR[2]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000013,'SPSR[2]' : 0xf0ababab})
+# ABT mode SPSR[3];
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rm': 8 },
+		      {'CPSR' : 0x00000017, 'SPSR[3]' : 0x000000ab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000017,'SPSR[3]' : 0x000000f0})
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rm': 8 },
+		      {'CPSR' : 0x00000017, 'SPSR[3]' : 0x0000abab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000017,'SPSR[3]' : 0x0000f0ab})
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rm': 8 },
+		      {'CPSR' : 0x00000017, 'SPSR[3]' : 0x00ababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000017,'SPSR[3]' : 0x00f0abab})
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rm': 8 },
+		      {'CPSR' : 0x00000017, 'SPSR[3]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000017,'SPSR[3]' : 0xf0ababab})
+# UND mode SPSR[4];
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rm': 8 },
+		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x000000ab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x000000f0})
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rm': 8 },
+		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x0000abab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x0000f0ab})
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rm': 8 },
+		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x00ababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x00f0abab})
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rm': 8 },
+		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0xf0ababab})
+# condition failed
+msr_reg_Instr.addTest({'cond': 0x0, 'r': 1, 'mask':8, 'rm': 8 },
+		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x0000001b, 'SPSR[4]' : 0xabababab})
 isa.addInstruction(msr_reg_Instr)
 
 # MVN instruction family
@@ -2124,9 +2304,9 @@ rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'r
 rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 0, 'REGS[9]': 1, 'REGS[8]': -1}, {'CPSR' : 0x80000000, 'REGS[10]': -2})
 # Z Flag = if Rd == 0 then 1 else 0
 rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000003}, {'CPSR' : 0x60000000, 'REGS[10]': 0})
-rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000004}, {'CPSR' : 0x20000000, 'REGS[10]': 1})
+rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x40000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000004}, {'CPSR' : 0x20000000, 'REGS[10]': 1})
 # C Flag = NOT BorrowFrom(shifter_operand - Rn)
-rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000004, 'REGS[8]': 0x00000003}, {'CPSR': 0x80000000, 'REGS[10]': -1})
+rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000004, 'REGS[8]': 0x00000003}, {'CPSR': 0x80000000, 'REGS[10]': -1})
 rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000004, 'REGS[8]': 0x00000005}, {'CPSR': 0x20000000, 'REGS[10]': 1})
 # V Flag = OverflowFrom(shifter_operand - Rn)
 rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000001, 'REGS[8]': 0x80000000}, {'CPSR': 0x10000000, 'REGS[10]': 0x7fffffff})
@@ -2162,7 +2342,10 @@ rsb_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
 rsb_imm_Instr.addBehavior(UpdatePSRSubR, 'execute', False)
 rsb_imm_Instr.addBehavior(UpdatePC, 'execute', False)
 #test starts
-rsb_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 0xfc}, {'CPSR' : 0x00000000, 'REGS[9]': 0xc}, {'CPSR' : 0x80000000, 'REGS[10]': 0xf0})
+rsb_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 0xfc}, {'CPSR' : 0x00000000, 'REGS[9]': 0xc}, {'CPSR' : 0x20000000, 'REGS[10]': 0xf0})
+rsb_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 0xfc}, {'CPSR' : 0x00000000, 'REGS[9]': 0xfc}, {'CPSR' : 0x60000000, 'REGS[10]': 0})
+rsb_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 0xfc}, {'CPSR' : 0x60000000, 'REGS[9]': 0xc}, {'CPSR' : 0x20000000, 'REGS[10]': 0xf0})
+rsb_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 0xfc}, {'CPSR' : 0x10000000, 'REGS[9]': 0xfc}, {'CPSR' : 0x60000000, 'REGS[10]': 0})
 #S=0 do not update CPSR
 rsb_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 3}, {'REGS[9]': 3}, {'REGS[10]': 0})
 rsb_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rotate': 1, 'immediate': 0xfc}, {'REGS[9]': 0xf}, {'REGS[10]': 0x30})
@@ -2186,7 +2369,6 @@ if (CPSR[key_C] == 0){
 #       Z Flag = if Rd == 0 then 1 else 0
 #       C Flag = NOT BorrowFrom(shifter_operand - Rn - NOT(C Flag))
 #       V Flag = OverflowFrom(shifter_operand - Rn - NOT(C Flag))
-
 rsc_shift_imm_Instr = trap.Instruction('RSC_si', True, frequency = 4)
 rsc_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [0, 1, 1, 1]}, 'TODO')
 rsc_shift_imm_Instr.setCode(opCode, 'execute')
@@ -2196,13 +2378,18 @@ rsc_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
 rsc_shift_imm_Instr.addBehavior(UpdatePSRSub, 'execute', False)
 rsc_shift_imm_Instr.addBehavior(UpdatePC, 'execute', False)
 #Logical shift left by immediate
+#N Flag = Rd[31]
+rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[9]': 2, 'REGS[8]': 1}, {'REGS[10]': -1, 'CPSR' : 0x80000000})
+rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0xa0000000, 'REGS[9]': 2, 'REGS[8]': 3}, {'REGS[10]': 1, 'CPSR' : 0x20000000})
 #Z Flag = if Rd == 0 then 1 else 0
-rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[9]': 2, 'REGS[8]': 3}, {'REGS[10]': 0, 'CPSR' : 0x80000000})
+rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[9]': 2, 'REGS[8]': 3}, {'REGS[10]': 0, 'CPSR' : 0x60000000})
+rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x60000000, 'REGS[9]': 2, 'REGS[8]': 3}, {'REGS[10]': 1, 'CPSR' : 0x20000000})
 #C Flag = NOT BorrowFrom(shifter_operand - Rn - NOT(C Flag))
-rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[9]': 1, 'REGS[8]': 0xffffffff}, {'REGS[10]':-2, 'CPSR' : 0x00000000})
+rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[9]': 1, 'REGS[8]': 0xffffffff}, {'REGS[10]':-2, 'CPSR' : 0x80000000})
+rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[9]': 1, 'REGS[8]': 3}, {'REGS[10]':1, 'CPSR' : 0x20000000})
 #V Flag = OverflowFrom(shifter_operand - Rn - NOT(C Flag))
-rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[9]': 1, 'REGS[8]': 0x80000000}, {'REGS[10]': 0x7fffffff, 'CPSR' : 0x90000000})
-rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[9]': 1, 'REGS[8]': 0x80000000}, {'REGS[10]': 0x7ffffffe, 'CPSR' : 0x90000000})
+rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[9]': 1, 'REGS[8]': 0x80000000}, {'REGS[10]': 0x7fffffff, 'CPSR' : 0x10000000})
+rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x10000000, 'REGS[9]': 1, 'REGS[8]': 5}, {'REGS[10]': 3, 'CPSR' : 0x20000000})
 #S=0 do not update CPSR
 rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[9]': 9, 'REGS[8]': 10}, {'CPSR' : 0x20000000, 'REGS[10]': 1})
 rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[9]': -2, 'REGS[8]': 3}, {'CPSR' : 0x20000000, 'REGS[10]': 5})
@@ -2218,7 +2405,7 @@ rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 's
 rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 1, 'shift_op': 2}, {'CPSR' : 0x20000000, 'REGS[9]': 0, 'REGS[8]': 2}, {'CPSR' : 0x20000000, 'REGS[10]': 1})
 #Rotate right by immediate
 rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 3}, {'CPSR' : 0x00000000, 'REGS[9]': 6, 'REGS[8]': 0}, {'CPSR' : 0x00000000, 'REGS[10]': -7})
-rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 1, 'shift_op': 3}, {'CPSR' : 0x20000000, 'REGS[9]': 1, 'REGS[8]': 1}, {'CPSR' : 0x20000000, 'REGS[10]': 0x7fffffff})
+rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 1, 'shift_op': 3}, {'CPSR' : 0x20000000, 'REGS[9]': 1, 'REGS[8]': 4}, {'CPSR' : 0x20000000, 'REGS[10]': 1})
 isa.addInstruction(rsc_shift_imm_Instr)
 
 rsc_shift_reg_Instr = trap.Instruction('RSC_sr', True, frequency = 4)
@@ -2230,8 +2417,34 @@ rsc_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
 rsc_shift_reg_Instr.addBehavior(UpdatePSRSub, 'execute', False)
 rsc_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
 #logical shift left by register
-rsc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[0]': 0, 'REGS[9]': 3, 'REGS[8]': 3}, {'CPSR' : 0x60000000, 'REGS[10]': 0})
-rsc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 0, 'REGS[9]': 1, 'REGS[8]': 0xffffffff}, {'CPSR' : 0x00000000, 'REGS[10]': 0xfffffffd})
+# N Flag = Rd[31]
+rsc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0},
+                            {'CPSR' : 0xa0000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000002, 'REGS[8]': 0x00000003},
+                            {'CPSR' : 0x20000000, 'REGS[10]':0x00000001} )
+rsc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x20000000, 'REGS[0]': 0x00000000, 'REGS[9]' : 0x00000003, 'REGS[8]': 0x80000003}, 
+                            {'CPSR' : 0x80000000, 'REGS[10]': 0x80000000} )
+# Z Flag = if Rd == 0 then 1 else 0
+rsc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x20000000, 'REGS[0]': 0x00000000, 'REGS[9]' : 0x00000003, 'REGS[8]': 0x00000003}, 
+                            {'CPSR' : 0x60000000, 'REGS[10]': 0x00000000} )
+rsc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x60000000, 'REGS[0]': 0x00000000, 'REGS[9]' : 0x00000003, 'REGS[8]': 0x00000004}, 
+                            {'CPSR' : 0x20000000, 'REGS[10]': 0x00000001} )
+# C Flag = NOT BorrowFrom(shifter_operand - Rn - NOT(C Flag))
+rsc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x20000000, 'REGS[0]': 0x00000000, 'REGS[9]' : 0x00000004, 'REGS[8]': 0x00000003}, 
+                            {'CPSR' : 0x80000000, 'REGS[10]': -1} )
+rsc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x00000000, 'REGS[0]': 0x00000000, 'REGS[9]' : 0x00000003, 'REGS[8]': 0x00000005}, 
+                            {'CPSR' : 0x20000000, 'REGS[10]': 0x00000001} )
+# V Flag = OverflowFrom(shifter_operand - Rn - NOT(C Flag))
+rsc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x20000000, 'REGS[0]': 0x00000000, 'REGS[9]' : 0x00000001, 'REGS[8]': 0x80000000}, 
+                            {'CPSR' : 0x10000000, 'REGS[10]': 0x7fffffff} )
+rsc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x30000000, 'REGS[0]': 0x00000000, 'REGS[9]' : 0x00000005, 'REGS[8]': 0x00000006}, 
+                            {'CPSR' : 0x20000000, 'REGS[10]': 0x00000001} )
 #S=0 do not update CPSR
 rsc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[0]': 0, 'REGS[9]': -1, 'REGS[8]': 2}, {'CPSR' : 0x20000000, 'REGS[10]': 3})
 rsc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[0]': 1, 'REGS[9]': 2, 'REGS[8]': 1}, {'CPSR' : 0x20000000, 'REGS[10]': 0})
@@ -2263,7 +2476,9 @@ rsc_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
 rsc_imm_Instr.addBehavior(UpdatePSRSub, 'execute', False)
 rsc_imm_Instr.addBehavior(UpdatePC, 'execute', False)
 #test starts
-rsc_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 0xfc}, {'CPSR' : 0x20000000, 'REGS[9]': 0xc}, {'CPSR' : 0x80000000, 'REGS[10]': 0xf0})
+rsc_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 0xfc}, {'CPSR' : 0x20000000, 'REGS[9]': 0xc}, {'CPSR' : 0x20000000, 'REGS[10]': 0xf0})
+rsc_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 0xfc}, {'CPSR' : 0x00000000, 'REGS[9]': 0xfb}, {'CPSR' : 0x60000000, 'REGS[10]': 0x0})
+rsc_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 0xfc}, {'CPSR' : 0x70000000, 'REGS[9]': 0xc}, {'CPSR' : 0x20000000, 'REGS[10]': 0xf0})
 #S=0 do not update CPSR
 rsc_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 3}, {'CPSR' : 0x20000000, 'REGS[9]': 3}, {'CPSR' : 0x20000000, 'REGS[10]': 0})
 rsc_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rotate': 1, 'immediate': 0xfc}, {'CPSR' : 0x20000000, 'REGS[9]': 0xf}, {'CPSR' : 0x20000000, 'REGS[10]': 0x30})
@@ -2317,11 +2532,11 @@ sbc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 's
                             {'CPSR' : 0x20000000, 'REGS[10]': 0x00000001})
 sbc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, 
                             {'CPSR' : 0x20000000, 'REGS[9]' : -3, 'REGS[8]': 1}, 
-                            {'CPSR' : 0x80000000, 'REGS[10]': -4})
+                            {'CPSR' : 0xa0000000, 'REGS[10]': -4})
 # V Flag = OverflowFrom(Rn - shifter_operand - NOT(C Flag))
 sbc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, 
                             {'CPSR' : 0x20000000, 'REGS[9]': 0x80000000, 'REGS[8]': 0x00000001}, 
-                            {'CPSR' : 0x10000000, 'REGS[10]': 0x7fffffff})
+                            {'CPSR' : 0x30000000, 'REGS[10]': 0x7fffffff})
 sbc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, 
                             {'CPSR' : 0x30000000, 'REGS[9]': 0x00000006, 'REGS[8]': 0x00000005}, 
                             {'CPSR' : 0x20000000, 'REGS[10]': 0x00000001})
@@ -2371,6 +2586,85 @@ sbc_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
 sbc_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
 sbc_shift_reg_Instr.addBehavior(UpdatePSRSub, 'execute', False)
 sbc_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
+#logical shift left by register
+# N Flag = Rd[31]
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0},
+                            {'CPSR' : 0xa0000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000002},
+                            {'CPSR' : 0x20000000, 'REGS[10]':0x00000001} )
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x20000000, 'REGS[0]': 0x00000000, 'REGS[9]' : 0x80000003, 'REGS[8]': 0x00000003}, 
+                            {'CPSR' : 0x80000000, 'REGS[10]': 0x80000000} )
+# Z Flag = if Rd == 0 then 1 else 0
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x20000000, 'REGS[0]': 0x00000000, 'REGS[9]' : 0x00000003, 'REGS[8]': 0x00000003}, 
+                            {'CPSR' : 0x60000000, 'REGS[10]': 0x00000000} )
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x60000000, 'REGS[0]': 0x00000000, 'REGS[9]' : 0x00000004, 'REGS[8]': 0x00000003}, 
+                            {'CPSR' : 0x20000000, 'REGS[10]': 0x00000001} )
+# C Flag = NOT BorrowFrom(Rn - shifter_operand - NOT(C Flag))
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x20000000, 'REGS[0]': 0x00000000, 'REGS[9]' : 0x00000003, 'REGS[8]': 0x00000004}, 
+                            {'CPSR' : 0x80000000, 'REGS[10]': -1} )
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x00000000, 'REGS[0]': 0x00000000, 'REGS[9]' : 0x00000005, 'REGS[8]': 0x00000003}, 
+                            {'CPSR' : 0x20000000, 'REGS[10]': 0x00000001} )
+# V Flag = OverflowFrom(Rn - shifter_operand - NOT(C Flag))
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x20000000, 'REGS[0]': 0x00000000, 'REGS[9]' : 0x80000000, 'REGS[8]': 0x00000001}, 
+                            {'CPSR' : 0x10000000, 'REGS[10]': 0x7fffffff} )
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x30000000, 'REGS[0]': 0x00000000, 'REGS[9]' : 0x00000006, 'REGS[8]': 0x00000005}, 
+                            {'CPSR' : 0x20000000, 'REGS[10]': 0x00000001} )
+#S=0 do not update CPSR
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0},
+		   	    {'CPSR' : 0x20000000, 'REGS[0]': 0, 'REGS[9]': 2, 'REGS[8]': -1},
+			    {'CPSR' : 0x20000000, 'REGS[10]': 3})
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0},
+			    {'CPSR' : 0x20000000, 'REGS[0]': 1, 'REGS[9]': 4, 'REGS[8]': 2},
+			    {'CPSR' : 0x20000000, 'REGS[10]': 0})
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0},
+			    {'CPSR' : 0x20000000, 'REGS[0]': 32, 'REGS[9]': 3, 'REGS[8]': 45},
+			    {'CPSR' : 0x20000000, 'REGS[10]': 3})
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0},
+			    {'CPSR' : 0x20000000, 'REGS[0]': 33, 'REGS[9]': 3, 'REGS[8]': 34},
+                            {'CPSR' : 0x20000000, 'REGS[10]': 3})
+#condition does not satisfied
+sbc_shift_reg_Instr.addTest({'cond': 0x0, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0},
+			    {'CPSR' : 0x20000000, 'REGS[0]': 1, 'REGS[9]': 1 , 'REGS[8]': 0xffffffff},
+                            {'CPSR' : 0x20000000})
+#Logical shift right by register
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 1},
+			    {'CPSR' : 0x20000000, 'REGS[0]': 0, 'REGS[9]': 0x7fffffff, 'REGS[8]': 0},
+   	                    {'CPSR' : 0x20000000, 'REGS[10]': 0x7fffffff})
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 1},
+			    {'CPSR' : 0x20000000, 'REGS[0]': 1, 'REGS[9]': 8, 'REGS[8]': 3},
+			    {'CPSR' : 0x20000000, 'REGS[10]': 7})
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 1},
+			    {'CPSR' : 0x20000000, 'REGS[0]': 32, 'REGS[9]': 4, 'REGS[8]': 3},
+			    {'CPSR' : 0x20000000, 'REGS[10]': 4})
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 1},
+			    {'CPSR' : 0x20000000, 'REGS[0]': 33, 'REGS[9]': -4, 'REGS[8]': 3},
+			    {'CPSR' : 0x20000000, 'REGS[10]': -4})
+#Arithmetic shift right by register
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 2},
+			    {'CPSR' : 0x00000000, 'REGS[0]': 0, 'REGS[9]': 4, 'REGS[8]': 10},
+			    {'CPSR' : 0x00000000, 'REGS[10]': -7})
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 2},
+			    {'CPSR' : 0x20000000, 'REGS[0]': 1, 'REGS[9]': 4, 'REGS[8]': 10}, 
+			    {'CPSR' : 0x20000000, 'REGS[10]': -1})
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 2}, 
+			    {'CPSR' : 0x20000000, 'REGS[0]': 32, 'REGS[9]': 4, 'REGS[8]': 10},
+			    {'CPSR' : 0x20000000, 'REGS[10]': 4})
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 2}, 
+			    {'CPSR' : 0x20000000, 'REGS[0]': 32, 'REGS[9]': 1, 'REGS[8]': 0xf000f000},
+			    {'CPSR' : 0x20000000, 'REGS[10]': 2})
+#Rotate right by register
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 3},
+			    {'CPSR' : 0x00000000, 'REGS[0]': 0, 'REGS[9]': 5, 'REGS[8]': 10},
+			    {'CPSR' : 0x00000000, 'REGS[10]': -6})
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 3},
+			    {'CPSR' : 0x20000000, 'REGS[0]': 2, 'REGS[9]': 0x80000002, 'REGS[8]': 10},
+			    {'CPSR' : 0x20000000, 'REGS[10]': 0x0})
 isa.addInstruction(sbc_shift_reg_Instr)
 
 sbc_imm_Instr = trap.Instruction('SBC_i', True, frequency = 4)
@@ -2381,6 +2675,15 @@ sbc_imm_Instr.addBehavior(condCheckOp, 'execute')
 sbc_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
 sbc_imm_Instr.addBehavior(UpdatePSRSub, 'execute', False)
 sbc_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+#test starts
+sbc_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 0xc}, {'CPSR' : 0x20000000, 'REGS[9]': 0xfc}, {'CPSR' : 0x20000000, 'REGS[10]': 0xf0})
+sbc_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 0xfb}, {'CPSR' : 0x00000000, 'REGS[9]': 0xfc}, {'CPSR' : 0x60000000, 'REGS[10]': 0x0})
+sbc_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 0xc}, {'CPSR' : 0x70000000, 'REGS[9]': 0xfc}, {'CPSR' : 0x20000000, 'REGS[10]': 0xf0})
+#S=0 do not update CPSR
+sbc_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 3}, {'CPSR' : 0x20000000, 'REGS[9]': 3}, {'CPSR' : 0x20000000, 'REGS[10]': 0})
+sbc_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rotate': 1, 'immediate': 2}, {'CPSR' : 0x20000000, 'REGS[9]': 0xf0000000}, {'CPSR' : 0x20000000, 'REGS[10]': 0x70000000})
+#condition does not satisfied
+sbc_imm_Instr.addTest({'cond': 0x0, 's': 1, 'rn': 9, 'rd': 10, 'rotate': 1, 'immediate': 0xfc}, {'CPSR' : 0x20000000, 'REGS[9]': 1}, {'CPSR' : 0x20000000})
 isa.addInstruction(sbc_imm_Instr)
 
 # SUB instruction family
