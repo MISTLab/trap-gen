@@ -2723,7 +2723,7 @@ sub_shift_imm_Instr.addBehavior(UpdatePC, 'execute', False)
 #N Flag = Rd[31]
 sub_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, 
                             {'CPSR' : 0x00000000, 'REGS[9]': 0xf0000001, 'REGS[8]': 0x00000001}, 
-                            {'CPSR' : 0x80000000, 'REGS[10]':0xf0000000} )
+                            {'CPSR' : 0xa0000000, 'REGS[10]':0xf0000000} )
 sub_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, 
                             {'CPSR' : 0x80000000, 'REGS[9]' : 0x00000003, 'REGS[8]': 0x00000002}, 
                             {'CPSR' : 0x20000000, 'REGS[10]': 0x00000001} )
@@ -2744,7 +2744,7 @@ sub_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 's
 #V Flag = OverflowFrom(Rn - shifter_operand)
 sub_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, 
                             {'CPSR' : 0x00000000, 'REGS[9]': 0x80000000, 'REGS[8]': 0x00000001}, 
-                            {'CPSR' : 0x10000000, 'REGS[10]': 0x7fffffff})
+                            {'CPSR' : 0x30000000, 'REGS[10]': 0x7fffffff})
 
 sub_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, 
                             {'CPSR' : 0x10000000, 'REGS[9]': 0x00000006, 'REGS[8]': 0x00000005}, 
@@ -2770,7 +2770,7 @@ sub_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 's
 sub_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 2},
 			    {'REGS[9]': 1, 'REGS[8]': 0xf0000000}, {'REGS[10]': 2})
 sub_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 1, 'shift_op': 2},
-			    {'REGS[9]': 3, 'REGS[8]': 2}, {'REGS[10]': 1})
+			    {'REGS[9]': 3, 'REGS[8]': 2}, {'REGS[10]': 2})
 #Rotate right by immediate
 sub_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 3},
 			    {'REGS[9]': 6, 'REGS[8]': 2}, {'REGS[10]': 5})
