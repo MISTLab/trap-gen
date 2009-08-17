@@ -2434,8 +2434,8 @@ rsc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'r
                             {'CPSR' : 0xa0000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000002, 'REGS[8]': 0x00000003},
                             {'CPSR' : 0x20000000, 'REGS[10]':0x00000001} )
 rsc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
-                            {'CPSR' : 0x20000000, 'REGS[0]': 0x00000000, 'REGS[9]' : 0x00000003, 'REGS[8]': 0x80000003}, 
-                            {'CPSR' : 0x80000000, 'REGS[10]': 0x80000000} )
+                            {'CPSR' : 0x20000000, 'REGS[0]': 0x00000000, 'REGS[9]' : 0x00000003, 'REGS[8]': 0xf0000003}, 
+                            {'CPSR' : 0xa0000000, 'REGS[10]': 0xf0000000} )
 # Z Flag = if Rd == 0 then 1 else 0
 rsc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
                             {'CPSR' : 0x20000000, 'REGS[0]': 0x00000000, 'REGS[9]' : 0x00000003, 'REGS[8]': 0x00000003}, 
@@ -2453,7 +2453,7 @@ rsc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'r
 # V Flag = OverflowFrom(shifter_operand - Rn - NOT(C Flag))
 rsc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
                             {'CPSR' : 0x20000000, 'REGS[0]': 0x00000000, 'REGS[9]' : 0x00000001, 'REGS[8]': 0x80000000}, 
-                            {'CPSR' : 0x10000000, 'REGS[10]': 0x7fffffff} )
+                            {'CPSR' : 0x30000000, 'REGS[10]': 0x7fffffff} )
 rsc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
                             {'CPSR' : 0x30000000, 'REGS[0]': 0x00000000, 'REGS[9]' : 0x00000005, 'REGS[8]': 0x00000006}, 
                             {'CPSR' : 0x20000000, 'REGS[10]': 0x00000001} )
