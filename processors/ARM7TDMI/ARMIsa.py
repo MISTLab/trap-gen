@@ -2598,7 +2598,7 @@ sbc_shift_reg_Instr.setCode(opCode, 'execute')
 sbc_shift_reg_Instr.addBehavior(IncrementPC, 'fetch')
 sbc_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
 sbc_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
-sbc_shift_reg_Instr.addBehavior(UpdatePSRSubC, 'execute', False)
+sbc_shift_reg_Instr.addBehavior(UpdatePSRSubR, 'execute', False)
 sbc_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
 #if ConditionPassed(cond) then
 #    Rd = Rn - shifter_operand - NOT(C Flag)
