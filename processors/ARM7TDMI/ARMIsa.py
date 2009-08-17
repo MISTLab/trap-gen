@@ -2426,7 +2426,7 @@ rsc_shift_reg_Instr.setCode(opCode, 'execute')
 rsc_shift_reg_Instr.addBehavior(IncrementPC, 'fetch')
 rsc_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
 rsc_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
-rsc_shift_reg_Instr.addBehavior(UpdatePSRSub, 'execute', False)
+rsc_shift_reg_Instr.addBehavior(UpdatePSRSubR, 'execute', False)
 rsc_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
 #logical shift left by register
 # N Flag = Rd[31]
@@ -2485,7 +2485,7 @@ rsc_imm_Instr.setCode(opCode, 'execute')
 rsc_imm_Instr.addBehavior(IncrementPC, 'fetch')
 rsc_imm_Instr.addBehavior(condCheckOp, 'execute')
 rsc_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
-rsc_imm_Instr.addBehavior(UpdatePSRSub, 'execute', False)
+rsc_imm_Instr.addBehavior(UpdatePSRSubR, 'execute', False)
 rsc_imm_Instr.addBehavior(UpdatePC, 'execute', False)
 #test starts
 rsc_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 0xfc}, {'CPSR' : 0x20000000, 'REGS[9]': 0xc}, {'CPSR' : 0x20000000, 'REGS[10]': 0xf0})
