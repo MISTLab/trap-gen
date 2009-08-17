@@ -1945,23 +1945,23 @@ msr_reg_Instr.addBehavior(condCheckOp, 'execute')
 #    if R == 0 then
 #        if field_mask[0] == 1 and InAPrivilegedMode() then
 #            CPSR[7:0] = operand[7:0]
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':0, 'rm': 8 },{'CPSR' : 0x00000013, 'REGS[8]': 0xffffff10}, {'CPSR' : 0x00000013})
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':1, 'rm': 8 },{'CPSR' : 0x00000013, 'REGS[8]': 0xffffff10}, {'CPSR' : 0x00000010})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':0, 'rm': 8 },{'CPSR' : 0x00000013, 'REGS[8]': 0xffffff10}, {'CPSR' : 0x00000013})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':1, 'rm': 8 },{'CPSR' : 0x00000013, 'REGS[8]': 0xffffff10}, {'CPSR' : 0x00000010})
 # not InAPrivilegedMode, do not update CPSR
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':1, 'rm': 8 },{'CPSR' : 0x00000000, 'REGS[8]': 0xffffff10}, {'CPSR' : 0x00000000})
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':0, 'rm': 8 },{'CPSR' : 0x00000000, 'REGS[8]': 0xffffff10}, {'CPSR' : 0x00000000})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':1, 'rm': 8 },{'CPSR' : 0x00000000, 'REGS[8]': 0xffffff10}, {'CPSR' : 0x00000000})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':0, 'rm': 8 },{'CPSR' : 0x00000000, 'REGS[8]': 0xffffff10}, {'CPSR' : 0x00000000})
 #        if field_mask[1] == 1 and InAPrivilegedMode() then
 #            CPSR[15:8] = operand[15:8]
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':2, 'rm': 8 },{'CPSR' : 0x00000013, 'REGS[8]': 0xffff2210}, {'CPSR' : 0x00002213})
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':2, 'rm': 8 },{'CPSR' : 0x00001113, 'REGS[8]': 0xffff0010}, {'CPSR' : 0x00000013})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':2, 'rm': 8 },{'CPSR' : 0x00000013, 'REGS[8]': 0xffff2210}, {'CPSR' : 0x00002213})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':2, 'rm': 8 },{'CPSR' : 0x00001113, 'REGS[8]': 0xffff0010}, {'CPSR' : 0x00000013})
 #        if field_mask[2] == 1 and InAPrivilegedMode() then
 #            CPSR[23:16] = operand[23:16]
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':4, 'rm': 8 },{'CPSR' : 0x00000013, 'REGS[8]': 0xff332210}, {'CPSR' : 0x00330013})
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':4, 'rm': 8 },{'CPSR' : 0x00110013, 'REGS[8]': 0xff002210}, {'CPSR' : 0x00000013})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':4, 'rm': 8 },{'CPSR' : 0x00000013, 'REGS[8]': 0xff332210}, {'CPSR' : 0x00330013})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':4, 'rm': 8 },{'CPSR' : 0x00110013, 'REGS[8]': 0xff002210}, {'CPSR' : 0x00000013})
 #        if field_mask[3] == 1 then
 #            CPSR[31:24] = operand[31:24]
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':8, 'rm': 8 },{'CPSR' : 0x00000013, 'REGS[8]': 0xff332210}, {'CPSR' : 0xff000013})
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':8, 'rm': 8 },{'CPSR' : 0xfe000013, 'REGS[8]': 0x00332210}, {'CPSR' : 0x00000013})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':8, 'rm': 8 },{'CPSR' : 0x00000013, 'REGS[8]': 0xff332210}, {'CPSR' : 0xff000013})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':8, 'rm': 8 },{'CPSR' : 0xfe000013, 'REGS[8]': 0x00332210}, {'CPSR' : 0x00000013})
 #    else /* R == 1 */
 #        if field_mask[0] == 1 and CurrentModeHasSPSR() then
 #            SPSR[7:0] = operand[7:0]
@@ -1972,53 +1972,53 @@ msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':8, 'rm': 8 },{'CPSR' : 0xfe00
 #        if field_mask[3] == 1 and CurrentModeHasSPSR() then
 #            SPSR[31:24] = operand[31:24]
 # FIQ mode SPSR[0];
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rm': 8 },
-		      {'CPSR' : 0x00000011, 'SPSR[0]' : 0x000000ab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000011,'SPSR[0]' : 0x000000f0})
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rm': 8 },
-		      {'CPSR' : 0x00000011, 'SPSR[0]' : 0x0000abab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000011,'SPSR[0]' : 0x0000f0ab})
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rm': 8 },
-		      {'CPSR' : 0x00000011, 'SPSR[0]' : 0x00ababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000011,'SPSR[0]' : 0x00f0abab})
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rm': 8 },
-		      {'CPSR' : 0x00000011, 'SPSR[0]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000011,'SPSR[0]' : 0xf0ababab})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rm': 8 },
+#		      {'CPSR' : 0x00000011, 'SPSR[0]' : 0x000000ab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000011,'SPSR[0]' : 0x000000f0})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rm': 8 },
+#		      {'CPSR' : 0x00000011, 'SPSR[0]' : 0x0000abab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000011,'SPSR[0]' : 0x0000f0ab})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rm': 8 },
+#		      {'CPSR' : 0x00000011, 'SPSR[0]' : 0x00ababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000011,'SPSR[0]' : 0x00f0abab})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rm': 8 },
+#		      {'CPSR' : 0x00000011, 'SPSR[0]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000011,'SPSR[0]' : 0xf0ababab})
 # IRQ mode SPSR[1];
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rm': 8 },
-		      {'CPSR' : 0x00000012, 'SPSR[1]' : 0x000000ab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000012,'SPSR[1]' : 0x000000f0})
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rm': 8 },
-		      {'CPSR' : 0x00000012, 'SPSR[1]' : 0x0000abab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000012,'SPSR[1]' : 0x0000f0ab})
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rm': 8 },
-		      {'CPSR' : 0x00000012, 'SPSR[1]' : 0x00ababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000012,'SPSR[1]' : 0x00f0abab})
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rm': 8 },
-		      {'CPSR' : 0x00000012, 'SPSR[1]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000012,'SPSR[1]' : 0xf0ababab})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rm': 8 },
+#		      {'CPSR' : 0x00000012, 'SPSR[1]' : 0x000000ab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000012,'SPSR[1]' : 0x000000f0})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rm': 8 },
+#		      {'CPSR' : 0x00000012, 'SPSR[1]' : 0x0000abab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000012,'SPSR[1]' : 0x0000f0ab})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rm': 8 },
+#		      {'CPSR' : 0x00000012, 'SPSR[1]' : 0x00ababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000012,'SPSR[1]' : 0x00f0abab})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rm': 8 },
+#		      {'CPSR' : 0x00000012, 'SPSR[1]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000012,'SPSR[1]' : 0xf0ababab})
 # SVC mode SPSR[2];
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rm': 8 },
-		      {'CPSR' : 0x00000013, 'SPSR[2]' : 0x000000ab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000013,'SPSR[2]' : 0x000000f0})
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rm': 8 },
-		      {'CPSR' : 0x00000013, 'SPSR[2]' : 0x0000abab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000013,'SPSR[2]' : 0x0000f0ab})
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rm': 8 },
-		      {'CPSR' : 0x00000013, 'SPSR[2]' : 0x00ababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000013,'SPSR[2]' : 0x00f0abab})
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rm': 8 },
-		      {'CPSR' : 0x00000013, 'SPSR[2]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000013,'SPSR[2]' : 0xf0ababab})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rm': 8 },
+#		      {'CPSR' : 0x00000013, 'SPSR[2]' : 0x000000ab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000013,'SPSR[2]' : 0x000000f0})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rm': 8 },
+#		      {'CPSR' : 0x00000013, 'SPSR[2]' : 0x0000abab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000013,'SPSR[2]' : 0x0000f0ab})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rm': 8 },
+#		      {'CPSR' : 0x00000013, 'SPSR[2]' : 0x00ababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000013,'SPSR[2]' : 0x00f0abab})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rm': 8 },
+#		      {'CPSR' : 0x00000013, 'SPSR[2]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000013,'SPSR[2]' : 0xf0ababab})
 # ABT mode SPSR[3];
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rm': 8 },
-		      {'CPSR' : 0x00000017, 'SPSR[3]' : 0x000000ab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000017,'SPSR[3]' : 0x000000f0})
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rm': 8 },
-		      {'CPSR' : 0x00000017, 'SPSR[3]' : 0x0000abab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000017,'SPSR[3]' : 0x0000f0ab})
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rm': 8 },
-		      {'CPSR' : 0x00000017, 'SPSR[3]' : 0x00ababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000017,'SPSR[3]' : 0x00f0abab})
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rm': 8 },
-		      {'CPSR' : 0x00000017, 'SPSR[3]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000017,'SPSR[3]' : 0xf0ababab})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rm': 8 },
+#		      {'CPSR' : 0x00000017, 'SPSR[3]' : 0x000000ab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000017,'SPSR[3]' : 0x000000f0})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rm': 8 },
+#		      {'CPSR' : 0x00000017, 'SPSR[3]' : 0x0000abab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000017,'SPSR[3]' : 0x0000f0ab})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rm': 8 },
+#		      {'CPSR' : 0x00000017, 'SPSR[3]' : 0x00ababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000017,'SPSR[3]' : 0x00f0abab})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rm': 8 },
+#		      {'CPSR' : 0x00000017, 'SPSR[3]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000017,'SPSR[3]' : 0xf0ababab})
 # UND mode SPSR[4];
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rm': 8 },
-		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x000000ab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x000000f0})
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rm': 8 },
-		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x0000abab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x0000f0ab})
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rm': 8 },
-		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x00ababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x00f0abab})
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rm': 8 },
-		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0xf0ababab})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rm': 8 },
+#		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x000000ab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x000000f0})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rm': 8 },
+#		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x0000abab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x0000f0ab})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rm': 8 },
+#		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x00ababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x00f0abab})
+#msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rm': 8 },
+#		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0xf0ababab})
 # condition failed
-msr_reg_Instr.addTest({'cond': 0x0, 'r': 1, 'mask':8, 'rm': 8 },
-		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x0000001b, 'SPSR[4]' : 0xabababab})
+#msr_reg_Instr.addTest({'cond': 0x0, 'r': 1, 'mask':8, 'rm': 8 },
+#		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x0000001b, 'SPSR[4]' : 0xabababab})
 isa.addInstruction(msr_reg_Instr)
 
 # MVN instruction family
@@ -2623,6 +2623,7 @@ sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rd': 10, 'rn': 9, 'rm': 8, 'r
 sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
                             {'CPSR' : 0x20000000, 'REGS[0]': 0x00000000, 'REGS[9]' : 0x00000003, 'REGS[8]': 0x00000003}, 
                             {'CPSR' : 0x60000000, 'REGS[10]': 0x00000000} )
+
 sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
                             {'CPSR' : 0x60000000, 'REGS[0]': 0x00000000, 'REGS[9]' : 0x00000004, 'REGS[8]': 0x00000003}, 
                             {'CPSR' : 0x20000000, 'REGS[10]': 0x00000001} )
@@ -2672,7 +2673,7 @@ sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'r
 #condition does not satisfied
 sbc_shift_reg_Instr.addTest({'cond': 0x0, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0},
 			    {'CPSR' : 0x20000000, 'REGS[0]': 1, 'REGS[9]': 1 , 'REGS[8]': 0xffffffff},
-                            {'CPSR' : 0x20000000})
+                {'CPSR' : 0x20000000})
 #Logical shift right by register
 sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 1},
 			    {'CPSR' : 0x20000000, 'REGS[0]': 0, 'REGS[9]': 0x7fffffff, 'REGS[8]': 0},
