@@ -2502,7 +2502,6 @@ if (CPSR[key_C] == 0){
 #        Z Flag = if Rd == 0 then 1 else 0
 #        C Flag = NOT BorrowFrom(Rn - shifter_operand - NOT(C Flag))
 #        V Flag = OverflowFrom(Rn - shifter_operand - NOT(C Flag))
-
 sbc_shift_imm_Instr = trap.Instruction('SBC_si', True, frequency = 4)
 sbc_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [0, 1, 1, 0]}, 'TODO')
 sbc_shift_imm_Instr.setCode(opCode, 'execute')
@@ -2537,6 +2536,7 @@ sbc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 's
 sbc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, 
                             {'CPSR' : 0x20000000, 'REGS[9]': 0x80000000, 'REGS[8]': 0x00000001}, 
                             {'CPSR' : 0x30000000, 'REGS[10]': 0x7fffffff})
+
 sbc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, 
                             {'CPSR' : 0x30000000, 'REGS[9]': 0x00000006, 'REGS[8]': 0x00000005}, 
                             {'CPSR' : 0x20000000, 'REGS[10]': 0x00000001})
@@ -2586,39 +2586,63 @@ sbc_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
 sbc_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
 sbc_shift_reg_Instr.addBehavior(UpdatePSRSub, 'execute', False)
 sbc_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
+
+#if ConditionPassed(cond) then
+#    Rd = Rn - shifter_operand - NOT(C Flag)
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rd': 10, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0},
+                            {'CPSR' : 0x20000000, 'REGS[0]': 0x00000000, 'REGS[10]': 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000002},
+                            {'REGS[10]':0x00000001} )
+
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rd': 10, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0},
+                            {'CPSR' : 0x00000000, 'REGS[0]': 0x00000000, 'REGS[10]': 0x00000000, 'REGS[9]': 0x00000008, 'REGS[8]': 0x00000002},
+                            {'REGS[10]':0x00000005} )
 #logical shift left by register
 # N Flag = Rd[31]
-sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0},
-                            {'CPSR' : 0xa0000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000002},
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rd': 10, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0},
+                            {'CPSR' : 0xa0000000, 'REGS[0]': 0x00000000, 'REGS[10]': 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000002},
                             {'CPSR' : 0x20000000, 'REGS[10]':0x00000001} )
-sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
-                            {'CPSR' : 0x20000000, 'REGS[0]': 0x00000000, 'REGS[9]' : 0x80000003, 'REGS[8]': 0x00000003}, 
-                            {'CPSR' : 0x80000000, 'REGS[10]': 0x80000000} )
+
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rd': 10, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x20000000, 'REGS[0]' : 0x00000000, 'REGS[10]': 0x00000000, 'REGS[9]' : 0x80000003, 'REGS[8]': 0x00000003}, 
+                            {'CPSR' : 0xa0000000, 'REGS[10]': 0x80000000} )
+
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rd': 10, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0},
+                            {'CPSR' : 0x00000000, 'REGS[0]': 0x00000000, 'REGS[10]': 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000003},
+                            {'CPSR' : 0xa0000000, 'REGS[10]':0xffffffff} )
+
 # Z Flag = if Rd == 0 then 1 else 0
-sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
-                            {'CPSR' : 0x20000000, 'REGS[0]': 0x00000000, 'REGS[9]' : 0x00000003, 'REGS[8]': 0x00000003}, 
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rd': 10, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x20000000, 'REGS[0]': 0x00000000, 'REGS[10]': 0x00000001 , 'REGS[9]' : 0x00000003, 'REGS[8]': 0x00000003}, 
                             {'CPSR' : 0x60000000, 'REGS[10]': 0x00000000} )
-sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
-                            {'CPSR' : 0x60000000, 'REGS[0]': 0x00000000, 'REGS[9]' : 0x00000004, 'REGS[8]': 0x00000003}, 
+
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rd': 10, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x00000000, 'REGS[0]' : 0x00000000, 'REGS[10]': 0x00000001 , 'REGS[9]' : 0x00000003, 'REGS[8]': 0x00000002}, 
+                            {'CPSR' : 0x60000000, 'REGS[10]': 0x00000000} )
+
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rd': 10, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x60000000, 'REGS[0]': 0x00000000, 'REGS[10]': 0x00000000, 'REGS[9]' : 0x00000004, 'REGS[8]': 0x00000003}, 
                             {'CPSR' : 0x20000000, 'REGS[10]': 0x00000001} )
+
 # C Flag = NOT BorrowFrom(Rn - shifter_operand - NOT(C Flag))
-sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
-                            {'CPSR' : 0x20000000, 'REGS[0]': 0x00000000, 'REGS[9]' : 0x00000003, 'REGS[8]': 0x00000004}, 
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rd': 10, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x20000000, 'REGS[0]': 0x00000000, 'REGS[10]': 0x00000000, 'REGS[9]' : 0x00000003, 'REGS[8]': 0x00000004}, 
                             {'CPSR' : 0x80000000, 'REGS[10]': -1} )
-sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
-                            {'CPSR' : 0x00000000, 'REGS[0]': 0x00000000, 'REGS[9]' : 0x00000005, 'REGS[8]': 0x00000003}, 
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rd': 10, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x00000000, 'REGS[0]': 0x00000000, 'REGS[10]': 0x00000000, 'REGS[9]' : 0x00000005, 'REGS[8]': 0x00000003}, 
                             {'CPSR' : 0x20000000, 'REGS[10]': 0x00000001} )
+
 # V Flag = OverflowFrom(Rn - shifter_operand - NOT(C Flag))
-sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
-                            {'CPSR' : 0x20000000, 'REGS[0]': 0x00000000, 'REGS[9]' : 0x80000000, 'REGS[8]': 0x00000001}, 
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rd': 10, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x20000000, 'REGS[0]': 0x00000000, 'REGS[10]': 0x00000000, 'REGS[9]' : 0x80000000, 'REGS[8]': 0x00000001}, 
                             {'CPSR' : 0x10000000, 'REGS[10]': 0x7fffffff} )
-sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
-                            {'CPSR' : 0x30000000, 'REGS[0]': 0x00000000, 'REGS[9]' : 0x00000006, 'REGS[8]': 0x00000005}, 
+sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rd': 10, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
+                            {'CPSR' : 0x30000000, 'REGS[0]': 0x00000000, 'REGS[10]': 0x00000000, 'REGS[9]' : 0x00000006, 'REGS[8]': 0x00000005}, 
                             {'CPSR' : 0x20000000, 'REGS[10]': 0x00000001} )
 #S=0 do not update CPSR
 sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0},
-		   	    {'CPSR' : 0x20000000, 'REGS[0]': 0, 'REGS[9]': 2, 'REGS[8]': -1},
-			    {'CPSR' : 0x20000000, 'REGS[10]': 3})
+		   	                {'CPSR' : 0x20000000, 'REGS[0]': 0, 'REGS[9]': 2, 'REGS[8]': -1},
+			                {'CPSR' : 0x20000000, 'REGS[10]': 3})
+
 sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0},
 			    {'CPSR' : 0x20000000, 'REGS[0]': 1, 'REGS[9]': 4, 'REGS[8]': 2},
 			    {'CPSR' : 0x20000000, 'REGS[10]': 0})
@@ -2628,6 +2652,7 @@ sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'r
 sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0},
 			    {'CPSR' : 0x20000000, 'REGS[0]': 33, 'REGS[9]': 3, 'REGS[8]': 34},
                             {'CPSR' : 0x20000000, 'REGS[10]': 3})
+
 #condition does not satisfied
 sbc_shift_reg_Instr.addTest({'cond': 0x0, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0},
 			    {'CPSR' : 0x20000000, 'REGS[0]': 1, 'REGS[9]': 1 , 'REGS[8]': 0xffffffff},
