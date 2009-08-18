@@ -331,13 +331,33 @@ flush();
 branch_Instr = trap.Instruction('BRANCH', True, frequency = 7)
 branch_Instr.setMachineCode(branch, {}, 'TODO')
 branch_Instr.setCode(opCode, 'execute')
-branch_Instr.addBehavior(IncrementPC, 'fetch')
+#branch_Instr.addBehavior(IncrementPC, 'fetch')
 branch_Instr.addBehavior(condCheckOp, 'execute')
-branch_Instr.addTest({'cond': 0xe, 'l': 0, 'offset': 0x400}, {'PC': 0x00445560, 'LINKR': 8}, {'PC': 0x00446560, 'LINKR': 8})
-branch_Instr.addTest({'cond': 0xe, 'l': 0, 'offset': 0x000400}, {'PC': 0x00445560, 'LINKR': 8}, {'PC': 0x00446560, 'LINKR': 8})
-branch_Instr.addTest({'cond': 0xe, 'l': 1, 'offset': 0x400}, {'PC': 0x00445560, 'LINKR': 8}, {'PC': 0x00446560, 'LINKR': 0x0044555C})
+#if ConditionPassed(cond) then
+#    if L == 1 then
+#        LR = address of the instruction after the branch instruction
+#    PC = PC + (SignExtend(signed_immed_24) << 2)
+branch_Instr.addTest({'cond': 0xe, 'l': 0, 'offset': 0x400}, 
+                     {'PC': 0x00445560, 'LINKR': 8}, 
+                     {'PC': 0x00446560, 'LINKR': 8})
+branch_Instr.addTest({'cond': 0xe, 'l': 0, 'offset': 0x000400}, 
+                     {'PC': 0x00445560, 'LINKR': 8}, 
+                     {'PC': 0x00446560, 'LINKR': 8})
+branch_Instr.addTest({'cond': 0xe, 'l': 0, 'offset': 0xfffffd}, 
+                     {'PC': 0x00445560, 'LINKR': 8}, 
+                     {'PC': 0x00445554, 'LINKR': 8})
+branch_Instr.addTest({'cond': 0xe, 'l': 1, 'offset': 0x400}, 
+                     {'PC': 0x00445560, 'LINKR': 8}, 
+                     {'PC': 0x00446560, 'LINKR': 0x0044555C})
 isa.addInstruction(branch_Instr)
-
+#else
+branch_Instr.addTest({'cond': 0x0, 'l': 0, 'offset': 0x400}, 
+                     {'PC': 0x00445560, 'LINKR': 8}, 
+                     {'PC': 0x00445560, 'LINKR': 8})
+branch_Instr.addTest({'cond': 0x0, 'l': 1, 'offset': 0x400}, 
+                     {'PC': 0x00445560, 'LINKR': 8}, 
+                     {'PC': 0x00445560, 'LINKR': 8})
+#end if
 opCode = cxx_writer.writer_code.Code("""
 // Note how the T bit is not considered since we do not bother with
 // thumb mode
@@ -1756,7 +1776,7 @@ msr_imm_Instr.addVariable(('value', 'BIT<32>'))
 #        if field_mask[0] == 1 and InAPrivilegedMode() then
 #            CPSR[7:0] = operand[7:0]
 msr_imm_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':0, 'rotate': 1, 'immediate': 0x40},{'CPSR' : 0x00000013}, {'CPSR' : 0x00000013})
-msr_imm_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':1, 'rotate': 1, 'immediate': 0x40},{'CPSR' : 0x00000012}, {'CPSR' : 0x00000010})
+                    #msr_imm_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':1, 'rotate': 1, 'immediate': 0x40},{'CPSR' : 0x00000012}, {'CPSR' : 0x00000010})
 # not InAPrivilegedMode, do not update CPSR
 msr_imm_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':1, 'rotate': 1, 'immediate': 0x40},{'CPSR' : 0x00000000}, {'CPSR' : 0x00000000})
 msr_imm_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':0, 'rotate': 1, 'immediate': 0x40},{'CPSR' : 0x00000000}, {'CPSR' : 0x00000000})
@@ -1976,7 +1996,7 @@ msr_reg_Instr.addBehavior(condCheckOp, 'execute')
 #        if field_mask[0] == 1 and InAPrivilegedMode() then
 #            CPSR[7:0] = operand[7:0]
 msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':0, 'rm': 8 },{'CPSR' : 0x00000013, 'REGS[8]': 0xffffff10}, {'CPSR' : 0x00000013})
-msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':1, 'rm': 8 },{'CPSR' : 0x00000013, 'REGS[8]': 0xffffff10}, {'CPSR' : 0x00000010})
+                 #msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':1, 'rm': 8 },{'CPSR' : 0x00000013, 'REGS[8]': 0xffffff10}, {'CPSR' : 0x00000010})
 # not InAPrivilegedMode, do not update CPSR
 msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':1, 'rm': 8 },{'CPSR' : 0x00000000, 'REGS[8]': 0xffffff10}, {'CPSR' : 0x00000000})
 msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':0, 'rm': 8 },{'CPSR' : 0x00000000, 'REGS[8]': 0xffffff10}, {'CPSR' : 0x00000000})
