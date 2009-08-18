@@ -580,6 +580,33 @@ UpdatePSRSum.addInstuctionVar(('operand', 'BIT<32>'))
 UpdatePSRSum.addUserInstructionElement('s')
 UpdatePSRSum.addUserInstructionElement('rn')
 UpdatePSRSum.addUserInstructionElement('rd')
+
+# Now I define the behavior used by most of the data processing operations
+# for the update of the program status register
+opCode = cxx_writer.writer_code.Code("""
+if (s == 0x1){
+    if(rd_bit == 15){
+        // In case the destination register is the program counter,
+        // I have to switch to the saved program status register
+        restoreSPSR();
+    }
+    else{
+        if (CPSR[key_C] == 0){
+            //Here I have to normally update the flags
+            UpdatePSRAddInner(rn, operand);
+        }else{
+            UpdatePSRAddInner(rn, operand + 1);
+        }
+    }
+}
+""")
+UpdatePSRSumC = trap.HelperOperation('UpdatePSRSumC', opCode)
+UpdatePSRSumC.addInstuctionVar(('operand', 'BIT<32>'))
+UpdatePSRSumC.addUserInstructionElement('s')
+UpdatePSRSumC.addUserInstructionElement('rn')
+UpdatePSRSumC.addUserInstructionElement('rd')
+
+
 # Now I define the behavior used by most of the data processing operations
 # for the update of the program status register
 opCode = cxx_writer.writer_code.Code("""
@@ -601,7 +628,6 @@ UpdatePSRSub.addUserInstructionElement('rn')
 UpdatePSRSub.addUserInstructionElement('rd')
 UpdatePSRSub.addInstuctionVar(('operand', 'BIT<32>'))
 
-#Begin Fix Bug
 opCode = cxx_writer.writer_code.Code("""
 if (s == 0x1){
     if(rd_bit == 15){
@@ -620,7 +646,52 @@ UpdatePSRSubR.addUserInstructionElement('s')
 UpdatePSRSubR.addUserInstructionElement('rn')
 UpdatePSRSubR.addUserInstructionElement('rd')
 UpdatePSRSubR.addInstuctionVar(('operand', 'BIT<32>'))
-#End Fix Bug
+
+opCode = cxx_writer.writer_code.Code("""
+if (s == 0x1){
+    if(rd_bit == 15){
+        // In case the destination register is the program counter,
+        // I have to switch to the saved program status register
+        restoreSPSR();
+    }
+    else{
+        if (CPSR[key_C] == 0){
+            //Here I have to normally update the flags
+            UpdatePSRSubInner(rn, operand + 1);
+        }else{
+            UpdatePSRSubInner(rn, operand);
+        }
+    }
+}
+""")
+UpdatePSRSubC = trap.HelperOperation('UpdatePSRSubC', opCode)
+UpdatePSRSubC.addUserInstructionElement('s')
+UpdatePSRSubC.addUserInstructionElement('rn')
+UpdatePSRSubC.addUserInstructionElement('rd')
+UpdatePSRSubC.addInstuctionVar(('operand', 'BIT<32>'))
+
+opCode = cxx_writer.writer_code.Code("""
+if (s == 0x1){
+    if(rd_bit == 15){
+        // In case the destination register is the program counter,
+        // I have to switch to the saved program status register
+        restoreSPSR();
+    }
+    else{
+        if (CPSR[key_C] == 0){
+            //Here I have to normally update the flags
+            UpdatePSRSubInner(operand,rn  + 1);
+        }else{
+            UpdatePSRSubInner(operand,rn );
+        }
+    }
+}
+""")
+UpdatePSRSubRC = trap.HelperOperation('UpdatePSRSubRC', opCode)
+UpdatePSRSubRC.addUserInstructionElement('s')
+UpdatePSRSubRC.addUserInstructionElement('rn')
+UpdatePSRSubRC.addUserInstructionElement('rd')
+UpdatePSRSubRC.addInstuctionVar(('operand', 'BIT<32>'))
 
 # Now I define the behavior used by most of the data processing operations
 # for the update of the program status register
