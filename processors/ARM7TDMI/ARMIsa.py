@@ -3586,12 +3586,40 @@ opCode = cxx_writer.writer_code.Code("""
 dataMem.write_half(address, (unsigned short)(rd & 0x0000FFFF));
 stall(1);
 """)
+#if ConditionPassed(cond) then
+#    if address[0] == 0
+#        data = Rd[15:0]
+#    else /* address[0] == 1 */
+#        data = UNPREDICTABLE
+#    Memory[address,2] = data
+
 strh_off_Instr = trap.Instruction('STRH_off', True, frequency = 2)
 strh_off_Instr.setMachineCode(lsshb_regOff, {'opcode1': [1, 0, 1, 1], 'l': [0]}, 'TODO')
 strh_off_Instr.setCode(opCode, 'execute')
 strh_off_Instr.addBehavior(IncrementPC, 'fetch')
 strh_off_Instr.addBehavior(condCheckOp, 'execute')
 strh_off_Instr.addBehavior(ls_sh_Op, 'execute')
+#pre_indexed
+strh_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x10   , 'REGS[0]' : 0x20, 'dataMem[0x30]': 0, 'REGS[1]' : 0x12345678}, 
+                       {'dataMem[0x30]': 0x5678, 'REGS[0]' : 0x20})
+strh_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x10   , 'REGS[0]' : 0x20, 'dataMem[0x10]': 0, 'REGS[1]' : 0x12345678}, 
+                       {'dataMem[0x10]' : 0x5678, 'REGS[0]' : 0x20})
+strh_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x10   , 'REGS[0]' : 0x20, 'dataMem[0x30]': 0, 'REGS[1]' : 0x12345678}, 
+                       {'dataMem[0x30]' : 0x5678, 'REGS[0]' : 0x30})
+strh_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'addr_mode1': 2},  
+                       {'REGS[2]' : 0x10   , 'REGS[0]' : 0x20, 'dataMem[0x10]': 0, 'REGS[1]' : 0x12345678}, 
+                       {'dataMem[0x10]' : 0x5678, 'REGS[0]' : 0x10})
+#post_indexed
+strh_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x10   , 'REGS[0]' : 0x20, 'dataMem[0x20]': 0, 'REGS[1]' : 0x12345678}, 
+                       {'dataMem[0x20]': 0x5678, 'REGS[0]' : 0x30})
+strh_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x10   , 'REGS[0]' : 0x20, 'dataMem[0x20]': 0, 'REGS[1]' : 0x12345678}, 
+                       {'dataMem[0x20]' : 0x5678, 'REGS[0]' : 0x10})
+
 isa.addInstruction(strh_off_Instr)
 
 # SWP instruction family
