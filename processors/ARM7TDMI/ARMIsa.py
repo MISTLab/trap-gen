@@ -992,6 +992,13 @@ ldrh_off_Instr.setCode(opCode, 'execute')
 ldrh_off_Instr.addBehavior(IncrementPC, 'fetch')
 ldrh_off_Instr.addBehavior(condCheckOp, 'execute')
 ldrh_off_Instr.addBehavior(ls_sh_Op, 'execute')
+#if ConditionPassed(cond) then
+#    if address[0] == 0
+#        data = Memory[address,2]
+#    else /* address[0] == 1 */
+#        data = UNPREDICTABLE
+#    Rd = data
+
 isa.addInstruction(ldrh_off_Instr)
 
 # LDRS H/B instruction family
@@ -1776,7 +1783,7 @@ msr_imm_Instr.addVariable(('value', 'BIT<32>'))
 #        if field_mask[0] == 1 and InAPrivilegedMode() then
 #            CPSR[7:0] = operand[7:0]
 msr_imm_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':0, 'rotate': 1, 'immediate': 0x40},{'CPSR' : 0x00000013}, {'CPSR' : 0x00000013})
-                    #msr_imm_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':1, 'rotate': 1, 'immediate': 0x40},{'CPSR' : 0x00000012}, {'CPSR' : 0x00000010})
+msr_imm_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':1, 'rotate': 1, 'immediate': 0x40},{'CPSR' : 0x00000010}, {'CPSR' : 0x00000010})
 # not InAPrivilegedMode, do not update CPSR
 msr_imm_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':1, 'rotate': 1, 'immediate': 0x40},{'CPSR' : 0x00000000}, {'CPSR' : 0x00000000})
 msr_imm_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':0, 'rotate': 1, 'immediate': 0x40},{'CPSR' : 0x00000000}, {'CPSR' : 0x00000000})
@@ -1996,7 +2003,7 @@ msr_reg_Instr.addBehavior(condCheckOp, 'execute')
 #        if field_mask[0] == 1 and InAPrivilegedMode() then
 #            CPSR[7:0] = operand[7:0]
 msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':0, 'rm': 8 },{'CPSR' : 0x00000013, 'REGS[8]': 0xffffff10}, {'CPSR' : 0x00000013})
-                 #msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':1, 'rm': 8 },{'CPSR' : 0x00000013, 'REGS[8]': 0xffffff10}, {'CPSR' : 0x00000010})
+msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':1, 'rm': 8 },{'CPSR' : 0x00000010, 'REGS[8]': 0xffffff10}, {'CPSR' : 0x00000010})
 # not InAPrivilegedMode, do not update CPSR
 msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':1, 'rm': 8 },{'CPSR' : 0x00000000, 'REGS[8]': 0xffffff10}, {'CPSR' : 0x00000000})
 msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':0, 'rm': 8 },{'CPSR' : 0x00000000, 'REGS[8]': 0xffffff10}, {'CPSR' : 0x00000000})
@@ -3397,7 +3404,51 @@ strb_off_Instr.setCode(opCode, 'execute')
 strb_off_Instr.addBehavior(IncrementPC, 'fetch')
 strb_off_Instr.addBehavior(condCheckOp, 'execute')
 strb_off_Instr.addBehavior(ls_reg_Op, 'execute')
+#post-indexed
+strb_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+		       {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+		       {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
+strb_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+		       {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+		       {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
+strb_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+		       {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+		       {'dataMem[0x10]':123, 'REGS[0]' : 0x18})
+strb_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+		       {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+		       {'dataMem[0x10]':123, 'REGS[0]' : 0x08})
+#scaled/register offset address mode
+strb_off_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+		       {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 0x5, 'dataMem[0x10]': 0}, 
+		       {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
+strb_off_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+		       {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 0x5, 'dataMem[0x10]': 0}, 
+		       {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
 
+strb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+		       {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+		       {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
+strb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+		       {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+		       {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
+strb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+		       {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+		       {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
+strb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+		       {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+		       {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
+strb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+		       {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x18]': 0 }, 
+		       {'dataMem[0x18]':123, 'REGS[0]' : 0x10})
+strb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+		       {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x08]': 0 }, 
+		       {'dataMem[0x08]':123, 'REGS[0]' : 0x10})
+strb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+		       {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x18]': 0 }, 
+		       {'dataMem[0x18]':123, 'REGS[0]' : 0x18})
+strb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+		       {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x08]': 0 }, 
+		       {'dataMem[0x08]':123, 'REGS[0]' : 0x08})
 isa.addInstruction(strb_off_Instr)
 # STRH instruction family
 opCode = cxx_writer.writer_code.Code("""
