@@ -945,8 +945,8 @@ ldrb_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, '
 ldrb_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'dataMem[0x08]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
 ldrb_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'dataMem[0x18]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x18})
 ldrb_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'dataMem[0x08]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x08})
-
 isa.addInstruction(ldrb_imm_Instr)
+
 ldrb_off_Instr = trap.Instruction('LDRB_off', True, frequency = 4)
 ldrb_off_Instr.setMachineCode(ls_regOff, {'b': [1], 'l': [1]}, 'TODO')
 ldrb_off_Instr.setCode(opCode, 'execute')
@@ -992,18 +992,39 @@ ldrh_off_Instr.setCode(opCode, 'execute')
 ldrh_off_Instr.addBehavior(IncrementPC, 'fetch')
 ldrh_off_Instr.addBehavior(condCheckOp, 'execute')
 ldrh_off_Instr.addBehavior(ls_sh_Op, 'execute')
+ldrh_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x15]': 0x12345678}, 
+                       {'REGS[1]' : 0x5678, 'REGS[0]' : 0x10})
 #if ConditionPassed(cond) then
 #    if address[0] == 0
 #        data = Memory[address,2]
 #    else /* address[0] == 1 */
 #        data = UNPREDICTABLE
 #    Rd = data
+ldrh_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x0b]': 0x12345678}, 
+                       {'REGS[1]' : 0x5678, 'REGS[0]' : 0x10})
 
+ldrh_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x15]': 0x12345678}, 
+                       {'REGS[1]' : 0x5678, 'REGS[0]' : 0x15})
+
+ldrh_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x0b]': 0x12345678}, 
+                       {'REGS[1]' : 0x5678, 'REGS[0]' : 0x0b})
+
+
+ldrh_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x10]': 0x12345678}, 
+                       {'REGS[1]' : 0x5678, 'REGS[0]' : 0x15})
+
+ldrh_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x10]': 0x12345678}, 
+                       {'REGS[1]' : 0x5678, 'REGS[0]' : 0x0b})
 isa.addInstruction(ldrh_off_Instr)
-
 # LDRS H/B instruction family
 opCode = cxx_writer.writer_code.Code("""
-rd = dataMem.read_half(address);
+rd = (int)SignExtend(dataMem.read_half(address), 16) ;
 stall(2);
 """)
 ldrsh_off_Instr = trap.Instruction('LDRSH_off', True, frequency = 2)
@@ -1012,9 +1033,75 @@ ldrsh_off_Instr.setCode(opCode, 'execute')
 ldrsh_off_Instr.addBehavior(IncrementPC, 'fetch')
 ldrsh_off_Instr.addBehavior(condCheckOp, 'execute')
 ldrsh_off_Instr.addBehavior(ls_sh_Op, 'execute')
+ldrsh_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5       , 'REGS[0]' : 0x10, 'dataMem[0x15]': 0x0000fffd}, 
+                       {'REGS[1]' : 0xfffffffd, 'REGS[0]' : 0x10})
+
+ldrsh_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5       , 'REGS[0]' : 0x10, 'dataMem[0x15]': 0xfffffffd}, 
+                       {'REGS[1]' : 0xfffffffd, 'REGS[0]' : 0x10})
+
+ldrsh_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5       , 'REGS[0]' : 0x10, 'dataMem[0x15]': 0x00000003}, 
+                       {'REGS[1]' :  3, 'REGS[0]' : 0x10})
+
+ldrsh_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x0b]': 0x0000fffd}, 
+                       {'REGS[1]' : 0xfffffffd, 'REGS[0]' : 0x10})
+
+ldrsh_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x0b]': 0xfffffffd}, 
+                       {'REGS[1]' : 0xfffffffd, 'REGS[0]' : 0x10})
+ldrsh_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x0b]': 0x00000003}, 
+                       {'REGS[1]' :  3, 'REGS[0]' : 0x10})
+
+ldrsh_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x15]': 0x0000fffd}, 
+                       {'REGS[1]' : 0xfffffffd, 'REGS[0]' : 0x15})
+
+ldrsh_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x15]': 0xfffffffd}, 
+                       {'REGS[1]' : 0xfffffffd, 'REGS[0]' : 0x15})
+
+ldrsh_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x15]': 0x00000003}, 
+                       {'REGS[1]' :  3, 'REGS[0]' : 0x15})
+
+ldrsh_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x0b]': 0x0000fffd}, 
+                       {'REGS[1]' : 0xfffffffd, 'REGS[0]' : 0x0b})
+
+ldrsh_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x0b]': 0xfffffffd}, 
+                       {'REGS[1]' : 0xfffffffd, 'REGS[0]' : 0x0b})
+
+ldrsh_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x0b]': 0x00000003}, 
+                       {'REGS[1]' :  3, 'REGS[0]' : 0x0b})
+
+ldrsh_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x10]': 0x0000fffd}, 
+                       {'REGS[1]' : 0xfffffffd, 'REGS[0]' : 0x15})
+ldrsh_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x10]': 0xfffffffd}, 
+                       {'REGS[1]' : 0xfffffffd, 'REGS[0]' : 0x15})
+ldrsh_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x10]': 0x00000003}, 
+                       {'REGS[1]' :  3, 'REGS[0]' : 0x15})
+
+ldrsh_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x10]': 0x0000fffd}, 
+                       {'REGS[1]' : 0xfffffffd, 'REGS[0]' : 0x0b})
+ldrsh_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x10]': 0xfffffffd}, 
+                       {'REGS[1]' : 0xfffffffd, 'REGS[0]' : 0x0b})
+ldrsh_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x10]': 0x00000003}, 
+                       {'REGS[1]' :  3, 'REGS[0]' : 0x0b})
 isa.addInstruction(ldrsh_off_Instr)
 opCode = cxx_writer.writer_code.Code("""
-rd = dataMem.read_byte(address);
+rd = (int)SignExtend(dataMem.read_byte(address), 8);
 stall(2);
 """)
 ldrsb_off_Instr = trap.Instruction('LDRSB_off', True, frequency = 2)
@@ -1023,8 +1110,52 @@ ldrsb_off_Instr.setCode(opCode, 'execute')
 ldrsb_off_Instr.addBehavior(IncrementPC, 'fetch')
 ldrsb_off_Instr.addBehavior(condCheckOp, 'execute')
 ldrsb_off_Instr.addBehavior(ls_sh_Op, 'execute')
-isa.addInstruction(ldrsb_off_Instr)
+ldrsb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5       , 'REGS[0]' : 0x10, 'dataMem[0x15]': 0xfd}, 
+                       {'REGS[1]' : 0xfffffffd, 'REGS[0]' : 0x10})
 
+ldrsb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5       , 'REGS[0]' : 0x10, 'dataMem[0x15]': 0x03}, 
+                       {'REGS[1]' :  3, 'REGS[0]' : 0x10})
+
+ldrsb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x0b]': 0xfd}, 
+                       {'REGS[1]' : 0xfffffffd, 'REGS[0]' : 0x10})
+
+ldrsb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x0b]': 0x03}, 
+                       {'REGS[1]' :  3, 'REGS[0]' : 0x10})
+
+ldrsb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x15]': 0xfd}, 
+                       {'REGS[1]' : 0xfffffffd, 'REGS[0]' : 0x15})
+
+ldrsb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x15]': 0x03}, 
+                       {'REGS[1]' :  3, 'REGS[0]' : 0x15})
+
+ldrsb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x0b]': 0xfd}, 
+                       {'REGS[1]' : 0xfffffffd, 'REGS[0]' : 0x0b})
+
+ldrsb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x0b]': 0x03}, 
+                       {'REGS[1]' :  3, 'REGS[0]' : 0x0b})
+
+ldrsb_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x10]': 0xfd}, 
+                       {'REGS[1]' : 0xfffffffd, 'REGS[0]' : 0x15})
+ldrsb_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x10]': 0x03}, 
+                       {'REGS[1]' :  3, 'REGS[0]' : 0x15})
+
+ldrsb_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x10]': 0xfd}, 
+                       {'REGS[1]' : 0xfffffffd, 'REGS[0]' : 0x0b})
+ldrsb_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x10]': 0x03}, 
+                       {'REGS[1]' :  3, 'REGS[0]' : 0x0b})
+isa.addInstruction(ldrsb_off_Instr)
 #--------------------------- 
 #Mutiply instruction family
 #---------------------------
