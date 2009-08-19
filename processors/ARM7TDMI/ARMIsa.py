@@ -992,15 +992,15 @@ ldrh_off_Instr.setCode(opCode, 'execute')
 ldrh_off_Instr.addBehavior(IncrementPC, 'fetch')
 ldrh_off_Instr.addBehavior(condCheckOp, 'execute')
 ldrh_off_Instr.addBehavior(ls_sh_Op, 'execute')
-ldrh_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
-                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x15]': 0x12345678}, 
-                       {'REGS[1]' : 0x5678, 'REGS[0]' : 0x10})
 #if ConditionPassed(cond) then
 #    if address[0] == 0
 #        data = Memory[address,2]
 #    else /* address[0] == 1 */
 #        data = UNPREDICTABLE
 #    Rd = data
+ldrh_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
+                       {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x15]': 0x12345678}, 
+                       {'REGS[1]' : 0x5678, 'REGS[0]' : 0x10})
 ldrh_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'addr_mode1': 2}, 
                        {'REGS[2]' : 0x5   , 'REGS[0]' : 0x10, 'dataMem[0x0b]': 0x12345678}, 
                        {'REGS[1]' : 0x5678, 'REGS[0]' : 0x10})
