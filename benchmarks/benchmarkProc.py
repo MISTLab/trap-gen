@@ -42,6 +42,12 @@ if __name__ == "__main__":
     fileHandle.close()
 
     # Finally I print some statistics
+    fileHandle = open('TRAP_summary.csv', 'w')
+    fileCsvWriter = csv.writer(fileHandle, delimiter = ';')
+    fileCsvWriter.writerow(['avg', str(numpy.average(runTime))])
+    fileCsvWriter.writerow(['std', str(numpy.std(runTime))])
+    fileHandle.close()
+
     print ('Average Execution Speed: ' + str(numpy.average(runTime)) + ' MIPS')
     print ('Standard Deviation: ' + str(numpy.std(runTime)) + ' MIPS')
     print ('Fastst benchmark: ' + fastBench + ' ( ' + str(maxSpeed) + ' MIPS )')
