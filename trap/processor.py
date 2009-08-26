@@ -805,7 +805,7 @@ class Processor:
         # Returns the code implementing the pipeline stages
         return procWriter.getGetPipelineStages(self, trace, namespace)
 
-    def write(self, folder = '', models = validModels, namespace = '', dumpDecoderName = '', trace = False, forceDecoderCreation = False, tests = True):
+    def write(self, folder = '', models = validModels, namespace = '', dumpDecoderName = '', trace = False, forceDecoderCreation = False, tests = True, memPenaltyFactor = 2):
         # Ok: this method does two things: first of all it performs all
         # the possible checks to ensure that the processor description is
         # coherent. Second it actually calls the write method of the
@@ -854,7 +854,7 @@ class Processor:
                 forceDecoderCreation = True
         if forceDecoderCreation:
             print ('\t\tCreating the decoder')
-            dec = decoder.decoderCreator(self.isa.instructions, self.isa.subInstructions, memPenaltyFactor = 2)
+            dec = decoder.decoderCreator(self.isa.instructions, self.isa.subInstructions, memPenaltyFactor)
             import copy
             decCopy = copy.deepcopy(dec)
         else:
