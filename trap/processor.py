@@ -292,7 +292,7 @@ class Processor:
     functional processor in case a local memory is used (in case TLM ports
     are used the systemc parameter is not taken into account)
     """
-    def __init__(self, name, version, systemc = True, coprocessor = False, instructionCache = True, fastFetch = False, externalClock = False, cacheLimit = 40):
+    def __init__(self, name, version, systemc = True, coprocessor = False, instructionCache = True, fastFetch = False, externalClock = False, cacheLimit = 256):
         self.name = name
         self.version = version
         self.isBigEndian = None
@@ -805,7 +805,7 @@ class Processor:
         # Returns the code implementing the pipeline stages
         return procWriter.getGetPipelineStages(self, trace, namespace)
 
-    def write(self, folder = '', models = validModels, namespace = '', dumpDecoderName = '', trace = False, forceDecoderCreation = False, tests = True, memPenaltyFactor = 2):
+    def write(self, folder = '', models = validModels, namespace = '', dumpDecoderName = '', trace = False, forceDecoderCreation = False, tests = True, memPenaltyFactor = 4):
         # Ok: this method does two things: first of all it performs all
         # the possible checks to ensure that the processor description is
         # coherent. Second it actually calls the write method of the
