@@ -22,4 +22,4 @@ def build(bld):
 
     obj = bld.new_task_gen('py')
     obj.find_sources_in_dirs('.', exts=['.py'])
-    obj.install_path = os.path.join('${PYTHON_INSTALL_DIR}', 'trap')
+    obj.install_path = os.path.join('${PYTHONDIR}', 'trap')

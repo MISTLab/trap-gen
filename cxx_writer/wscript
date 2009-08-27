@@ -16,11 +16,11 @@ def installWafFun(tsk):
 def build(bld):
     obj = bld.new_task_gen('py')
     obj.find_sources_in_dirs('.', exts=['.py'])
-    obj.install_path = os.path.join('${PYTHON_INSTALL_DIR}', 'cxx_writer')
+    obj.install_path = os.path.join('${PYTHONDIR}', 'cxx_writer')
 
     if Options.is_install:
         objCopy = bld.new_task_gen('cmd')
         objCopy.fun = installWafFun
-        objCopy.env['wafDestPath'] = os.path.join(objCopy.env['PYTHON_INSTALL_DIR'], 'cxx_writer')
+        objCopy.env['wafDestPath'] = os.path.join(objCopy.env['PYTHONDIR'], 'cxx_writer')
 
     bld.add_subdirs('writer_code')
