@@ -122,6 +122,26 @@ template<class issueWidth, int stageOffset> class OSEmulatorCA : public ToolsIf<
         return true;
     }
 
+    bool register_syscall(issueWidth address, SyscallCB<issueWidth> &callBack){
+        typename template_map<issueWidth, SyscallCB<issueWidth>* >::iterator foundSysc = this->syscCallbacks.find(address);
+        if(foundSysc != this->syscCallbacks.end()){
+            int numMatch = 0;
+            typename template_map<issueWidth, SyscallCB<issueWidth>* >::iterator allCallIter, allCallEnd;
+            for(allCallIter = this->syscCallbacks.begin(), allCallEnd = this->syscCallbacks.end(); allCallIter != allCallEnd; allCallIter++){
+                if(allCallIter->second == foundSysc->second)
+                    numMatch++;
+            }
+            if(numMatch <= 1){
+                delete foundSysc->second;
+            }
+        }
+
+        this->syscCallbacks[address] = &callBack;
+        this->syscCallbacksEnd = this->syscCallbacks.end();
+
+        return true;
+    }
+
   public:
     OSEmulatorCA(ABIIf<issueWidth> &processorInstance, void *NOPInstr, int routineOffset) : processorInstance(processorInstance),
                                                                                     NOPInstr(NOPInstr), routineOffset(routineOffset){
