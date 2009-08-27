@@ -4147,7 +4147,7 @@ def getMainCode(self, model, namespace):
     std::cout << "Execution Speed " << (double)procInst.numInstructions/(elapsedSec*1e6) << " MIPS" << std::endl;
     """
     if self.systemc or model.startswith('acc') or model.endswith('AT'):
-        code += 'std::cout << \"Simulated time \" << sc_time_stamp()/10e3 << std::endl;\n'
+        code += 'std::cout << \"Simulated time \" << ((sc_time_stamp().to_default_time_units())/(sc_time(1, SC_NS).to_default_time_units())) << " ns" << std::endl;\n'
     else:
         code += 'std::cout << \"Elapsed \" << procInst.totalCycles << \" cycles\" << std::endl;\n'
     if self.endOp:
