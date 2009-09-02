@@ -72,17 +72,14 @@ processor.addRegister(GPR)
 #CP0[6] 	Wired		-- Reserved in the case of the 4Kp processor          
 #CP0[7] 	Reserved            
 #CP0[8] 	BadVAddr
-BadVAddrBits = {'BadVAddr':(0,31)}
-BadVAddr = trap.Register('BadVAddr',32,BadVAddrBits)
+BadVAddr = trap.Register('BadVAddr',32)
 processor.addRegister(BadVAddr)
 #CP0[9] 	Count
-CountBits = {'COUNT':(0,31)}
-Count = trap.Register('COUNT',32,CountBits)
+Count = trap.Register('COUNT',32)
 processor.addRegister(Count)
 #CP0[10] 	EntryHi		-- Reserved in the case of the 4Kp processor
 #CP0[11] 	Compare
-CompareBits = {'COMPARE':(0,31)}
-Compare = trap.Register('COMPARE',32,CompareBits)
+Compare = trap.Register('COMPARE',32)
 processor.addRegister(Compare)
 #CP0[12] 	Status
 StatusBits = {'CU':(28,31), 'RP':(27,27), 'R':(26,26), 'RE':(25,25), 'Z1':(23,24), 'BEV':(22,22), 'TS':(21,21), 'SR':(20,20), 'NMI':(19,19), 'Z2':(18,18), 'RES':(16,17), 'IM':(8,15), 'R':(5,7), 'UM':(4,4), 'R':(3,3), 'ERL':(2,2), 'EXL':(1,1), 'IE':(0,0)}
@@ -95,8 +92,7 @@ Cause = trap.Register('CAUSE',32,CauseBits)
 Cause.SetDefaultValue(0)
 processor.addRegister(Cause)
 #CP0[14] 	EPC
-epcBits = {'EPC':(0,31)}
-epc = trap.Register('EPC',32,epcBits)
+epc = trap.Register('EPC',32)
 processor.addRegister(epc)
 #CP0[15]    	PRId
 prIdBits = {'R':(24,31), 'CompanyID':(16,23), 'ProcessorID':(8,15), 'Revision':(0,7)}
@@ -135,8 +131,7 @@ Debug = trap.Register('DEBUG',32,DebugBits)
 Debug.SetDefaultValue(0X00000010000000010000000000000000)
 processor.addRegister(Debug)
 #CP0[24]    	DEPC
-DepcBits = {'DEPC':(31,0)}
-Depc = trap.Register('DEPC',32,DepcBits)
+Depc = trap.Register('DEPC',32)
 processor.addRegister(Depc)
 #CP0[25]    	Reserved                 
 #CP0[26]    	ErrCtl
@@ -151,17 +146,14 @@ TagLo = trap.Register('TAGLO',32,TagLoBits)
 TagLo.SetDefaultValue(0)
 processor.addRegister(TagLo)
 #CP0[28]    	DataLo
-DataLoBits = {'DATALO':(0,31)}
-DataLo = trap.Register('DATALO',32,DataLoBits)
+DataLo = trap.Register('DATALO',32)
 processor.addRegister(DataLo)
 #CP0[29]    	Reserved
 #CP0[30]    	ErrorEPC
-ErrorEPCBits = {'ERROREPC':(0,31)}
-ErrorEPC = trap.Register('ERROREPC',32,ErrorEPCBits)
+ErrorEPC = trap.Register('ERROREPC',32)
 processor.addRegister(ErrorEPC)
 #CP0[31]    	DESAVE
-DESAVEBits = {'DESAVE':(0,31)}
-DESAVE = trap.Register('DESAVE',32,DESAVEBits)
+DESAVE = trap.Register('DESAVE',32)
 processor.addRegister(DESAVE)
 #ALIAS REGISTERS FOR CONFIG AND TAGLO & DATALO REGISTERS
 Config = trap.AliasRegister('CONFIG', 'Config0', offset = 0)
@@ -213,7 +205,7 @@ processor.addRegister(dbvn)
 #EJTAG TAP Instruction Registers
 iReg = trap.Register('EJTAGIR',1,5)
 #EJTAG TAP Data Registers
-bpr = trap.Register('BYPASS',1,1)
+bpr = trap.Register('BYPASS',1)
 processor.addRegister(bpr)
 idrBits = {'VERSION': (28,31), 'PARTNUMBER': (12,27), 'MANUFID': (1,11), 'Res1':(0,0)}
 idr = trap.Register('ID',32,idrBits)
@@ -228,18 +220,18 @@ ecrBits = {'Rocc':(31,31), 'Psz':(29,30), 'Doze':(22,22), 'Halt':(21,21) 'PerRst
 ecr = trap.Register('ECR',32,ecrBits)
 ecr.SetDefaultValue(0x10000000000000001101000000000000)
 processor.addRegister(ecr)
-paa = trap.Register('PAA',32,1)
-pad = trap.Register('PAD',32,1) # p.169       so the value in the PAD register matches data on the internal bus.
+paa = trap.Register('PAA',32)
+pad = trap.Register('PAD',32) # p.169       so the value in the PAD register matches data on the internal bus.
 processor.addRegister(pad)
-fast = trap.Resgister('SprAcc',1,1)
+fast = trap.Resgister('SprAcc',1)
 processor.addRegister(fast)
 
 
-# HI-LO register for multiplier
-himul = trap.Register('HI',32,1)
-processor.addRegister(himul)
-lomul = trap.Register('LO',32,1)
-processor.addRegister(lomul)
+# HI-LO register for multiplication and division
+hi = trap.Register('HI',32)
+processor.addRegister(hi)
+lo = trap.Register('LO',32)
+processor.addRegister(lo)
 
 
 #Register from which the instructions are fetched
