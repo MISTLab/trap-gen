@@ -331,7 +331,7 @@ flush();
 branch_Instr = trap.Instruction('BRANCH', True, frequency = 7)
 branch_Instr.setMachineCode(branch, {}, 'TODO')
 branch_Instr.setCode(opCode, 'execute')
-#branch_Instr.addBehavior(IncrementPC, 'fetch')
+branch_Instr.addBehavior(IncrementPC, 'fetch')
 branch_Instr.addBehavior(condCheckOp, 'execute')
 #if ConditionPassed(cond) then
 #    if L == 1 then
@@ -349,7 +349,6 @@ branch_Instr.addTest({'cond': 0xe, 'l': 0, 'offset': 0xfffffd},
 branch_Instr.addTest({'cond': 0xe, 'l': 1, 'offset': 0x400}, 
                      {'PC': 0x00445560, 'LINKR': 8}, 
                      {'PC': 0x00446560, 'LINKR': 0x0044555C})
-isa.addInstruction(branch_Instr)
 #else
 branch_Instr.addTest({'cond': 0x0, 'l': 0, 'offset': 0x400}, 
                      {'PC': 0x00445560, 'LINKR': 8}, 
@@ -357,6 +356,9 @@ branch_Instr.addTest({'cond': 0x0, 'l': 0, 'offset': 0x400},
 branch_Instr.addTest({'cond': 0x0, 'l': 1, 'offset': 0x400}, 
                      {'PC': 0x00445560, 'LINKR': 8}, 
                      {'PC': 0x00445560, 'LINKR': 8})
+
+isa.addInstruction(branch_Instr)
+
 #end if
 opCode = cxx_writer.writer_code.Code("""
 // Note how the T bit is not considered since we do not bother with
