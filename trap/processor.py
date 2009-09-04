@@ -858,11 +858,19 @@ class Processor:
             import copy
             decCopy = copy.deepcopy(dec)
         else:
-            print ('\t\tLoading the decoder from cache')
-            import pickle
-            decDumpFile = open(os.path.join(os.path.expanduser(os.path.expandvars(folder)), '.decoderDump.pickle'), 'r')
-            dec = pickle.load(decDumpFile)
-            decDumpFile.close()
+            try:
+                print ('\t\tLoading the decoder from cache')
+                import pickle
+                decDumpFile = open(os.path.join(os.path.expanduser(os.path.expandvars(folder)), '.decoderDump.pickle'), 'r')
+                dec = pickle.load(decDumpFile)
+                decDumpFile.close()
+            except:
+                print ('\t\tError in loading the decoder')
+                print ('\t\tRe-Creating the decoder')
+                dec = decoder.decoderCreator(self.isa.instructions, self.isa.subInstructions, memPenaltyFactor)
+                import copy
+                decCopy = copy.deepcopy(dec)
+                forceDecoderCreation = True
         if dumpDecoderName:
             dec.printDecoder(dumpDecoderName)
         mainFolder = cxx_writer.writer_code.Folder(os.path.expanduser(os.path.expandvars(folder)))
