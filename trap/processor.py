@@ -70,7 +70,7 @@ class Register:
         if bitMask:
             for key, value in bitMask.items():
                 if value[0] > value[1]:
-                    raise Exception('The bit mask specified for register ' + self.name + ' for field ' + key + ' has the start value ' + str(value[0]) + ' bigger than the end value ' + str(value[0]))
+                    raise Exception('The bit mask specified for register ' + self.name + ' for field ' + key + ' has the start value ' + str(value[0]) + ' bigger than the end value ' + str(value[1]))
                 if value[1] >= bitWidth:
                     raise Exception('The bit mask specified for register ' + self.name + ' for field ' + key + ' is of size ' + str(value[1]) + ' while the register has size ' + str(bitWidth))
                 for key1, value1 in bitMask.items():
@@ -86,6 +86,13 @@ class Register:
     def setDefaultValue(self, value):
         if self.defValue:
             raise Exception('Default value already set for register ' + self.name)
+        try:
+            if value > 0:
+                import math
+                if math.log(value, 2) > self.bitWidth:
+                    raise Exception('Register ' + self.name + ' has a width of ' + str(self.bitWidth) + ' bits, but the default value ' + str(value) + ' needs ' + str(int(math.ceil(math.log(value, 2)))) + ' bits for being represented')
+        except TypeError:
+            pass
         self.defValue = value
 
     def setConst(self, value):
@@ -177,6 +184,13 @@ class RegisterBank:
         for i in range(0, len(self.defValues)):
             if self.defValues[i]:
                 raise Exception('Default value already set for register ' + str(i) + ' in register bank' + self.name)
+            try:
+                if values[i] > 0:
+                    import math
+                    if math.log(values[i], 2) > self.bitWidth:
+                        raise Exception('Register ' + str(i) + ' in register bank ' + self.name + ' has a width of ' + str(self.bitWidth) + ' bits, but the default value ' + str(values[i]) + ' needs ' + str(int(math.ceil(math.log(values[i], 2)))) + ' bits for being represented')
+            except TypeError:
+                pass
         if len(values) != self.numRegs:
             raise Exception('The initialization values for register bank ' + self.name + ' are different, in number, from the number of registers')
         self.defValues = values
@@ -186,6 +200,13 @@ class RegisterBank:
             raise Exception('The initialization value for register bank ' + self.name + ' position ' + position + ' is not valid: position out of range')
         if self.defValues[position]:
             raise Exception('Default value already set for register ' + str(position) + ' in register bank' + self.name)
+        try:
+            if value > 0:
+                import math
+                if math.log(value, 2) > self.bitWidth:
+                    raise Exception('Register ' + str(position) + ' in register bank ' + self.name + ' has a width of ' + str(self.bitWidth) + ' bits, but the default value ' + str(value) + ' needs ' + str(int(math.ceil(math.log(value, 2)))) + ' bits for being represented')
+        except TypeError:
+            pass
         self.defValues[position] = value
 
     def getCPPClass(self, model, regType, namespace):
