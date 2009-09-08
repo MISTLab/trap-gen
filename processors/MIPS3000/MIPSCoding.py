@@ -59,7 +59,7 @@ jump_format = trap.MachineCode([('opcode', 5), ('op2',1), ('target', 26)])
 jump_format.setBitfield('opcode',[0, 0, 0, 0, 1])
 
 #General Register type format (R-Type)
-register_format = trap.MachineCode([('opcode', 6),('rs', 5),('rt', 5),('rd', 5),('sa', 5),('function', 6)])
+register_format = trap.MachineCode([('opcode', 6), ('rs', 5), ('rt', 5), ('rd', 5), ('sa', 5), ('function', 6)])
 register_format.setVarField('rs', ('GPR', 0), 'in')
 register_format.setVarField('rt', ('GPR', 0), 'inout')
 register_format.setVarField('rd', ('GPR', 0), 'out')
@@ -75,8 +75,15 @@ b_format2.setBitfield('opcode', [0, 0, 0, 0, 0, 1])
 b_format2.setBitfield('rt2', [0,0])
 b_format2.setVarField('rs', ('GPR', 0), 'in')
 
-#Load, Store and Special symbols Instruction format (S-Type)
-s_format = trap.MachineCode([('op',3),('op2',1),('op3',2),('rs',5),('rt',5)])
+#Load and Special symbols Instruction format (S-Type)
+s_format = trap.MachineCode([('op',3), ('op2',1), ('op3',2), ('rs',5), ('rt',5), ('immediate', 16)])
 s_format.setVarField('rs', ('GPR', 0), 'in')
 s_format.setVarField('rt', ('GPR', 0), 'inout')
 
+#Instruction with code
+code_format = trap.MachineCode([('opcode',6),('code',20), ('function', 16)])
+
+#Trap Register type format
+trap_format = trap.MachineCode([('opcode', 6), ('rs', 5), ('rt', 5), ('code', 10), ('function', 6)])
+trap_format.setVarField('rs', ('GPR', 0), 'in')
+trap_format.setVarField('rt', ('GPR', 0), 'inout')
