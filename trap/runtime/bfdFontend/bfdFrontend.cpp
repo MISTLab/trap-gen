@@ -48,6 +48,29 @@ extern "C" {
 #include <cstdio>
 #include <cstdarg>
 
+#ifdef __GNUC__
+#ifdef __GNUC_MINOR__
+#if (__GNUC__ >= 4 && __GNUC_MINOR__ >= 3)
+#include <tr1/unordered_map>
+#define template_map std::tr1::unordered_map
+#else
+#include <ext/hash_map>
+#define  template_map __gnu_cxx::hash_map
+#endif
+#else
+#include <ext/hash_map>
+#define  template_map __gnu_cxx::hash_map
+#endif
+#else
+#ifdef _WIN32
+#include <hash_map>
+#define  template_map stdext::hash_map
+#else
+#include <map>
+#define  template_map std::map
+#endif
+#endif
+
 #include <map>
 #include <string>
 #include <vector>
@@ -55,8 +78,6 @@ extern "C" {
 #include <iostream>
 
 #include "trap_utils.hpp"
-
-#include <boost/regex.hpp>
 
 #include "bfdFrontend.hpp"
 
@@ -180,25 +201,14 @@ trap::BFDFrontend::~BFDFrontend(){
     }
 }
 
-///It returns all the symbols that match the given regular expression
-// std::map<std::string,  unsigned int> BFDFrontend::findFunction(boost::regex &regEx){
-//     std::map<std::string,  unsigned int> foundSyms;
-//     std::map<std::string, unsigned int>::iterator addrMap, addrMapEnd;
-//     for(addrMap = this->symToAddr.begin(), addrMapEnd = this->symToAddr.end(); addrMap != addrMapEnd; addrMap++){
-//         if(boost::regex_match(addrMap->first, regEx))
-//             foundSyms.insert(*addrMap);
-//     }
-//     return foundSyms;
-// }
-
 ///Given an address, it returns the symbols found there,(more than one
 ///symbol can be mapped to an address). Note
 ///That if address is in the middle of a function, the symbol
 ///returned refers to the function itself
-std::list<std::string> trap::BFDFrontend::symbolsAt(unsigned int address){
-    std::map<unsigned int, std::list<std::string> >::iterator symMap1 = this->addrToSym.find(address);
+std::list<std::string> trap::BFDFrontend::symbolsAt(unsigned int address) const{
+    template_map<unsigned int, std::list<std::string> >::const_iterator symMap1 = this->addrToSym.find(address);
     if(symMap1 == this->addrToSym.end()){
-        std::map<unsigned int, std::string>::iterator symMap2 = this->addrToFunction.find(address);
+        template_map<unsigned int, std::string>::const_iterator symMap2 = this->addrToFunction.find(address);
         std::list<std::string> functionsList;
         if(symMap2 != this->addrToFunction.end())
             functionsList.push_back(symMap2->second);
@@ -212,10 +222,10 @@ std::list<std::string> trap::BFDFrontend::symbolsAt(unsigned int address){
 ///"" if no symbol is found at the specified address; note
 ///That if address is in the middle of a function, the symbol
 ///returned refers to the function itself
-std::string trap::BFDFrontend::symbolAt(unsigned int address){
-    std::map<unsigned int, std::list<std::string> >::iterator symMap1 = this->addrToSym.find(address);
+std::string trap::BFDFrontend::symbolAt(unsigned int address) const{
+    template_map<unsigned int, std::list<std::string> >::const_iterator symMap1 = this->addrToSym.find(address);
     if(symMap1 == this->addrToSym.end()){
-        std::map<unsigned int, std::string>::iterator symMap2 = this->addrToFunction.find(address);
+        template_map<unsigned int, std::string>::const_iterator symMap2 = this->addrToFunction.find(address);
         if(symMap2 != this->addrToFunction.end()){
             return symMap2->second;
         }
@@ -230,8 +240,8 @@ std::string trap::BFDFrontend::symbolAt(unsigned int address){
 ///(which usually is its address);
 ///valid is set to false if no symbol with the specified
 ///name is found
-unsigned int trap::BFDFrontend::getSymAddr(std::string symbol, bool &valid){
-    std::map<std::string, unsigned int>::iterator addrMap = this->symToAddr.find(symbol);
+unsigned int trap::BFDFrontend::getSymAddr(const std::string &symbol, bool &valid) const{
+    std::map<std::string, unsigned int>::const_iterator addrMap = this->symToAddr.find(symbol);
     if(addrMap == this->symToAddr.end()){
         valid = false;
         return 0;
@@ -318,40 +328,42 @@ void trap::BFDFrontend::readSrc(){
 }
 
 ///Returns the name of the executable file
-std::string trap::BFDFrontend::getExecName(){
+std::string trap::BFDFrontend::getExecName() const{
     return this->execName;
 }
 
 ///Returns the end address of the loadable code
-unsigned int trap::BFDFrontend::getBinaryEnd(){
+unsigned int trap::BFDFrontend::getBinaryEnd() const{
     return (this->codeSize.first + this->wordsize);
 }
 
 ///Specifies whether the address is the entry point of a rountine
-bool trap::BFDFrontend::isRoutineEntry(unsigned int address){
-    std::map<unsigned int, std::string>::iterator funNameIter = this->addrToFunction.find(address);
-    if(funNameIter == this->addrToFunction.end())
+bool trap::BFDFrontend::isRoutineEntry(unsigned int address) const{
+    template_map<unsigned int, std::string>::const_iterator funNameIter = this->addrToFunction.find(address);
+    template_map<unsigned int, std::string>::const_iterator endFunNames = this->addrToFunction.end();
+    if(funNameIter == endFunNames)
         return false;
     std::string curName = funNameIter->second;
     funNameIter = this->addrToFunction.find(address + this->wordsize);
-    if(funNameIter != this->addrToFunction.end() && curName == funNameIter->second){
+    if(funNameIter != endFunNames && curName == funNameIter->second){
         funNameIter = this->addrToFunction.find(address - this->wordsize);
-        if(funNameIter == this->addrToFunction.end() || curName != funNameIter->second)
+        if(funNameIter == endFunNames || curName != funNameIter->second)
             return true;
     }
     return false;
 }
 
-///Specifies whether the address is the exit point of a rountine
-bool trap::BFDFrontend::isRoutineExit(unsigned int address){
-    std::map<unsigned int, std::string>::iterator funNameIter = this->addrToFunction.find(address);
-    if(funNameIter == this->addrToFunction.end())
+///Specifies whether the address is the last one of a routine
+bool trap::BFDFrontend::isRoutineExit(unsigned int address) const{
+    template_map<unsigned int, std::string>::const_iterator funNameIter = this->addrToFunction.find(address);
+    template_map<unsigned int, std::string>::const_iterator endFunNames = this->addrToFunction.end();
+    if(funNameIter == endFunNames)
         return false;
     std::string curName = funNameIter->second;
     funNameIter = this->addrToFunction.find(address - this->wordsize);
-    if(funNameIter != this->addrToFunction.end() && curName == funNameIter->second){
+    if(funNameIter != endFunNames && curName == funNameIter->second){
         funNameIter = this->addrToFunction.find(address + this->wordsize);
-        if(funNameIter == this->addrToFunction.end() || curName != funNameIter->second)
+        if(funNameIter == endFunNames || curName != funNameIter->second)
             return true;
     }
     return false;
@@ -360,8 +372,8 @@ bool trap::BFDFrontend::isRoutineExit(unsigned int address){
 ///Given an address, it sets fileName to the name of the source file
 ///which contains the code and line to the line in that file. Returns
 ///false if the address is not valid
-bool trap::BFDFrontend::getSrcFile(unsigned int address, std::string &fileName, unsigned int &line){
-    std::map<unsigned int, std::pair<std::string, unsigned int> >::iterator srcMap = this->addrToSrc.find(address);
+bool trap::BFDFrontend::getSrcFile(unsigned int address, std::string &fileName, unsigned int &line) const{
+    template_map<unsigned int, std::pair<std::string, unsigned int> >::const_iterator srcMap = this->addrToSrc.find(address);
     if(srcMap == this->addrToSrc.end()){
         return false;
     }
@@ -373,11 +385,11 @@ bool trap::BFDFrontend::getSrcFile(unsigned int address, std::string &fileName, 
 }
 
 ///Returns the start address of the loadable code
-unsigned int trap::BFDFrontend::getBinaryStart(){
+unsigned int trap::BFDFrontend::getBinaryStart() const{
     return this->codeSize.second;
 }
 
-std::string trap::BFDFrontend::getMatchingFormats (char **p){
+std::string trap::BFDFrontend::getMatchingFormats (char **p) const{
     std::string match = "";
     if(p != NULL){
         while (*p){
