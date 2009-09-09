@@ -337,7 +337,7 @@ unsigned int trap::BFDFrontend::getBinaryEnd() const{
     return (this->codeSize.first + this->wordsize);
 }
 
-///Specifies whether the address is the entry point of a rountine
+///Specifies whether the address is the first one of a rountine
 bool trap::BFDFrontend::isRoutineEntry(unsigned int address) const{
     template_map<unsigned int, std::string>::const_iterator funNameIter = this->addrToFunction.find(address);
     template_map<unsigned int, std::string>::const_iterator endFunNames = this->addrToFunction.end();

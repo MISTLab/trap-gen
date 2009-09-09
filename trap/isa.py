@@ -212,10 +212,10 @@ class ISA:
             # check the instruction variables: there must be no collision with
             # the register names
             for var in i.variables:
-                if checkerMethod(var.name):
-                    raise Exception('Variable ' + var.name + ' in insturction ' + i.name + ' has trhe same name of a processor register')
-                if checkerMethod(var.name, (0, 0)):
-                    raise Exception('Variable ' + var.name + ' in insturction ' + i.name + ' has trhe same name of a processor register bank')
+                if checkerMethod(var.name) != None:
+                    raise Exception('Variable ' + var.name + ' in insturction ' + i.name + ' has the same name of a processor register')
+                if checkerMethod(var.name, (0, 0)) != None:
+                    raise Exception('Variable ' + var.name + ' in insturction ' + i.name + ' has the same name of a processor register bank')
         for reg in toCheck:
             index = indexExtractor(reg)
             if index:
@@ -223,11 +223,11 @@ class ISA:
                 # I check that it exists and that I am still within
                 # boundaries
                 refName = reg[:reg.find('[')]
-                if not checkerMethod(refName, index):
+                if checkerMethod(refName, index) is None:
                     raise Exception('Register Bank ' + reg + ' used in the MachineCode description does not exists')
             else:
                 # Single register or alias: I check that it exists
-                if not checkerMethod(reg):
+                if checkerMethod(reg) is None:
                     raise Exception('Register ' + reg + ' used in the MachineCode description does not exists')
 
     def getCPPClasses(self, processor, model, trace, namespace):

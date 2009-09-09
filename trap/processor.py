@@ -518,23 +518,23 @@ class Processor:
             for i in self.regBanks:
                 if name == i.name:
                     if index[0] >= 0 and index[1] <= i.numRegs:
-                        return True
+                        return i
                     else:
                         raise Exception('Register Bank ' + i.name + ' has width ' + str(i.numRegs) + ' but we are trying to access register ' + str(index[1]))
             for i in self.aliasRegBanks:
                 if name == i.name:
                     if index[0] >= 0 and index[1] <= i.numRegs:
-                        return True
+                        return i
                     else:
                         raise Exception('Alias Register Bank ' + i.name + ' has width ' + str(i.numRegs) + ' but we are trying to access register ' + str(index[1]))
         else:
             for i in self.regs:
                 if name == i.name:
-                    return True
+                    return i
             for i in self.aliasRegs:
                 if name == i.name:
-                    return True
-        return False
+                    return i
+        return None
 
     def isBank(self, bankName):
         for i in self.regBanks + self.aliasRegBanks:
@@ -582,11 +582,11 @@ class Processor:
                 # I check that it exists and that I am still within
                 # boundaries
                 regName = memAliasReg.alias[:memAliasReg.alias.find('[')]
-                if not self.isRegExisting(regName, index):
+                if self.isRegExisting(regName, index) is None:
                     raise Exception('Register ' + memAliasReg.alias + ' indicated in memory alias for address ' + memAliasReg.address)
             else:
                 # Single register or alias: I check that it exists
-                if not self.isRegExisting(memAliasReg.alias):
+                if self.isRegExisting(memAliasReg.alias) is None:
                     raise Exception('Register ' + memAliasReg.alias + ' indicated in memory alias for address ' + memAliasReg.address)
         if self.memory and self.memory[3]:
             index = extractRegInterval(self.memory[3])
@@ -595,11 +595,11 @@ class Processor:
                 # I check that it exists and that I am still within
                 # boundaries
                 regName = self.memory[3][:self.memory[3].find('[')]
-                if not self.isRegExisting(regName, index):
+                if self.isRegExisting(regName, index) is None:
                     raise Exception('Register ' + self.memory[3] + ' indicated for program counter of local memory does not exists')
             else:
                 # Single register or alias: I check that it exists
-                if not self.isRegExisting(self.memory[3]):
+                if self.isRegExisting(self.memory[3]) is None:
                     raise Exception('Register ' + self.memory[3] + ' indicated for program counter of local memory does not exists')
 
     def checkTestRegs(self):
@@ -625,10 +625,10 @@ class Processor:
                         index = extractRegInterval(resource)
                         if index:
                             resourceName = resource[:brackIndex]
-                            if not self.isRegExisting(resourceName, index):
+                            if self.isRegExisting(resourceName, index) is None:
                                 raise Exception('Resource ' + resource + ' not found in test for instruction ' + instr.name)
                         else:
-                            if not self.isRegExisting(resource):
+                            if self.isRegExisting(resource) is None:
                                 raise Exception('Resource ' + resource + ' not found in test for instruction ' + instr.name)
                 for resource, value in test[2].items():
                     brackIndex = resource.find('[')
@@ -639,10 +639,10 @@ class Processor:
                         index = extractRegInterval(resource)
                         if index:
                             resourceName = resource[:brackIndex]
-                            if not self.isRegExisting(resourceName, index):
+                            if self.isRegExisting(resourceName, index) is None:
                                 raise Exception('Resource ' + resource + ' not found in test for instruction ' + instr.name)
                         else:
-                            if not self.isRegExisting(resource):
+                            if self.isRegExisting(resource) is None:
                                 raise Exception('Resource ' + resource + ' not found in test for instruction ' + instr.name)
     def checkAliases(self):
         # checks that the declared aliases actually refer to
@@ -657,23 +657,57 @@ class Processor:
                 # I check that it exists and that I am still within
                 # boundaries
                 refName = alias.initAlias[:alias.initAlias.find('[')]
-                if not self.isRegExisting(refName, index):
+                regInstance = self.isRegExisting(refName, index)
+                if regInstance is None:
                     raise Exception('Register Bank ' + refName + ' referenced by alias ' + alias.name + ' does not exists')
+                try:
+                    try:
+                        for value in alias.defValues:
+                            if value != None and value > 0:
+                                import math
+                                if math.log(value, 2) > regInstance.bitWidth:
+                                    raise Exception('Alias Bank ' + alias.name + ' points to a register of width of ' + str(regInstance.bitWidth) + ' bits, but the default value ' + str(value) + ' needs ' + str(int(math.ceil(math.log(value, 2)))) + ' bits for being represented')
+                    except TypeError:
+                        pass
+                except AttributeError:
+                    pass
             else:
                 totalRegs = 0
-                for i in alias.initAlias:
-                    index = extractRegInterval(i)
+                for i in range(0, len(alias.initAlias)):
+                    index = extractRegInterval(alias.initAlias[i])
                     if index:
                         # I'm aliasing part of a register bank or another alias:
                         # I check that it exists and that I am still within
                         # boundaries
-                        refName = i[:i.find('[')]
-                        if not self.isRegExisting(refName, index):
-                            raise Exception('Register Bank ' + i + ' referenced by alias ' + alias.name + ' does not exists')
+                        refName = alias.initAlias[i][:alias.initAlias[i].find('[')]
+                        regInstance = self.isRegExisting(refName, index)
+                        if regInstance is None:
+                            raise Exception('Register Bank ' + alias.initAlias[i] + ' referenced by alias ' + alias.name + ' does not exists')
+                        try:
+                            try:
+                                if alias.defValues[i] != None and alias.defValues[i] > 0:
+                                    import math
+                                    if math.log(alias.defValues[i], 2) > regInstance.bitWidth:
+                                        raise Exception('Alias Bank ' + alias.name + ' points to a register of width of ' + str(regInstance.bitWidth) + ' bits, but the default value ' + str(alias.defValues[i]) + ' needs ' + str(int(math.ceil(math.log(alias.defValues[i], 2)))) + ' bits for being represented')
+                            except TypeError:
+                                pass
+                        except AttributeError:
+                            pass
                     else:
                         # Single register or alias: I check that it exists
-                        if not self.isRegExisting(i):
-                            raise Exception('Register ' + i + ' referenced by alias ' + alias.name + ' does not exists')
+                        regInstance = self.isRegExisting(alias.initAlias[i])
+                        if regInstance is None:
+                            raise Exception('Register ' + alias.initAlias[i] + ' referenced by alias ' + alias.name + ' does not exists')
+                        try:
+                            try:
+                                if alias.defValues[i] != None and alias.defValues[i] > 0:
+                                    import math
+                                    if math.log(alias.defValues[i], 2) > regInstance.bitWidth:
+                                        raise Exception('Alias Bank ' + alias.name + ' points to a register of width of ' + str(regInstance.bitWidth) + ' bits, but the default value ' + str(alias.defValues[i]) + ' needs ' + str(int(math.ceil(math.log(alias.defValues[i], 2)))) + ' bits for being represented')
+                            except TypeError:
+                                pass
+                        except AttributeError:
+                            pass
         for alias in self.aliasRegs:
             index = extractRegInterval(alias.initAlias)
             if index:
@@ -681,12 +715,34 @@ class Processor:
                 # I check that it exists and that I am still within
                 # boundaries
                 refName = alias.initAlias[:alias.initAlias.find('[')]
-                if not self.isRegExisting(refName, index):
+                regInstance = self.isRegExisting(refName, index)
+                if regInstance is None:
                     raise Exception('Register Bank ' + alias.initAlias + ' referenced by alias ' + alias.name + ' does not exists')
+                try:
+                    try:
+                        if alias.defValue != None and alias.defValue > 0:
+                            import math
+                            if math.log(alias.defValue, 2) > regInstance.bitWidth:
+                                raise Exception('Alias Bank ' + alias.name + ' points to a register of width of ' + str(regInstance.bitWidth) + ' bits, but the default value ' + str(alias.defValue) + ' needs ' + str(int(math.ceil(math.log(alias.defValue, 2)))) + ' bits for being represented')
+                    except TypeError:
+                        pass
+                except AttributeError:
+                    pass
             else:
                 # Single register or alias: I check that it exists
-                if not self.isRegExisting(alias.initAlias):
+                regInstance = self.isRegExisting(refName, index)
+                if regInstance is None:
                     raise Exception('Register ' + alias.initAlias + ' referenced by alias ' + alias.name + ' does not exists')
+                try:
+                    try:
+                        if alias.defValue != None and alias.defValue > 0:
+                            import math
+                            if math.log(alias.defValue, 2) > regInstance.bitWidth:
+                                raise Exception('Alias Bank ' + alias.name + ' points to a register of width of ' + str(regInstance.bitWidth) + ' bits, but the default value ' + str(alias.defValue) + ' needs ' + str(int(math.ceil(math.log(alias.defValue, 2)))) + ' bits for being represented')
+                    except TypeError:
+                        pass
+                except AttributeError:
+                    pass
 
     def checkISARegs(self):
         # Checks that registers declared in the instruction encoding and the ISA really exists
@@ -708,11 +764,11 @@ class Processor:
                     # I check that it exists and that I am still within
                     # boundaries
                     refName = regName[:regName.find('[')]
-                    if not self.isRegExisting(refName, index):
+                    if self.isRegExisting(refName, index) is None:
                         raise Exception('Register Bank ' + regName + ' referenced as spcieal register in insrtuction ' + name + ' does not exists')
                 else:
                     # Single register or alias: I check that it exists
-                    if not self.isRegExisting(regName):
+                    if self.isRegExisting(regName) is None:
                         raise Exception('Register ' + regName + ' referenced as spcieal register in insrtuction ' + name + ' does not exists')
             for stage in instruction.specialOutRegsWB.keys():
                 if not stage in [i.name for i in self.pipes]:
@@ -752,11 +808,11 @@ class Processor:
                 # I check that it exists and that I am still within
                 # boundaries
                 refName = i[:i.find('[')]
-                if not self.isRegExisting(refName, index):
+                if self.isRegExisting(refName, index) is None:
                     raise Exception('Register Bank ' + i + ' used in the ABI does not exists')
             else:
                 # Single register or alias: I check that it exists
-                if not self.isRegExisting(i):
+                if self.isRegExisting(i) is None:
                     raise Exception('Register ' + i + ' used in the ABI does not exists')
         # warning in case details are not specified
         if not self.abi.returnCallInstr or not self.abi.callInstr:
