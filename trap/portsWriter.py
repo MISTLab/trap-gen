@@ -36,18 +36,17 @@
 
 import cxx_writer
 
-from procWriter import resourceType
-
 def getCPPExternalPorts(self, model, namespace):
     if len(self.tlmPorts) == 0:
         return None
     # creates the processor external TLM ports used for the
     # communication with the external world
-    from isa import resolveBitType
-    archDWordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize*2) + '>')
-    archWordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>')
-    archHWordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize/2) + '>')
-    archByteType = resolveBitType('BIT<' + str(self.byteSize) + '>')
+    archDWordType = self.bitSizes[0]
+    archWordType = self.bitSizes[1]
+    archHWordType = self.bitSizes[2]
+    archByteType = self.bitSizes[3]
+
+    from procWriter import resourceType
 
     if self.isBigEndian:
         swapDEndianessCode = '#ifdef LITTLE_ENDIAN_BO\n'
@@ -621,6 +620,9 @@ def getIRQTests(self, trace, namespace):
     from processor import extractRegInterval
     testFuns = []
     global testNames
+    from procWriter import testNames
+
+    from procWriter import resourceType
 
     archElemsDeclStr = ''
     destrDecls = ''
@@ -682,6 +684,7 @@ def getIRQTests(self, trace, namespace):
     # (there might be dependences among the aliases)
     aliasInit = ''
     import networkx as NX
+    from procWriter import aliasGraph
     orderedNodes = NX.topological_sort(aliasGraph)
     for alias in orderedNodes:
         if alias == 'stop':

@@ -89,6 +89,8 @@ hash_map_include = """
 #endif
 """
 
+# Computes the code defining the execution of an instruction and
+# of the processor tools.
 def getInstrIssueCode(self, trace, instrVarName):
     codeString = """try{
             #ifndef DISABLE_TOOLS
@@ -114,10 +116,114 @@ def getInstrIssueCode(self, trace, instrVarName):
         """
     return codeString
 
+# Computes the code for the fetch address
+def computeFetchCode(self):
+    fetchCode = str(self.bitSizes[1]) + ' bitString = this->'
+    # Now I have to check what is the fetch: if there is a TLM port or
+    # if I have to access local memory
+    if self.memory:
+        # I perform the fetch from the local memory
+        fetchCode += self.memory[0]
+    else:
+        for name, isFetch  in self.tlmPorts.items():
+            if isFetch:
+                fetchCode += name
+        if fetchCode.endswith('this->'):
+            raise Exception('No TLM port was chosen for the instruction fetch and not internal memory defined')
+    fetchCode += '.read_word(curPC);\n'
+    return fetchCode
+
+# Computes current program counter, in order to fetch
+# instrutions from it
+def computeCurrentPC(self, model):
+    fetchAddress = 'this->' + self.fetchReg[0]
+    if model.startswith('func'):
+        if self.fetchReg[1] < 0:
+            fetchAddress += str(self.fetchReg[1])
+        else:
+            fetchAddress += ' + ' + str(self.fetchReg[1])
+    return fetchAddress
+
+# Computes and prints the code necessary for dealing with interrupts
+def getInterruptCode(self):
+    interruptCode = ''
+    orderedIrqList = sorted(self.irqs, lambda x,y: cmp(y.priority, x.priority))
+    for irqPort in orderedIrqList:
+        if irqPort != orderedIrqList[0]:
+            interruptCode += 'else '
+        interruptCode += 'if('
+        if(irqPort.condition):
+            interruptCode += '('
+        interruptCode += irqPort.name + ' != -1'
+        if(irqPort.condition):
+            interruptCode += ') && (' + irqPort.condition + ')'
+        interruptCode += '){\n'
+        interruptCode += irqPort.operation + '\n}\n'
+    if self.irqs:
+        interruptCode += 'else{\n'
+    return interruptCode
+
+# Returns the code necessary for performing a standard instruction fetch: i.e.
+# read from memory and set the instruction parameters
+def standardInstrFetch(self, trace):
+    codeString = """int instrId = this->decoder.decode(bitString);
+    Instruction * instr = Processor::INSTRUCTIONS[instrId];
+    instr->setParams(bitString);
+    """
+    codeString += getInstrIssueCode(self, trace, 'instr')
+    return codeString
+
+def fetchWithCacheCode(self, trace):
+    codeString = ''
+    if self.fastFetch:
+        mapKey = 'curPC'
+    else:
+        mapKey = 'bitString'
+    codeString += 'template_map< ' + str(self.bitSizes[1]) + ', CacheElem >::iterator cachedInstr = this->instrCache.find(' + mapKey + ');'
+    # I have found the instruction in the cache
+    codeString += """
+    if(cachedInstr != instrCacheEnd){
+        Instruction * &curInstrPtr = cachedInstr->second.instr;
+        // I can call the instruction, I have found it
+        if(curInstrPtr != NULL){
+    """
+    codeString += getInstrIssueCode(self, trace, 'curInstrPtr')
+
+    # I have found the element in the cache, but not the instruction
+    codeString += '}\nelse{\n'
+    if self.fastFetch:
+        codeString += fetchCode
+    codeString += standardInstrFetch(self, trace)
+    codeString += """unsigned int & curCount = cachedInstr->second.count;
+        if(curCount < """ + str(self.cacheLimit) + """){
+            curCount++;
+        }
+        else{
+            // ... and then add the instruction to the cache
+            curInstrPtr = instr;
+            Processor::INSTRUCTIONS[instrId] = instr->replicate();
+        }
+    """
+
+    # and now finally I have found nothing and I have to add everything
+    codeString += """}
+    }
+    else{
+        // The current instruction is not present in the cache:
+        // I have to perform the normal decoding phase ...
+    """
+    if self.fastFetch:
+        codeString += fetchCode
+    codeString += standardInstrFetch(self, trace)
+    codeString += """this->instrCache.insert(std::pair< unsigned int, CacheElem >(bitString, CacheElem()));
+        instrCacheEnd = this->instrCache.end();
+        }
+    """
+    return codeString
+
 def getCPPProc(self, model, trace, namespace):
     # creates the class describing the processor
-    from isa import resolveBitType
-    fetchWordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>')
+    fetchWordType = self.bitSizes[1]
     includes = fetchWordType.getIncludes()
     if self.abi:
         interfaceType = cxx_writer.writer_code.Type(self.name + '_ABIIf', 'interface.hpp')
@@ -142,15 +248,14 @@ def getCPPProc(self, model, trace, namespace):
         emptyCacheTypeConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', [], ['instr(NULL)', 'count(1)'])
         cacheType.addConstructor(emptyCacheTypeConstr)
 
+    ################################################
+    # Start declaration of the main processor loop
+    ###############################################
     # An here I start declaring the real processor content
     if not model.startswith('acc'):
         if self.instructionCache:
-            codeString += 'template_map< ' + str(fetchWordType) + """, CacheElem >::iterator instrCacheEnd = this->instrCache.end();
-            """
-            if self.fastFetch:
-                mapKey = 'curPC'
-            else:
-                mapKey = 'bitString'
+            # Declaration of the instruction buffer for speeding up decoding
+            codeString += 'template_map< ' + str(self.bitSizes[1]) + ', CacheElem >::iterator instrCacheEnd = this->instrCache.end();'
 
         if self.externalClock:
             codeString += 'if(this->waitCycles > 0){\nthis->waitCycles--;\nreturn;\n}\n\n'
@@ -159,99 +264,25 @@ def getCPPProc(self, model, trace, namespace):
         codeString += 'unsigned int numCycles = 0;\n'
 
         #Here is the code to deal with interrupts
-        orderedIrqList = sorted(self.irqs, lambda x,y: cmp(y.priority, x.priority))
-        for irqPort in orderedIrqList:
-            if irqPort != orderedIrqList[0]:
-                codeString += 'else '
-            codeString += 'if('
-            if(irqPort.condition):
-                codeString += '('
-            codeString += irqPort.name + ' != -1'
-            if(irqPort.condition):
-                codeString += ') && (' + irqPort.condition + ')'
-            codeString += '){\n'
-            codeString += irqPort.operation + '\n}\n'
-        if self.irqs:
-            codeString += 'else{\n'
-
-        fetchCode = str(fetchWordType) + ' bitString = this->'
-        # Now I have to check what is the fetch: if there is a TLM port or
-        # if I have to access local memory
-        if self.memory:
-            # I perform the fetch from the local memory
-            fetchCode += self.memory[0]
-        else:
-            for name, isFetch  in self.tlmPorts.items():
-                if isFetch:
-                    fetchCode += name
-            if codeString.endswith('= '):
-                raise Exception('No TLM port was chosen for the instruction fetch')
-        fetchCode += '.read_word(curPC);\n'
-
-        fetchAddress = 'this->' + self.fetchReg[0]
-        if model.startswith('func'):
-            if self.fetchReg[1] < 0:
-                fetchAddress += str(self.fetchReg[1])
-            else:
-                fetchAddress += ' + ' + str(self.fetchReg[1])
+        codeString += getInterruptCode(self)
+        # computes the correct memory and/or memory port from which fetching the instruction stream
+        fetchCode = computeFetchCode(self)
+        # computes the address from which the nest instruction shall be fetched
+        fetchAddress = computeCurrentPC(self, model)
         codeString += str(fetchWordType) + ' curPC = ' + fetchAddress + ';\n'
-
+        # We need to fetch the instruction ... only if the cache is not used or if
+        # the index of the cache is the current instruction
         if not (self.instructionCache and self.fastFetch):
             codeString += fetchCode
-
         if trace:
             codeString += 'std::cerr << \"Current PC: \" << std::hex << std::showbase << curPC << std::endl;\n'
+
+        # Finally I declare the fetch, decode, execute loop, where the instruction is actually executed;
+        # Note the possibility of performing it with the instruction fetch
         if self.instructionCache:
-            codeString += 'template_map< ' + str(fetchWordType) + ', CacheElem >::iterator cachedInstr = this->instrCache.find(' + mapKey + ');'
-            # I have found the instruction in the cache
-            codeString += """
-            if(cachedInstr != instrCacheEnd){
-                Instruction * &curInstrPtr = cachedInstr->second.instr;
-                // I can call the instruction, I have found it
-                if(curInstrPtr != NULL){
-            """
-            codeString += getInstrIssueCode(self, trace, 'curInstrPtr')
-
-            # I have found the element in the cache, but not the instruction
-            codeString += '}\nelse{\n'
-            if self.fastFetch:
-                codeString += fetchCode
-            codeString += """int instrId = this->decoder.decode(bitString);
-            Instruction * instr = Processor::INSTRUCTIONS[instrId];
-            instr->setParams(bitString);
-            """
-            codeString += getInstrIssueCode(self, trace, 'instr')
-            codeString += """unsigned int & curCount = cachedInstr->second.count;
-                if(curCount < """ + str(self.cacheLimit) + """){
-                    curCount++;
-                }
-                else{
-                    // ... and then add the instruction to the cache
-                    curInstrPtr = instr;
-                    Processor::INSTRUCTIONS[instrId] = instr->replicate();
-                }
-            """
-
-            # and now finally I have found nothing and I have to add everything
-            codeString += """}
-            }
-            else{
-                // The current instruction is not present in the cache:
-                // I have to perform the normal decoding phase ...
-            """
-            if self.fastFetch:
-                codeString += fetchCode
-
-        codeString += """int instrId = this->decoder.decode(bitString);
-        Instruction * instr = Processor::INSTRUCTIONS[instrId];
-        instr->setParams(bitString);
-        """
-        codeString += getInstrIssueCode(self, trace, 'instr')
-        if self.instructionCache:
-            codeString += """this->instrCache.insert(std::pair< unsigned int, CacheElem >(bitString, CacheElem()));
-                instrCacheEnd = this->instrCache.end();
-                }
-            """
+            codeString += fetchWithCacheCode(self, trace)
+        else:
+            codeString += standardInstrFetch(self, trace)
 
         if self.irqs:
             codeString += '}\n'
@@ -278,7 +309,16 @@ def getCPPProc(self, model, trace, namespace):
         mainLoopCode.addInclude('customExceptions.hpp')
         mainLoopMethod = cxx_writer.writer_code.Method('mainLoop', mainLoopCode, cxx_writer.writer_code.voidType, 'pu')
         processorElements.append(mainLoopMethod)
+    ################################################
+    # End declaration of the main processor loop
+    ###############################################
 
+    # Now I start declaring the other methods and attributes of the processor class
+
+    ##########################################################################
+    # Start declaration of begin, end, and reset operations (to be performed
+    # at begin or end of simulation or to reset it)
+    ##########################################################################
     if self.beginOp:
         beginOpMethod = cxx_writer.writer_code.Method('beginOp', self.beginOp, cxx_writer.writer_code.voidType, 'pri')
         processorElements.append(beginOpMethod)
@@ -383,12 +423,20 @@ def getCPPProc(self, model, trace, namespace):
 
     for irqPort in self.irqs:
         initString += 'this->' + irqPort.name + ' = -1;\n'
-
     resetOpTemp.prependCode(initString)
     if self.beginOp:
         resetOpTemp.appendCode('//user-defined initialization\nthis->beginOp();\n')
     resetOpMethod = cxx_writer.writer_code.Method('resetOp', resetOpTemp, cxx_writer.writer_code.voidType, 'pu')
     processorElements.append(resetOpMethod)
+    # Now I declare the end of elaboration method, called by systemc just before starting the simulation
+    endElabCode = cxx_writer.writer_code.Code('this->resetOp();')
+    endElabMethod = cxx_writer.writer_code.Method('end_of_elaboration', endElabCode, cxx_writer.writer_code.voidType, 'pu')
+    processorElements.append(endElabMethod)
+    ##########################################################################
+    # END declaration of begin, end, and reset operations (to be performed
+    # at begin or end of simulation or to reset it)
+    ##########################################################################
+
     # Method for external instruction decoding
     decodeCode = cxx_writer.writer_code.Code("""int instrId = this->decoder.decode(bitString);
             if(instrId >= 0){
@@ -401,10 +449,6 @@ def getCPPProc(self, model, trace, namespace):
     decodeParams = [cxx_writer.writer_code.Parameter('bitString', fetchWordType)]
     decodeMethod = cxx_writer.writer_code.Method('decode', decodeCode, IntructionTypePtr, 'pu', decodeParams)
     processorElements.append(decodeMethod)
-    # Now I declare the end of elaboration method, called by systemc just before starting the simulation
-    endElabCode = cxx_writer.writer_code.Code('this->resetOp();')
-    endElabMethod = cxx_writer.writer_code.Method('end_of_elaboration', endElabCode, cxx_writer.writer_code.voidType, 'pu')
-    processorElements.append(endElabMethod)
     if not model.startswith('acc'):
         decoderAttribute = cxx_writer.writer_code.Attribute('decoder', cxx_writer.writer_code.Type('Decoder', 'decoder.hpp'), 'pri')
         processorElements.append(decoderAttribute)
@@ -417,6 +461,11 @@ def getCPPProc(self, model, trace, namespace):
     toolManagerAttribute = cxx_writer.writer_code.Attribute('toolManager', ToolsManagerType, 'pu')
     processorElements.append(toolManagerAttribute)
 
+    #############################################################################
+    # Declaration of all the attributes of the processor class, including, in
+    # particular, registers, aliases, memories, etc. The code
+    # for their initialization/destruction is also created.
+    #############################################################################
     initElements = []
     bodyInits = ''
     bodyDestructor = ''
@@ -424,13 +473,11 @@ def getCPPProc(self, model, trace, namespace):
     bodyAliasInit = {}
     if self.abi:
         abiIfInit = ''
-
     if model.endswith('LT') and len(self.tlmPorts) > 0 and not self.externalClock:
         quantumKeeperType = cxx_writer.writer_code.Type('tlm_utils::tlm_quantumkeeper', 'tlm_utils/tlm_quantumkeeper.h')
         quantumKeeperAttribute = cxx_writer.writer_code.Attribute('quantKeeper', quantumKeeperType, 'pri')
         processorElements.append(quantumKeeperAttribute)
         bodyInits += 'quantKeeper.set_global_quantum( this->latency*100 );\nquantKeeper.reset();\n'
-
     # Lets now add the registers, the reg banks, the aliases, etc.
     # We also need to add the memory
     checkToolPipeStage = self.pipes[-1]
@@ -754,6 +801,7 @@ def getCPPProc(self, model, trace, namespace):
             irqPortType = cxx_writer.writer_code.Type('IntrTLMPort_' + str(irqPort.portWidth), 'irqPorts.hpp')
         else:
             irqPortType = cxx_writer.writer_code.Type('IntrSysCPort_' + str(irqPort.portWidth), 'irqPorts.hpp')
+        from isa import resolveBitType
         irqWidthType = resolveBitType('BIT<' + str(irqPort.portWidth) + '>')
         irqSignalAttr = cxx_writer.writer_code.Attribute(irqPort.name, irqWidthType, 'pri')
         irqPortAttr = cxx_writer.writer_code.Attribute(irqPort.name + '_port', irqPortType, 'pu')
@@ -776,6 +824,10 @@ def getCPPProc(self, model, trace, namespace):
         processorElements.append(pinPortAttr)
         initElements.append(pinPort.name + '(\"' + pinPort.name + '_PIN\")')
 
+    ####################################################################
+    # Cycle accurate model, lets proceed with the declaration of the
+    # pipeline stages
+    ####################################################################
     if model.startswith('acc'):
         # I have to instantiate the pipeline and its stages ...
         prevStage = ''
@@ -1085,8 +1137,7 @@ def getGetPipelineStages(self, trace, namespace):
     for pipeStage in self.pipes:
         if pipeStage.wb:
             wbStage = pipeStage
-        from isa import resolveBitType
-        fetchWordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>')
+        fetchWordType = self.bitSizes[1]
 
         pipeNameParam = cxx_writer.writer_code.Parameter('pipeName', cxx_writer.writer_code.sc_module_nameType)
         curPipeElements = []
@@ -1534,6 +1585,11 @@ def getGetPipelineStages(self, trace, namespace):
 
     return pipeCodeElements
 
+#########################################################################################
+# Lets complete the declaration of the processor with the main files: one for the
+# tests and one for the main file of the simulator itself
+#########################################################################################
+
 def getTestMainCode(self):
     # Returns the code for the file which contains the main
     # routine for the execution of the tests.
@@ -1558,8 +1614,7 @@ def getTestMainCode(self):
 def getMainCode(self, model, namespace):
     # Returns the code which instantiate the processor
     # in order to execute simulations
-    from isa import resolveBitType
-    wordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>')
+    wordType = self.bitSizes[1]
     code = 'using namespace ' + namespace + ';\nusing namespace trap;\n\n'
     code += """
     boost::program_options::options_description desc("Processor simulator for """ + self.name + """", 120);

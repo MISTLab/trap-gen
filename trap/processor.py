@@ -320,6 +320,7 @@ class Processor:
         #self.alloc_buffer_size = alloc_buffer_size # Commented since preallocating instruction does not give any speedup
         self.wordSize = None
         self.byteSize = None
+        self.bitSizes = None
         self.cacheLimit = cacheLimit
         self.regs = []
         self.regBanks = []
@@ -908,6 +909,12 @@ class Processor:
         from isa import resolveBitType
         import decoder, os
         import cxx_writer
+        # Now I declare a couple of variables used for keeping track of the size of each words and parts for them
+        self.bitSizes = [resolveBitType('BIT<' + str(self.wordSize*self.byteSize*2) + '>'),
+                        resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>'),
+                        resolveBitType('BIT<' + str(self.wordSize*self.byteSize/2) + '>'),
+                        resolveBitType('BIT<' + str(self.byteSize) + '>')]
+
         # Here we check if the decoder signature changed; in case it hasn't we create the decoder,
         # otherwise we load it from file
         instructionSignature = self.isa.getInstructionSig()
@@ -962,7 +969,7 @@ class Processor:
                 namespace = self.name.lower() + '_' + model.lower() + '_trap'
             namespaceUse = cxx_writer.writer_code.UseNamespace(namespace)
             namespaceTrapUse = cxx_writer.writer_code.UseNamespace('trap')
-            decClass = dec.getCPPClass(resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>'), namespace)
+            decClass = dec.getCPPClass(self.bitSizes[1], namespace)
             implFileDec = cxx_writer.writer_code.FileDumper('decoder.cpp', False)
             headFileDec = cxx_writer.writer_code.FileDumper('decoder.hpp', True)
             implFileDec.addMember(namespaceUse)

@@ -36,16 +36,15 @@
 
 import cxx_writer
 
-from procWriter import resourceType
-
 def getCPPIf(self, model, namespace):
     # creates the interface which is used by the tools
     # to access the processor core
     if not self.abi:
         return
 
-    from isa import resolveBitType
-    wordType = resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>')
+    from procWriter import resourceType
+
+    wordType = self.bitSizes[1]
     includes = wordType.getIncludes()
 
     ifClassElements = []
@@ -189,6 +188,7 @@ def getCPPIf(self, model, namespace):
         totalStateSize += (regB.bitWidth*regB.numRegs)/self.byteSize
     getStateBody = 'unsigned char * curState = new unsigned char[' + str(totalStateSize) + '];\n'
     getStateBody += 'unsigned char * curStateTemp = curState;\n'
+    from isa import resolveBitType
     for reg in self.regs:
         regWType = resolveBitType('BIT<' + str(reg.bitWidth) + '>')
         getStateBody += '*((' + str(regWType.makePointer()) + ')curStateTemp) = this->' + reg.name + '.readNewValue();\ncurStateTemp += ' + str(reg.bitWidth/self.byteSize) + ';\n'

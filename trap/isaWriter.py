@@ -464,7 +464,7 @@ def getCPPInstr(self, model, processor, trace, namespace):
             setParamsCode += ' >> ' + str(shiftAmm)
         setParamsCode += ';\n'
     setParamsBody = cxx_writer.writer_code.Code(setParamsCode)
-    setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
+    setparamsParam = cxx_writer.writer_code.Parameter('bitString', processor.bitSizes[1].makeRef().makeConst())
     setparamsDecl = cxx_writer.writer_code.Method('setParams', setParamsBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam], noException = True)
     classElements.append(setparamsDecl)
 
@@ -719,8 +719,7 @@ def getCPPInstrTest(self, processor, model, trace, namespace = ''):
                     code += resource[:brackIndex] + '_target.readPIN(' + hex(int(resource[brackIndex + 1:-1], 16)) + ')'
             else:
                 code += resource + '.readNewValue()'
-            global archWordType
-            code += ', (' + str(archWordType) + ')' + hex(value) + ');\n\n'
+            code += ', (' + str(processor.bitSizes[1]) + ')' + hex(value) + ');\n\n'
         code += destrDecls
         curTest = cxx_writer.writer_code.Code(code)
         wariningDisableCode = '#ifdef _WIN32\n#pragma warning( disable : 4101 )\n#endif\n'
@@ -734,9 +733,6 @@ def getCPPInstrTest(self, processor, model, trace, namespace = ''):
 
 def getCPPClasses(self, processor, model, trace, namespace):
     # I go over each instruction and print the class representing it
-    from isa import resolveBitType
-    global archWordType
-    archWordType = resolveBitType('BIT<' + str(processor.wordSize*processor.byteSize) + '>')
     memoryType = cxx_writer.writer_code.Type('MemoryInterface', 'memory.hpp')
     registerType = cxx_writer.writer_code.Type('Register')
     unlockQueueType = cxx_writer.writer_code.TemplateType('std::vector', [registerType.makePointer()])
@@ -766,7 +762,7 @@ def getCPPClasses(self, processor, model, trace, namespace):
             instructionElements.append(behaviorDecl)
     replicateDecl = cxx_writer.writer_code.Method('replicate', emptyBody, instructionType.makePointer(), 'pu', pure = True, noException = True, const = True)
     instructionElements.append(replicateDecl)
-    setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
+    setparamsParam = cxx_writer.writer_code.Parameter('bitString', processor.bitSizes[1].makeRef().makeConst())
     setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam], pure = True, noException = True)
     instructionElements.append(setparamsDecl)
 
@@ -870,7 +866,7 @@ def getCPPClasses(self, processor, model, trace, namespace):
     flushDecl = cxx_writer.writer_code.Method('flush', flushBody, cxx_writer.writer_code.voidType, 'pu', inline = True)
     instructionElements.append(flushDecl)
 
-    stallParam = cxx_writer.writer_code.Parameter('numCycles', archWordType.makeRef().makeConst())
+    stallParam = cxx_writer.writer_code.Parameter('numCycles', processor.bitSizes[1].makeRef().makeConst())
     if not model.startswith('acc'):
         stallBody = cxx_writer.writer_code.Code('this->totalInstrCycles += numCycles;')
     else:
@@ -1056,7 +1052,7 @@ def getCPPClasses(self, processor, model, trace, namespace):
     replicateBody = cxx_writer.writer_code.Code('return new InvalidInstr(' + baseInstrInitElement + ');')
     replicateDecl = cxx_writer.writer_code.Method('replicate', replicateBody, instructionType.makePointer(), 'pu', noException = True, const = True)
     invalidInstrElements.append(replicateDecl)
-    setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
+    setparamsParam = cxx_writer.writer_code.Parameter('bitString', processor.bitSizes[1].makeRef().makeConst())
     setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam], noException = True)
     invalidInstrElements.append(setparamsDecl)
     getIstructionNameBody = cxx_writer.writer_code.Code('return \"InvalidInstruction\";')
@@ -1100,7 +1096,7 @@ def getCPPClasses(self, processor, model, trace, namespace):
         replicateBody = cxx_writer.writer_code.Code('return new NOPInstruction(' + baseInstrInitElement + ');')
         replicateDecl = cxx_writer.writer_code.Method('replicate', replicateBody, instructionType.makePointer(), 'pu', noException = True, const = True)
         NOPInstructionElements.append(replicateDecl)
-        setparamsParam = cxx_writer.writer_code.Parameter('bitString', archWordType.makeRef().makeConst())
+        setparamsParam = cxx_writer.writer_code.Parameter('bitString', processor.bitSizes[1].makeRef().makeConst())
         setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam], noException = True)
         NOPInstructionElements.append(setparamsDecl)
         getIstructionNameBody = cxx_writer.writer_code.Code('return \"NOPInstruction\";')

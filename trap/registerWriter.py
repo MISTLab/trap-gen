@@ -46,8 +46,6 @@ regMaxType = None
 
 import cxx_writer
 
-from procWriter import resourceType
-
 def getRegistersBitfields(self):
     addedKeys = []
     defineCode = ''
@@ -387,6 +385,9 @@ def getCPPRegisters(self, model, namespace):
     # Now I create the base class for all the registers
     registerElements = []
 
+    from procWriter import resourceType
+    global resourceType
+
     from isa import resolveBitType
     global regMaxType
     regMaxType = resolveBitType('BIT<' + str(regLen) + '>')
@@ -491,7 +492,6 @@ def getCPPRegisters(self, model, namespace):
             if not j.name in [rb.name for rb in customRegBanksElemens]:
                 customRegBanksElemens.append(j)
 
-    global resourceType
     regTypes = []
     regTypeNames = []
     bitFieldHash = {}
@@ -623,6 +623,8 @@ def getCPPAlias(self, model, namespace):
     aliasType = cxx_writer.writer_code.Type('Alias', 'alias.hpp')
     aliasElements = []
     global resourceType
+    from procWriter import resourceType
+
     for i in self.aliasRegs + self.aliasRegBanks:
         resourceType[i.name] = aliasType
 
