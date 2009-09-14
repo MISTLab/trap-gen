@@ -34,7 +34,7 @@
 #
 ####################################################################################
 
-import procWriter
+import procWriter, registerWriter, memWriter, interfaceWriter, portsWriter
 
 validModels = ['funcLT', 'funcAT', 'accLT', 'accAT']
 
@@ -112,7 +112,7 @@ class Register:
         self.offset = value
 
     def getCPPClass(self, model, regType, namespace):
-        return procWriter.getCPPRegClass(self, model, regType, namespace)
+        return registerWriter.getCPPRegClass(self, model, regType, namespace)
 
 class RegisterBank:
     """Same thing of a register, it also specifies the
@@ -210,7 +210,7 @@ class RegisterBank:
         self.defValues[position] = value
 
     def getCPPClass(self, model, regType, namespace):
-        return procWriter.getCPPRegBankClass(self, model, regType, namespace)
+        return registerWriter.getCPPRegBankClass(self, model, regType, namespace)
 
 class AliasRegister:
     """Alias for a register of the processor;
@@ -823,15 +823,15 @@ class Processor:
         # This method creates all the classes necessary for declaring
         # the registers: in particular the register base class
         # and all the classes for the different bitwidths
-        return procWriter.getCPPRegisters(self, model, namespace)
+        return registerWriter.getCPPRegisters(self, model, namespace)
 
     def getRegistersBitfields(self):
-        return procWriter.getRegistersBitfields(self)
+        return registerWriter.getRegistersBitfields(self)
 
     def getCPPAlias(self, model, namespace):
         # This method creates the class describing a register
         # alias
-        return procWriter.getCPPAlias(self, model, namespace)
+        return registerWriter.getCPPAlias(self, model, namespace)
 
     def getCPPProc(self, model, trace, namespace):
         # creates the class describing the processor
@@ -839,18 +839,18 @@ class Processor:
 
     def getCPPMemoryIf(self, model, namespace):
         # creates the class describing the processor
-        return procWriter.getCPPMemoryIf(self, model, namespace)
+        return memWriter.getCPPMemoryIf(self, model, namespace)
 
     def getCPPIf(self, model, namespace):
         # creates the interface which is used by the tools
         # to access the processor core
-        return procWriter.getCPPIf(self, model, namespace)
+        return interfaceWriter.getCPPIf(self, model, namespace)
 
     def getCPPExternalPorts(self, model, namespace):
         # creates the processor external ports used for the
         # communication with the external world (the memory port
         # is not among this ports, it is treated separately)
-        return procWriter.getCPPExternalPorts(self, model, namespace)
+        return portsWriter.getCPPExternalPorts(self, model, namespace)
 
     def getTestMainCode(self):
         # Returns the code for the file which contains the main
@@ -867,16 +867,16 @@ class Processor:
 
     def getGetIRQPorts(self, namespace):
         # Returns the code implementing the interrupt ports
-        return procWriter.getGetIRQPorts(self, namespace)
+        return portsWriter.getGetIRQPorts(self, namespace)
 
     def getGetPINPorts(self, namespace):
         # Returns the code implementing the PIN ports
-        return procWriter.getGetPINPorts(self, namespace)
+        return portsWriter.getGetPINPorts(self, namespace)
 
     def getIRQTests(self, trace, namespace):
         # Returns the code implementing the tests for the
         # interrupt lines
-        return procWriter.getIRQTests(self, trace, namespace)
+        return portsWriter.getIRQTests(self, trace, namespace)
 
     def getGetPipelineStages(self, trace, namespace):
         # Returns the code implementing the pipeline stages
