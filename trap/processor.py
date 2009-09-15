@@ -314,6 +314,11 @@ class Processor:
     are used the systemc parameter is not taken into account)
     """
     def __init__(self, name, version, systemc = True, coprocessor = False, instructionCache = True, fastFetch = False, externalClock = False, cacheLimit = 256):
+        if coprocessor:
+            raise Exception('Generation of co-processors not yet enabled')
+        if externalClock:
+            raise Exception('Use of an external signal as clock not yet supported')
+
         self.name = name
         self.version = version
         self.isBigEndian = None

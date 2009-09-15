@@ -57,7 +57,7 @@ import LEON3Isa
 import LEON3Tests
 
 # Lets now start building the processor
-processor = trap.Processor('LEON3', version = '0.1.0', systemc = True, instructionCache = True, fastFetch = False, cacheLimit = 256)
+processor = trap.Processor('LEON3', version = '0.1.0', systemc = True, instructionCache = True, cacheLimit = 256)
 processor.setBigEndian() # big endian
 processor.setWordsize(4, 8) # 4 bytes per word, 8 bits per byte
 processor.setISA(LEON3Isa.isa) # lets set the instruction set
@@ -78,7 +78,10 @@ updateWinCode = """for(int i = 8; i < 32; i++){
 
 # Here I add a constant to the instruction set so that it can be used from the code implementing
 # the various instructions
+# Number of defined register windows
 LEON3Isa.isa.addConstant(cxx_writer.writer_code.uintType, 'NUM_REG_WIN', numRegWindows)
+# Specifies whether the
+LEON3Isa.isa.addConstant(cxx_writer.writer_code.boolType, 'PIPELINED_MULT', 'false')
 
 # There are 8 global register, and a variable number of
 # of 16-registers set; this number depends on the number of
@@ -205,9 +208,9 @@ processor.setFetchRegister('PC', -4)
 
 # Lets now add details about the processor interconnection (i.e. memory ports,
 # interrupt ports, pins, etc.)
-#processor.addTLMPort('instrMem', True)
-#processor.addTLMPort('dataMem')
-processor.setMemory('dataMem', 10*1024*1024)
+processor.addTLMPort('instrMem', True)
+processor.addTLMPort('dataMem')
+#processor.setMemory('dataMem', 10*1024*1024)
 #processor.setMemory('dataMem', 10*1024*1024, True, 'PC')
 
 # Now lets add the interrupt ports: TODO
@@ -305,9 +308,9 @@ processor.setABI(abi)
 #processor.write(folder = 'processor', models = ['funcLT'], dumpDecoderName = 'decoder.dot')
 #processor.write(folder = 'processor', models = ['funcLT'], trace = True)
 #processor.write(folder = 'processor', models = ['funcLT'], tests = False)
-processor.write(folder = 'processor', models = ['funcLT'], trace = False, tests = False)
+#processor.write(folder = 'processor', models = ['funcLT'], trace = True, tests = False)
 #processor.write(folder = 'processor', models = ['funcAT'], trace = False)
 #processor.write(folder = 'processor', models = ['funcAT'])
 #processor.write(folder = 'processor', models = ['funcAT', 'funcLT'], tests = False)
-#processor.write(folder = 'processor', models = ['accAT'])
+processor.write(folder = 'processor', models = ['accAT'])
 #processor.write(folder = 'processor', models = ['accAT','funcLT'], trace = True)

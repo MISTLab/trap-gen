@@ -112,7 +112,9 @@ isa.addDefines("""
 # cycles. If we issue this operation in the middle of the execution of an
 # instruction, anyway the execution of that code finished before the stall
 # operation has any effect; if that code contains another call to stall(m),
-# the pipeline stages are stalled for a total of n+m
+# the pipeline stages are stalled for a total of n+m. Note that if the instruction
+# taken n cycles, than the stall has to be issued for n-1, since one cycle
+# is intrinsic
 # -- THROW_EXCEPTION: a macro for throwing C++ exceptions
 #
 
@@ -304,6 +306,7 @@ if(notAligned){
 """)
 opCodeMem = cxx_writer.writer_code.Code("""
 readValue = dataMem.read_dword(address);
+stall(1);
 """)
 opCodeWb = cxx_writer.writer_code.Code("""
 if(rd_bit % 2 == 0){
@@ -584,6 +587,7 @@ toWrite = (unsigned char)(rd & 0x000000FF);
 """)
 opCodeMem = cxx_writer.writer_code.Code("""
 dataMem.write_byte(address, toWrite);
+stall(1);
 """)
 stb_imm_Instr = trap.Instruction('STB_imm', True, frequency = 5)
 stb_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 0, 0, 1, 0, 1]}, ('stb r', '%rd', ' r', '%rs1', '+', '%simm13'))
@@ -618,6 +622,7 @@ if(!notAligned){
 else{
     flush();
 }
+stall(1);
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
 notAligned = (address & 0x00000001) != 0;
@@ -669,6 +674,7 @@ if(!notAligned){
 else{
     flush();
 }
+stall(1);
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
 notAligned = (address & 0x00000003) != 0;
@@ -725,6 +731,7 @@ if(!notAligned){
 else{
     flush();
 }
+stall(2);
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
 notAligned = (address & 0x00000007) != 0;
@@ -768,6 +775,7 @@ if(supervisor){
 else{
     flush();
 }
+stall(1);
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
 if(!supervisor){
@@ -803,6 +811,7 @@ if(supervisor || !notAligned){
 else{
     flush();
 }
+stall(1);
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
 notAligned = (address & 0x00000001) != 0;
@@ -843,6 +852,7 @@ if(supervisor || !notAligned){
 else{
     flush();
 }
+stall(1);
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
 notAligned = (address & 0x00000003) != 0;
@@ -880,6 +890,7 @@ if(supervisor || !notAligned){
 else{
     flush();
 }
+stall(1);
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
 notAligned = (address & 0x00000003) != 0;
@@ -911,6 +922,7 @@ address = rs1 + rs2;
 opCodeMem = cxx_writer.writer_code.Code("""
 readValue = dataMem.read_byte(address);
 dataMem.write_byte(address, 0xff);
+stall(2);
 """)
 opCodeWb = cxx_writer.writer_code.Code("""
 rd = readValue;
@@ -952,6 +964,7 @@ if(supervisor){
 else{
     flush();
 }
+stall(2);
 """)
 opCodeException = cxx_writer.writer_code.Code("""
 if(!supervisor){
@@ -995,6 +1008,7 @@ else{
     readValue = dataMem.read_word(address);
     dataMem.write_word(address, toWrite);
 }
+stall(2);
 """)
 opCodeWb = cxx_writer.writer_code.Code("""
 rd = readValue;
@@ -1051,6 +1065,7 @@ else{
     readValue = dataMem.read_word(address);
     dataMem.write_word(address, toWrite);
 }
+stall(2);
 """)
 opCodeWb = cxx_writer.writer_code.Code("""
 rd = readValue;
@@ -1876,11 +1891,23 @@ opCodeExecS = cxx_writer.writer_code.Code("""
 long long resultTemp = (long long)(((long long)((int)rs1_op))*((long long)((int)rs2_op)));
 Ybp = ((unsigned long long)resultTemp) >> 32;
 result = resultTemp & 0x00000000FFFFFFFF;
+if(PIPELINED_MULT){
+    stall(4);
+}
+else{
+    stall(3);
+}
 """)
 opCodeExecU = cxx_writer.writer_code.Code("""
 unsigned long long resultTemp = (unsigned long long)(((unsigned long long)((unsigned int)rs1_op))*((unsigned long long)((unsigned int)rs2_op)));
 Ybp = resultTemp >> 32;
 result = resultTemp & 0x00000000FFFFFFFF;
+if(PIPELINED_MULT){
+    stall(4);
+}
+else{
+    stall(3);
+}
 """)
 umul_imm_Instr = trap.Instruction('UMUL_imm', True, frequency = 2)
 umul_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 1, 0, 1, 0]}, ('umul r', '%rs1', ' ', '%simm13', ' r', '%rd'))
@@ -1994,6 +2021,7 @@ long long resultAcc = ((((long long)(Ybp & 0x000000ff)) << 32) | (int)ASR18bp) +
 Ybp = (resultAcc & 0x000000ff00000000LL) >> 32;
 ASR18bp = resultAcc & 0x00000000FFFFFFFFLL;
 result = resultAcc & 0x00000000FFFFFFFFLL;
+stall(1);
 """)
 opCodeExecU = cxx_writer.writer_code.Code("""
 unsigned int resultTemp = ((unsigned int)rs1_op & 0x0000ffff)*((unsigned int)rs2_op & 0x0000ffff);
@@ -2001,6 +2029,7 @@ unsigned long long resultAcc = ((((unsigned long long)(Ybp & 0x000000ff)) << 32)
 Ybp = (resultAcc & 0x000000ff00000000LL) >> 32;
 ASR18bp = resultAcc & 0x00000000FFFFFFFFLL;
 result = resultAcc & 0x00000000FFFFFFFFLL;
+stall(1);
 """)
 umac_imm_Instr = trap.Instruction('UMAC_imm', True, frequency = 1)
 umac_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 1, 1, 0]}, ('umac r', '%rs1', ' ', '%simm13', ' r', '%rd'))
@@ -2072,6 +2101,7 @@ if(!exception){
         result = (unsigned int)(res64 & 0x00000000FFFFFFFFLL);
     }
 }
+stall(35);
 """)
 opCodeExecS = cxx_writer.writer_code.Code("""
 exception = rs2_op == 0;
@@ -2090,6 +2120,7 @@ if(!exception){
         result = (unsigned int)(res64 & 0x00000000FFFFFFFFLL);
     }
 }
+stall(35);
 """)
 opCodeTrap = cxx_writer.writer_code.Code("""
 if(exception){
@@ -2469,11 +2500,15 @@ if(trapNotAligned){
     RaiseException(MEM_ADDR_NOT_ALIGNED);
 }
 """)
+opCodeExec = cxx_writer.writer_code.Code("""
+stall(2);
+""")
 jump_imm_Instr = trap.Instruction('JUMP_imm', True, frequency = 7)
 jump_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 0, 0, 0]}, ('jmpl', ' r', '%rs1', '+', '%simm13', ' r', '%rd'))
 jump_imm_Instr.setCode(opCodeRegsImm, 'decode')
 jump_imm_Instr.setCode(opCodeTrap, 'exception')
 jump_imm_Instr.setCode(opCodeWb, 'wb')
+jump_imm_Instr.setCode(opCodeExec, 'execute')
 jump_imm_Instr.addBehavior(IncrementPC, 'fetch', functionalModel = False)
 jump_imm_Instr.addVariable(cxx_writer.writer_code.Variable('trapNotAligned', cxx_writer.writer_code.boolType))
 jump_imm_Instr.addVariable(('oldPC', 'BIT<32>'))
@@ -2482,6 +2517,7 @@ jump_reg_Instr = trap.Instruction('JUMP_reg', True, frequency = 3)
 jump_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 0, 0, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('jmpl', ' r', '%rs1', '+r', '%rs2', ' r', '%rd'))
 jump_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 jump_reg_Instr.setCode(opCodeTrap, 'exception')
+jump_reg_Instr.setCode(opCodeExec, 'execute')
 jump_reg_Instr.setCode(opCodeWb, 'wb')
 jump_reg_Instr.addBehavior(IncrementPC, 'fetch', functionalModel = False)
 jump_reg_Instr.addVariable(cxx_writer.writer_code.Variable('trapNotAligned', cxx_writer.writer_code.boolType))
@@ -2507,6 +2543,7 @@ supervisor = PSR[key_S];
 opCodeExec = cxx_writer.writer_code.Code("""
 targetAddr = rs1_op + rs2_op;
 newCwp = ((unsigned int)(PSR[key_CWP] + 1)) % NUM_REG_WIN;
+stall(2);
 """)
 TrapCode = """
 if(exceptionEnabled){
@@ -2580,6 +2617,7 @@ raiseException = (cond == 0x8) ||
 """)
 opCodeTrapImm = cxx_writer.writer_code.Code("""
 if(raiseException){
+    stall(4);
     RaiseException(TRAP_INSTRUCTION, (rs1 + SignExtend(imm7, 7)) & 0x0000007F);
 }
 #ifndef ACC_MODEL
@@ -2591,6 +2629,7 @@ else{
 """)
 opCodeTrapReg = cxx_writer.writer_code.Code("""
 if(raiseException){
+    stall(4);
     RaiseException(TRAP_INSTRUCTION, (rs1 + rs2) & 0x0000007F);
 }
 #ifndef ACC_MODEL

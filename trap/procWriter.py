@@ -173,7 +173,7 @@ def standardInstrFetch(self, trace):
     codeString += getInstrIssueCode(self, trace, 'instr')
     return codeString
 
-def fetchWithCacheCode(self, trace):
+def fetchWithCacheCode(self, fetchCode, trace):
     codeString = ''
     if self.fastFetch:
         mapKey = 'curPC'
@@ -280,7 +280,7 @@ def getCPPProc(self, model, trace, namespace):
         # Finally I declare the fetch, decode, execute loop, where the instruction is actually executed;
         # Note the possibility of performing it with the instruction fetch
         if self.instructionCache:
-            codeString += fetchWithCacheCode(self, trace)
+            codeString += fetchWithCacheCode(self, fetchCode, trace)
         else:
             codeString += standardInstrFetch(self, trace)
 
