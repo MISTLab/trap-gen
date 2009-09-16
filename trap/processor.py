@@ -34,7 +34,7 @@
 #
 ####################################################################################
 
-import procWriter, registerWriter, memWriter, interfaceWriter, portsWriter
+import procWriter, registerWriter, memWriter, interfaceWriter, portsWriter, pipelineWriter
 
 validModels = ['funcLT', 'funcAT', 'accLT', 'accAT']
 
@@ -884,9 +884,9 @@ class Processor:
         # interrupt lines
         return portsWriter.getIRQTests(self, trace, namespace)
 
-    def getGetPipelineStages(self, trace, namespace):
+    def getGetPipelineStages(self, trace, model, namespace):
         # Returns the code implementing the pipeline stages
-        return procWriter.getGetPipelineStages(self, trace, namespace)
+        return pipelineWriter.getGetPipelineStages(self, trace, model, namespace)
 
     def write(self, folder = '', models = validModels, namespace = '', dumpDecoderName = '', trace = False, forceDecoderCreation = False, tests = True, memPenaltyFactor = 4):
         # Ok: this method does two things: first of all it performs all
@@ -987,7 +987,7 @@ class Processor:
             if self.abi:
                 IfClass = self.getCPPIf(model, namespace)
             if model.startswith('acc'):
-                pipeClass = self.getGetPipelineStages(trace, namespace)
+                pipeClass = self.getGetPipelineStages(trace, model, namespace)
             MemClass = self.getCPPMemoryIf(model, namespace)
             ExternalIf = self.getCPPExternalPorts(model, namespace)
             IRQClasses = self.getGetIRQPorts(namespace)
