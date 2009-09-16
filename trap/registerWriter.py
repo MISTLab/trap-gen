@@ -848,6 +848,8 @@ def getCPPAlias(self, model, namespace):
         updateCode = """this->offset = 0;
         this->defaultOffset = 0;
         """
+    else:
+        updateCode = ''
     updateCode += """this->reg = &newAlias;
     std::set<Alias *>::iterator referredIter, referredEnd;
     for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
@@ -863,14 +865,16 @@ def getCPPAlias(self, model, namespace):
     updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam, inline = True, noException = True)
     aliasElements.append(updateDecl)
 
-    directSetBody = cxx_writer.writer_code.Code("""this->reg = newAlias.reg;
-    this->offset = newAlias.offset;
-    if(this->referringAliases != NULL){
+    directSetCode = 'this->reg = newAlias.reg;\n'
+    if not model.startswith('acc'):
+        directSetCode += 'this->offset = newAlias.offset;\n'
+    directSetCode += """if(this->referringAliases != NULL){
         this->referringAliases->referredAliases.erase(this);
     }
     this->referringAliases = &newAlias;
     newAlias.referredAliases.insert(this);
-    """)
+    """
+    directSetBody = cxx_writer.writer_code.Code(directSetCode)
     directSetParam = [cxx_writer.writer_code.Parameter('newAlias', aliasType.makeRef())]
     directSetDecl = cxx_writer.writer_code.Method('directSetAlias', directSetBody, cxx_writer.writer_code.voidType, 'pu', directSetParam, noException = True)
     aliasElements.append(directSetDecl)
@@ -900,6 +904,8 @@ def getCPPAlias(self, model, namespace):
 
     if not model.startswith('acc'):
         updateCode = 'this->offset = this->defaultOffset;\n'
+    else:
+        updateCode = ''
     updateCode += """this->reg = newAlias;
     std::set<Alias *>::iterator referredIter, referredEnd;
     for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){

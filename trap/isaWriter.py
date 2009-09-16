@@ -101,6 +101,7 @@ def getCppMethod(self, model, processor):
         # now I have to take all the resources and create a define which
         # renames such resources so that their usage can be transparent
         # to the developer
+        undefCode += '\n'
         for reg in processor.regs:
             undefCode += '#undef ' + reg.name + '\n'
         for regB in processor.regBanks:

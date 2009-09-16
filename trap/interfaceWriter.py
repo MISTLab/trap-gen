@@ -42,6 +42,13 @@ def getCPPIf(self, model, namespace):
     if not self.abi:
         return
 
+    if model.startswith('acc'):
+        regWriteCode = ' = '
+        regReadCode = ''
+    else:
+        regWriteCode = '.immediateWrite'
+        regReadCode = '.readNewValue()'
+
     from procWriter import resourceType
 
     wordType = self.bitSizes[1]
@@ -96,7 +103,7 @@ def getCPPIf(self, model, namespace):
     if self.abi.returnCallReg:
         returnCallCode = ''
         for returnReg in self.abi.returnCallReg:
-            returnCallCode += returnReg[0] + '.immediateWrite(' + returnReg[1] + ' + ' + str(returnReg[2]) + ');\n'
+            returnCallCode += returnReg[0] + regWriteCode + '(' + returnReg[1] + ' + ' + str(returnReg[2]) + ');\n'
         ifClassElements.append(cxx_writer.writer_code.Method('returnFromCall', cxx_writer.writer_code.Code(returnCallCode), cxx_writer.writer_code.voidType, 'pu', noException = True))
 
     # Here is the code for recognizing if we are in the routine entry or
@@ -191,11 +198,11 @@ def getCPPIf(self, model, namespace):
     from isa import resolveBitType
     for reg in self.regs:
         regWType = resolveBitType('BIT<' + str(reg.bitWidth) + '>')
-        getStateBody += '*((' + str(regWType.makePointer()) + ')curStateTemp) = this->' + reg.name + '.readNewValue();\ncurStateTemp += ' + str(reg.bitWidth/self.byteSize) + ';\n'
+        getStateBody += '*((' + str(regWType.makePointer()) + ')curStateTemp) = this->' + reg.name + regReadCode + ';\ncurStateTemp += ' + str(reg.bitWidth/self.byteSize) + ';\n'
     for regB in self.regBanks:
         regWType = resolveBitType('BIT<' + str(regB.bitWidth) + '>')
         for i in range(0, regB.numRegs):
-            getStateBody += '*((' + str(regWType.makePointer()) + ')curStateTemp) = this->' + regB.name + '[' + str(i) + '].readNewValue();\ncurStateTemp += ' + str(regB.bitWidth/self.byteSize) + ';\n'
+            getStateBody += '*((' + str(regWType.makePointer()) + ')curStateTemp) = this->' + regB.name + '[' + str(i) + ']' + regReadCode + ';\ncurStateTemp += ' + str(regB.bitWidth/self.byteSize) + ';\n'
     getStateBody += 'return curState;'
     getStateCode = cxx_writer.writer_code.Code(getStateBody)
     getStateMethod = cxx_writer.writer_code.Method('getState', getStateCode, cxx_writer.writer_code.ucharPtrType, 'pu', noException = True, const = True)
@@ -203,11 +210,11 @@ def getCPPIf(self, model, namespace):
     setStateBody = 'unsigned char * curStateTemp = state;\n'
     for reg in self.regs:
         regWType = resolveBitType('BIT<' + str(reg.bitWidth) + '>')
-        setStateBody += 'this->' + reg.name + '.immediateWrite(*((' + str(regWType.makePointer()) + ')curStateTemp));\ncurStateTemp += ' + str(reg.bitWidth/self.byteSize) + ';\n'
+        setStateBody += 'this->' + reg.name + regWriteCode + '(*((' + str(regWType.makePointer()) + ')curStateTemp));\ncurStateTemp += ' + str(reg.bitWidth/self.byteSize) + ';\n'
     for regB in self.regBanks:
         regWType = resolveBitType('BIT<' + str(regB.bitWidth) + '>')
         for i in range(0, regB.numRegs):
-            setStateBody += 'this->' + regB.name + '[' + str(i) + '].immediateWrite(*((' + str(regWType.makePointer()) + ')curStateTemp));\ncurStateTemp += ' + str(regB.bitWidth/self.byteSize) + ';\n'
+            setStateBody += 'this->' + regB.name + '[' + str(i) + ']' + regWriteCode + '(*((' + str(regWType.makePointer()) + ')curStateTemp));\ncurStateTemp += ' + str(regB.bitWidth/self.byteSize) + ';\n'
     setStateCode = cxx_writer.writer_code.Code(setStateBody)
     stateParam = cxx_writer.writer_code.Parameter('state', cxx_writer.writer_code.ucharPtrType)
     setStateMethod = cxx_writer.writer_code.Method('setState', setStateCode, cxx_writer.writer_code.voidType, 'pu', [stateParam], noException = True)
@@ -227,7 +234,7 @@ def getCPPIf(self, model, namespace):
         readElemCode.addInclude(includes)
         readElemMethod = cxx_writer.writer_code.Method('read' + self.abi.name[elem], readElemCode, wordType, 'pu', noException = True, const = True)
         ifClassElements.append(readElemMethod)
-        setElemBody = 'this->' + elem + '.immediateWrite(newValue);'
+        setElemBody = 'this->' + elem + regWriteCode + '(newValue);'
         setElemCode = cxx_writer.writer_code.Code(setElemBody)
         setElemCode.addInclude(includes)
         setElemParam = cxx_writer.writer_code.Parameter('newValue', wordType.makeRef().makeConst())
@@ -249,7 +256,7 @@ def getCPPIf(self, model, namespace):
     setArgsBody += str(vectorType) + '::const_iterator argIter = args.begin(), argEnd = args.end();\n'
     for arg in self.abi.args:
         setArgsBody += 'if(argIter != argEnd){\n'
-        setArgsBody += 'this->' + arg + '.immediateWrite(*argIter'
+        setArgsBody += 'this->' + arg + regWriteCode + '(*argIter'
         if self.abi.offset.has_key(arg) and not model.startswith('acc'):
             setArgsBody += ' - ' + str(self.abi.offset[arg])
         setArgsBody += ');\nargIter++;\n}\n'
@@ -280,7 +287,7 @@ def getCPPIf(self, model, namespace):
     setGDBRegBody = 'switch(gdbId){\n'
     for reg, gdbId in sortedGDBRegs:
         setGDBRegBody += 'case ' + str(gdbId) + ':{\n'
-        setGDBRegBody += reg + '.immediateWrite(newValue'
+        setGDBRegBody += reg + regWriteCode + '(newValue'
         setGDBRegBody += ');\nbreak;}\n'
     setGDBRegBody += 'default:{\nTHROW_EXCEPTION(\"No register corresponding to GDB id \" << gdbId);\n}\n}\n'
     setGDBRegCode = cxx_writer.writer_code.Code(setGDBRegBody)
