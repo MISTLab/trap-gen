@@ -5,6 +5,9 @@ import os, Options
 
 def installWafFun(tsk):
     if Options.commands['install']:
+        if not os.path.exists(tsk.env['wafDestPath']):
+            from distutils import dir_util
+            dir_util.mkpath(tsk.env['wafDestPath'])
         import shutil
         shutil.copy2(os.path.join('..', 'waf'), tsk.env['wafDestPath'])
     elif Options.commands['uninstall']:
