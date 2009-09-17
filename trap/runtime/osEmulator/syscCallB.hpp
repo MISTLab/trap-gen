@@ -108,15 +108,16 @@ class OSEmulatorBase{
 template<class wordSize> class SyscallCB{
     protected:
     ABIIf<wordSize> &processorInstance;
+    sc_time latency;
     public:
-    SyscallCB(ABIIf<wordSize> &processorInstance) : processorInstance(processorInstance){}
+    SyscallCB(ABIIf<wordSize> &processorInstance, sc_time latency) : processorInstance(processorInstance), latency(latency){}
     virtual ~SyscallCB(){}
     virtual bool operator()() = 0;
 };
 
 template<class wordSize> class openSysCall : public SyscallCB<wordSize>{
     public:
-    openSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    openSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
     bool operator()(){
         this->processorInstance.preCall();
         //Lets get the system call arguments
@@ -139,13 +140,17 @@ template<class wordSize> class openSysCall : public SyscallCB<wordSize>{
         this->processorInstance.setRetVal(ret);
         this->processorInstance.returnFromCall();
         this->processorInstance.postCall();
+
+        if(this->latency.to_double() > 0)
+            wait(this->latency);
+
         return true;
     }
 };
 
 template<class wordSize> class creatSysCall : public SyscallCB<wordSize>{
     public:
-    creatSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    creatSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
     bool operator()(){
         this->processorInstance.preCall();
         //Lets get the system call arguments
@@ -166,13 +171,17 @@ template<class wordSize> class creatSysCall : public SyscallCB<wordSize>{
         this->processorInstance.setRetVal(ret);
         this->processorInstance.returnFromCall();
         this->processorInstance.postCall();
+
+        if(this->latency.to_double() > 0)
+            wait(this->latency);
+
         return true;
     }
 };
 
 template<class wordSize> class closeSysCall : public SyscallCB<wordSize>{
     public:
-    closeSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    closeSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
     bool operator()(){
         this->processorInstance.preCall();
         //Lets get the system call arguments
@@ -199,13 +208,17 @@ template<class wordSize> class closeSysCall : public SyscallCB<wordSize>{
             this->processorInstance.returnFromCall();
         }
         this->processorInstance.postCall();
+
+        if(this->latency.to_double() > 0)
+            wait(this->latency);
+
         return true;
     }
 };
 
 template<class wordSize> class readSysCall : public SyscallCB<wordSize>{
     public:
-    readSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    readSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
     bool operator()(){
         this->processorInstance.preCall();
         //Lets get the system call arguments
@@ -230,13 +243,17 @@ template<class wordSize> class readSysCall : public SyscallCB<wordSize>{
         this->processorInstance.returnFromCall();
         delete [] buf;
         this->processorInstance.postCall();
+
+        if(this->latency.to_double() > 0)
+            wait(this->latency);
+
         return true;
     }
 };
 
 template<class wordSize> class writeSysCall : public SyscallCB<wordSize>{
     public:
-    writeSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    writeSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
     bool operator()(){
         this->processorInstance.preCall();
         //Lets get the system call arguments
@@ -260,13 +277,17 @@ template<class wordSize> class writeSysCall : public SyscallCB<wordSize>{
         this->processorInstance.returnFromCall();
         delete [] buf;
         this->processorInstance.postCall();
+
+        if(this->latency.to_double() > 0)
+            wait(this->latency);
+
         return true;
     }
 };
 
 template<class wordSize> class isattySysCall : public SyscallCB<wordSize>{
     public:
-    isattySysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    isattySysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
     bool operator()(){
         this->processorInstance.preCall();
         //Lets get the system call arguments
@@ -280,13 +301,17 @@ template<class wordSize> class isattySysCall : public SyscallCB<wordSize>{
         this->processorInstance.setRetVal(ret);
         this->processorInstance.returnFromCall();
         this->processorInstance.postCall();
+
+        if(this->latency.to_double() > 0)
+            wait(this->latency);
+
         return true;
     }
 };
 
 template<class wordSize> class sbrkSysCall : public SyscallCB<wordSize>{
     public:
-    sbrkSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    sbrkSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
     bool operator()(){
         this->processorInstance.preCall();
         //Lets get the system call arguments
@@ -310,13 +335,17 @@ template<class wordSize> class sbrkSysCall : public SyscallCB<wordSize>{
 
         this->processorInstance.returnFromCall();
         this->processorInstance.postCall();
+
+        if(this->latency.to_double() > 0)
+            wait(this->latency);
+
         return true;
     }
 };
 
 template<class wordSize> class lseekSysCall : public SyscallCB<wordSize>{
     public:
-    lseekSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    lseekSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
     bool operator()(){
         this->processorInstance.preCall();
         //Lets get the system call arguments
@@ -335,22 +364,26 @@ template<class wordSize> class lseekSysCall : public SyscallCB<wordSize>{
         this->processorInstance.setRetVal(ret);
         this->processorInstance.returnFromCall();
         this->processorInstance.postCall();
+
+        if(this->latency.to_double() > 0)
+            wait(this->latency);
+
         return true;
     }
 };
 
 template<class wordSize> class fstatSysCall : public SyscallCB<wordSize>{
     public:
-    fstatSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    fstatSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
     bool operator()(){
         this->processorInstance.preCall();
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
-		#ifdef __GNUC__
+        #ifdef __GNUC__
         struct stat buf_stat;
-		#else
-		struct _stat buf_stat;
-		#endif
+        #else
+        struct _stat buf_stat;
+        #endif
         int fd = callArgs[0];
         if(fd < 0){
             THROW_EXCEPTION("File descriptor " << fd << " not valid");
@@ -373,21 +406,25 @@ template<class wordSize> class fstatSysCall : public SyscallCB<wordSize>{
             this->processorInstance.writeMem(retAddr + 20, buf_stat.st_atime);
             this->processorInstance.writeMem(retAddr + 28, buf_stat.st_mtime);
             this->processorInstance.writeMem(retAddr + 36, buf_stat.st_ctime);
-			#ifdef __GNUC__
+            #ifdef __GNUC__
             this->processorInstance.writeMem(retAddr + 44, buf_stat.st_blksize);
             this->processorInstance.writeMem(retAddr + 48, buf_stat.st_blocks);
-			#endif
+            #endif
         }
         this->processorInstance.setRetVal(ret);
         this->processorInstance.returnFromCall();
         this->processorInstance.postCall();
+
+        if(this->latency.to_double() > 0)
+            wait(this->latency);
+
         return true;
     }
 };
 
 template<class wordSize> class statSysCall : public SyscallCB<wordSize>{
     public:
-    statSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    statSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
     bool operator()(){
         this->processorInstance.preCall();
         //Lets get the system call arguments
@@ -431,13 +468,17 @@ template<class wordSize> class statSysCall : public SyscallCB<wordSize>{
         this->processorInstance.setRetVal(ret);
         this->processorInstance.returnFromCall();
         this->processorInstance.postCall();
+
+        if(this->latency.to_double() > 0)
+            wait(this->latency);
+
         return true;
     }
 };
 
 template<class wordSize> class _exitSysCall : public SyscallCB<wordSize>{
     public:
-    _exitSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    _exitSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
     bool operator()(){
         this->processorInstance.preCall();
         extern int exitValue;
@@ -449,13 +490,17 @@ template<class wordSize> class _exitSysCall : public SyscallCB<wordSize>{
             wait();
         }
         this->processorInstance.postCall();
+
+        if(this->latency.to_double() > 0)
+            wait(this->latency);
+
         return true;
     }
 };
 
 template<class wordSize> class timesSysCall : public SyscallCB<wordSize>{
     public:
-    timesSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    timesSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
     bool operator()(){
         this->processorInstance.preCall();
         //Lets get the system call arguments
@@ -488,6 +533,10 @@ template<class wordSize> class timesSysCall : public SyscallCB<wordSize>{
         this->processorInstance.setRetVal(curSimTime);
         this->processorInstance.returnFromCall();
         this->processorInstance.postCall();
+
+        if(this->latency.to_double() > 0)
+            wait(this->latency);
+
         return true;
     }
 };
@@ -496,7 +545,7 @@ template<class wordSize> class timeSysCall : public SyscallCB<wordSize>{
     private:
         int initialTime;
     public:
-    timeSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){
+    timeSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){
         this->initialTime = time(0);
     }
     bool operator()(){
@@ -511,26 +560,34 @@ template<class wordSize> class timeSysCall : public SyscallCB<wordSize>{
         this->processorInstance.setRetVal(ret);
         this->processorInstance.returnFromCall();
         this->processorInstance.postCall();
+
+        if(this->latency.to_double() > 0)
+            wait(this->latency);
+
         return true;
     }
 };
 
 template<class wordSize> class randomSysCall : public SyscallCB<wordSize>{
     public:
-    randomSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    randomSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
     bool operator()(){
         this->processorInstance.preCall();
         int ret = ::rand();
         this->processorInstance.setRetVal(ret);
         this->processorInstance.returnFromCall();
         this->processorInstance.postCall();
+
+        if(this->latency.to_double() > 0)
+            wait(this->latency);
+
         return true;
     }
 };
 
 template<class wordSize> class utimesSysCall : public SyscallCB<wordSize>{
     public:
-    utimesSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    utimesSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
     bool operator()(){
         this->processorInstance.preCall();
         //Lets get the system call arguments
@@ -560,13 +617,17 @@ template<class wordSize> class utimesSysCall : public SyscallCB<wordSize>{
         this->processorInstance.setRetVal(ret);
         this->processorInstance.returnFromCall();
         this->processorInstance.postCall();
+
+        if(this->latency.to_double() > 0)
+            wait(this->latency);
+
         return true;
     }
 };
 
 template<class wordSize> class lstatSysCall : public SyscallCB<wordSize>{
     public:
-    lstatSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    lstatSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
     bool operator()(){
         this->processorInstance.preCall();
         //Lets get the system call arguments
@@ -610,25 +671,33 @@ template<class wordSize> class lstatSysCall : public SyscallCB<wordSize>{
         this->processorInstance.setRetVal(ret);
         this->processorInstance.returnFromCall();
         this->processorInstance.postCall();
+
+        if(this->latency.to_double() > 0)
+            wait(this->latency);
+
         return true;
     }
 };
 
 template<class wordSize> class getpidSysCall : public SyscallCB<wordSize>{
     public:
-    getpidSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    getpidSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
     bool operator()(){
         this->processorInstance.preCall();
         this->processorInstance.setRetVal(123);
         this->processorInstance.returnFromCall();
         this->processorInstance.postCall();
+
+        if(this->latency.to_double() > 0)
+            wait(this->latency);
+
         return true;
     }
 };
 
 template<class wordSize> class chmodSysCall : public SyscallCB<wordSize>{
     public:
-    chmodSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    chmodSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
     bool operator()(){
         this->processorInstance.preCall();
         //Lets get the system call arguments
@@ -649,13 +718,17 @@ template<class wordSize> class chmodSysCall : public SyscallCB<wordSize>{
         this->processorInstance.setRetVal(ret);
         this->processorInstance.returnFromCall();
         this->processorInstance.postCall();
+
+        if(this->latency.to_double() > 0)
+            wait(this->latency);
+
         return true;
     }
 };
 
 template<class wordSize> class dupSysCall : public SyscallCB<wordSize>{
     public:
-    dupSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    dupSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
     bool operator()(){
         this->processorInstance.preCall();
         //Lets get the system call arguments
@@ -672,13 +745,17 @@ template<class wordSize> class dupSysCall : public SyscallCB<wordSize>{
         this->processorInstance.setRetVal(ret);
         this->processorInstance.returnFromCall();
         this->processorInstance.postCall();
+
+        if(this->latency.to_double() > 0)
+            wait(this->latency);
+
         return true;
     }
 };
 
 template<class wordSize> class dup2SysCall : public SyscallCB<wordSize>{
     public:
-    dup2SysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    dup2SysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
     bool operator()(){
         this->processorInstance.preCall();
         //Lets get the system call arguments
@@ -696,13 +773,17 @@ template<class wordSize> class dup2SysCall : public SyscallCB<wordSize>{
         this->processorInstance.setRetVal(ret);
         this->processorInstance.returnFromCall();
         this->processorInstance.postCall();
+
+        if(this->latency.to_double() > 0)
+            wait(this->latency);
+
         return true;
     }
 };
 
 template<class wordSize> class getenvSysCall : public SyscallCB<wordSize>{
     public:
-    getenvSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    getenvSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
     bool operator()(){
         this->processorInstance.preCall();
         //Lets get the system call arguments
@@ -740,13 +821,17 @@ template<class wordSize> class getenvSysCall : public SyscallCB<wordSize>{
             this->processorInstance.returnFromCall();
         }
         this->processorInstance.postCall();
+
+        if(this->latency.to_double() > 0)
+            wait(this->latency);
+
         return true;
     }
 };
 
 template<class wordSize> class gettimeofdaySysCall : public SyscallCB<wordSize>{
     public:
-    gettimeofdaySysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    gettimeofdaySysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
     bool operator()(){
         this->processorInstance.preCall();
         //Lets get the system call arguments
@@ -764,22 +849,30 @@ template<class wordSize> class gettimeofdaySysCall : public SyscallCB<wordSize>{
         this->processorInstance.setRetVal(0);
         this->processorInstance.returnFromCall();
         this->processorInstance.postCall();
+
+        if(this->latency.to_double() > 0)
+            wait(this->latency);
+
         return true;
     }
 };
 
 template<class wordSize> class killSysCall : public SyscallCB<wordSize>{
     public:
-    killSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    killSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
     bool operator()(){
         THROW_EXCEPTION("KILL SystemCall not yet implemented");
+
+        if(this->latency.to_double() > 0)
+            wait(this->latency);
+
         return true;
     }
 };
 
 template<class wordSize> class errorSysCall : public SyscallCB<wordSize>{
     public:
-    errorSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    errorSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
     bool operator()(){
         this->processorInstance.preCall();
         //Lets get the system call arguments
@@ -799,13 +892,17 @@ template<class wordSize> class errorSysCall : public SyscallCB<wordSize>{
             this->processorInstance.returnFromCall();
         }
         this->processorInstance.postCall();
+
+        if(this->latency.to_double() > 0)
+            wait(this->latency);
+
         return true;
     }
 };
 
 template<class wordSize> class chownSysCall : public SyscallCB<wordSize>{
     public:
-    chownSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    chownSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
     bool operator()(){
         this->processorInstance.preCall();
         #ifdef __GNUC__
@@ -827,13 +924,17 @@ template<class wordSize> class chownSysCall : public SyscallCB<wordSize>{
         this->processorInstance.setRetVal(ret);
         this->processorInstance.returnFromCall();
         this->processorInstance.postCall();
+
+        if(this->latency.to_double() > 0)
+            wait(this->latency);
+
         return true;
     }
 };
 
 template<class wordSize> class unlinkSysCall : public SyscallCB<wordSize>{
     public:
-    unlinkSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    unlinkSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
     bool operator()(){
         this->processorInstance.preCall();
         //Lets get the system call arguments
@@ -853,25 +954,33 @@ template<class wordSize> class unlinkSysCall : public SyscallCB<wordSize>{
         this->processorInstance.setRetVal(ret);
         this->processorInstance.returnFromCall();
         this->processorInstance.postCall();
+
+        if(this->latency.to_double() > 0)
+            wait(this->latency);
+
         return true;
     }
 };
 
 template<class wordSize> class usleepSysCall : public SyscallCB<wordSize>{
     public:
-    usleepSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    usleepSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
     bool operator()(){
         this->processorInstance.preCall();
         //Since we have a single process this function doesn't do anything :-)
         this->processorInstance.returnFromCall();
         this->processorInstance.postCall();
+
+        if(this->latency.to_double() > 0)
+            wait(this->latency);
+
         return true;
     }
 };
 
 template<class wordSize> class mainSysCall : public SyscallCB<wordSize>{
     public:
-    mainSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    mainSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance, SC_ZERO_TIME){}
     bool operator()(){
         this->processorInstance.preCall();
 
@@ -1053,7 +1162,7 @@ template<class wordSize> class mainSysCall : public SyscallCB<wordSize>{
 
 template<class wordSize> class sysconfSysCall : public SyscallCB<wordSize>{
     public:
-    sysconfSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance){}
+    sysconfSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
     bool operator()(){
         this->processorInstance.preCall();
         //Lets get the system call arguments
@@ -1081,6 +1190,10 @@ template<class wordSize> class sysconfSysCall : public SyscallCB<wordSize>{
         this->processorInstance.setRetVal(ret);
         this->processorInstance.returnFromCall();
         this->processorInstance.postCall();
+
+        if(this->latency.to_double() > 0)
+            wait(this->latency);
+
         return true;
     }
 };
