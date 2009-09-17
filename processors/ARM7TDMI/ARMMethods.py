@@ -82,22 +82,25 @@ RotateRight_method.addVariable(('rotated', 'BIT<32>'))
 RotateRight_method.addVariable(('toGlue', 'BIT<32>'))
 
 opCode = cxx_writer.writer_code.Code("""
-long long resultSign = (long long)((long long)((int)operand1) + (long long)((int)operand2));
-//unsigned long long resultUnSign = (unsigned long long)((unsigned long long)operand1 + (unsigned long long)operand2);
+long long resultSign = (long long)((long long)((int)operand1) + (long long)((int)operand2)) + (long long)((int)carry);
+
 // N flag if the results is negative
 CPSR[key_N] = ((resultSign & 0x0000000080000000LL) != 0);
+
 //Update flag Z if the result is 0
 CPSR[key_Z] = (resultSign == 0);
+
 //Update the C resultUnSign if a carry occurred in the operation
 CPSR[key_C] = (((operand1 ^ operand2 ^ ((unsigned int)(resultSign >> 1))) & 0x80000000) != 0);
+
 //Update the V flag if an overflow occurred in the operation
 CPSR[key_V] = ((((unsigned int)(resultSign >> 1)) ^ ((unsigned int)resultSign)) & 0x80000000) != 0;
 """)
 UpdatePSRAdd_method = trap.HelperMethod('UpdatePSRAddInner', opCode, 'execute')
-UpdatePSRAdd_method.setSignature(parameters = [('operand1', 'BIT<32>'), ('operand2', 'BIT<32>')])
+UpdatePSRAdd_method.setSignature(parameters = [('operand1', 'BIT<32>'), ('operand2', 'BIT<32>'), ('carry', 'BIT<1>')])
 
 opCode = cxx_writer.writer_code.Code("""
-long long resultSign = (long long)((long long)((int)operand1) - (long long)((int)operand2));
+long long resultSign = (long long)((long long)((int)operand1) - (long long)((int)operand2)) - (long long)((int)carry);
 //unsigned long long resultUnSign = (unsigned long long)((unsigned long long)operand1 - (unsigned long long)operand2);
 // N flag if the results is negative
 CPSR[key_N] = ((resultSign & 0x0000000080000000LL) != 0);
@@ -110,7 +113,7 @@ CPSR[key_C] = (((operand1 ^ operand2 ^ ((unsigned int)(resultSign >> 1))) & 0x80
 CPSR[key_V] = ((((unsigned int)(resultSign >> 1)) ^ ((unsigned int)resultSign)) & 0x80000000) != 0;
 """)
 UpdatePSRSub_method = trap.HelperMethod('UpdatePSRSubInner', opCode, 'execute')
-UpdatePSRSub_method.setSignature(parameters = [('operand1', 'BIT<32>'), ('operand2', 'BIT<32>')])
+UpdatePSRSub_method.setSignature(parameters = [('operand1', 'BIT<32>'), ('operand2', 'BIT<32>'), ('carry', 'BIT<1>')])
 
 opCode = cxx_writer.writer_code.Code("""
 // N flag if the results is negative
@@ -571,40 +574,18 @@ if (s == 0x1){
     }
     else{
         //Here I have to normally update the flags
-        UpdatePSRAddInner(rn, operand);
+        //We don't care about carry bit
+        UpdatePSRAddInner(operand1, operand2, 0);
     }
 }
 """)
 UpdatePSRSum = trap.HelperOperation('UpdatePSRSum', opCode)
-UpdatePSRSum.addInstuctionVar(('operand', 'BIT<32>'))
+UpdatePSRSum.addInstuctionVar(('operand1', 'BIT<32>'))
+UpdatePSRSum.addInstuctionVar(('operand2', 'BIT<32>'))
+UpdatePSRSum.addInstuctionVar(('carry', 'BIT<1>'))
 UpdatePSRSum.addUserInstructionElement('s')
 UpdatePSRSum.addUserInstructionElement('rn')
 UpdatePSRSum.addUserInstructionElement('rd')
-
-# Now I define the behavior used by most of the data processing operations
-# for the update of the program status register
-opCode = cxx_writer.writer_code.Code("""
-if (s == 0x1){
-    if(rd_bit == 15){
-        // In case the destination register is the program counter,
-        // I have to switch to the saved program status register
-        restoreSPSR();
-    }
-    else{
-        if (CPSR[key_C] == 0){
-            //Here I have to normally update the flags
-            UpdatePSRAddInner(rn, operand);
-        }else{
-            UpdatePSRAddInner(rn, operand + 1);
-        }
-    }
-}
-""")
-UpdatePSRSumC = trap.HelperOperation('UpdatePSRSumC', opCode)
-UpdatePSRSumC.addInstuctionVar(('operand', 'BIT<32>'))
-UpdatePSRSumC.addUserInstructionElement('s')
-UpdatePSRSumC.addUserInstructionElement('rn')
-UpdatePSRSumC.addUserInstructionElement('rd')
 
 
 # Now I define the behavior used by most of the data processing operations
@@ -618,7 +599,34 @@ if (s == 0x1){
     }
     else{
         //Here I have to normally update the flags
-        UpdatePSRSubInner(rn, operand);
+        //Carry bit is counted
+        carry = CPSR[key_C];
+        UpdatePSRAddInner(operand1, operand2, carry);
+    }
+}
+""")
+UpdatePSRSumWithCarry = trap.HelperOperation('UpdatePSRSumWithCarry', opCode)
+UpdatePSRSumWithCarry.addInstuctionVar(('operand1', 'BIT<32>'))
+UpdatePSRSumWithCarry.addInstuctionVar(('operand2', 'BIT<32>'))
+UpdatePSRSumWithCarry.addInstuctionVar(('carry', 'BIT<1>'))
+UpdatePSRSumWithCarry.addUserInstructionElement('s')
+UpdatePSRSumWithCarry.addUserInstructionElement('rn')
+UpdatePSRSumWithCarry.addUserInstructionElement('rd')
+
+
+# Now I define the behavior used by most of the data processing operations
+# for the update of the program status register
+opCode = cxx_writer.writer_code.Code("""
+if (s == 0x1){
+    if(rd_bit == 15){
+        // In case the destination register is the program counter,
+        // I have to switch to the saved program status register
+        restoreSPSR();
+    }
+    else{
+        //Here I have to normally update the flags
+        //We don't care about carry bit so set it to 0
+        UpdatePSRSubInner(operand1, operand2, 0);
     }
 }
 """)
@@ -626,8 +634,14 @@ UpdatePSRSub = trap.HelperOperation('UpdatePSRSub', opCode)
 UpdatePSRSub.addUserInstructionElement('s')
 UpdatePSRSub.addUserInstructionElement('rn')
 UpdatePSRSub.addUserInstructionElement('rd')
-UpdatePSRSub.addInstuctionVar(('operand', 'BIT<32>'))
+UpdatePSRSub.addInstuctionVar(('operand1', 'BIT<32>'))
+UpdatePSRSub.addInstuctionVar(('operand2', 'BIT<32>'))
+UpdatePSRSub.addInstuctionVar(('carry', 'BIT<1>'))
 
+
+
+# Now I define the behavior used by most of the data processing operations
+# for the update of the program status register
 opCode = cxx_writer.writer_code.Code("""
 if (s == 0x1){
     if(rd_bit == 15){
@@ -637,61 +651,19 @@ if (s == 0x1){
     }
     else{
         //Here I have to normally update the flags
-        UpdatePSRSubInner(operand, rn);
+        //Carry bit is counted
+        carry = (CPSR[key_C] == 0);
+        UpdatePSRSubInner(operand1, operand2, carry);
     }
 }
 """)
-UpdatePSRSubR = trap.HelperOperation('UpdatePSRSubR', opCode)
-UpdatePSRSubR.addUserInstructionElement('s')
-UpdatePSRSubR.addUserInstructionElement('rn')
-UpdatePSRSubR.addUserInstructionElement('rd')
-UpdatePSRSubR.addInstuctionVar(('operand', 'BIT<32>'))
-
-opCode = cxx_writer.writer_code.Code("""
-if (s == 0x1){
-    if(rd_bit == 15){
-        // In case the destination register is the program counter,
-        // I have to switch to the saved program status register
-        restoreSPSR();
-    }
-    else{
-        if (CPSR[key_C] == 0){
-            //Here I have to normally update the flags
-            UpdatePSRSubInner(rn, operand + 1);
-        }else{
-            UpdatePSRSubInner(rn, operand);
-        }
-    }
-}
-""")
-UpdatePSRSubC = trap.HelperOperation('UpdatePSRSubC', opCode)
-UpdatePSRSubC.addUserInstructionElement('s')
-UpdatePSRSubC.addUserInstructionElement('rn')
-UpdatePSRSubC.addUserInstructionElement('rd')
-UpdatePSRSubC.addInstuctionVar(('operand', 'BIT<32>'))
-
-opCode = cxx_writer.writer_code.Code("""
-if (s == 0x1){
-    if(rd_bit == 15){
-        // In case the destination register is the program counter,
-        // I have to switch to the saved program status register
-        restoreSPSR();
-    }
-    else{
-        if (CPSR[key_C] == 0){
-            //Here I have to normally update the flags
-            UpdatePSRSubInner(operand,rn  + 1);
-        }else{
-            UpdatePSRSubInner(operand,rn );
-        }
-    }
-}
-""")
-UpdatePSRSubRC = trap.HelperOperation('UpdatePSRSubRC', opCode)
-UpdatePSRSubRC.addUserInstructionElement('s')
-UpdatePSRSubRC.addUserInstructionElement('rn')
-UpdatePSRSubRC.addUserInstructionElement('rd')
-UpdatePSRSubRC.addInstuctionVar(('operand', 'BIT<32>'))
+UpdatePSRSubWithCarry = trap.HelperOperation('UpdatePSRSubWithCarry', opCode)
+UpdatePSRSubWithCarry.addUserInstructionElement('s')
+UpdatePSRSubWithCarry.addUserInstructionElement('rn')
+UpdatePSRSubWithCarry.addUserInstructionElement('rd')
+UpdatePSRSubWithCarry.addInstuctionVar(('operand1', 'BIT<32>'))
+UpdatePSRSubWithCarry.addInstuctionVar(('operand2', 'BIT<32>'))
+UpdatePSRSubWithCarry.addInstuctionVar(('carry', 'BIT<1>'))
 
 # Now I define the behavior used by most of the data processing operations
 # for the update of the program status register

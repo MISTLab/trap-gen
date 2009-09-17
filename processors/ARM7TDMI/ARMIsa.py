@@ -86,7 +86,11 @@ isa.addMethod(UpdatePSRSub_method)
 
 # ADC instruction family
 opCode = cxx_writer.writer_code.Code("""
-rd = (int)rn + (int)operand;
+operand1 = (int)rn;
+operand2 = (int)operand;
+
+rd = operand1 + operand2;
+
 if (CPSR[key_C]){
     rd = ((int)rd) + 1;
 }
@@ -97,8 +101,11 @@ adc_shift_imm_Instr.setCode(opCode, 'execute')
 adc_shift_imm_Instr.addBehavior(IncrementPC, 'fetch')
 adc_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
 adc_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
-adc_shift_imm_Instr.addBehavior(UpdatePSRSumC, 'execute', False)
+adc_shift_imm_Instr.addBehavior(UpdatePSRSumWithCarry, 'execute', False)
 adc_shift_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+adc_shift_imm_Instr.addVariable(('operand1', 'BIT<32>'))
+adc_shift_imm_Instr.addVariable(('operand2', 'BIT<32>'))
+
 adc_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, 
                             {'CPSR' : 0x20000000, 'REGS[9]': 3, 'REGS[8]': 3},  
                             {'REGS[10]': 7})
@@ -123,14 +130,17 @@ adc_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 's
 adc_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 3}, {'CPSR' : 0x20000000, 'REGS[9]': 3, 'REGS[8]': 0xffffffff}, {'REGS[10]': 3})
 adc_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 16, 'shift_op': 3}, {'REGS[9]': 3, 'REGS[8]': 0x00020020}, {'REGS[10]': 3 + 0x00200002})
 isa.addInstruction(adc_shift_imm_Instr)
+
 adc_shift_reg_Instr = trap.Instruction('ADC_sr', True, frequency = 5)
 adc_shift_reg_Instr.setMachineCode(dataProc_reg_shift, {'opcode': [0, 1, 0, 1]}, 'TODO')
 adc_shift_reg_Instr.setCode(opCode, 'execute')
 adc_shift_reg_Instr.addBehavior(IncrementPC, 'fetch')
 adc_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
 adc_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
-adc_shift_reg_Instr.addBehavior(UpdatePSRSumC, 'execute', False)
+adc_shift_reg_Instr.addBehavior(UpdatePSRSumWithCarry, 'execute', False)
 adc_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
+adc_shift_reg_Instr.addVariable(('operand1', 'BIT<32>'))
+adc_shift_reg_Instr.addVariable(('operand2', 'BIT<32>'))
 adc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
                             {'REGS[0]' : 0, 'CPSR' : 0x20000000, 'REGS[9]': 3, 'REGS[8]': 3}, 
                             {'REGS[10]': 7, 'CPSR' : 0x00000000})
@@ -167,21 +177,26 @@ adc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'r
 adc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 3}, {'REGS[0]': 0x20, 'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 6})
 adc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 3}, {'REGS[0]': 16, 'REGS[9]': 3, 'REGS[8]': 0x00020020}, {'REGS[10]': 3 + 0x00200002})
 isa.addInstruction(adc_shift_reg_Instr)
+
 adc_imm_Instr = trap.Instruction('ADC_i', True, frequency = 5)
 adc_imm_Instr.setMachineCode(dataProc_imm, {'opcode': [0, 1, 0, 1]}, 'TODO')
 adc_imm_Instr.setCode(opCode, 'execute')
 adc_imm_Instr.addBehavior(IncrementPC, 'fetch')
 adc_imm_Instr.addBehavior(condCheckOp, 'execute')
 adc_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
-adc_imm_Instr.addBehavior(UpdatePSRSumC, 'execute', False)
+adc_imm_Instr.addBehavior(UpdatePSRSumWithCarry, 'execute', False)
 adc_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+adc_imm_Instr.addVariable(('operand1', 'BIT<32>'))
+adc_imm_Instr.addVariable(('operand2', 'BIT<32>'))
 adc_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 3}, {'REGS[9]': 3}, {'REGS[10]': 6})
 adc_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rotate': 0xe, 'immediate': 0x3f}, {'REGS[9]': 3}, {'REGS[10]': 0x3f0 + 3})
 isa.addInstruction(adc_imm_Instr)
 
 # ADD instruction family
 opCode = cxx_writer.writer_code.Code("""
-rd = (int)rn + (int)operand;
+operand1 = (int)rn;
+operand2 = (int)operand;
+rd = operand1 + operand2;
 """)
 add_shift_imm_Instr = trap.Instruction('ADD_si', True, frequency = 6)
 add_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [0, 1, 0, 0]}, 'TODO')
@@ -191,6 +206,8 @@ add_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
 add_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
 add_shift_imm_Instr.addBehavior(UpdatePSRSum, 'execute', False)
 add_shift_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+add_shift_imm_Instr.addVariable(('operand1', 'BIT<32>'))
+add_shift_imm_Instr.addVariable(('operand2', 'BIT<32>'))
 add_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 6})
 add_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 6, 'CPSR' : 0x00000000})
 add_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 6})
@@ -212,6 +229,8 @@ add_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
 add_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
 add_shift_reg_Instr.addBehavior(UpdatePSRSum, 'execute', False)
 add_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
+add_shift_reg_Instr.addVariable(('operand1', 'BIT<32>'))
+add_shift_reg_Instr.addVariable(('operand2', 'BIT<32>'))
 #Test start
 add_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'REGS[0]': 0, 'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 6})
 add_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'REGS[0]': 32, 'REGS[9]': 3, 'REGS[8]': 3}, {'REGS[10]': 3})
@@ -238,6 +257,8 @@ add_imm_Instr.addBehavior(condCheckOp, 'execute')
 add_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
 add_imm_Instr.addBehavior(UpdatePSRSum, 'execute', False)
 add_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+add_imm_Instr.addVariable(('operand1', 'BIT<32>'))
+add_imm_Instr.addVariable(('operand2', 'BIT<32>'))
 #Test start
 add_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 3}, {'REGS[9]': 3}, {'REGS[10]': 6})
 add_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rotate': 0xe, 'immediate': 0x3f}, {'REGS[9]': 3}, {'REGS[10]': 0x3f0 + 3})
@@ -449,7 +470,8 @@ isa.addInstruction(bic_imm_Instr)
 
 # CMN instruction family
 opCode = cxx_writer.writer_code.Code("""
-UpdatePSRAddInner(rn, operand);
+//carry  = 0
+UpdatePSRAddInner(rn, operand, 0);
 """)
 cmn_shift_imm_Instr = trap.Instruction('CMN_si', True, frequency = 4)
 cmn_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [1, 0, 1, 1], 's': [1]}, 'TODO')
@@ -517,7 +539,8 @@ isa.addInstruction(cmn_imm_Instr)
 
 # CMP instruction family
 opCode = cxx_writer.writer_code.Code("""
-UpdatePSRSubInner(rn, operand);
+carry = 0;
+UpdatePSRSubInner(rn, operand, 0);
 """)
 cmp_shift_imm_Instr = trap.Instruction('CMP_si', True, frequency = 7)
 cmp_shift_imm_Instr.setMachineCode(dataProc_imm_shift, {'opcode': [1, 0, 1, 0], 's': [1]}, 'TODO')
@@ -2407,7 +2430,9 @@ isa.addInstruction(orr_imm_Instr)
 
 # RSB instruction family
 opCode = cxx_writer.writer_code.Code("""
-rd = (int)operand - (int)rn;
+operand1 = (int)operand;
+operand2 = (int)rn;
+rd = operand1 - operand2;
 """)
 #if ConditionPassed(cond) then
 #    Rd = shifter_operand - Rn
@@ -2424,9 +2449,10 @@ rsb_shift_imm_Instr.setCode(opCode, 'execute')
 rsb_shift_imm_Instr.addBehavior(IncrementPC, 'fetch')
 rsb_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
 rsb_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
-rsb_shift_imm_Instr.addBehavior(UpdatePSRSubR, 'execute', False)
+rsb_shift_imm_Instr.addBehavior(UpdatePSRSub, 'execute', False)
 rsb_shift_imm_Instr.addBehavior(UpdatePC, 'execute', False)
-
+rsb_shift_imm_Instr.addVariable(('operand1', 'BIT<32>'))
+rsb_shift_imm_Instr.addVariable(('operand2', 'BIT<32>'))
 #Logical shift left by immediate
   #Set N bit
 rsb_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, 
@@ -2486,8 +2512,11 @@ rsb_shift_reg_Instr.setCode(opCode, 'execute')
 rsb_shift_reg_Instr.addBehavior(IncrementPC, 'fetch')
 rsb_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
 rsb_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
-rsb_shift_reg_Instr.addBehavior(UpdatePSRSubR, 'execute', False)
+rsb_shift_reg_Instr.addBehavior(UpdatePSRSub, 'execute', False)
 rsb_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
+rsb_shift_reg_Instr.addVariable(('operand1', 'BIT<32>'))
+rsb_shift_reg_Instr.addVariable(('operand2', 'BIT<32>'))
+
 #logical shift left by register
 #N Flag = Rd[31]
 rsb_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x80000000, 'REGS[0]': 0, 'REGS[9]': 3, 'REGS[8]': 3}, {'CPSR' : 0x60000000, 'REGS[10]': 0})
@@ -2529,8 +2558,11 @@ rsb_imm_Instr.setCode(opCode, 'execute')
 rsb_imm_Instr.addBehavior(IncrementPC, 'fetch')
 rsb_imm_Instr.addBehavior(condCheckOp, 'execute')
 rsb_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
-rsb_imm_Instr.addBehavior(UpdatePSRSubR, 'execute', False)
+rsb_imm_Instr.addBehavior(UpdatePSRSub, 'execute', False)
 rsb_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+rsb_imm_Instr.addVariable(('operand1', 'BIT<32>'))
+rsb_imm_Instr.addVariable(('operand2', 'BIT<32>'))
+
 #test starts
 rsb_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 0xfc}, {'CPSR' : 0x00000000, 'REGS[9]': 0xc}, {'CPSR' : 0x20000000, 'REGS[10]': 0xf0})
 rsb_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 0xfc}, {'CPSR' : 0x00000000, 'REGS[9]': 0xfc}, {'CPSR' : 0x60000000, 'REGS[10]': 0})
@@ -2545,7 +2577,9 @@ isa.addInstruction(rsb_imm_Instr)
 
 # RSC instruction family
 opCode = cxx_writer.writer_code.Code("""
-rd = (int)operand - (int)rn;
+operand1 = (int)operand;
+operand2 = (int)rn;
+rd =  operand1 - operand2;
 if (CPSR[key_C] == 0){
     rd = ((int)rd) -1;
 }
@@ -2565,8 +2599,11 @@ rsc_shift_imm_Instr.setCode(opCode, 'execute')
 rsc_shift_imm_Instr.addBehavior(IncrementPC, 'fetch')
 rsc_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
 rsc_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
-rsc_shift_imm_Instr.addBehavior(UpdatePSRSubRC, 'execute', False)
+rsc_shift_imm_Instr.addBehavior(UpdatePSRSubWithCarry, 'execute', False)
 rsc_shift_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+rsc_shift_imm_Instr.addVariable(('operand1', 'BIT<32>'))
+rsc_shift_imm_Instr.addVariable(('operand2', 'BIT<32>'))
+
 #Logical shift left by immediate
 #N Flag = Rd[31]
 rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0},
@@ -2618,8 +2655,11 @@ rsc_shift_reg_Instr.setCode(opCode, 'execute')
 rsc_shift_reg_Instr.addBehavior(IncrementPC, 'fetch')
 rsc_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
 rsc_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
-rsc_shift_reg_Instr.addBehavior(UpdatePSRSubRC, 'execute', False)
+rsc_shift_reg_Instr.addBehavior(UpdatePSRSubWithCarry, 'execute', False)
 rsc_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
+rsc_shift_reg_Instr.addVariable(('operand1', 'BIT<32>'))
+rsc_shift_reg_Instr.addVariable(('operand2', 'BIT<32>'))
+
 #logical shift left by register
 # N Flag = Rd[31]
 rsc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0},
@@ -2677,8 +2717,11 @@ rsc_imm_Instr.setCode(opCode, 'execute')
 rsc_imm_Instr.addBehavior(IncrementPC, 'fetch')
 rsc_imm_Instr.addBehavior(condCheckOp, 'execute')
 rsc_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
-rsc_imm_Instr.addBehavior(UpdatePSRSubRC, 'execute', False)
+rsc_imm_Instr.addBehavior(UpdatePSRSubWithCarry, 'execute', False)
 rsc_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+rsc_imm_Instr.addVariable(('operand1', 'BIT<32>'))
+rsc_imm_Instr.addVariable(('operand2', 'BIT<32>'))
+
 #test starts
 rsc_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 0xfc}, {'CPSR' : 0x20000000, 'REGS[9]': 0xc}, {'CPSR' : 0x20000000, 'REGS[10]': 0xf0})
 rsc_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 0xfc}, {'CPSR' : 0x00000000, 'REGS[9]': 0xfb}, {'CPSR' : 0x60000000, 'REGS[10]': 0x0})
@@ -2692,7 +2735,9 @@ isa.addInstruction(rsc_imm_Instr)
 
 # SBC instruction family
 opCode = cxx_writer.writer_code.Code("""
-rd = (int)rn - (int)operand;
+operand1 = (int)rn;
+operand2 = (int)operand;
+rd =  operand1 - operand2;
 if (CPSR[key_C] == 0){
     rd = ((int)rd) -1;
 }
@@ -2713,8 +2758,11 @@ sbc_shift_imm_Instr.setCode(opCode, 'execute')
 sbc_shift_imm_Instr.addBehavior(IncrementPC, 'fetch')
 sbc_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
 sbc_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
-sbc_shift_imm_Instr.addBehavior(UpdatePSRSubC, 'execute', False)
+sbc_shift_imm_Instr.addBehavior(UpdatePSRSubWithCarry, 'execute', False)
 sbc_shift_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+sbc_shift_imm_Instr.addVariable(('operand1', 'BIT<32>'))
+sbc_shift_imm_Instr.addVariable(('operand2', 'BIT<32>'))
+
 # Logical shift left by immediate
 # N Flag = Rd[31]
 sbc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0},
@@ -2790,8 +2838,11 @@ sbc_shift_reg_Instr.setCode(opCode, 'execute')
 sbc_shift_reg_Instr.addBehavior(IncrementPC, 'fetch')
 sbc_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
 sbc_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
-sbc_shift_reg_Instr.addBehavior(UpdatePSRSubC, 'execute', False)
+sbc_shift_reg_Instr.addBehavior(UpdatePSRSubWithCarry, 'execute', False)
 sbc_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
+sbc_shift_reg_Instr.addVariable(('operand1', 'BIT<32>'))
+sbc_shift_reg_Instr.addVariable(('operand2', 'BIT<32>'))
+
 #if ConditionPassed(cond) then
 #    Rd = Rn - shifter_operand - NOT(C Flag)
 sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rd': 10, 'rn': 9, 'rm': 8, 'rs': 0, 'shift_op': 0},
@@ -2910,8 +2961,10 @@ sbc_imm_Instr.setCode(opCode, 'execute')
 sbc_imm_Instr.addBehavior(IncrementPC, 'fetch')
 sbc_imm_Instr.addBehavior(condCheckOp, 'execute')
 sbc_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
-sbc_imm_Instr.addBehavior(UpdatePSRSubC, 'execute', False)
+sbc_imm_Instr.addBehavior(UpdatePSRSubWithCarry, 'execute', False)
 sbc_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+sbc_imm_Instr.addVariable(('operand1', 'BIT<32>'))
+sbc_imm_Instr.addVariable(('operand2', 'BIT<32>'))
 #test starts
 sbc_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 0xc}, {'CPSR' : 0x20000000, 'REGS[9]': 0xfc}, {'CPSR' : 0x20000000, 'REGS[10]': 0xf0})
 sbc_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 0xfb}, {'CPSR' : 0x00000000, 'REGS[9]': 0xfc}, {'CPSR' : 0x60000000, 'REGS[10]': 0x0})
@@ -2925,7 +2978,9 @@ isa.addInstruction(sbc_imm_Instr)
 
 # SUB instruction family
 opCode = cxx_writer.writer_code.Code("""
-rd = (int)rn - (int)operand;
+operand1 = (int)rn;
+operand2 = (int)operand;
+rd =  operand1 - operand2;
 """)
 #if ConditionPassed(cond) then
 #    Rd = Rn - shifter_operand
@@ -2944,6 +2999,8 @@ sub_shift_imm_Instr.addBehavior(condCheckOp, 'execute')
 sub_shift_imm_Instr.addBehavior(DPI_shift_imm_Op, 'execute')
 sub_shift_imm_Instr.addBehavior(UpdatePSRSub, 'execute', False)
 sub_shift_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+sub_shift_imm_Instr.addVariable(('operand1', 'BIT<32>'))
+sub_shift_imm_Instr.addVariable(('operand2', 'BIT<32>'))
 #Logical shift left by immediate
 #N Flag = Rd[31]
 sub_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, 
@@ -3011,6 +3068,9 @@ sub_shift_reg_Instr.addBehavior(condCheckOp, 'execute')
 sub_shift_reg_Instr.addBehavior(DPI_reg_shift_Op, 'execute')
 sub_shift_reg_Instr.addBehavior(UpdatePSRSub, 'execute', False)
 sub_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
+sub_shift_reg_Instr.addVariable(('operand1', 'BIT<32>'))
+sub_shift_reg_Instr.addVariable(('operand2', 'BIT<32>'))
+
 #logical shift left by register
 #N Flag = Rd[31]
 sub_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0},
@@ -3070,6 +3130,9 @@ sub_imm_Instr.addBehavior(condCheckOp, 'execute')
 sub_imm_Instr.addBehavior(DPI_imm_Op, 'execute')
 sub_imm_Instr.addBehavior(UpdatePSRSub, 'execute', False)
 sub_imm_Instr.addBehavior(UpdatePC, 'execute', False)
+sub_imm_Instr.addVariable(('operand1', 'BIT<32>'))
+sub_imm_Instr.addVariable(('operand2', 'BIT<32>'))
+
 #test starts
 sub_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 0xc}, {'CPSR' : 0x20000000, 'REGS[9]': 0xfc}, {'CPSR' : 0x20000000, 'REGS[10]': 0xf0})
 sub_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rotate': 0, 'immediate': 0xfc}, {'CPSR' : 0x00000000, 'REGS[9]': 0xfc}, {'CPSR' : 0x60000000, 'REGS[10]': 0x0})
