@@ -638,6 +638,9 @@ def getCPPAlias(self, model, namespace):
 
     ################ Lock and Unlock methods used for hazards detection ######################
     if model.startswith('acc'):
+        getRegBody = cxx_writer.writer_code.Code('return this->reg;')
+        getRegMethod = cxx_writer.writer_code.Method('getReg', getRegBody, registerType.makePointer(), 'pu', inline = True, noException = True)
+        aliasElements.append(getRegMethod)
         lockBody = cxx_writer.writer_code.Code('this->reg->lock();')
         lockMethod = cxx_writer.writer_code.Method('lock', lockBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
         aliasElements.append(lockMethod)

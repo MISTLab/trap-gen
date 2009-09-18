@@ -217,9 +217,108 @@ def getCPPInstr(self, model, processor, trace, namespace):
 
     if not model.startswith('acc'):
         behaviorCode = 'this->totalInstrCycles = 0;\n'
+    userDefineBehavior = ''
     for pipeStage in pipeline:
         if model.startswith('acc'):
             behaviorCode = 'this->stageCycles = 0;\n'
+            userDefineBehavior = ''
+
+        # Now I start computing the actual user-defined behavior of this instruction
+        if self.prebehaviors.has_key(pipeStage.name):
+            for beh in self.prebehaviors[pipeStage.name]:
+                if not ((model.startswith('acc') and beh.name in self.behaviorAcc) or (model.startswith('func') and beh.name in self.behaviorFun)):
+                    continue
+                if beh.name in toInline:
+                    userDefineBehavior += '{\n'
+                    for var in beh.localvars:
+                        userDefineBehavior += str(var)
+                    userDefineBehavior += str(beh.code)
+                    userDefineBehavior += '}\n'
+                elif behClass.has_key(beh.name) or beh.name in baseBehaviors:
+                    userDefineBehavior += 'this->' + beh.name + '('
+                    for elem in beh.archElems:
+                        userDefineBehavior += 'this->' + elem + ', '
+                        userDefineBehavior += 'this->' + elem + '_bit'
+                        if beh.archVars or beh.instrvars or elem != beh.archElems[-1]:
+                            userDefineBehavior += ', '
+                    for elem in beh.archVars:
+                        userDefineBehavior += 'this->' + elem
+                        if beh.instrvars or elem != beh.archVars[-1]:
+                            userDefineBehavior += ', '
+                    for var in beh.instrvars:
+                        userDefineBehavior += 'this->' + var.name
+                        if var != beh.instrvars[-1]:
+                            userDefineBehavior += ', '
+                    userDefineBehavior += ');\n'
+                else:
+                    userDefineBehavior += 'this->' + beh.name + '();\n'
+        if self.code.has_key(pipeStage.name):
+            userDefineBehavior += str(self.code[pipeStage.name].code)
+        if self.postbehaviors.has_key(pipeStage.name):
+            for beh in self.postbehaviors[pipeStage.name]:
+                if not ((model.startswith('acc') and beh.name in self.behaviorAcc) or (model.startswith('func') and beh.name in self.behaviorFun)):
+                    continue
+                if beh.name in toInline:
+                    userDefineBehavior += str(beh.code)
+                elif behClass.has_key(beh.name) or beh.name in baseBehaviors:
+                    userDefineBehavior += 'this->' + beh.name + '('
+                    for elem in beh.archElems:
+                        userDefineBehavior += 'this->' + elem + ', '
+                        userDefineBehavior += 'this->' + elem + '_bit'
+                        if beh.archVars or beh.instrvars or elem != beh.archElems[-1]:
+                            userDefineBehavior += ', '
+                    for elem in beh.archVars:
+                        userDefineBehavior += 'this->' + elem
+                        if beh.instrvars or elem != beh.archVars[-1]:
+                            userDefineBehavior += ', '
+                    for var in beh.instrvars:
+                        userDefineBehavior += 'this->' + var.name
+                        if var != beh.instrvars[-1]:
+                            userDefineBehavior += ', '
+                    userDefineBehavior += ');\n'
+                else:
+                    userDefineBehavior += 'this->' + beh.name + '();\n'
+
+        # Now I have to specify the code to manage data hazards in the pipeline; in particular to
+        # add, if the current one is the writeBack stage, the registers locked in the read stage
+        # to the unlock queue
+        if model.startswith('acc'):
+            registerType = cxx_writer.writer_code.Type('Register')
+            unlockQueueType = cxx_writer.writer_code.TemplateType('std::vector', [registerType.makePointer()])
+            unlockQueueParam = cxx_writer.writer_code.Parameter('unlockQueue', unlockQueueType.makeRef())
+            if hasCheckHazard:
+                regsToUnlock = []
+                # Now I have to insert the code to fill in the queue of registers to unlock
+                if self.specialOutRegsWB.has_key(pipeStage.name):
+                    for regToUnlock in self.specialOutRegsWB[pipeStage.name]:
+                        regsToUnlock.append(regToUnlock)
+                if pipeStage.endHazard:
+                    # Here I have to unlock all the registers for which a special unlock stage
+                    # was not specified
+                    for regToUnlock in self.machineCode.bitCorrespondence.keys():
+                        if 'out' in self.machineCode.bitDirection[regToUnlock] and not regToUnlock in regsToUnlock:
+                            regsToUnlock.append(regToUnlock)
+                    for regToUnlock in self.bitCorrespondence.keys():
+                        if 'out' in self.bitDirection[regToUnlock] and not regToUnlock in regsToUnlock:
+                            regsToUnlock.append(regToUnlock)
+                    for regToUnlock in self.specialOutRegs:
+                        if not regToUnlock in regsToUnlock:
+                            regsToUnlock.append(regToUnlock)
+
+                    # Now I have to add registers to the queue of registers to unlock; note that
+                    # only the register itself can be added to the queue, not aliases.
+                    regsNames = [i.name for i in processor.regBanks + processor.regs]
+                    for regToUnlock in regsToUnlock:
+                        realName = regToUnlock
+                        parenthesis = realName.find('[')
+                        if parenthesis > 0:
+                            realName = realName[:parenthesis]
+                        if not realName in regsNames:
+                            userDefineBehavior += 'unlockQueue.push_back(' + regToUnlock + '.getReg());\n'
+                        else:
+                            userDefineBehavior += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
+
+        if model.startswith('acc') and userDefineBehavior:
             # now I have to take all the resources and create a define which
             # renames such resources so that their usage can be transparent
             # to the developer
@@ -236,64 +335,10 @@ def getCPPInstr(self, model, processor, trace, namespace):
             for instrFieldName, correspondence in self.bitCorrespondence.items():
                 behaviorCode += '#define ' + instrFieldName + ' ' + instrFieldName + '_' + pipeStage.name + '\n'
             behaviorCode += '\n'
-        if self.prebehaviors.has_key(pipeStage.name):
-            for beh in self.prebehaviors[pipeStage.name]:
-                if not ((model.startswith('acc') and beh.name in self.behaviorAcc) or (model.startswith('func') and beh.name in self.behaviorFun)):
-                    continue
-                if beh.name in toInline:
-                    behaviorCode += '{\n'
-                    for var in beh.localvars:
-                        behaviorCode += str(var)
-                    behaviorCode += str(beh.code)
-                    behaviorCode += '}\n'
-                elif behClass.has_key(beh.name) or beh.name in baseBehaviors:
-                    behaviorCode += 'this->' + beh.name + '('
-                    for elem in beh.archElems:
-                        behaviorCode += 'this->' + elem + ', '
-                        behaviorCode += 'this->' + elem + '_bit'
-                        if beh.archVars or beh.instrvars or elem != beh.archElems[-1]:
-                            behaviorCode += ', '
-                    for elem in beh.archVars:
-                        behaviorCode += 'this->' + elem
-                        if beh.instrvars or elem != beh.archVars[-1]:
-                            behaviorCode += ', '
-                    for var in beh.instrvars:
-                        behaviorCode += 'this->' + var.name
-                        if var != beh.instrvars[-1]:
-                            behaviorCode += ', '
-                    behaviorCode += ');\n'
-                else:
-                    behaviorCode += 'this->' + beh.name + '();\n'
-        if self.code.has_key(pipeStage.name):
-            behaviorCode += str(self.code[pipeStage.name].code)
-        if self.postbehaviors.has_key(pipeStage.name):
-            for beh in self.postbehaviors[pipeStage.name]:
-                if not ((model.startswith('acc') and beh.name in self.behaviorAcc) or (model.startswith('func') and beh.name in self.behaviorFun)):
-                    continue
-                if beh.name in toInline:
-                    behaviorCode += str(beh.code)
-                elif behClass.has_key(beh.name) or beh.name in baseBehaviors:
-                    behaviorCode += 'this->' + beh.name + '('
-                    for elem in beh.archElems:
-                        behaviorCode += 'this->' + elem + ', '
-                        behaviorCode += 'this->' + elem + '_bit'
-                        if beh.archVars or beh.instrvars or elem != beh.archElems[-1]:
-                            behaviorCode += ', '
-                    for elem in beh.archVars:
-                        behaviorCode += 'this->' + elem
-                        if beh.instrvars or elem != beh.archVars[-1]:
-                            behaviorCode += ', '
-                    for var in beh.instrvars:
-                        behaviorCode += 'this->' + var.name
-                        if var != beh.instrvars[-1]:
-                            behaviorCode += ', '
-                    behaviorCode += ');\n'
-                else:
-                    behaviorCode += 'this->' + beh.name + '();\n'
-        if model.startswith('acc'):
-            registerType = cxx_writer.writer_code.Type('Register')
-            unlockQueueType = cxx_writer.writer_code.TemplateType('std::vector', [registerType.makePointer()])
-            unlockQueueParam = cxx_writer.writer_code.Parameter('unlockQueue', unlockQueueType.makeRef())
+
+        behaviorCode += userDefineBehavior
+
+        if model.startswith('acc') and userDefineBehavior:
             for reg in processor.regs:
                 behaviorCode += '#undef ' + reg.name + '\n'
             for regB in processor.regBanks:
@@ -306,23 +351,8 @@ def getCPPInstr(self, model, processor, trace, namespace):
                 behaviorCode += '#undef ' + instrFieldName + '\n'
             for instrFieldName, correspondence in self.bitCorrespondence.items():
                 behaviorCode += '#undef ' + instrFieldName + '\n'
-            if hasCheckHazard:
-                # Now I have to insert the code to fill in the queue of registers to unlock
-                if self.specialOutRegsWB.has_key(pipeStage.name):
-                    for regToUnlock in self.specialOutRegsWB[pipeStage.name]:
-                        behaviorCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
-                if pipeStage.endHazard:
-                    # Here I have to unlock all the registers for which a special unlock stage
-                    # was not specified
-                    for regToUnlock in self.machineCode.bitCorrespondence.keys():
-                        if 'out' in self.machineCode.bitDirection[regToUnlock] and not regToUnlock in self.specialOutRegsWB.values():
-                            behaviorCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
-                    for regToUnlock in self.bitCorrespondence.keys():
-                        if 'out' in self.bitDirection[regToUnlock] and not regToUnlock in self.specialOutRegsWB.values():
-                            behaviorCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
-                    for regToUnlock in self.specialOutRegs:
-                        if not regToUnlock in self.specialOutRegsWB.values():
-                            behaviorCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
+
+        if model.startswith('acc'):
             behaviorCode += 'return this->stageCycles;\n\n'
             behaviorBody = cxx_writer.writer_code.Code(behaviorCode)
             behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage.name, behaviorBody, cxx_writer.writer_code.uintType, 'pu', [unlockQueueParam])
@@ -332,51 +362,65 @@ def getCPPInstr(self, model, processor, trace, namespace):
         behaviorBody = cxx_writer.writer_code.Code(behaviorCode)
         behaviorDecl = cxx_writer.writer_code.Method('behavior', behaviorBody, cxx_writer.writer_code.uintType, 'pu')
         classElements.append(behaviorDecl)
+
+    # Here we deal with the code for checking data hazards: three methods are used for this purpose:
+    # --- checkHazard: is called at the beginning of the register read stage to check that the
+    #     registers needed by the current instruction are not being written by a previous one in
+    #     the pipeline; in case this happens, the method contains the code to halt the pipeline stage;
+    #     I have to check for the in/inout registers and special registers as needed by the instruction
+    # --- lockRegs: also called at the beginning of the register read pipeline stage to lock the out/inout
+    #     registers needed by the instruction
+    # --- getUnlock: called in every stage when the instruction is annulled: this means that it is substituted
+    #     with a nop instruction: as such, registers which were previously locked are added to the unlock queue;
+    #     since it can be called from any pipeline stage, we have a copy of this method for all the stages
     if model.startswith('acc'):
-        # Now I have to add the code for checking data hazards
+        from pipelineWriter import hasCheckHazard
+        from pipelineWriter import wbStage
+        from pipelineWriter import chStage
+
         if hasCheckHazard:
+            # checkHazard
             checkHazardCode = ''
             for name, correspondence in self.machineCode.bitCorrespondence.items():
                 if 'in' in self.machineCode.bitDirection[name]:
-                    checkHazardCode += 'if(this->' + name + '.isLocked()){\n'
+                    checkHazardCode += 'if(this->' + name + '_' + chStage.name + '.isLocked()){\n'
                     if externalClock:
                         checkHazardCode += 'return false;\n'
                     else:
-                        checkHazardCode += 'this->' + name + '.waitHazard();\n'
+                        checkHazardCode += 'this->' + name + '_' + chStage.name + '.waitHazard();\n'
                     checkHazardCode += '}\n'
             for name, correspondence in self.bitCorrespondence.items():
                 if 'in' in self.bitDirection[name]:
-                    checkHazardCode += 'if(this->' + name + '.isLocked()){\n'
+                    checkHazardCode += 'if(this->' + name + '_' + chStage.name + '.isLocked()){\n'
                     if externalClock:
                         checkHazardCode += 'return false;\n'
                     else:
-                        checkHazardCode += 'this->' + name + '.waitHazard();\n'
+                        checkHazardCode += 'this->' + name + '_' + chStage.name + '.waitHazard();\n'
                     checkHazardCode += '}\n'
             for specialRegName in self.specialInRegs:
-                checkHazardCode += 'if(this->' + specialRegName + '.isLocked()){\n'
+                checkHazardCode += 'if(this->' + specialRegName + '_' + chStage.name + '.isLocked()){\n'
                 if externalClock:
                     checkHazardCode += 'return false;\n'
                 else:
-                    checkHazardCode += 'this->' + specialRegName + '.waitHazard();\n'
+                    checkHazardCode += 'this->' + specialRegName + '_' + chStage.name + '.waitHazard();\n'
                 checkHazardCode += '}\n'
             checkHazardBody = cxx_writer.writer_code.Code(checkHazardCode)
-            if externalClock:
-                checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', checkHazardBody, cxx_writer.writer_code.boolType, 'pu')
-            else:
-                checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', checkHazardBody, cxx_writer.writer_code.voidType, 'pu')
+            checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', checkHazardBody, cxx_writer.writer_code.voidType, 'pu')
             classElements.append(checkHazardDecl)
+            # lockRegs
             lockCode = ''
             for name, correspondence in self.machineCode.bitCorrespondence.items():
                 if 'out' in self.machineCode.bitDirection[name]:
-                    lockCode += 'this->' + name + '.lock();\n'
+                    lockCode += 'this->' + name + '_' + chStage.name + '.lock();\n'
             for name, correspondence in self.bitCorrespondence.items():
                 if 'out' in self.bitDirection[name]:
-                    lockCode += 'this->' + name + '.lock();\n'
+                    lockCode += 'this->' + name + '_' + chStage.name + '.lock();\n'
             for specialRegName in self.specialOutRegs:
-                lockCode += 'this->' + specialRegName + '.lock();\n'
+                lockCode += 'this->' + specialRegName + '_' + chStage.name + '.lock();\n'
             lockBody = cxx_writer.writer_code.Code(lockCode)
             lockDecl = cxx_writer.writer_code.Method('lockRegs', lockBody, cxx_writer.writer_code.voidType, 'pu')
             classElements.append(lockDecl)
+            # getUnlock
             getUnlockCode = ''
             for regsToUnlock in self.specialOutRegsWB.values():
                 for regToUnlock in regsToUnlock:
@@ -391,7 +435,7 @@ def getCPPInstr(self, model, processor, trace, namespace):
                 if not regToUnlock in self.specialOutRegsWB.values():
                     getUnlockCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
             getUnlockBody = cxx_writer.writer_code.Code(getUnlockCode)
-            getUnlockDecl = cxx_writer.writer_code.Method('getUnlock', lockBody, cxx_writer.writer_code.voidType, 'pu', [unlockQueueParam])
+            getUnlockDecl = cxx_writer.writer_code.Method('getUnlock', getUnlockBody, cxx_writer.writer_code.voidType, 'pu', [unlockQueueParam])
             classElements.append(getUnlockDecl)
 
     replicateBody = cxx_writer.writer_code.Code('return new ' + self.name + '(' + baseInstrInitElement + ');')

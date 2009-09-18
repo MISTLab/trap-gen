@@ -40,7 +40,14 @@ from procWriter import getInstrIssueCodePipe, getInterruptCode, computeFetchCode
 
 from procWriter import hash_map_include
 
+hasCheckHazard = False
+wbStage = None
+chStage = None
+
 def getGetPipelineStages(self, trace, model, namespace):
+    global hasCheckHazard
+    global wbStage
+    global chStage
     from procWriter import resourceType
     # Returns the code implementing the class representing a pipeline stage
     pipeCodeElements = []
@@ -167,9 +174,12 @@ def getGetPipelineStages(self, trace, model, namespace):
     # the appropriate behavior method
     checkHazardsMet = False
     wbStage = self.pipes[-1]
+    chStage = self.pipes[0]
     for pipeStage in self.pipes:
         if pipeStage.wb:
             wbStage = pipeStage
+        if pipeStage.checkHazard:
+            chStage = pipeStage
 
         pipeNameParam = cxx_writer.writer_code.Parameter('pipeName', cxx_writer.writer_code.sc_module_nameType)
         curPipeElements = []
