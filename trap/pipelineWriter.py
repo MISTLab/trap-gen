@@ -201,7 +201,9 @@ def getGetPipelineStages(self, trace, model, namespace):
             """
             codeString += 'unsigned int numCycles = 0;\n'
 
-            # Here is the code to deal with interrupts
+            # Here is the code to deal with interrupts; note one problem: if an interrupt is raised, we need to
+            # deal with it in the correct stage, i.e. we need to create a special instruction reaching the correct
+            # stage and dealing with it properly.
             codeString += getInterruptCode(self)
             # computes the correct memory and/or memory port from which fetching the instruction stream
             fetchCode = computeFetchCode(self)
@@ -254,6 +256,9 @@ def getGetPipelineStages(self, trace, model, namespace):
             this->waitPipeBegin();
 
             """
+            if pipeStage.checkTools:
+                fetchAddress = computeCurrentPC(self, model)
+                codeString += str(self.bitSizes[1]) + ' curPC = ' + fetchAddress + ';\n'
             codeString += 'this->curInstruction = this->nextInstruction;\n'
             # Now we issue the instruction, i.e. we execute its behavior related to this pipeline stage
             codeString += getInstrIssueCodePipe(self, trace, 'this->curInstruction', hasCheckHazard, pipeStage)

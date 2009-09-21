@@ -230,7 +230,7 @@ irqPort.setOperation("""//Basically, what I have to do when
 if(PSR[key_ET]){
     if(IRQ == 15 || IRQ > PSR[key_PIL]){
         // First of all I have to move to a new register window
-        unsigned int newCwp = ((unsigned int)(PSR[key_CWP] - 1)) % """ + str(numRegWindows) + """;
+        unsigned int newCwp = ((unsigned int)(PSR[key_CWP] - 1)) % NUM_REG_WIN;
         PSRbp = (PSR & 0xFFFFFFE0) | newCwp;
         PSR.immediateWrite(PSRbp);
         """ + updateWinCode + """
@@ -243,7 +243,7 @@ if(PSR[key_ET]){
         irqAck.send_pin_req(IRQ, 0);
     }
 }
-""")
+""", 'exception')
 irqPort.addTest({}, {})
 processor.addIrq(irqPort)
 

@@ -1286,11 +1286,11 @@ class Interrupt:
         self.priority = priority
         self.condition = ''
         self.tests = []
-        self.operation = None
+        self.operation = {}
 
-    def setOperation(self, operation, condition = ''):
+    def setOperation(self, operation, stage, condition = ''):
         self.condition = condition
-        self.operation = operation
+        self.operation[stage] = operation
 
     def addTest(self, inputState, expOut):
         # The test is composed of 2 parts: the status before the
