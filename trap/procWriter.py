@@ -119,6 +119,12 @@ def getInstrIssueCode(self, trace, instrVarName, hasCheckHazard = False, pipeSta
 # Computes the code defining the execution of an instruction and
 # of the processor tools.
 def getInstrIssueCodePipe(self, trace, instrVarName, hasCheckHazard, pipeStage):
+    unlockHazard = False
+    for i in self.pipes:
+        if i.checkHazard:
+            unlockHazard = True
+        if i == pipeStage:
+            break
     codeString = ''
     if hasCheckHazard and pipeStage.checkHazard:
         codeString += instrVarName + '->checkHazard();\n'
@@ -153,8 +159,8 @@ def getInstrIssueCodePipe(self, trace, instrVarName, hasCheckHazard, pipeStage):
         codeString += instrVarName + """->printTrace();
         std::cerr << "Stage: """ + pipeStage.name + """:Skipped Instruction " << """ + instrVarName + """->getInstructionName() << std::endl << std::endl;
         """
-    if hasCheckHazard:
-        codeString +=  instrVarName + '->getUnlock(BasePipeStage::unlockQueue);\n'
+    if hasCheckHazard and unlockHazard:
+        codeString +=  instrVarName + '->getUnlock_' + pipeStage.name + '(BasePipeStage::unlockQueue);\n'
     codeString += """this->curInstruction = this->NOPInstrInstance;
             numCycles = 0;
         }
@@ -211,10 +217,13 @@ def getInterruptCode(self):
 # Returns the code necessary for performing a standard instruction fetch: i.e.
 # read from memory and set the instruction parameters
 def standardInstrFetch(self, trace, issueCodeGenerator, hasCheckHazard = False, pipeStage = None):
-    codeString = """int instrId = this->decoder.decode(bitString);
-    Instruction * instr = Processor::INSTRUCTIONS[instrId];
-    instr->setParams(bitString);
-    """
+    codeString = 'int instrId = this->decoder.decode(bitString);\n'
+    if pipeStage:
+        codeString += 'Instruction * instr = ' + pipeStage.name.upper() + '_PipeStage::INSTRUCTIONS[instrId];\n'
+    else:
+        codeString += 'Instruction * instr = Processor::INSTRUCTIONS[instrId];\n'
+    codeString += 'instr->setParams(bitString);\n'
+
     codeString += issueCodeGenerator(self, trace, 'instr', hasCheckHazard, pipeStage)
     return codeString
 
@@ -246,9 +255,11 @@ def fetchWithCacheCode(self, fetchCode, trace, issueCodeGenerator, hasCheckHazar
         else{
             // ... and then add the instruction to the cache
             curInstrPtr = instr;
-            Processor::INSTRUCTIONS[instrId] = instr->replicate();
-        }
     """
+    if pipeStage:
+        codeString += pipeStage.name.upper() + '_PipeStage::INSTRUCTIONS[instrId] = instr->replicate();\n}\n'
+    else:
+        codeString += 'Processor::INSTRUCTIONS[instrId] = instr->replicate();\n}\n'
 
     # and now finally I have found nothing and I have to add everything
     codeString += """}
@@ -279,19 +290,6 @@ def getCPPProc(self, model, trace, namespace):
     emptyBody = cxx_writer.writer_code.Code('')
     processorElements = []
     codeString = ''
-
-    # Here I declare the type which shall be contained in the cache
-    if self.instructionCache:
-        instrAttr = cxx_writer.writer_code.Attribute('instr', IntructionTypePtr, 'pu')
-        countAttr = cxx_writer.writer_code.Attribute('count', cxx_writer.writer_code.uintType, 'pu')
-        cacheTypeElements = [instrAttr, countAttr]
-        cacheType = cxx_writer.writer_code.ClassDeclaration('CacheElem', cacheTypeElements, namespaces = [namespace])
-        instrParam = cxx_writer.writer_code.Parameter('instr', IntructionTypePtr)
-        countParam = cxx_writer.writer_code.Parameter('count', cxx_writer.writer_code.uintType)
-        cacheTypeConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', [instrParam, countParam], ['instr(instr)', 'count(count)'])
-        cacheType.addConstructor(cacheTypeConstr)
-        emptyCacheTypeConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', [], ['instr(NULL)', 'count(1)'])
-        cacheType.addConstructor(emptyCacheTypeConstr)
 
     ################################################
     # Start declaration of the main processor loop
@@ -483,14 +481,18 @@ def getCPPProc(self, model, trace, namespace):
     ##########################################################################
 
     # Method for external instruction decoding
-    decodeCode = cxx_writer.writer_code.Code("""int instrId = this->decoder.decode(bitString);
-            if(instrId >= 0){
+    if model.startswith('acc'):
+        decodeBody = 'int instrId = this->' + self.pipes[0].name + '_stage.decoder.decode(bitString);\n'
+    else:
+        decodeBody = 'int instrId = this->decoder.decode(bitString);\n'
+    decodeBody += """if(instrId >= 0){
                 Instruction * instr = Processor::INSTRUCTIONS[instrId];
                 instr->setParams(bitString);
                 return instr;
             }
             return NULL;
-    """)
+    """
+    decodeCode = cxx_writer.writer_code.Code(decodeBody)
     decodeParams = [cxx_writer.writer_code.Parameter('bitString', fetchWordType)]
     decodeMethod = cxx_writer.writer_code.Method('decode', decodeCode, IntructionTypePtr, 'pu', decodeParams)
     processorElements.append(decodeMethod)
@@ -881,10 +883,7 @@ def getCPPProc(self, model, trace, namespace):
             curStageAttr = cxx_writer.writer_code.Attribute(pipeStage.name + '_stage', pipelineType, 'pu')
             processorElements.append(curStageAttr)
             curPipeInit = ['\"' + pipeStage.name + '\"']
-            if self.externalClock:
-                curPipeInit.append('clock')
-            else:
-                curPipeInit.append('latency')
+            curPipeInit.append('latency')
             for otherPipeStage in self.pipes:
                 if otherPipeStage != pipeStage:
                     curPipeInit.append('&' + otherPipeStage.name + '_stage')
@@ -898,7 +897,8 @@ def getCPPProc(self, model, trace, namespace):
                 curPipeInit.append('NULL')
             if pipeStage == self.pipes[0]:
                 for reg in self.regs:
-                    curPipeInit = [reg.name] + curPipeInit
+                    if self.fetchReg[0] != reg.name:
+                        curPipeInit = [reg.name] + curPipeInit
                 for regB in self.regBanks:
                     curPipeInit = [regB.name] + curPipeInit
                 # It is the first stage, I also have to allocate the memory
@@ -911,8 +911,6 @@ def getCPPProc(self, model, trace, namespace):
                             memName = name
                 curPipeInit = [self.fetchReg[0], 'Processor::INSTRUCTIONS', memName] + curPipeInit
                 curPipeInit = ['numInstructions'] + curPipeInit
-                if self.instructionCache:
-                    curPipeInit = ['this->instrCache'] + curPipeInit
             if pipeStage.checkTools:
                 curPipeInit = [self.fetchReg[0], 'toolManager'] + curPipeInit
             initString += ')'
@@ -993,7 +991,8 @@ def getCPPProc(self, model, trace, namespace):
         delete [] Processor::INSTRUCTIONS;
         Processor::INSTRUCTIONS = NULL;
     """
-    if self.instructionCache:
+    destrCode += '}\n'
+    if self.instructionCache and not model.startswith('acc'):
         destrCode += """template_map< """ + str(fetchWordType) + """, CacheElem >::const_iterator cacheIter, cacheEnd;
         for(cacheIter = this->instrCache.begin(), cacheEnd = this->instrCache.end(); cacheIter != cacheEnd; cacheIter++){
             delete cacheIter->second.instr;
@@ -1001,17 +1000,13 @@ def getCPPProc(self, model, trace, namespace):
         """
     if self.abi:
         destrCode += 'delete this->abiIf;\n'
-    destrCode += '}\n'
     destrCode += bodyDestructor
     destructorBody = cxx_writer.writer_code.Code(destrCode)
     publicDestr = cxx_writer.writer_code.Destructor(destructorBody, 'pu')
     processorDecl = cxx_writer.writer_code.SCModule('Processor', processorElements, namespaces = [namespace])
     processorDecl.addConstructor(publicConstr)
     processorDecl.addDestructor(publicDestr)
-    if self.instructionCache:
-        return [cacheType, processorDecl]
-    else:
-        return [processorDecl]
+    return [processorDecl]
 
 #########################################################################################
 # Lets complete the declaration of the processor with the main files: one for the

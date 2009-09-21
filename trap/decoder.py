@@ -384,7 +384,7 @@ class decoderCreator:
         code += '}\n'
         return code
 
-    def getCPPClass(self, fetchSizeType, namespace = ''):
+    def getCPPClass(self, fetchSizeType, instructionCache, namespace = ''):
         # Creates the representation of the decoder as a C++ class
         import cxx_writer
         from isa import resolveBitType
@@ -397,7 +397,26 @@ class decoderCreator:
         parameters = [cxx_writer.writer_code.Parameter('instrCode', fetchSizeType)]
         decodeMethod = cxx_writer.writer_code.Method('decode', code, cxx_writer.writer_code.intType, 'pu', parameters, const = True, noException = True)
         decodeClass = cxx_writer.writer_code.ClassDeclaration('Decoder', [decodeMethod], namespaces = [namespace])
-        return decodeClass
+
+        # Here I declare the type which shall be contained in the cache
+        if instructionCache:
+            emptyBody = cxx_writer.writer_code.Code('')
+            IntructionTypePtr = cxx_writer.writer_code.Type('Instruction', 'instructions.hpp').makePointer()
+            instrAttr = cxx_writer.writer_code.Attribute('instr', IntructionTypePtr, 'pu')
+            countAttr = cxx_writer.writer_code.Attribute('count', cxx_writer.writer_code.uintType, 'pu')
+            cacheTypeElements = [instrAttr, countAttr]
+            cacheType = cxx_writer.writer_code.ClassDeclaration('CacheElem', cacheTypeElements, namespaces = [namespace])
+            instrParam = cxx_writer.writer_code.Parameter('instr', IntructionTypePtr)
+            countParam = cxx_writer.writer_code.Parameter('count', cxx_writer.writer_code.uintType)
+            cacheTypeConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', [instrParam, countParam], ['instr(instr)', 'count(count)'])
+            cacheType.addConstructor(cacheTypeConstr)
+            emptyCacheTypeConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', [], ['instr(NULL)', 'count(1)'])
+            cacheType.addConstructor(emptyCacheTypeConstr)
+
+        if instructionCache:
+            return [cacheType, decodeClass]
+        else:
+            return [decodeClass]
 
     def getCPPTests(self, namespace = ''):
         # Creates the tests for the decoder; I normally create the

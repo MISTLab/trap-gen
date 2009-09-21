@@ -45,6 +45,52 @@ archWordType = None
 alreadyDeclared = []
 baseInstrConstrParams = []
 
+def getToUnlockRegs(self, processor, pipeStage, regStageName):
+    code = ''
+    regsToUnlock = []
+    # Now I have to insert the code to fill in the queue of registers to unlock
+    if not regStageName:
+        if self.specialOutRegsWB.has_key(pipeStage.name):
+            for regToUnlock in self.specialOutRegsWB[pipeStage.name]:
+                regsToUnlock.append(regToUnlock)
+    else:
+        for regToUnlockList in self.specialOutRegsWB.values():
+            for regToUnlock in regToUnlockList:
+                regsToUnlock.append(regToUnlock)
+    if pipeStage.endHazard or regStageName:
+        # Here I have to unlock all the registers for which a special unlock stage
+        # was not specified
+        for regToUnlock in self.machineCode.bitCorrespondence.keys():
+            if 'out' in self.machineCode.bitDirection[regToUnlock] and not regToUnlock in regsToUnlock:
+                regsToUnlock.append(regToUnlock)
+        for regToUnlock in self.bitCorrespondence.keys():
+            if 'out' in self.bitDirection[regToUnlock] and not regToUnlock in regsToUnlock:
+                regsToUnlock.append(regToUnlock)
+        for regToUnlock in self.specialOutRegs:
+            if not regToUnlock in regsToUnlock:
+                regsToUnlock.append(regToUnlock)
+
+        # Now I have to add registers to the queue of registers to unlock; note that
+        # only the register itself can be added to the queue, not aliases.
+        regsNames = [i.name for i in processor.regBanks + processor.regs]
+        for regToUnlock in regsToUnlock:
+            realName = regToUnlock
+            parenthesis = realName.find('[')
+            if parenthesis > 0:
+                realName = realName[:parenthesis]
+            if regStageName:
+                if parenthesis > 0:
+                    realRegName = realName + '_' + pipeStage.name + regToUnlock[parenthesis:]
+                else:
+                    realRegName = regToUnlock + '_' + pipeStage.name
+            else:
+                realRegName = regToUnlock
+            if not realName in regsNames:
+                code += 'unlockQueue.push_back(' + realRegName + '.getReg());\n'
+            else:
+                code += 'unlockQueue.push_back(&' + realRegName + ');\n'
+    return code
+
 def toBinStr(intNum, maxLen = -1):
     # Given an integer number it converts it to a bitstring; maxLen is used only
     # in case a negative number have to be converted
@@ -287,36 +333,7 @@ def getCPPInstr(self, model, processor, trace, namespace):
             unlockQueueType = cxx_writer.writer_code.TemplateType('std::vector', [registerType.makePointer()])
             unlockQueueParam = cxx_writer.writer_code.Parameter('unlockQueue', unlockQueueType.makeRef())
             if hasCheckHazard:
-                regsToUnlock = []
-                # Now I have to insert the code to fill in the queue of registers to unlock
-                if self.specialOutRegsWB.has_key(pipeStage.name):
-                    for regToUnlock in self.specialOutRegsWB[pipeStage.name]:
-                        regsToUnlock.append(regToUnlock)
-                if pipeStage.endHazard:
-                    # Here I have to unlock all the registers for which a special unlock stage
-                    # was not specified
-                    for regToUnlock in self.machineCode.bitCorrespondence.keys():
-                        if 'out' in self.machineCode.bitDirection[regToUnlock] and not regToUnlock in regsToUnlock:
-                            regsToUnlock.append(regToUnlock)
-                    for regToUnlock in self.bitCorrespondence.keys():
-                        if 'out' in self.bitDirection[regToUnlock] and not regToUnlock in regsToUnlock:
-                            regsToUnlock.append(regToUnlock)
-                    for regToUnlock in self.specialOutRegs:
-                        if not regToUnlock in regsToUnlock:
-                            regsToUnlock.append(regToUnlock)
-
-                    # Now I have to add registers to the queue of registers to unlock; note that
-                    # only the register itself can be added to the queue, not aliases.
-                    regsNames = [i.name for i in processor.regBanks + processor.regs]
-                    for regToUnlock in regsToUnlock:
-                        realName = regToUnlock
-                        parenthesis = realName.find('[')
-                        if parenthesis > 0:
-                            realName = realName[:parenthesis]
-                        if not realName in regsNames:
-                            userDefineBehavior += 'unlockQueue.push_back(' + regToUnlock + '.getReg());\n'
-                        else:
-                            userDefineBehavior += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
+                userDefineBehavior += getToUnlockRegs(self, processor, pipeStage, False)
 
         if model.startswith('acc') and userDefineBehavior:
             # now I have to take all the resources and create a define which
@@ -380,63 +397,61 @@ def getCPPInstr(self, model, processor, trace, namespace):
 
         if hasCheckHazard:
             # checkHazard
+            regsToCheck = []
             checkHazardCode = ''
             for name, correspondence in self.machineCode.bitCorrespondence.items():
                 if 'in' in self.machineCode.bitDirection[name]:
-                    checkHazardCode += 'if(this->' + name + '_' + chStage.name + '.isLocked()){\n'
-                    if externalClock:
-                        checkHazardCode += 'return false;\n'
-                    else:
-                        checkHazardCode += 'this->' + name + '_' + chStage.name + '.waitHazard();\n'
-                    checkHazardCode += '}\n'
+                    regsToCheck.append(name)
             for name, correspondence in self.bitCorrespondence.items():
                 if 'in' in self.bitDirection[name]:
-                    checkHazardCode += 'if(this->' + name + '_' + chStage.name + '.isLocked()){\n'
-                    if externalClock:
-                        checkHazardCode += 'return false;\n'
-                    else:
-                        checkHazardCode += 'this->' + name + '_' + chStage.name + '.waitHazard();\n'
-                    checkHazardCode += '}\n'
+                    regsToCheck.append(name)
             for specialRegName in self.specialInRegs:
-                checkHazardCode += 'if(this->' + specialRegName + '_' + chStage.name + '.isLocked()){\n'
-                if externalClock:
-                    checkHazardCode += 'return false;\n'
+                regsToCheck.append(specialRegName)
+
+            for regToCheck in regsToCheck:
+                parenthesis = regToCheck.find('[')
+                if parenthesis > 0:
+                    realRegName = regToCheck[:parenthesis] + '_' + chStage.name + regToCheck[parenthesis:]
                 else:
-                    checkHazardCode += 'this->' + specialRegName + '_' + chStage.name + '.waitHazard();\n'
+                    realRegName = regToCheck + '_' + chStage.name
+                checkHazardCode += 'if(this->' + realRegName + '.isLocked()){\n'
+                checkHazardCode += 'this->' + realRegName + '.waitHazard();\n'
                 checkHazardCode += '}\n'
+
             checkHazardBody = cxx_writer.writer_code.Code(checkHazardCode)
             checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', checkHazardBody, cxx_writer.writer_code.voidType, 'pu')
             classElements.append(checkHazardDecl)
             # lockRegs
+            regToLock = []
             lockCode = ''
             for name, correspondence in self.machineCode.bitCorrespondence.items():
                 if 'out' in self.machineCode.bitDirection[name]:
-                    lockCode += 'this->' + name + '_' + chStage.name + '.lock();\n'
+                    regToLock.append(name)
             for name, correspondence in self.bitCorrespondence.items():
                 if 'out' in self.bitDirection[name]:
-                    lockCode += 'this->' + name + '_' + chStage.name + '.lock();\n'
+                    regToLock.append(name)
             for specialRegName in self.specialOutRegs:
-                lockCode += 'this->' + specialRegName + '_' + chStage.name + '.lock();\n'
+                regToLock.append(specialRegName)
+            for regToLock in regToLock:
+                parenthesis = regToLock.find('[')
+                if parenthesis > 0:
+                    realRegName = regToLock[:parenthesis] + '_' + chStage.name + regToLock[parenthesis:]
+                else:
+                    realRegName = regToLock + '_' + chStage.name
+                lockCode += 'this->' + realRegName + '.lock();\n'
             lockBody = cxx_writer.writer_code.Code(lockCode)
             lockDecl = cxx_writer.writer_code.Method('lockRegs', lockBody, cxx_writer.writer_code.voidType, 'pu')
             classElements.append(lockDecl)
             # getUnlock
-            getUnlockCode = ''
-            for regsToUnlock in self.specialOutRegsWB.values():
-                for regToUnlock in regsToUnlock:
-                    getUnlockCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
-            for regToUnlock in self.machineCode.bitCorrespondence.keys():
-                if 'out' in self.machineCode.bitDirection[regToUnlock] and not regToUnlock in self.specialOutRegsWB.values():
-                    getUnlockCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
-            for regToUnlock in self.bitCorrespondence.keys():
-                if 'out' in self.bitDirection[regToUnlock] and not regToUnlock in self.specialOutRegsWB.values():
-                    getUnlockCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
-            for regToUnlock in self.specialOutRegs:
-                if not regToUnlock in self.specialOutRegsWB.values():
-                    getUnlockCode += 'unlockQueue.push_back(&' + regToUnlock + ');\n'
-            getUnlockBody = cxx_writer.writer_code.Code(getUnlockCode)
-            getUnlockDecl = cxx_writer.writer_code.Method('getUnlock', getUnlockBody, cxx_writer.writer_code.voidType, 'pu', [unlockQueueParam])
-            classElements.append(getUnlockDecl)
+            unlockHazard = False
+            for pipeStage in pipeline:
+                if pipeStage.checkHazard:
+                    unlockHazard = True
+                if unlockHazard:
+                    getUnlockCode = getToUnlockRegs(self, processor, pipeStage, True)
+                    getUnlockBody = cxx_writer.writer_code.Code(getUnlockCode)
+                    getUnlockDecl = cxx_writer.writer_code.Method('getUnlock_' + pipeStage.name, getUnlockBody, cxx_writer.writer_code.voidType, 'pu', [unlockQueueParam])
+                    classElements.append(getUnlockDecl)
 
     replicateBody = cxx_writer.writer_code.Code('return new ' + self.name + '(' + baseInstrInitElement + ');')
     replicateDecl = cxx_writer.writer_code.Method('replicate', replicateBody, instructionType.makePointer(), 'pu', noException = True, const = True)
@@ -839,8 +854,13 @@ def getCPPClasses(self, processor, model, trace, namespace):
             instructionElements.append(checkHazardDecl)
             lockDecl = cxx_writer.writer_code.Method('lockRegs', emptyBody, cxx_writer.writer_code.voidType, 'pu', pure = True)
             instructionElements.append(lockDecl)
-            getUnlockDecl = cxx_writer.writer_code.Method('getUnlock', emptyBody, cxx_writer.writer_code.voidType, 'pu', [unlockQueueParam], pure = True)
-            instructionElements.append(getUnlockDecl)
+            unlockHazard = False
+            for pipeStage in processor.pipes:
+                if pipeStage.checkHazard:
+                    unlockHazard = True
+                if unlockHazard:
+                    getUnlockDecl = cxx_writer.writer_code.Method('getUnlock_' + pipeStage.name, emptyBody, cxx_writer.writer_code.voidType, 'pu', [unlockQueueParam], pure = True)
+                    instructionElements.append(getUnlockDecl)
 
     if trace:
         # I have to print the value of all the registers in the processor
@@ -1118,8 +1138,13 @@ def getCPPClasses(self, processor, model, trace, namespace):
             invalidInstrElements.append(checkHazardDecl)
             lockDecl = cxx_writer.writer_code.Method('lockRegs', emptyBody, cxx_writer.writer_code.voidType, 'pu')
             invalidInstrElements.append(lockDecl)
-            getUnlockDecl = cxx_writer.writer_code.Method('getUnlock', emptyBody, cxx_writer.writer_code.voidType, 'pu', [unlockQueueParam])
-            invalidInstrElements.append(getUnlockDecl)
+            unlockHazard = False
+            for pipeStage in processor.pipes:
+                if pipeStage.checkHazard:
+                    unlockHazard = True
+                if unlockHazard:
+                    getUnlockDecl = cxx_writer.writer_code.Method('getUnlock_' + pipeStage.name, emptyBody, cxx_writer.writer_code.voidType, 'pu', [unlockQueueParam])
+                    invalidInstrElements.append(getUnlockDecl)
     from procWriter import baseInstrInitElement
     publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, ['Instruction(' + baseInstrInitElement + ')'])
     invalidInstrDecl = cxx_writer.writer_code.ClassDeclaration('InvalidInstr', invalidInstrElements, [instructionDecl.getType()], namespaces = [namespace])
@@ -1162,8 +1187,13 @@ def getCPPClasses(self, processor, model, trace, namespace):
             NOPInstructionElements.append(checkHazardDecl)
             lockDecl = cxx_writer.writer_code.Method('lockRegs', emptyBody, cxx_writer.writer_code.voidType, 'pu')
             NOPInstructionElements.append(lockDecl)
-            getUnlockDecl = cxx_writer.writer_code.Method('getUnlock', emptyBody, cxx_writer.writer_code.voidType, 'pu', [unlockQueueParam])
-            NOPInstructionElements.append(getUnlockDecl)
+            unlockHazard = False
+            for pipeStage in processor.pipes:
+                if pipeStage.checkHazard:
+                    unlockHazard = True
+                if unlockHazard:
+                    getUnlockDecl = cxx_writer.writer_code.Method('getUnlock_' + pipeStage.name, emptyBody, cxx_writer.writer_code.voidType, 'pu', [unlockQueueParam])
+                    NOPInstructionElements.append(getUnlockDecl)
         from procWriter import baseInstrInitElement
         publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, ['Instruction(' + baseInstrInitElement + ')'])
         NOPInstructionElements = cxx_writer.writer_code.ClassDeclaration('NOPInstruction', NOPInstructionElements, [instructionDecl.getType()], namespaces = [namespace])

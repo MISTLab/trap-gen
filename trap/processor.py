@@ -974,12 +974,13 @@ class Processor:
                 namespace = self.name.lower() + '_' + model.lower() + '_trap'
             namespaceUse = cxx_writer.writer_code.UseNamespace(namespace)
             namespaceTrapUse = cxx_writer.writer_code.UseNamespace('trap')
-            decClass = dec.getCPPClass(self.bitSizes[1], namespace)
+            decClasses = dec.getCPPClass(self.bitSizes[1], self.instructionCache, namespace)
             implFileDec = cxx_writer.writer_code.FileDumper('decoder.cpp', False)
             headFileDec = cxx_writer.writer_code.FileDumper('decoder.hpp', True)
             implFileDec.addMember(namespaceUse)
-            implFileDec.addMember(decClass)
-            headFileDec.addMember(decClass)
+            for i in decClasses:
+                implFileDec.addMember(i)
+                headFileDec.addMember(i)
             implFileDec.addInclude('decoder.hpp')
             RegClasses = self.getCPPRegisters(model, namespace)
             AliasClass = self.getCPPAlias(model, namespace)

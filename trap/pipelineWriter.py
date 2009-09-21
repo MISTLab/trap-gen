@@ -193,7 +193,7 @@ def getGetPipelineStages(self, trace, model, namespace):
         if pipeStage == self.pipes[0]:
             # This is the fetch pipeline stage, I have to fetch instructions
             if self.instructionCache:
-                codeString += 'template_map< ' + str(self.bitSizes[1]) + ', Instruction * >::iterator instrCacheEnd = this->instrCache.end();\n'
+                codeString += 'template_map< ' + str(self.bitSizes[1]) + ', CacheElem >::iterator instrCacheEnd = this->instrCache.end();\n'
             codeString += """while(true){
             // HERE WAIT FOR BEGIN OF ALL STAGES
             this->waitPipeBegin();
@@ -205,7 +205,7 @@ def getGetPipelineStages(self, trace, model, namespace):
             codeString += getInterruptCode(self)
             # computes the correct memory and/or memory port from which fetching the instruction stream
             fetchCode = computeFetchCode(self)
-            # computes the address from which the nest instruction shall be fetched
+            # computes the address from which the next instruction shall be fetched
             fetchAddress = computeCurrentPC(self, model)
             codeString += str(self.bitSizes[1]) + ' curPC = ' + fetchAddress + ';\n'
             # We need to fetch the instruction ... only if the cache is not used or if
@@ -366,10 +366,11 @@ def getGetPipelineStages(self, trace, model, namespace):
             # Here I declare the references to the real processor registers which I update at the
             # end of each cycle
             for reg in self.regs:
-                attribute = cxx_writer.writer_code.Attribute(reg.name, resourceType[reg.name].makeRef(), 'pu')
-                constructorParams = [cxx_writer.writer_code.Parameter(reg.name, resourceType[reg.name].makeRef())] + constructorParams
-                constructorInit.append(reg.name + '(' + reg.name + ')')
-                curPipeElements.append(attribute)
+                if reg.name != self.fetchReg[0]:
+                    attribute = cxx_writer.writer_code.Attribute(reg.name, resourceType[reg.name].makeRef(), 'pu')
+                    constructorParams = [cxx_writer.writer_code.Parameter(reg.name, resourceType[reg.name].makeRef())] + constructorParams
+                    constructorInit.append(reg.name + '(' + reg.name + ')')
+                    curPipeElements.append(attribute)
             for regB in self.regBanks:
                 attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name].makeRef(), 'pu')
                 constructorParams = [cxx_writer.writer_code.Parameter(regB.name, resourceType[regB.name].makeRef())] + constructorParams
@@ -390,14 +391,14 @@ def getGetPipelineStages(self, trace, model, namespace):
             constructorInit.append(memName + '(' + memName + ')')
             memRefAttr = cxx_writer.writer_code.Attribute(memName, memType, 'pri')
             curPipeElements.append(memRefAttr)
-            decoderAttribute = cxx_writer.writer_code.Attribute('decoder', cxx_writer.writer_code.Type('Decoder', 'decoder.hpp'), 'pri')
+            decoderAttribute = cxx_writer.writer_code.Attribute('decoder', cxx_writer.writer_code.Type('Decoder', 'decoder.hpp'), 'pu')
             curPipeElements.append(decoderAttribute)
             # I also have to add the map containig the ISA instructions to this stage
             instructionsAttribute = cxx_writer.writer_code.Attribute('INSTRUCTIONS', IntructionTypePtr.makePointer().makeRef(), 'pri')
             curPipeElements.append(instructionsAttribute)
             constructorParams = [cxx_writer.writer_code.Parameter('INSTRUCTIONS', IntructionTypePtr.makePointer().makeRef())] + constructorParams
             constructorInit.append('INSTRUCTIONS(INSTRUCTIONS)')
-            fetchAttr = cxx_writer.writer_code.Attribute(self.fetchReg[0], resourceType[self.fetchReg[0]].makeRef(), 'pri')
+            fetchAttr = cxx_writer.writer_code.Attribute(self.fetchReg[0], resourceType[self.fetchReg[0]].makeRef(), 'pu')
             constructorParams = [cxx_writer.writer_code.Parameter(self.fetchReg[0], resourceType[self.fetchReg[0]].makeRef())] + constructorParams
             constructorInit.append(self.fetchReg[0] + '(' + self.fetchReg[0] + ')')
             curPipeElements.append(fetchAttr)
@@ -406,11 +407,10 @@ def getGetPipelineStages(self, trace, model, namespace):
             constructorInit.append('numInstructions(numInstructions)')
             curPipeElements.append(numInstructions)
             if self.instructionCache:
-                template_mapType = cxx_writer.writer_code.TemplateType('template_map', [self.bitSizes[1], IntructionTypePtr], hash_map_include).makeRef()
+                CacheElemType = cxx_writer.writer_code.Type('CacheElem')
+                template_mapType = cxx_writer.writer_code.TemplateType('template_map', [self.bitSizes[1], CacheElemType], hash_map_include)
                 cacheAttribute = cxx_writer.writer_code.Attribute('instrCache', template_mapType, 'pri')
                 curPipeElements.append(cacheAttribute)
-                constructorParams = [cxx_writer.writer_code.Parameter('instrCache', template_mapType)] + constructorParams
-                constructorInit.append('instrCache(instrCache)')
 
         if pipeStage.checkTools:
             ToolsManagerType = cxx_writer.writer_code.TemplateType('ToolsManager', [self.bitSizes[1]], 'ToolsIf.hpp')
