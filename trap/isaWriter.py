@@ -329,9 +329,6 @@ def getCPPInstr(self, model, processor, trace, namespace):
         # add, if the current one is the writeBack stage, the registers locked in the read stage
         # to the unlock queue
         if model.startswith('acc'):
-            registerType = cxx_writer.writer_code.Type('Register')
-            unlockQueueType = cxx_writer.writer_code.TemplateType('std::vector', [registerType.makePointer()])
-            unlockQueueParam = cxx_writer.writer_code.Parameter('unlockQueue', unlockQueueType.makeRef())
             if hasCheckHazard:
                 userDefineBehavior += getToUnlockRegs(self, processor, pipeStage, False)
 
@@ -339,38 +336,25 @@ def getCPPInstr(self, model, processor, trace, namespace):
             # now I have to take all the resources and create a define which
             # renames such resources so that their usage can be transparent
             # to the developer
-            for reg in processor.regs:
+            for reg in processor.regs + processor.regBanks + processor.aliasRegs + processor.aliasRegBanks:
                 behaviorCode += '#define ' + reg.name + ' ' + reg.name + '_' + pipeStage.name + '\n'
-            for regB in processor.regBanks:
-                behaviorCode += '#define ' + regB.name + ' ' + regB.name + '_' + pipeStage.name + '\n'
-            for alias in processor.aliasRegs:
-                behaviorCode += '#define ' + alias.name + ' ' + alias.name + '_' + pipeStage.name + '\n'
-            for aliasB in processor.aliasRegBanks:
-                behaviorCode += '#define ' + aliasB.name + ' ' + aliasB.name + '_' + pipeStage.name + '\n'
-            for instrFieldName, correspondence in self.machineCode.bitCorrespondence.items():
-                behaviorCode += '#define ' + instrFieldName + ' ' + instrFieldName + '_' + pipeStage.name + '\n'
-            for instrFieldName, correspondence in self.bitCorrespondence.items():
+            for instrFieldName in self.machineCode.bitCorrespondence.keys() + self.bitCorrespondence.keys():
                 behaviorCode += '#define ' + instrFieldName + ' ' + instrFieldName + '_' + pipeStage.name + '\n'
             behaviorCode += '\n'
 
         behaviorCode += userDefineBehavior
 
         if model.startswith('acc') and userDefineBehavior:
-            for reg in processor.regs:
+            for reg in processor.regs + processor.regBanks + processor.aliasRegs + processor.aliasRegBanks:
                 behaviorCode += '#undef ' + reg.name + '\n'
-            for regB in processor.regBanks:
-                behaviorCode += '#undef ' + regB.name + '\n'
-            for alias in processor.aliasRegs:
-                behaviorCode += '#undef ' + alias.name + '\n'
-            for aliasB in processor.aliasRegBanks:
-                behaviorCode += '#undef ' + aliasB.name + '\n'
-            for instrFieldName, correspondence in self.machineCode.bitCorrespondence.items():
-                behaviorCode += '#undef ' + instrFieldName + '\n'
-            for instrFieldName, correspondence in self.bitCorrespondence.items():
+            for instrFieldName in self.machineCode.bitCorrespondence.keys() + self.bitCorrespondence.keys():
                 behaviorCode += '#undef ' + instrFieldName + '\n'
 
         if model.startswith('acc'):
             behaviorCode += 'return this->stageCycles;\n\n'
+            registerType = cxx_writer.writer_code.Type('Register')
+            unlockQueueType = cxx_writer.writer_code.TemplateType('std::vector', [registerType.makePointer()])
+            unlockQueueParam = cxx_writer.writer_code.Parameter('unlockQueue', unlockQueueType.makeRef())
             behaviorBody = cxx_writer.writer_code.Code(behaviorCode)
             behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage.name, behaviorBody, cxx_writer.writer_code.uintType, 'pu', [unlockQueueParam])
             classElements.append(behaviorDecl)
@@ -1180,10 +1164,7 @@ def getCPPClasses(self, processor, model, trace, namespace):
         NOPInstructionElements.append(getIdDecl)
 
         if hasCheckHazard:
-            if processor.externalClock:
-                checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', cxx_writer.writer_code.Code('return false;'), cxx_writer.writer_code.boolType, 'pu')
-            else:
-                checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.voidType, 'pu')
+            checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.voidType, 'pu')
             NOPInstructionElements.append(checkHazardDecl)
             lockDecl = cxx_writer.writer_code.Method('lockRegs', emptyBody, cxx_writer.writer_code.voidType, 'pu')
             NOPInstructionElements.append(lockDecl)
@@ -1196,11 +1177,11 @@ def getCPPClasses(self, processor, model, trace, namespace):
                     NOPInstructionElements.append(getUnlockDecl)
         from procWriter import baseInstrInitElement
         publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, ['Instruction(' + baseInstrInitElement + ')'])
-        NOPInstructionElements = cxx_writer.writer_code.ClassDeclaration('NOPInstruction', NOPInstructionElements, [instructionDecl.getType()], namespaces = [namespace])
-        NOPInstructionElements.addConstructor(publicConstr)
+        NOPInstructionClass = cxx_writer.writer_code.ClassDeclaration('NOPInstruction', NOPInstructionElements, [instructionDecl.getType()], namespaces = [namespace])
+        NOPInstructionClass.addConstructor(publicConstr)
         publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
-        NOPInstructionElements.addDestructor(publicDestr)
-        classes.append(NOPInstructionElements)
+        NOPInstructionClass.addDestructor(publicDestr)
+        classes.append(NOPInstructionClass)
     # Now I go over all the other instructions and I declare them
     for instr in self.instructions.values():
         classes += instr.getCPPClass(model, processor, trace, namespace)

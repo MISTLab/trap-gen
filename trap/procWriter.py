@@ -196,7 +196,7 @@ def computeCurrentPC(self, model):
     return fetchAddress
 
 # Computes and prints the code necessary for dealing with interrupts
-def getInterruptCode(self):
+def getInterruptCode(self, pipeStage = None):
     interruptCode = ''
     orderedIrqList = sorted(self.irqs, lambda x,y: cmp(y.priority, x.priority))
     for irqPort in orderedIrqList:
@@ -209,7 +209,18 @@ def getInterruptCode(self):
         if(irqPort.condition):
             interruptCode += ') && (' + irqPort.condition + ')'
         interruptCode += '){\n'
-        interruptCode += irqPort.operation + '\n}\n'
+        # Now I have to call the actual interrrupt instruction: again, this
+        # depends on whether we are in the cycle accurate processor or
+        # in the functional one.
+        # Functional: we only need to call the instruction behavior
+        # Cycle accurate, we need to add the instruction to the pipeline
+        interruptCode += 'this->' + irqPort.name + '_irqInstr->setInterruptValue(' + irqPort.name + ');\n'
+        if pipeStage:
+            interruptCode += 'numCycles = this->' + irqPort.name + '_irqInstr->behavior_' + pipeStage.name + '(BasePipeStage::unlockQueue);\n'
+            interruptCode += 'this->curInstruction = this->' + irqPort.name + '_irqInstr;\n'
+        else:
+            interruptCode += 'numCycles = this->' + irqPort.name + '_irqInstr->behavior();\n'
+        interruptCode += '\n}\n'
     if self.irqs:
         interruptCode += 'else{\n'
     return interruptCode
@@ -911,6 +922,8 @@ def getCPPProc(self, model, trace, namespace):
                             memName = name
                 curPipeInit = [self.fetchReg[0], 'Processor::INSTRUCTIONS', memName] + curPipeInit
                 curPipeInit = ['numInstructions'] + curPipeInit
+                for irq in self.irqs:
+                    curPipeInit = ['this->' + irq.name] + curPipeInit
             if pipeStage.checkTools:
                 curPipeInit = [self.fetchReg[0], 'toolManager'] + curPipeInit
             initString += ')'
@@ -919,6 +932,12 @@ def getCPPProc(self, model, trace, namespace):
         NOPIntructionType = cxx_writer.writer_code.Type('NOPInstruction', 'instructions.hpp')
         NOPinstructionsAttribute = cxx_writer.writer_code.Attribute('NOPInstrInstance', NOPIntructionType.makePointer(), 'pu', True)
         processorElements.append(NOPinstructionsAttribute)
+
+    # Lets declare the interrupt instructions in case we have any
+    for irq in self.irqs:
+        IRQIntructionType = cxx_writer.writer_code.Type('IRQ_' + irq.name + '_Instruction', 'instructions.hpp')
+        IRQinstructionAttribute = cxx_writer.writer_code.Attribute(irq.name + '_irqInstr', IRQIntructionType.makePointer(), 'pu')
+        processorElements.append(IRQinstructionAttribute)
 
     # Ok, here I have to create the code for the constructor: I have to
     # initialize the INSTRUCTIONS array, the local memory (if present)
@@ -967,6 +986,10 @@ def getCPPProc(self, model, trace, namespace):
         for pipeStage in self.pipes:
             constrCode += pipeStage.name + '_stage.NOPInstrInstance = Processor::NOPInstrInstance;\n'
     constrCode += '}\n'
+    for irq in self.irqs:
+        constrCode += 'this->' + irqPort.name + '_irqInstr = new IRQ_' + irq.name + '_Instruction(' + baseInstrInitElement + ', this->' + irqPort.name + ');\n'
+        for pipeStage in self.pipes:
+            constrCode += pipeStage.name + '_stage.' + irqPort.name + '_irqInstr = this->' + irqPort.name + '_irqInstr;\n'
     constrCode += bodyInits
     if not model.startswith('acc'):
         if self.externalClock:
@@ -991,6 +1014,8 @@ def getCPPProc(self, model, trace, namespace):
         delete [] Processor::INSTRUCTIONS;
         Processor::INSTRUCTIONS = NULL;
     """
+    if model.startswith('acc'):
+        destrCode += 'delete Processor::NOPInstrInstance;\n'
     destrCode += '}\n'
     if self.instructionCache and not model.startswith('acc'):
         destrCode += """template_map< """ + str(fetchWordType) + """, CacheElem >::const_iterator cacheIter, cacheEnd;
@@ -1000,6 +1025,8 @@ def getCPPProc(self, model, trace, namespace):
         """
     if self.abi:
         destrCode += 'delete this->abiIf;\n'
+    for irq in self.irqs:
+        destrCode += 'delete this->' + irqPort.name + '_irqInstr;\n'
     destrCode += bodyDestructor
     destructorBody = cxx_writer.writer_code.Code(destrCode)
     publicDestr = cxx_writer.writer_code.Destructor(destructorBody, 'pu')

@@ -34,7 +34,7 @@
 #
 ####################################################################################
 
-import procWriter, registerWriter, memWriter, interfaceWriter, portsWriter, pipelineWriter
+import procWriter, registerWriter, memWriter, interfaceWriter, portsWriter, pipelineWriter, irqWriter
 
 validModels = ['funcLT', 'funcAT', 'accLT', 'accAT']
 
@@ -825,6 +825,14 @@ class Processor:
             print('Warning: "returnCallInstr" or "callInstr" not specified in the ABI: the profiler may give uncorrect results')
         ################# TODO: check also the memories #######################
 
+    def checkIRQPorts(self):
+        # So far I only have to check that the stages of the IRQ operations are existing
+        stageNames = [i.name for i in self.pipes]
+        for irq in self.irqs:
+            for stage in irq.operation.keys():
+                if not stage in stageNames:
+                    raise Exception('Pipeline stage ' + stage + ' declared for interrupt ' + irq.name + ' does not exist')
+
     def getCPPRegisters(self, model, namespace):
         # This method creates all the classes necessary for declaring
         # the registers: in particular the register base class
@@ -875,6 +883,10 @@ class Processor:
         # Returns the code implementing the interrupt ports
         return portsWriter.getGetIRQPorts(self, namespace)
 
+    def getGetIRQInstr(self, model, trace, namespace):
+        # Returns the code implementing the fake interrupt instruction
+        return irqWriter.getGetIRQInstr(self, model, trace, namespace)
+
     def getGetPINPorts(self, namespace):
         # Returns the code implementing the PIN ports
         return portsWriter.getGetPINPorts(self, namespace)
@@ -907,6 +919,7 @@ class Processor:
         if self.abi:
             self.checkABI()
         self.isa.checkRegisters(extractRegInterval, self.isRegExisting)
+        self.checkIRQPorts()
 
         # OK, checks done. Now I can start calling the write methods to
         # actually create the ISS code
@@ -991,9 +1004,12 @@ class Processor:
                 pipeClass = self.getGetPipelineStages(trace, model, namespace)
             MemClass = self.getCPPMemoryIf(model, namespace)
             ExternalIf = self.getCPPExternalPorts(model, namespace)
-            IRQClasses = self.getGetIRQPorts(namespace)
-            PINClasses = self.getGetPINPorts(namespace)
+            if self.pins:
+                PINClasses = self.getGetPINPorts(namespace)
             ISAClasses = self.isa.getCPPClasses(self, model, trace, namespace)
+            if self.irqs:
+                IRQClasses = self.getGetIRQPorts(namespace)
+                ISAClasses += self.getGetIRQInstr(model, trace, namespace)
             # Ok, now that we have all the classes it is time to write
             # them to file
             curFolder = cxx_writer.writer_code.Folder(os.path.join(folder, model))
@@ -1062,7 +1078,7 @@ class Processor:
                 implFileExt.addMember(namespaceUse)
                 implFileExt.addMember(ExternalIf)
                 headFileExt.addMember(ExternalIf)
-            if IRQClasses:
+            if self.irqs:
                 implFileIRQ = cxx_writer.writer_code.FileDumper('irqPorts.cpp', False)
                 implFileIRQ.addInclude('irqPorts.hpp')
                 headFileIRQ = cxx_writer.writer_code.FileDumper('irqPorts.hpp', True)
@@ -1070,7 +1086,7 @@ class Processor:
                 for i in IRQClasses:
                     implFileIRQ.addMember(i)
                     headFileIRQ.addMember(i)
-            if PINClasses:
+            if self.pins:
                 implFilePIN = cxx_writer.writer_code.FileDumper('externalPins.cpp', False)
                 implFilePIN.addInclude('externalPins.hpp')
                 headFilePIN = cxx_writer.writer_code.FileDumper('externalPins.hpp', True)
@@ -1288,9 +1304,11 @@ class Interrupt:
         self.tests = []
         self.operation = {}
 
-    def setOperation(self, operation, stage, condition = ''):
-        self.condition = condition
+    def setOperation(self, operation, stage):
         self.operation[stage] = operation
+
+    def setCondition(self, condition):
+        self.condition = condition
 
     def addTest(self, inputState, expOut):
         # The test is composed of 2 parts: the status before the

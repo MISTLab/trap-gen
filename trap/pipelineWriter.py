@@ -77,6 +77,14 @@ def getGetPipelineStages(self, trace, model, namespace):
     NOPIntructionType = cxx_writer.writer_code.Type('NOPInstruction', 'instructions.hpp')
     NOPinstructionsAttribute = cxx_writer.writer_code.Attribute('NOPInstrInstance', NOPIntructionType.makePointer(), 'pu')
     pipelineElements.append(NOPinstructionsAttribute)
+    constructorCode += 'this->NOPInstrInstance = NULL;\n'
+
+    # Lets declare the interrupt instructions in case we have any and we also declare the signal attribute
+    for irq in self.irqs:
+        IRQIntructionType = cxx_writer.writer_code.Type('IRQ_' + irq.name + '_Instruction', 'instructions.hpp')
+        IRQinstructionAttribute = cxx_writer.writer_code.Attribute(irq.name + '_irqInstr', IRQIntructionType.makePointer(), 'pu')
+        pipelineElements.append(IRQinstructionAttribute)
+        constructorCode += 'this->' + irq.name + '_irqInstr = NULL;\n'
 
     latencyAttribute = cxx_writer.writer_code.Attribute('latency', cxx_writer.writer_code.sc_timeType, 'pro')
     pipelineElements.append(latencyAttribute)
@@ -204,7 +212,7 @@ def getGetPipelineStages(self, trace, model, namespace):
             # Here is the code to deal with interrupts; note one problem: if an interrupt is raised, we need to
             # deal with it in the correct stage, i.e. we need to create a special instruction reaching the correct
             # stage and dealing with it properly.
-            codeString += getInterruptCode(self)
+            codeString += getInterruptCode(self, pipeStage)
             # computes the correct memory and/or memory port from which fetching the instruction stream
             fetchCode = computeFetchCode(self)
             # computes the address from which the next instruction shall be fetched
@@ -411,6 +419,13 @@ def getGetPipelineStages(self, trace, model, namespace):
             constructorParams = [cxx_writer.writer_code.Parameter('numInstructions', cxx_writer.writer_code.uintType.makeRef())] + constructorParams
             constructorInit.append('numInstructions(numInstructions)')
             curPipeElements.append(numInstructions)
+            for irq in self.irqs:
+                from isa import resolveBitType
+                irqWidthType = resolveBitType('BIT<' + str(irq.portWidth) + '>')
+                IRQAttribute = cxx_writer.writer_code.Attribute(irq.name, irqWidthType.makeRef(), 'pu')
+                constructorParams = [cxx_writer.writer_code.Parameter(irq.name, irqWidthType.makeRef())] + constructorParams
+                constructorInit.append(irq.name + '(' + irq.name + ')')
+                curPipeElements.append(IRQAttribute)
             if self.instructionCache:
                 CacheElemType = cxx_writer.writer_code.Type('CacheElem')
                 template_mapType = cxx_writer.writer_code.TemplateType('template_map', [self.bitSizes[1], CacheElemType], hash_map_include)

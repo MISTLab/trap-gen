@@ -749,7 +749,10 @@ def getIRQTests(self, trace, namespace):
             if(irq.condition):
                 code += ') && (' + irq.condition + ')'
             code += '){\n'
-            code += irq.operation + '\n}\n'
+            # Now here we insert the actual interrupt behavior
+            for irqCode in irq.operation.values():
+                code += irqCode + '\n'
+            code += '\n}\n'
 
             # finally I check the correctness of the executed operation
             for resource, value in test[1].items():

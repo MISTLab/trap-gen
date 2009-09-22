@@ -227,23 +227,20 @@ irqPort.setOperation("""//Basically, what I have to do when
 //are enabled and that the the processor can take this interrupt
 //(valid interrupt level). The we simply raise an exception and
 //acknowledge the IRQ on the irqAck port.
-if(PSR[key_ET]){
-    if(IRQ == 15 || IRQ > PSR[key_PIL]){
-        // First of all I have to move to a new register window
-        unsigned int newCwp = ((unsigned int)(PSR[key_CWP] - 1)) % NUM_REG_WIN;
-        PSRbp = (PSR & 0xFFFFFFE0) | newCwp;
-        PSR.immediateWrite(PSRbp);
-        """ + updateWinCode + """
-        // Now I set the TBR
-        TBR[key_TT] = 0x10 + IRQ;
-        // I have to jump to the address contained in the TBR register
-        PC = TBR;
-        NPC = TBR + 4;
-        // finally I acknowledge the interrupt on the external pin port
-        irqAck.send_pin_req(IRQ, 0);
-    }
-}
+// First of all I have to move to a new register window
+unsigned int newCwp = ((unsigned int)(PSR[key_CWP] - 1)) % NUM_REG_WIN;
+PSRbp = (PSR & 0xFFFFFFE0) | newCwp;
+PSR.immediateWrite(PSRbp);
+""" + updateWinCode + """
+// Now I set the TBR
+TBR[key_TT] = 0x10 + IRQ;
+// I have to jump to the address contained in the TBR register
+PC = TBR;
+NPC = TBR + 4;
+// finally I acknowledge the interrupt on the external pin port
+irqAck.send_pin_req(IRQ, 0);
 """, 'exception')
+irqPort.setCondition('PSR[key_ET] && (IRQ == 15 || IRQ > PSR[key_PIL])')
 irqPort.addTest({}, {})
 processor.addIrq(irqPort)
 
