@@ -3765,3 +3765,179 @@ swapb_Instr.addTest({'cond' : 0x0, 'rd' : 9, 'rn' : 0, 'rm': 8},
                    {'REGS[9]': 0x00000000,'dataMem[0x0000000a]': 0xcd})
 #endif
 isa.addInstruction(swapb_Instr)
+
+
+# LDRBT
+opCode = cxx_writer.writer_code.Code("""
+rd = dataMem.read_word(address);
+stall(2);
+""")
+ldrbt_imm_Instr = trap.Instruction('LDRBT_imm', True, frequency = 4)
+ldrbt_imm_Instr.setMachineCode(ls_immOff, {'b': [1],'l': [1]}, subInstr = True)
+ldrbt_imm_Instr.setCode(opCode, 'execute')
+ldrbt_imm_Instr.addBehavior(IncrementPC, 'fetch')
+ldrbt_imm_Instr.addBehavior(condCheckOp, 'execute')
+ldrbt_imm_Instr.addBehavior(ls_imm_Op, 'execute')
+ldrbt_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0}, {'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrbt_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0}, {'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrbt_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x18})
+ldrbt_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x08})
+isa.addInstruction(ldrbt_imm_Instr)
+
+ldrbt_off_Instr = trap.Instruction('LDRBT_off', True, frequency = 4)
+ldrbt_off_Instr.setMachineCode(ls_regOff, {'b': [1], 'l': [1]}, subInstr = True)
+ldrbt_off_Instr.setCode(opCode, 'execute')
+ldrbt_off_Instr.addBehavior(IncrementPC, 'fetch')
+ldrbt_off_Instr.addBehavior(condCheckOp, 'execute')
+ldrbt_off_Instr.addBehavior(ls_reg_Op, 'execute')
+
+ldrbt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+			{'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrbt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+			{'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrbt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+			{'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x18})
+ldrbt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+			{'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x08})
+isa.addInstruction(ldrbt_off_Instr)
+
+#LDRT
+opCode = cxx_writer.writer_code.Code("""
+memLastBits = address & 0x00000003;
+// if the memory address is not word aligned I have to rotate the loaded value
+if(memLastBits == 0){
+    rd = dataMem.read_word(address);
+}
+else{
+    rd = RotateRight(8*memLastBits, dataMem.read_word(address));
+}
+stall(2);
+""")
+ldrt_imm_Instr = trap.Instruction('LDRT_imm', True, frequency = 8)
+ldrt_imm_Instr.setMachineCode(ls_immOff, {'b': [0], 'l': [1]}, subInstr = True)
+ldrt_imm_Instr.setCode(opCode, 'execute')
+ldrt_imm_Instr.addBehavior(IncrementPC, 'fetch')
+ldrt_imm_Instr.addBehavior(condCheckOp, 'execute')
+ldrt_imm_Instr.addBehavior(ls_imm_Op, 'execute')
+ldrt_imm_Instr.addVariable(('memLastBits', 'BIT<32>'))
+ldrt_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0}, 
+		       {'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x10})
+ldrt_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0}, 
+		       {'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x10})
+ldrt_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, 
+		       {'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x18})
+ldrt_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, 
+		       {'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x08})
+isa.addInstruction(ldrt_imm_Instr)
+
+ldrt_off_Instr = trap.Instruction('LDRT_off', True, frequency = 7)
+ldrt_off_Instr.setMachineCode(ls_regOff, {'b': [0], 'l': [1]}, subInstr = True)
+ldrt_off_Instr.setCode(opCode, 'execute')
+ldrt_off_Instr.addBehavior(IncrementPC, 'fetch')
+ldrt_off_Instr.addBehavior(condCheckOp, 'execute')
+ldrt_off_Instr.addBehavior(ls_reg_Op, 'execute')
+ldrt_off_Instr.addVariable(('memLastBits', 'BIT<32>'))
+ldrt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+			{'REGS[2]' : 0x0,'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x10})
+ldrt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+			{'REGS[2]' : 0x0,'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x10})
+ldrt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+			{'REGS[2]' : 0x8,'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x18})
+ldrt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+			{'REGS[2]' : 0x8,'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x08})
+isa.addInstruction(ldrt_off_Instr)
+
+# STRBT 
+opCode = cxx_writer.writer_code.Code("""
+dataMem.write_byte(address, (unsigned char)(rd & 0x000000FF));
+stall(1);
+""")
+strbt_imm_Instr = trap.Instruction('STRBT_imm', True, frequency = 4)
+strbt_imm_Instr.setMachineCode(ls_immOff, {'b': [1], 'l': [0]}, subInstr = True)
+strbt_imm_Instr.setCode(opCode, 'execute')
+strbt_imm_Instr.addBehavior(IncrementPC, 'fetch')
+strbt_imm_Instr.addBehavior(condCheckOp, 'execute')
+strbt_imm_Instr.addBehavior(ls_imm_Op, 'execute')
+strbt_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0}, {'REGS[0]' : 0x10, 'REGS[1]' : 123}, {'dataMem[0x10]': 123, 'REGS[0]' : 0x10})
+strbt_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0}, {'REGS[0]' : 0x10, 'REGS[1]' : 123}, {'dataMem[0x10]': 123, 'REGS[0]' : 0x10})
+strbt_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'REGS[1]': 123},{'dataMem[0x10]': 123, 'REGS[0]' : 0x18})
+strbt_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'REGS[1]' : 123}, {'dataMem[0x10]': 123, 'REGS[0]' : 0x08})
+isa.addInstruction(strbt_imm_Instr)
+
+strbt_off_Instr = trap.Instruction('STRBT_off', True, frequency = 4)
+strbt_off_Instr.setMachineCode(ls_regOff, {'b': [1], 'l': [0]}, subInstr = True)
+strbt_off_Instr.setCode(opCode, 'execute')
+strbt_off_Instr.addBehavior(IncrementPC, 'fetch')
+strbt_off_Instr.addBehavior(condCheckOp, 'execute')
+strbt_off_Instr.addBehavior(ls_reg_Op, 'execute')
+strbt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+		       {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+		       {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
+strbt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+		       {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+		       {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
+strbt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+		       {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+		       {'dataMem[0x10]':123, 'REGS[0]' : 0x18})
+strbt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+		       {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+		       {'dataMem[0x10]':123, 'REGS[0]' : 0x08})
+isa.addInstruction(strbt_off_Instr)
+
+# STRT 
+opCode = cxx_writer.writer_code.Code("""
+dataMem.write_word(address, rd);
+stall(1);
+""")
+strt_imm_Instr = trap.Instruction('STRT_imm', True, frequency = 8)
+strt_imm_Instr.setMachineCode(ls_immOff, {'b': [0], 'l': [0]}, subInstr = True)
+strt_imm_Instr.setCode(opCode, 'execute')
+strt_imm_Instr.addBehavior(IncrementPC, 'fetch')
+strt_imm_Instr.addBehavior(condCheckOp, 'execute')
+strt_imm_Instr.addBehavior(ls_imm_Op, 'execute')
+strt_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0}, {'REGS[0]' : 0x10, 'REGS[1]' : 123}, {'dataMem[0x10]': 123, 'REGS[0]' : 0x10})
+strt_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0}, {'REGS[0]' : 0x10, 'REGS[1]' : 123}, {'dataMem[0x10]': 123, 'REGS[0]' : 0x10})
+strt_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'REGS[1]': 123},{'dataMem[0x10]': 123, 'REGS[0]' : 0x18})
+strt_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'REGS[1]' : 123}, {'dataMem[0x10]': 123, 'REGS[0]' : 0x08})
+isa.addInstruction(strt_imm_Instr)
+
+strt_off_Instr = trap.Instruction('STRT_off', True, frequency = 8)
+strt_off_Instr.setMachineCode(ls_regOff, {'b': [0], 'l': [0]}, subInstr = True)
+strt_off_Instr.setCode(opCode, 'execute')
+strt_off_Instr.addBehavior(IncrementPC, 'fetch')
+strt_off_Instr.addBehavior(condCheckOp, 'execute')
+strt_off_Instr.addBehavior(ls_reg_Op, 'execute')
+strt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+		       {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+		       {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
+strt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+		       {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+		       {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
+strt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+		       {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+		       {'dataMem[0x10]':123, 'REGS[0]' : 0x18})
+strt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+		       {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+		       {'dataMem[0x10]':123, 'REGS[0]' : 0x08})
+isa.addInstruction(strt_off_Instr)
+
+#LDC
+opCode = cxx_writer.writer_code.Code("""
+	THROW_EXCEPTION("LDC : Undefined Instruction");
+""")
+ldc_Instr = trap.Instruction('LDC', True, frequency = 1)
+ldc_Instr.setMachineCode(cp_ls, {'l': [1]}, 'TODO')
+ldc_Instr.setCode(opCode, 'execute')
+isa.addInstruction(ldc_Instr)
+
+#STC
+opCode = cxx_writer.writer_code.Code("""
+	THROW_EXCEPTION("STC : Undefined Instruction");
+""")
+stc_Instr = trap.Instruction('STC', True, frequency = 1)
+stc_Instr.setMachineCode(cp_ls, {'l': [0]}, 'TODO')
+stc_Instr.setCode(opCode, 'execute')
+isa.addInstruction(stc_Instr)
+
+
+
