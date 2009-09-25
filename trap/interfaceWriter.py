@@ -87,14 +87,33 @@ def getCPPIf(self, model, namespace):
         baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(aliasB.name, resourceType[aliasB.name].makePointer().makeRef()))
         initElements.append(aliasB.name + '(' + aliasB.name + ')')
         ifClassElements.append(attribute)
-    # Now lets declare the methods used to access the variables
+
     if self.isBigEndian:
         endianessCode = cxx_writer.writer_code.Code('return false;')
     else:
         endianessCode = cxx_writer.writer_code.Code('return true;')
-    endianessCode.addInclude(includes)
     endianessMethod = cxx_writer.writer_code.Method('isLittleEndian', endianessCode, cxx_writer.writer_code.boolType, 'pu', noException = True, const = True)
     ifClassElements.append(endianessMethod)
+
+    # Here are the methods used to discriminate when an instruction is executing or not
+    attribute = cxx_writer.writer_code.Attribute('instrExecuting', cxx_writer.writer_code.boolType.makeRef(), 'pri')
+    baseInstrConstrParams.append(cxx_writer.writer_code.Parameter('instrExecuting', cxx_writer.writer_code.boolType.makeRef()))
+    initElements.append('instrExecuting(instrExecuting)')
+    ifClassElements.append(attribute)
+    instrExecutingCode = cxx_writer.writer_code.Code('return this->instrExecuting;')
+    instrExecutingMethod = cxx_writer.writer_code.Method('isInstrExecuting', instrExecutingCode, cxx_writer.writer_code.boolType, 'pu', noException = True, const = True)
+    ifClassElements.append(instrExecutingMethod)
+    if self.systemc:
+        attribute = cxx_writer.writer_code.Attribute('instrEndEvent', cxx_writer.writer_code.sc_eventType.makeRef(), 'pri')
+        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter('instrEndEvent', cxx_writer.writer_code.sc_eventType.makeRef()))
+        initElements.append('instrEndEvent(instrEndEvent)')
+        ifClassElements.append(attribute)
+        waitInstrEndCode = cxx_writer.writer_code.Code('if(this->instrExecuting){\nwait(this->instrEndEvent);\n}\n')
+        waitInstrEndCode.addInclude('systemc.h')
+    else:
+        waitInstrEndCode = cxx_writer.writer_code.Code('while(this->instrExecuting){\n;\n}\n')
+    waitInstrEndMethod = cxx_writer.writer_code.Method('waitInstrEnd', waitInstrEndCode, cxx_writer.writer_code.voidType, 'pu', noException = True, const = True)
+    ifClassElements.append(waitInstrEndMethod)
 
     if self.abi.preCallCode:
         ifClassElements.append(cxx_writer.writer_code.Method('preCall', cxx_writer.writer_code.Code(self.abi.preCallCode), cxx_writer.writer_code.voidType, 'pu', noException = True))

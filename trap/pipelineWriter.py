@@ -202,8 +202,12 @@ def getGetPipelineStages(self, trace, model, namespace):
             # This is the fetch pipeline stage, I have to fetch instructions
             if self.instructionCache:
                 codeString += 'template_map< ' + str(self.bitSizes[1]) + ', CacheElem >::iterator instrCacheEnd = this->instrCache.end();\n'
-            codeString += """while(true){
-            // HERE WAIT FOR BEGIN OF ALL STAGES
+            codeString += 'while(true){\n'
+
+            # Here is the code to notify start of the instruction execution
+            codeString += 'this->instrExecuting = true;\n'
+
+            codeString += """// HERE WAIT FOR BEGIN OF ALL STAGES
             this->waitPipeBegin();
 
             """
@@ -241,6 +245,12 @@ def getGetPipelineStages(self, trace, model, namespace):
             this->waitPipeEnd();
 
             """
+
+            # Here is the code to notify start of the instruction execution
+            codeString += 'this->instrExecuting = false;\n'
+            if self.systemc:
+                codeString += 'this->instrEndEvent.notify;\n'
+
             codeString += """
             // Now I have to propagate the instruction to the next cycle if
             // the next stage has completed elaboration
@@ -419,6 +429,15 @@ def getGetPipelineStages(self, trace, model, namespace):
             constructorParams = [cxx_writer.writer_code.Parameter('numInstructions', cxx_writer.writer_code.uintType.makeRef())] + constructorParams
             constructorInit.append('numInstructions(numInstructions)')
             curPipeElements.append(numInstructions)
+            attribute = cxx_writer.writer_code.Attribute('instrExecuting', cxx_writer.writer_code.boolType.makeRef(), 'pri')
+            constructorParams = [cxx_writer.writer_code.Parameter('instrExecuting', cxx_writer.writer_code.boolType.makeRef())] + constructorParams
+            constructorInit.append('instrExecuting(instrExecuting)')
+            curPipeElements.append(attribute)
+            attribute = cxx_writer.writer_code.Attribute('instrEndEvent', cxx_writer.writer_code.sc_eventType.makeRef(), 'pri')
+            constructorParams = [cxx_writer.writer_code.Parameter('instrEndEvent', cxx_writer.writer_code.sc_eventType.makeRef())] + constructorParams
+            constructorInit.append('instrEndEvent(instrEndEvent)')
+            curPipeElements.append(attribute)
+
             for irq in self.irqs:
                 from isa import resolveBitType
                 irqWidthType = resolveBitType('BIT<' + str(irq.portWidth) + '>')

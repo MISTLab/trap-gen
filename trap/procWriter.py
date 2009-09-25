@@ -311,11 +311,11 @@ def getCPPProc(self, model, trace, namespace):
             # Declaration of the instruction buffer for speeding up decoding
             codeString += 'template_map< ' + str(self.bitSizes[1]) + ', CacheElem >::iterator instrCacheEnd = this->instrCache.end();'
 
-        if self.externalClock:
-            codeString += 'if(this->waitCycles > 0){\nthis->waitCycles--;\nreturn;\n}\n\n'
-        else:
-            codeString += 'while(true){\n'
+        codeString += 'while(true){\n'
         codeString += 'unsigned int numCycles = 0;\n'
+
+        # Here is the code to notify start of the instruction execution
+        codeString += 'this->instrExecuting = true;\n'
 
         #Here is the code to deal with interrupts
         codeString += getInterruptCode(self)
@@ -340,14 +340,18 @@ def getCPPProc(self, model, trace, namespace):
 
         if self.irqs:
             codeString += '}\n'
-        if self.externalClock:
-            codeString += 'this->waitCycles += numCycles;\n'
-        elif len(self.tlmPorts) > 0 and model.endswith('LT'):
+        if len(self.tlmPorts) > 0 and model.endswith('LT'):
             codeString += 'this->quantKeeper.inc((numCycles + 1)*this->latency);\nif(this->quantKeeper.need_sync()) this->quantKeeper.sync();\n'
         elif model.startswith('acc') or self.systemc or model.endswith('AT'):
             codeString += 'wait((numCycles + 1)*this->latency);\n'
         else:
             codeString += 'this->totalCycles += (numCycles + 1);\n'
+
+        # Here is the code to notify start of the instruction execution
+        codeString += 'this->instrExecuting = false;\n'
+        if self.systemc:
+            codeString += 'this->instrEndEvent.notify;\n'
+
         codeString += 'this->numInstructions++;\n\n'
         # Now I have to call the update method for all the delayed registers
         for reg in self.regs:
@@ -838,6 +842,16 @@ def getCPPProc(self, model, trace, namespace):
     progStarttAttr = cxx_writer.writer_code.Attribute('PROGRAM_START', fetchWordType, 'pu')
     processorElements.append(progStarttAttr)
     bodyInits += 'this->PROGRAM_START = 0;\n'
+    # Here are the variables used to keep track of the end of each instruction execution
+    attribute = cxx_writer.writer_code.Attribute('instrExecuting', cxx_writer.writer_code.boolType, 'pri')
+    processorElements.append(attribute)
+    if self.abi:
+        abiIfInit += ', this->instrExecuting'
+    if self.systemc:
+        attribute = cxx_writer.writer_code.Attribute('instrEndEvent', cxx_writer.writer_code.sc_eventType, 'pri')
+        processorElements.append(attribute)
+        if self.abi:
+            abiIfInit += ', this->instrEndEvent'
     if self.abi:
         bodyInits += 'this->abiIf = new ' + str(interfaceType) + '(' + abiIfInit + ');\n'
 
@@ -922,6 +936,8 @@ def getCPPProc(self, model, trace, namespace):
                             memName = name
                 curPipeInit = [self.fetchReg[0], 'Processor::INSTRUCTIONS', memName] + curPipeInit
                 curPipeInit = ['numInstructions'] + curPipeInit
+                curPipeInit = ['instrExecuting'] + curPipeInit
+                curPipeInit = ['instrEndEvent'] + curPipeInit
                 for irq in self.irqs:
                     curPipeInit = ['this->' + irq.name] + curPipeInit
             if pipeStage.checkTools:
