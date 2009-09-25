@@ -99,7 +99,7 @@ class OSEmulatorBase{
     static std::map<std::string,  std::string> env;
     static std::map<std::string, int> sysconfmap;
     static std::vector<std::string> programArgs;
-    static unsigned int heapPointer;
+    static std::map<int, unsigned int> heapPointer;
 };
 
 ///Base class for each emulated system call;
@@ -310,22 +310,25 @@ template<class wordSize> class isattySysCall : public SyscallCB<wordSize>{
 };
 
 template<class wordSize> class sbrkSysCall : public SyscallCB<wordSize>{
+    private:
+        unsigned int &heapPointer;
     public:
-    sbrkSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
+    sbrkSysCall(ABIIf<wordSize> &processorInstance, unsigned int &heapPointer, sc_time latency = SC_ZERO_TIME) :
+                                    SyscallCB<wordSize>(processorInstance, latency), heapPointer(heapPointer){}
     bool operator()(){
         this->processorInstance.preCall();
         //Lets get the system call arguments
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
 
-        wordSize base = OSEmulatorBase::heapPointer;
+        wordSize base = this->heapPointer;
         long long increment = callArgs[0];
 
-        OSEmulatorBase::heapPointer += increment;
+        this->heapPointer += increment;
 
         //I try to read from meory to see if it is possible to access the just allocated address;
         //In case it is not it means that I'm out of memory and I signal the error
         try{
-            this->processorInstance.readMem(OSEmulatorBase::heapPointer);
+            this->processorInstance.readMem(this->heapPointer);
             this->processorInstance.setRetVal(base);
         }
         catch(...){
@@ -782,8 +785,11 @@ template<class wordSize> class dup2SysCall : public SyscallCB<wordSize>{
 };
 
 template<class wordSize> class getenvSysCall : public SyscallCB<wordSize>{
+    private:
+        unsigned int &heapPointer;
     public:
-    getenvSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
+    getenvSysCall(ABIIf<wordSize> &processorInstance, unsigned int &heapPointer, sc_time latency = SC_ZERO_TIME) :
+                                SyscallCB<wordSize>(processorInstance, latency), heapPointer(heapPointer){}
     bool operator()(){
         this->processorInstance.preCall();
         //Lets get the system call arguments
@@ -806,8 +812,8 @@ template<class wordSize> class getenvSysCall : public SyscallCB<wordSize>{
                 //I have to allocate memory for the result on the simulated memory;
                 //I then have to copy the read environment variable here and return
                 //the pointer to it
-                unsigned int base = OSEmulatorBase::heapPointer;
-                OSEmulatorBase::heapPointer += curEnv->second.size() + 1;
+                unsigned int base = this->heapPointer;
+                this->heapPointer += curEnv->second.size() + 1;
                 for(unsigned int i = 0; i < curEnv->second.size(); i++){
                     this->processorInstance.writeCharMem(base + i, curEnv->second[i]);
                 }
@@ -979,8 +985,11 @@ template<class wordSize> class usleepSysCall : public SyscallCB<wordSize>{
 };
 
 template<class wordSize> class mainSysCall : public SyscallCB<wordSize>{
+    private:
+        unsigned int &heapPointer;
     public:
-    mainSysCall(ABIIf<wordSize> &processorInstance) : SyscallCB<wordSize>(processorInstance, SC_ZERO_TIME){}
+    mainSysCall(ABIIf<wordSize> &processorInstance, unsigned int &heapPointer) :
+                SyscallCB<wordSize>(processorInstance, SC_ZERO_TIME), heapPointer(heapPointer){}
     bool operator()(){
         this->processorInstance.preCall();
 
@@ -1000,8 +1009,8 @@ template<class wordSize> class mainSysCall : public SyscallCB<wordSize>{
             return false;
         }
 
-        unsigned int argAddr = ((unsigned int)OSEmulatorBase::heapPointer) + (OSEmulatorBase::programArgs.size() + 1)*4;
-        unsigned int argNumAddr = OSEmulatorBase::heapPointer;
+        unsigned int argAddr = ((unsigned int)this->heapPointer) + (OSEmulatorBase::programArgs.size() + 1)*4;
+        unsigned int argNumAddr = this->heapPointer;
         std::vector<std::string>::iterator argsIter, argsEnd;
         for(argsIter = OSEmulatorBase::programArgs.begin(), argsEnd = OSEmulatorBase::programArgs.end(); argsIter != argsEnd; argsIter++){
             this->processorInstance.writeMem(argNumAddr, argAddr);
@@ -1015,9 +1024,9 @@ template<class wordSize> class mainSysCall : public SyscallCB<wordSize>{
         this->processorInstance.writeMem(argNumAddr, 0);
 
         mainArgs.push_back(OSEmulatorBase::programArgs.size());
-        mainArgs.push_back(OSEmulatorBase::heapPointer);
+        mainArgs.push_back(this->heapPointer);
         this->processorInstance.setArgs(mainArgs);
-        OSEmulatorBase::heapPointer = argAddr;
+        this->heapPointer = argAddr;
         this->processorInstance.postCall();
         return false;
     }

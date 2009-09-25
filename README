@@ -51,13 +51,7 @@ TRAP is mainly composed of three folders:
                 C++ code from Python. This library is self contained, it does not
                 depend on the rest of TRAP and it can be useful on its own
  -- trap: contains the processor generator itself.
- -- examples: processor models created to test TRAP
+ -- processors: processor models created to test TRAP
 
 TRAP depends on the NetworkX (https://networkx.lanl.gov/wiki) package for the creation and representation of the decoding tree
 (see decoder.py for more details).
-
-In order to build libraries for windows on MinGW, cross-compiling the boost libraries is needed; this
-can be accomplished with the "bjam --user-config=user-config.jam --toolset=gcc link=static --prefix=/usr/i686-mingw32/usr/"
-command, where the content of the user-config.jam file is "using gcc : : i686-mingw32-gcc : ;"
-
-Maybe this command line is better: "bjam --user-config=user-config.jam --toolset=gcc link=static --prefix=/usr/i686-mingw32/usr/ threading=multi threadapi=win32"
