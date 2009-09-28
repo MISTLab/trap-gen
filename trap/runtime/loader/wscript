@@ -8,7 +8,7 @@ def build(bld):
     obj.source="""
         execLoader.cpp
     """
-    obj.uselib = 'BFD'
+    obj.uselib = 'BFD BOOST BOOST_FILESYSTEM BOOST_SYSTEM'
     obj.includes = '. ../utils'
     obj.export_incdirs = '.'
     obj.name = 'loader'

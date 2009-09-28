@@ -74,27 +74,28 @@ def getToUnlockRegs(self, processor, pipeStage, regStageName, delayedUnlock):
         # only the register itself can be added to the queue, not aliases.
         regsNames = [i.name for i in processor.regBanks + processor.regs]
         for regToUnlock in regsToUnlock:
-            realName = regToUnlock
-            parenthesis = realName.find('[')
-            if parenthesis > 0:
-                realName = realName[:parenthesis]
-            if regStageName:
+            if not regToUnlock in self.notLockRegs:
+                realName = regToUnlock
+                parenthesis = realName.find('[')
                 if parenthesis > 0:
-                    realRegName = realName + '_' + pipeStage.name + regToUnlock[parenthesis:]
+                    realName = realName[:parenthesis]
+                if regStageName:
+                    if parenthesis > 0:
+                        realRegName = realName + '_' + pipeStage.name + regToUnlock[parenthesis:]
+                    else:
+                        realRegName = regToUnlock + '_' + pipeStage.name
                 else:
-                    realRegName = regToUnlock + '_' + pipeStage.name
-            else:
-                realRegName = regToUnlock
-            if delayedUnlock and self.delayedWb.has_key(regToUnlock):
-                if not realName in regsNames:
-                    code += 'unlockQueue[' + str(self.delayedWb[regToUnlock]) + '].push_back(' + realRegName + '.getReg());\n'
+                    realRegName = regToUnlock
+                if delayedUnlock and self.delayedWb.has_key(regToUnlock):
+                    if not realName in regsNames:
+                        code += 'unlockQueue[' + str(self.delayedWb[regToUnlock]) + '].push_back(' + realRegName + '.getReg());\n'
+                    else:
+                        code += 'unlockQueue[' + str(self.delayedWb[regToUnlock]) + '].push_back(&' + realRegName + ');\n'
                 else:
-                    code += 'unlockQueue[' + str(self.delayedWb[regToUnlock]) + '].push_back(&' + realRegName + ');\n'
-            else:
-                if not realName in regsNames:
-                    code += 'unlockQueue[0].push_back(' + realRegName + '.getReg());\n'
-                else:
-                    code += 'unlockQueue[0].push_back(&' + realRegName + ');\n'
+                    if not realName in regsNames:
+                        code += 'unlockQueue[0].push_back(' + realRegName + '.getReg());\n'
+                    else:
+                        code += 'unlockQueue[0].push_back(&' + realRegName + ');\n'
     return code
 
 def toBinStr(intNum, maxLen = -1):
@@ -399,36 +400,38 @@ def getCPPInstr(self, model, processor, trace, namespace):
                 regsToCheck.append(specialRegName)
 
             for regToCheck in regsToCheck:
-                parenthesis = regToCheck.find('[')
-                if parenthesis > 0:
-                    realRegName = regToCheck[:parenthesis] + '_' + chStage.name + regToCheck[parenthesis:]
-                else:
-                    realRegName = regToCheck + '_' + chStage.name
-                checkHazardCode += 'if(this->' + realRegName + '.isLocked()){\n'
-                checkHazardCode += 'this->' + realRegName + '.waitHazard();\n'
-                checkHazardCode += '}\n'
+                if not regToCheck in self.notLockRegs:
+                    parenthesis = regToCheck.find('[')
+                    if parenthesis > 0:
+                        realRegName = regToCheck[:parenthesis] + '_' + chStage.name + regToCheck[parenthesis:]
+                    else:
+                        realRegName = regToCheck + '_' + chStage.name
+                    checkHazardCode += 'if(this->' + realRegName + '.isLocked()){\n'
+                    checkHazardCode += 'this->' + realRegName + '.waitHazard();\n'
+                    checkHazardCode += '}\n'
 
             checkHazardBody = cxx_writer.writer_code.Code(checkHazardCode)
             checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', checkHazardBody, cxx_writer.writer_code.voidType, 'pu')
             classElements.append(checkHazardDecl)
             # lockRegs
-            regToLock = []
+            regsToLock = []
             lockCode = ''
             for name, correspondence in self.machineCode.bitCorrespondence.items():
                 if 'out' in self.machineCode.bitDirection[name]:
-                    regToLock.append(name)
+                    regsToLock.append(name)
             for name, correspondence in self.bitCorrespondence.items():
                 if 'out' in self.bitDirection[name]:
-                    regToLock.append(name)
+                    regsToLock.append(name)
             for specialRegName in self.specialOutRegs:
-                regToLock.append(specialRegName)
-            for regToLock in regToLock:
-                parenthesis = regToLock.find('[')
-                if parenthesis > 0:
-                    realRegName = regToLock[:parenthesis] + '_' + chStage.name + regToLock[parenthesis:]
-                else:
-                    realRegName = regToLock + '_' + chStage.name
-                lockCode += 'this->' + realRegName + '.lock();\n'
+                regsToLock.append(specialRegName)
+            for regToLock in regsToLock:
+                if not regToLock in self.notLockRegs:
+                    parenthesis = regToLock.find('[')
+                    if parenthesis > 0:
+                        realRegName = regToLock[:parenthesis] + '_' + chStage.name + regToLock[parenthesis:]
+                    else:
+                        realRegName = regToLock + '_' + chStage.name
+                    lockCode += 'this->' + realRegName + '.lock();\n'
             lockBody = cxx_writer.writer_code.Code(lockCode)
             lockDecl = cxx_writer.writer_code.Method('lockRegs', lockBody, cxx_writer.writer_code.voidType, 'pu')
             classElements.append(lockDecl)

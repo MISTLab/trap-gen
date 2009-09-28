@@ -345,6 +345,9 @@ class Instruction:
         # leaves the pipeline, but much later, with a latency specified (in clock cycles)
         # by the key of the map
         self.delayedWb = {}
+        # Here are the registers which should not be considered during lock and unlock
+        # operations
+        self.notLockRegs = []
 
     def setMachineCode(self, machineCode, machineBits = {}, mnemonic = [], subInstr = False):
         # Sets the machine code for this instruction. Note that a machine
@@ -522,6 +525,15 @@ class Instruction:
         # is written that specified amount of cycles after the
         # instruction has exited the pipeline
         self.delayedWb[regName] = delay
+
+    def removeLockRegRegister(self, regName):
+        # Specifies the registers which, despite being written
+        # or read by the instruction, do not have to be automatically
+        # locked/unlocked/checked for hazard. This means that no action
+        # will be automatically performed on them and that
+        # it is responsibility of the developer to manually perform such checks
+        # inside the instruction body (if needed)
+        self.notLockRegs.append(regName)
 
     def __repr__(self):
         return self.name + ' coding: ' + str(self.bitstring)

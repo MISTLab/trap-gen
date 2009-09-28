@@ -53,7 +53,12 @@ namespace trap{
 
 class ExecLoader{
   private:
+    ///Variable holding the binary image of the application according to the BFD format
     bfd * execImage;
+    ///Specifies whether a normal binary file (ELF; COFF, etc.) or a plain file (just the
+    ///opcodes of the instructions) was used.
+    bool plainFile;
+    ///Variables holding info on the program being loaded
     unsigned char * programData;
     unsigned int progDim;
     unsigned int dataStart;
@@ -67,13 +72,16 @@ class ExecLoader{
     ///Initializes the loader of executable files by creating
     ///the corresponding bfd image of the executable file
     ///specified as parameter
-    ExecLoader(std::string fileName);
+    ExecLoader(std::string fileName, bool plainFile = false);
     ~ExecLoader();
     ///Returns the entry point of the loaded program
+    ///(usually the same as the program start address, but
+    ///not always)
     unsigned int getProgStart();
-    ///Returns the start address of the data to load
+    ///Returns the start address of the program being loaded
+    ///(the lowest address of the program)
     unsigned int getDataStart();
-    ///Returns the dimensione of the loaded program
+    ///Returns the dimension of the loaded program
     unsigned int getProgDim();
     ///Returns a pointer to the array contianing the program data
     unsigned char * getProgData();
