@@ -298,6 +298,7 @@ PSRbp = (PSR & 0xFFFFFFE0) | newCwp;
 PSR.immediateWrite(PSRbp);
 """
 post_code += updateWinCode
+abi.processorID('(ASR[17] & 0xF0000000) >> 28')
 abi.setECallPreCode(pre_code)
 abi.setECallPostCode(post_code)
 abi.setOffset('PC', -4)

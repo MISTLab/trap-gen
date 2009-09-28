@@ -65,6 +65,11 @@ template<class regWidth> class ABIIf{
     virtual void returnFromCall() throw(){
         this->setPC(this->readLR());
     }
+    virtual int getProcessorID() const throw(){
+        return 0;
+    }
+    virtual bool isInstrExecuting() const throw() = 0;
+    virtual void waitInstrEnd() const throw() = 0;
     virtual bool isLittleEndian() const throw() = 0;
     virtual regWidth readLR() const throw(){
         THROW_ERROR("The LR register is not defined in the processor ABI");

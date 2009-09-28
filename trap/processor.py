@@ -1419,6 +1419,11 @@ class ABI:
         # we enter in a new routine when instructions a, b, and c or d are executed in sequence
         self.callInstr = []
         self.returnCallInstr = []
+        # Code used to determine the processor ID in a multi-processor environment
+        self.procIdCode = None
+
+    def processorID(self, procIdCode):
+        self.procIdCode = procIdCode
 
     def setCallInstr(self, instrList):
         self.callInstr = instrList
