@@ -149,7 +149,8 @@ def getGetPipelineStages(self, trace, model, namespace):
     pipelineElements.append(stageAttr)
     stageAttr = cxx_writer.writer_code.Attribute('succStage', pipeType.makePointer(), 'pro')
     pipelineElements.append(stageAttr)
-    unlockQueueAttr = cxx_writer.writer_code.Attribute('unlockQueue', cxx_writer.writer_code.TemplateType('std::vector', [registerType.makePointer()], 'vector'), 'pro', static = True)
+    unlockQueueType = cxx_writer.writer_code.TemplateType('std::map', ['unsigned int', cxx_writer.writer_code.TemplateType('std::vector', [registerType.makePointer()], 'vector')], 'map')
+    unlockQueueAttr = cxx_writer.writer_code.Attribute('unlockQueue', unlockQueueType, 'pro', static = True)
     pipelineElements.append(unlockQueueAttr)
     prevStageParam = cxx_writer.writer_code.Parameter('prevStage', pipeType.makePointer(), initValue = 'NULL')
     succStageParam = cxx_writer.writer_code.Parameter('succStage', pipeType.makePointer(), initValue = 'NULL')
@@ -249,7 +250,7 @@ def getGetPipelineStages(self, trace, model, namespace):
             # Here is the code to notify start of the instruction execution
             codeString += 'this->instrExecuting = false;\n'
             if self.systemc:
-                codeString += 'this->instrEndEvent.notify;\n'
+                codeString += 'this->instrEndEvent.notify();\n'
 
             codeString += """
             // Now I have to propagate the instruction to the next cycle if
@@ -378,9 +379,20 @@ def getGetPipelineStages(self, trace, model, namespace):
                 codeString += '}\n'
             # Now I have to produce the code for unlocking the registers in the unlockQueue
             codeString += """
-            std::vector<Register *>::iterator unlockQueueIter, unlockQueueEnd;
+            std::map<unsigned int, std::vector<Register *> >::iterator unlockQueueIter, unlockQueueEnd;
             for(unlockQueueIter = BasePipeStage::unlockQueue.begin(), unlockQueueEnd = BasePipeStage::unlockQueue.end(); unlockQueueIter != unlockQueueEnd; unlockQueueIter++){
-                (*unlockQueueIter)->unlock();
+                std::vector<Register *>::iterator regToUnlockIter, regToUnlockEnd;
+                if(unlockQueueIter->first == 0){
+                    for(regToUnlockIter = unlockQueueIter->second.begin(), regToUnlockEnd = unlockQueueIter->second.end(); regToUnlockIter != regToUnlockEnd; regToUnlockIter++){
+                        (*regToUnlockIter)->unlock();
+                    }
+                }
+                else{
+                    sc_time regLat = unlockQueueIter->first*this->latency;
+                    for(regToUnlockIter = unlockQueueIter->second.begin(), regToUnlockEnd = unlockQueueIter->second.end(); regToUnlockIter != regToUnlockEnd; regToUnlockIter++){
+                        (*regToUnlockIter)->unlock(regLat);
+                    }
+                }
             }
             """
             refreshRegistersBody = cxx_writer.writer_code.Code(codeString)

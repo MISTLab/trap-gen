@@ -73,7 +73,7 @@ def getGetIRQInstr(self, model, trace, namespace):
             if model.startswith('acc'):
                 behaviorCode += 'return this->stageCycles;\n\n'
                 registerType = cxx_writer.writer_code.Type('Register')
-                unlockQueueType = cxx_writer.writer_code.TemplateType('std::vector', [registerType.makePointer()])
+                unlockQueueType = cxx_writer.writer_code.TemplateType('std::map', ['unsigned int', cxx_writer.writer_code.TemplateType('std::vector', [registerType.makePointer()], 'vector')], 'map')
                 unlockQueueParam = cxx_writer.writer_code.Parameter('unlockQueue', unlockQueueType.makeRef())
                 behaviorBody = cxx_writer.writer_code.Code(behaviorCode)
                 behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage.name, behaviorBody, cxx_writer.writer_code.uintType, 'pu', [unlockQueueParam])

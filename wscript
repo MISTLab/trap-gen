@@ -19,7 +19,7 @@ def configure(conf):
     # Check for standard tools
     usingMsvc = False
     try:
-        conf.check_tool('gcc g++')
+        conf.check_tool('gcc g++ osx')
     except:
         conf.check_message_2('Error in GCC compiler detection, reverting to Microsoft CL')
         conf.check_tool('msvc')

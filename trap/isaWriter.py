@@ -45,7 +45,7 @@ archWordType = None
 alreadyDeclared = []
 baseInstrConstrParams = []
 
-def getToUnlockRegs(self, processor, pipeStage, regStageName):
+def getToUnlockRegs(self, processor, pipeStage, regStageName, delayedUnlock):
     code = ''
     regsToUnlock = []
     # Now I have to insert the code to fill in the queue of registers to unlock
@@ -85,10 +85,16 @@ def getToUnlockRegs(self, processor, pipeStage, regStageName):
                     realRegName = regToUnlock + '_' + pipeStage.name
             else:
                 realRegName = regToUnlock
-            if not realName in regsNames:
-                code += 'unlockQueue.push_back(' + realRegName + '.getReg());\n'
+            if delayedUnlock and self.delayedWb.has_key(regToUnlock):
+                if not realName in regsNames:
+                    code += 'unlockQueue[' + str(self.delayedWb[regToUnlock]) + '].push_back(' + realRegName + '.getReg());\n'
+                else:
+                    code += 'unlockQueue[' + str(self.delayedWb[regToUnlock]) + '].push_back(&' + realRegName + ');\n'
             else:
-                code += 'unlockQueue.push_back(&' + realRegName + ');\n'
+                if not realName in regsNames:
+                    code += 'unlockQueue[0].push_back(' + realRegName + '.getReg());\n'
+                else:
+                    code += 'unlockQueue[0].push_back(&' + realRegName + ');\n'
     return code
 
 def toBinStr(intNum, maxLen = -1):
@@ -330,7 +336,7 @@ def getCPPInstr(self, model, processor, trace, namespace):
         # to the unlock queue
         if model.startswith('acc'):
             if hasCheckHazard:
-                userDefineBehavior += getToUnlockRegs(self, processor, pipeStage, False)
+                userDefineBehavior += getToUnlockRegs(self, processor, pipeStage, False, True)
 
         if model.startswith('acc') and userDefineBehavior:
             # now I have to take all the resources and create a define which
@@ -353,7 +359,7 @@ def getCPPInstr(self, model, processor, trace, namespace):
         if model.startswith('acc'):
             behaviorCode += 'return this->stageCycles;\n\n'
             registerType = cxx_writer.writer_code.Type('Register')
-            unlockQueueType = cxx_writer.writer_code.TemplateType('std::vector', [registerType.makePointer()])
+            unlockQueueType = cxx_writer.writer_code.TemplateType('std::map', ['unsigned int', cxx_writer.writer_code.TemplateType('std::vector', [registerType.makePointer()], 'vector')], 'map')
             unlockQueueParam = cxx_writer.writer_code.Parameter('unlockQueue', unlockQueueType.makeRef())
             behaviorBody = cxx_writer.writer_code.Code(behaviorCode)
             behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage.name, behaviorBody, cxx_writer.writer_code.uintType, 'pu', [unlockQueueParam])
@@ -432,7 +438,7 @@ def getCPPInstr(self, model, processor, trace, namespace):
                 if pipeStage.checkHazard:
                     unlockHazard = True
                 if unlockHazard:
-                    getUnlockCode = getToUnlockRegs(self, processor, pipeStage, True)
+                    getUnlockCode = getToUnlockRegs(self, processor, pipeStage, True, False)
                     getUnlockBody = cxx_writer.writer_code.Code(getUnlockCode)
                     getUnlockDecl = cxx_writer.writer_code.Method('getUnlock_' + pipeStage.name, getUnlockBody, cxx_writer.writer_code.voidType, 'pu', [unlockQueueParam])
                     classElements.append(getUnlockDecl)
@@ -779,7 +785,7 @@ def getCPPClasses(self, processor, model, trace, namespace):
     # I go over each instruction and print the class representing it
     memoryType = cxx_writer.writer_code.Type('MemoryInterface', 'memory.hpp')
     registerType = cxx_writer.writer_code.Type('Register')
-    unlockQueueType = cxx_writer.writer_code.TemplateType('std::vector', [registerType.makePointer()])
+    unlockQueueType = cxx_writer.writer_code.TemplateType('std::map', ['unsigned int', cxx_writer.writer_code.TemplateType('std::vector', [registerType.makePointer()], 'vector')], 'map')
 
     classes = []
     # Here I add the define code, definig the type of the current model

@@ -43,6 +43,9 @@ import cxx_writer
 from LEON3Coding import *
 from LEON3Methods import *
 
+# pipeline Multiplication
+pipelinedMult = False
+
 # ISA declaration: it is the container for all the single instructions
 isa = trap.ISA()
 
@@ -1891,23 +1894,13 @@ opCodeExecS = cxx_writer.writer_code.Code("""
 long long resultTemp = (long long)(((long long)((int)rs1_op))*((long long)((int)rs2_op)));
 Ybp = ((unsigned long long)resultTemp) >> 32;
 result = resultTemp & 0x00000000FFFFFFFF;
-if(PIPELINED_MULT){
-    stall(4);
-}
-else{
-    stall(3);
-}
+stall(2);
 """)
 opCodeExecU = cxx_writer.writer_code.Code("""
 unsigned long long resultTemp = (unsigned long long)(((unsigned long long)((unsigned int)rs1_op))*((unsigned long long)((unsigned int)rs2_op)));
 Ybp = resultTemp >> 32;
 result = resultTemp & 0x00000000FFFFFFFF;
-if(PIPELINED_MULT){
-    stall(4);
-}
-else{
-    stall(3);
-}
+stall(2);
 """)
 umul_imm_Instr = trap.Instruction('UMUL_imm', True, frequency = 2)
 umul_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 1, 0, 1, 0]}, ('umul r', '%rs1', ' ', '%simm13', ' r', '%rd'))
@@ -1919,6 +1912,10 @@ umul_imm_Instr.addVariable(('result', 'BIT<32>'))
 umul_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 umul_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
 umul_imm_Instr.addSpecialRegister('Ybp', 'out')
+if pipelinedMult:
+    umul_imm_Instr.setWbDelay('rd', 3)
+else:
+    umul_imm_Instr.setWbDelay('rd', 2)
 isa.addInstruction(umul_imm_Instr)
 umul_reg_Instr = trap.Instruction('UMUL_reg', True, frequency = 2)
 umul_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 1, 0, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('umul r', '%rs1', ' r', '%rs2', ' r', '%rd'))
@@ -1930,6 +1927,10 @@ umul_reg_Instr.addVariable(('result', 'BIT<32>'))
 umul_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 umul_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
 umul_reg_Instr.addSpecialRegister('Ybp', 'out')
+if pipelinedMult:
+    umul_reg_Instr.setWbDelay('rd', 3)
+else:
+    umul_reg_Instr.setWbDelay('rd', 2)
 isa.addInstruction(umul_reg_Instr)
 smul_imm_Instr = trap.Instruction('SMUL_imm', True, frequency = 3)
 smul_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 1, 0, 1, 1]}, ('smul r', '%rs1', ' ', '%simm13', ' r', '%rd'))
@@ -1941,6 +1942,10 @@ smul_imm_Instr.addVariable(('result', 'BIT<32>'))
 smul_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 smul_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
 smul_imm_Instr.addSpecialRegister('Ybp', 'out')
+if pipelinedMult:
+    smul_imm_Instr.setWbDelay('rd', 3)
+else:
+    smul_imm_Instr.setWbDelay('rd', 2)
 isa.addInstruction(smul_imm_Instr)
 smul_reg_Instr = trap.Instruction('SMUL_reg', True, frequency = 4)
 smul_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 1, 0, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('smul r', '%rs1', ' r', '%rs2', ' r', '%rd'))
@@ -1952,6 +1957,10 @@ smul_reg_Instr.addVariable(('result', 'BIT<32>'))
 smul_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 smul_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
 smul_reg_Instr.addSpecialRegister('Ybp', 'out')
+if pipelinedMult:
+    smul_reg_Instr.setWbDelay('rd', 3)
+else:
+    smul_reg_Instr.setWbDelay('rd', 2)
 isa.addInstruction(smul_reg_Instr)
 umulcc_imm_Instr = trap.Instruction('UMULcc_imm', True, frequency = 2)
 umulcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 1, 0, 1, 0]}, ('umulcc r', '%rs1', ' ', '%simm13', ' r', '%rd'))
@@ -1965,6 +1974,10 @@ umulcc_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 umulcc_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
 umulcc_imm_Instr.addSpecialRegister('Ybp', 'out')
 umulcc_imm_Instr.addSpecialRegister('PSRbp', 'out')
+if pipelinedMult:
+    umulcc_imm_Instr.setWbDelay('rd', 3)
+else:
+    umulcc_imm_Instr.setWbDelay('rd', 2)
 isa.addInstruction(umulcc_imm_Instr)
 umulcc_reg_Instr = trap.Instruction('UMULcc_reg', True, frequency = 2)
 umulcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 1, 0, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('umulcc r', '%rs1', ' r', '%rs2', ' r', '%rd'))
@@ -1978,6 +1991,10 @@ umulcc_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 umulcc_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
 umulcc_reg_Instr.addSpecialRegister('Ybp', 'out')
 umulcc_reg_Instr.addSpecialRegister('PSRbp', 'out')
+if pipelinedMult:
+    umulcc_reg_Instr.setWbDelay('rd', 3)
+else:
+    umulcc_reg_Instr.setWbDelay('rd', 2)
 isa.addInstruction(umulcc_reg_Instr)
 smulcc_imm_Instr = trap.Instruction('SMULcc_imm', True, frequency = 2)
 smulcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 1, 0, 1, 1]}, ('smulcc r', '%rs1', ' ', '%simm13', ' r', '%rd'))
@@ -1991,6 +2008,10 @@ smulcc_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 smulcc_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
 smulcc_imm_Instr.addSpecialRegister('Ybp', 'out')
 smulcc_imm_Instr.addSpecialRegister('PSRbp', 'out')
+if pipelinedMult:
+    smulcc_imm_Instr.setWbDelay('rd', 3)
+else:
+    smulcc_imm_Instr.setWbDelay('rd', 2)
 isa.addInstruction(smulcc_imm_Instr)
 smulcc_reg_Instr = trap.Instruction('SMULcc_reg', True, frequency = 2)
 smulcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 1, 0, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('smulcc r', '%rs1', ' r', '%rs2', ' r', '%rd'))
@@ -2004,6 +2025,10 @@ smulcc_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 smulcc_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
 smulcc_reg_Instr.addSpecialRegister('Ybp', 'out')
 smulcc_reg_Instr.addSpecialRegister('PSRbp', 'out')
+if pipelinedMult:
+    smulcc_reg_Instr.setWbDelay('rd', 3)
+else:
+    smulcc_reg_Instr.setWbDelay('rd', 2)
 isa.addInstruction(smulcc_reg_Instr)
 
 # Multiply Accumulate Instructions
@@ -2120,7 +2145,7 @@ if(!exception){
         result = (unsigned int)(res64 & 0x00000000FFFFFFFFLL);
     }
 }
-stall(35);
+stall(2);
 """)
 opCodeTrap = cxx_writer.writer_code.Code("""
 if(exception){
@@ -2140,6 +2165,7 @@ udiv_imm_Instr.addVariable(('result', 'BIT<32>'))
 udiv_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 udiv_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
 udiv_imm_Instr.addSpecialRegister('Ybp', 'in')
+udiv_imm_Instr.setWbDelay('rd', 33)
 isa.addInstruction(udiv_imm_Instr)
 udiv_reg_Instr = trap.Instruction('UDIV_reg', True, frequency = 2)
 udiv_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 1, 1, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('udiv', ' r', '%rs1', ' r', '%rs2', ' r', '%rd'))
@@ -2154,6 +2180,7 @@ udiv_reg_Instr.addVariable(('result', 'BIT<32>'))
 udiv_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 udiv_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
 udiv_reg_Instr.addSpecialRegister('Ybp', 'in')
+udiv_reg_Instr.setWbDelay('rd', 33)
 isa.addInstruction(udiv_reg_Instr)
 sdiv_imm_Instr = trap.Instruction('SDIV_imm', True, frequency = 2)
 sdiv_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 1, 1, 1, 1]}, ('sdiv', ' r', '%rs1', ' ', '%simm13', '%rd'))
@@ -2168,6 +2195,7 @@ sdiv_imm_Instr.addVariable(('result', 'BIT<32>'))
 sdiv_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 sdiv_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
 sdiv_imm_Instr.addSpecialRegister('Ybp', 'in')
+sdiv_imm_Instr.setWbDelay('rd', 33)
 isa.addInstruction(sdiv_imm_Instr)
 sdiv_reg_Instr = trap.Instruction('SDIV_reg', True, frequency = 2)
 sdiv_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 1, 1, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('sdiv', ' r', '%rs1', ' r', '%rs2', '%rd'))
@@ -2182,6 +2210,7 @@ sdiv_reg_Instr.addVariable(('result', 'BIT<32>'))
 sdiv_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 sdiv_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
 sdiv_reg_Instr.addSpecialRegister('Ybp', 'in')
+sdiv_reg_Instr.setWbDelay('rd', 33)
 isa.addInstruction(sdiv_reg_Instr)
 udivcc_imm_Instr = trap.Instruction('UDIVcc_imm', True, frequency = 1)
 udivcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 1, 1, 1, 0]}, ('udivcc', ' r', '%rs1', ' ', '%simm13', '%rd'))
@@ -2198,6 +2227,7 @@ udivcc_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 udivcc_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
 udivcc_imm_Instr.addSpecialRegister('Ybp', 'in')
 udivcc_imm_Instr.addSpecialRegister('PSRbp', 'inout')
+udivcc_imm_Instr.setWbDelay('rd', 33)
 isa.addInstruction(udivcc_imm_Instr)
 udivcc_reg_Instr = trap.Instruction('UDIVcc_reg', True, frequency = 1)
 udivcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 1, 1, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('udivcc', ' r', '%rs1', ' r', '%rs2', '%rd'))
@@ -2214,6 +2244,7 @@ udivcc_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 udivcc_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
 udivcc_reg_Instr.addSpecialRegister('Ybp', 'in')
 udivcc_reg_Instr.addSpecialRegister('PSRbp', 'inout')
+udivcc_reg_Instr.setWbDelay('rd', 33)
 isa.addInstruction(udivcc_reg_Instr)
 sdivcc_imm_Instr = trap.Instruction('SDIVcc_imm', True, frequency = 1)
 sdivcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 1, 1, 1, 1]}, ('sdivcc', ' r', '%rs1', ' ', '%simm13', '%rd'))
@@ -2230,6 +2261,7 @@ sdivcc_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 sdivcc_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
 sdivcc_imm_Instr.addSpecialRegister('Ybp', 'in')
 sdivcc_imm_Instr.addSpecialRegister('PSRbp', 'inout')
+sdivcc_imm_Instr.setWbDelay('rd', 33)
 isa.addInstruction(sdivcc_imm_Instr)
 sdivcc_reg_Instr = trap.Instruction('SDIVcc_reg', True, frequency = 1)
 sdivcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 1, 1, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('sdivcc', ' r', '%rs1', ' r', '%rs2', '%rd'))
@@ -2246,6 +2278,7 @@ sdivcc_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 sdivcc_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
 sdivcc_reg_Instr.addSpecialRegister('Ybp', 'in')
 sdivcc_reg_Instr.addSpecialRegister('PSRbp', 'inout')
+sdivcc_reg_Instr.setWbDelay('rd', 33)
 isa.addInstruction(sdivcc_reg_Instr)
 
 # Save and Restore

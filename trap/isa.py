@@ -338,9 +338,13 @@ class Instruction:
         # List of instruction which are subInstructions of the current one
         self.subInstructions = []
         # Specifies the list of behaviors that have to be printed respectively to the
-        # functiona and cycle accurate models
+        # functional and cycle accurate models
         self.behaviorAcc = []
         self.behaviorFun = []
+        # Here are the registers whose write back does not happen when the instruction
+        # leaves the pipeline, but much later, with a latency specified (in clock cycles)
+        # by the key of the map
+        self.delayedWb = {}
 
     def setMachineCode(self, machineCode, machineBits = {}, mnemonic = [], subInstr = False):
         # Sets the machine code for this instruction. Note that a machine
@@ -512,6 +516,12 @@ class Instruction:
         # TODO: think about the possbility of also changing what the aliases
         # point to
         self.tests.append((variables, inputState, expOut))
+
+    def setWbDelay(self, regName, delay):
+        # Sets the delay of a register, so that that register
+        # is written that specified amount of cycles after the
+        # instruction has exited the pipeline
+        self.delayedWb[regName] = delay
 
     def __repr__(self):
         return self.name + ' coding: ' + str(self.bitstring)
