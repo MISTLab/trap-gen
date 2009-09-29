@@ -149,10 +149,9 @@ def getInstrIssueCodePipe(self, trace, instrVarName, hasCheckHazard, pipeStage):
             """ + instrVarName + """ = this->NOPInstrInstance;
             """ + instrVarName + """->flushPipeline = true;
         """
-    if trace:
-        codeString += """std::cerr << "Not executed Instruction because Tools anulled it" << std::endl << std::endl;
-        """
-    if pipeStage.checkTools:
+        if trace:
+            codeString += """std::cerr << "Not executed Instruction because Tools anulled it" << std::endl << std::endl;
+            """
         codeString +='}\n#endif\n'
     codeString +='}\ncatch(annull_exception &etc){\n'
     if trace:

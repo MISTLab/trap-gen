@@ -345,7 +345,7 @@ def getGetPipelineStages(self, trace, model, namespace):
                         codeString += 'if(this->' + reg.name + ' != this->NOPInstrInstance->' + reg.name + '_' + customWBStage + '){\n'
                         codeString += 'this->' + reg.name + ' = this->NOPInstrInstance->' + reg.name + '_' + customWBStage + ';\n'
                         for upPipe in self.pipes:
-                            if upPipe != wbStage:
+                            if upPipe.name != customWBStage:
                                 codeString += 'this->NOPInstrInstance->' + reg.name + '_' + upPipe.name + ' = this->' + reg.name + ';\n'
                         codeString += '}\n'
 
@@ -373,7 +373,7 @@ def getGetPipelineStages(self, trace, model, namespace):
                         codeString += 'if(this->' + regB.name + '[i] != this->NOPInstrInstance->' + regB.name + '_' + customWBStage + '){\n'
                         codeString += 'this->' + regB.name + '[i] = this->NOPInstrInstance->' + regB.name + '_' + customWBStage + ';\n'
                         for upPipe in self.pipes:
-                            if upPipe != wbStage:
+                            if upPipe.name != customWBStage:
                                 codeString += 'this->NOPInstrInstance->' + regB.name + '_' + upPipe.name + '[i] = this->' + regB.name + '[i];\n'
                         codeString += '}\n'
                 codeString += '}\n'
