@@ -100,6 +100,14 @@ isa.addDefines("""
 #define IMPL_DEP_EXC 38
 """)
 
+# Here lests set the NOP behavior: it is used only for the cycle accurate processor; the functional
+# one does not even define such instruction
+isa.setNOPBehavior("""unsigned int npc = NPC;
+PC = npc;
+npc += 4;
+NPC = npc;
+""", 'fetch')
+
 #-------------------------------------------------------------------------------------
 # Let's now procede to set the behavior of the instructions
 #-------------------------------------------------------------------------------------
@@ -2850,6 +2858,7 @@ writeASR_imm_Instr.setCode(opCodeWb, 'wb')
 writeASR_imm_Instr.addBehavior(IncrementPC, 'fetch')
 writeASR_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(writeASR_imm_Instr)
+
 # ############################TODO: With respect to exceptions, the program counter appears to be written immediately:
 # this means that exceptions has to see the new value of the program counter ####################################
 opCodeXorR = cxx_writer.writer_code.Code("""

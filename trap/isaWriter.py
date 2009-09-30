@@ -909,6 +909,13 @@ def getCPPClasses(self, processor, model, trace, namespace):
         printTraceDecl = cxx_writer.writer_code.Method('printTrace', printTraceBody, cxx_writer.writer_code.voidType, 'pu')
         instructionElements.append(printTraceDecl)
 
+    getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', emptyBody, cxx_writer.writer_code.stringType, 'pu', noException = True, const = True, pure = True)
+    instructionElements.append(getIstructionNameDecl)
+    getMnemonicDecl = cxx_writer.writer_code.Method('getMnemonic', emptyBody, cxx_writer.writer_code.stringType, 'pu', noException = True, const = True, pure = True)
+    instructionElements.append(getMnemonicDecl)
+    getIdDecl = cxx_writer.writer_code.Method('getId', emptyBody, cxx_writer.writer_code.uintType, 'pu', noException = True, const = True, pure = True)
+    instructionElements.append(getIdDecl)
+
     # Note how the annull operation stops the execution of the current operation
     annullCode = 'throw annull_exception();'
     annullBody = cxx_writer.writer_code.Code(annullCode)
@@ -1153,7 +1160,29 @@ def getCPPClasses(self, processor, model, trace, namespace):
         # finally I print the NOP instruction, which I put in the pipeline when flushes occurr
         NOPInstructionElements = []
         for pipeStage in processor.pipes:
-            behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage.name, behaviorReturnBody, cxx_writer.writer_code.uintType, 'pu', [unlockQueueParam])
+            if self.nopBeh.has_key(pipeStage.name):
+                defineCode = ''
+                for reg in processor.regs:
+                    defineCode += '#define ' + reg.name + ' ' + reg.name + '_' + pipeStage.name + '\n'
+                for regB in processor.regBanks:
+                    defineCode += '#define ' + regB.name + ' ' + regB.name + '_' + pipeStage.name + '\n'
+                for alias in processor.aliasRegs:
+                    defineCode += '#define ' + alias.name + ' ' + alias.name + '_' + pipeStage.name + '\n'
+                for aliasB in processor.aliasRegBanks:
+                    defineCode += '#define ' + aliasB.name + ' ' + aliasB.name + '_' + pipeStage.name + '\n'
+                undefineCode = ''
+                for reg in processor.regs:
+                    undefineCode += '#undef ' + reg.name + '\n'
+                for regB in processor.regBanks:
+                    undefineCode += '#undef ' + regB.name + '\n'
+                for alias in processor.aliasRegs:
+                    undefineCode += '#undef ' + alias.name + '\n'
+                for aliasB in processor.aliasRegBanks:
+                    undefineCode += '#undef ' + aliasB.name + '\n'
+                behaviorBody = cxx_writer.writer_code.Code(defineCode + '\n' + self.nopBeh[pipeStage.name] + '\n' + undefineCode)
+            else:
+                behaviorBody = behaviorReturnBody
+            behaviorDecl = cxx_writer.writer_code.Method('behavior_' + pipeStage.name, behaviorBody, cxx_writer.writer_code.uintType, 'pu', [unlockQueueParam])
             NOPInstructionElements.append(behaviorDecl)
         from procWriter import baseInstrInitElement
         replicateBody = cxx_writer.writer_code.Code('return new NOPInstruction(' + baseInstrInitElement + ');')

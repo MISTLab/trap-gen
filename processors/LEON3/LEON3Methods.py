@@ -271,9 +271,8 @@ RaiseException_methodParams = [cxx_writer.writer_code.Parameter('exceptionId', c
 RaiseException_methodParams.append(cxx_writer.writer_code.Parameter('customTrapOffset', cxx_writer.writer_code.uintType, initValue = '0'))
 RaiseException_method.setSignature(cxx_writer.writer_code.voidType, RaiseException_methodParams)
 
-# Code used to jump to the trap handler address. This code modifies the PC and the NPC
-# so that the next instruction fetched is the one of the trap handler;
-# it also performs a flush of the pipeline
+# Code used increment the program counter, moving it to the next instruction in
+# the instruction stream
 opCode = cxx_writer.writer_code.Code("""unsigned int npc = NPC;
 PC = npc;
 npc += 4;

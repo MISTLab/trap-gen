@@ -126,9 +126,6 @@ def getInstrIssueCodePipe(self, trace, instrVarName, hasCheckHazard, pipeStage):
         if i == pipeStage:
             break
     codeString = ''
-    if hasCheckHazard and pipeStage.checkHazard:
-        codeString += instrVarName + '->checkHazard();\n'
-        codeString += instrVarName + '->lockRegs();\n'
     codeString += 'try{\n'
     if pipeStage.checkTools:
         codeString += """#ifndef DISABLE_TOOLS
@@ -156,7 +153,7 @@ def getInstrIssueCodePipe(self, trace, instrVarName, hasCheckHazard, pipeStage):
     codeString +='}\ncatch(annull_exception &etc){\n'
     if trace:
         codeString += instrVarName + """->printTrace();
-        std::cerr << "Stage: """ + pipeStage.name + """:Skipped Instruction " << """ + instrVarName + """->getInstructionName() << std::endl << std::endl;
+        std::cerr << "Stage: """ + pipeStage.name + """ - Skipped Instruction " << """ + instrVarName + """->getInstructionName() << std::endl << std::endl;
         """
     if hasCheckHazard and unlockHazard:
         codeString +=  instrVarName + '->getUnlock_' + pipeStage.name + '(BasePipeStage::unlockQueue);\n'

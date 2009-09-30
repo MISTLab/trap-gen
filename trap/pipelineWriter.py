@@ -208,11 +208,13 @@ def getGetPipelineStages(self, trace, model, namespace):
             # Here is the code to notify start of the instruction execution
             codeString += 'this->instrExecuting = true;\n'
 
-            codeString += """// HERE WAIT FOR BEGIN OF ALL STAGES
-            this->waitPipeBegin();
-
+            codeString += """unsigned int numCycles = 0;
+            // HERE WAIT FOR BEGIN OF ALL STAGES
             """
-            codeString += 'unsigned int numCycles = 0;\n'
+            if hasCheckHazard and not checkHazardsMet and not pipeStage.checkHazard:
+                codeString += 'if(!this->chStalled){\n'
+
+            codeString += 'this->waitPipeBegin();\n'
 
             # Here is the code to deal with interrupts; note one problem: if an interrupt is raised, we need to
             # deal with it in the correct stage, i.e. we need to create a special instruction reaching the correct
@@ -260,17 +262,39 @@ def getGetPipelineStages(self, trace, model, namespace):
                 this->hasToFlush = false;
             }
             this->refreshRegisters();
-            this->succStage->nextInstruction = this->curInstruction;
             this->numInstructions++;
-            }
             """
+            if hasCheckHazard and not checkHazardsMet:
+                codeString += 'if(!this->chStalled){\n'
+            codeString += 'this->succStage->nextInstruction = this->curInstruction;\n'
+            if hasCheckHazard and not checkHazardsMet:
+                codeString += '}\n'
+            if hasCheckHazard and not checkHazardsMet:
+                codeString += """}
+                else{
+                    //The current stage is not doing anything since one of the following stages
+                    //is blocked to a data hazard.
+                    this->waitPipeBegin();
+                    this->waitPipeEnd();
+                    if(!this->chStalled){
+                        this->succStage->nextInstruction = this->curInstruction;
+                    }
+                }
+            """
+            codeString += '}\n'
         else:
             # This is a normal pipeline stage
 
             # First of all I have to wait for the completion of the other pipeline stages before being able
             # to go on.
+            if hasCheckHazard and pipeStage.checkHazard:
+                codeString += 'bool stalled = false;\n'
             codeString += """while(true){
             unsigned int numCycles = 0;
+            """
+            if hasCheckHazard and not checkHazardsMet and not pipeStage.checkHazard:
+                codeString += 'if(!this->chStalled){\n'
+            codeString += """
             // HERE WAIT FOR BEGIN OF ALL STAGES
             this->waitPipeBegin();
 
@@ -279,6 +303,21 @@ def getGetPipelineStages(self, trace, model, namespace):
                 fetchAddress = computeCurrentPC(self, model)
                 codeString += str(self.bitSizes[1]) + ' curPC = ' + fetchAddress + ';\n'
             codeString += 'this->curInstruction = this->nextInstruction;\n'
+
+            if hasCheckHazard and pipeStage.checkHazard:
+                codeString += """if(this->curInstruction->checkHazard()){
+                this->curInstruction->lockRegs();
+                if(stalled){
+                    //The stage was previously stalled: I also have to signal that we can proceed to the preceding stages
+                    BasePipeStage * toExamineStage = this->prevStage;
+                    while(toExamineStage != NULL){
+                        toExamineStage->chStalled = false;
+                        toExamineStage = toExamineStage->prevStage;
+                    }
+                    stalled = false;
+                }
+                """
+
             # Now we issue the instruction, i.e. we execute its behavior related to this pipeline stage
             codeString += getInstrIssueCodePipe(self, trace, 'this->curInstruction', hasCheckHazard, pipeStage)
             # Finally I finalize the pipeline stage by synchrnonizing with the others
@@ -290,20 +329,61 @@ def getGetPipelineStages(self, trace, model, namespace):
                 this->prevStage->flush();
             }
             """
+            if hasCheckHazard and pipeStage.checkHazard:
+                codeString += """}
+                else{
+                    //The current stage is stalled because registers needed by the instruction are busy
+                    this->stalled = true;
+                """
+            if pipeStage != self.pipes[-1] and hasCheckHazard and pipeStage.checkHazard:
+                codeString += """//I also have to inform the preceding stages that the we stage is stalled
+                    BasePipeStage * toExamineStage = this->prevStage;
+                    while(toExamineStage != NULL){
+                        toExamineStage->chStalled = true;
+                        toExamineStage = toExamineStage->prevStage;
+                    }
+                }
+                """
             codeString += """// HERE WAIT FOR END OF ALL STAGES
             this->waitPipeEnd();
 
             """
             if pipeStage != self.pipes[-1]:
+                # Now I have to check if the current stage is stalled and, in case, propagate
+                # a NOP instruction to successive stages
+                if hasCheckHazard and pipeStage.checkHazard:
+                    codeString += """if(stalled){
+                        this->succStage->nextInstruction = this->NOPInstrInstance;
+                    }
+                    else{
+                    """
+                elif hasCheckHazard and not checkHazardsMet:
+                    codeString += """if(!this->chStalled){
+                    """
                 codeString += """// Now I have to propagate the instruction to the next cycle if
                 // the next stage has completed elaboration
                 if(this->hasToFlush){
                     this->curInstruction = this->NOPInstrInstance;
                     this->hasToFlush = false;
                 }
-                this->succStage->nextInstruction = this->curInstruction;
                 """
-            codeString += '}'
+                codeString += """this->succStage->nextInstruction = this->curInstruction;
+                """
+                if hasCheckHazard and (pipeStage.checkHazard or not checkHazardsMet):
+                    codeString += '}\n'
+            if hasCheckHazard and not checkHazardsMet and not pipeStage.checkHazard:
+                codeString += """}
+                else{
+                    //The current stage is not doing anything since one of the following stages
+                    //is blocked to a data hazard.
+                    this->waitPipeBegin();
+                    this->waitPipeEnd();
+                    if(!this->chStalled){
+                        this->succStage->nextInstruction = this->curInstruction;
+                    }
+                }
+                """
+            codeString += '}\n'
         if pipeStage.checkHazard:
             checkHazardsMet = True
 

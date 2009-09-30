@@ -95,6 +95,11 @@ class ISA:
         self.defines = []
         # Registers which we wish to print in the instruction trace
         self.traceRegs = []
+        # Behavior of the NOP operation; used only in the cycle accurate processor
+        self.nopBeh = {}
+
+    def setNOPBehavior(self, behavior, stage):
+        self.nopBeh[stage] = behavior
 
     def addTraceRegister(self, register):
         if register.name not in self.traceRegs:
