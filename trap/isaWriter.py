@@ -48,6 +48,11 @@ baseInstrConstrParams = []
 def getToUnlockRegs(self, processor, pipeStage, regStageName, delayedUnlock):
     code = ''
     regsToUnlock = []
+
+    for ps in processor.pipes:
+        if ps.checkHazard:
+            checkHazardStage = ps.name
+
     # Now I have to insert the code to fill in the queue of registers to unlock
     if not regStageName:
         if self.specialOutRegsWB.has_key(pipeStage.name):
@@ -81,9 +86,9 @@ def getToUnlockRegs(self, processor, pipeStage, regStageName, delayedUnlock):
                     realName = realName[:parenthesis]
                 if regStageName:
                     if parenthesis > 0:
-                        realRegName = realName + '_' + pipeStage.name + regToUnlock[parenthesis:]
+                        realRegName = realName + '_' + checkHazardStage + regToUnlock[parenthesis:]
                     else:
-                        realRegName = regToUnlock + '_' + pipeStage.name
+                        realRegName = regToUnlock + '_' + checkHazardStage
                 else:
                     realRegName = regToUnlock
                 if delayedUnlock and self.delayedWb.has_key(regToUnlock):
@@ -137,14 +142,8 @@ def getCppMethod(self, model, processor):
         # now I have to take all the resources and create a define which
         # renames such resources so that their usage can be transparent
         # to the developer
-        for reg in processor.regs:
+        for reg in processor.regs + processor.regBanks + processor.aliasRegs + processor.aliasRegBanks:
             defineCode += '#define ' + reg.name + ' ' + reg.name + '_' + self.stage + '\n'
-        for regB in processor.regBanks:
-            defineCode += '#define ' + regB.name + ' ' + regB.name + '_' + self.stage + '\n'
-        for alias in processor.aliasRegs:
-            defineCode += '#define ' + alias.name + ' ' + alias.name + '_' + self.stage + '\n'
-        for aliasB in processor.aliasRegBanks:
-            defineCode += '#define ' + aliasB.name + ' ' + aliasB.name + '_' + self.stage + '\n'
         defineCode += '\n'
 
     codeTemp.prependCode(defineCode)
@@ -155,14 +154,8 @@ def getCppMethod(self, model, processor):
         # renames such resources so that their usage can be transparent
         # to the developer
         undefCode += '\n'
-        for reg in processor.regs:
+        for reg in processor.regs + processor.regBanks + processor.aliasRegs + processor.aliasRegBanks:
             undefCode += '#undef ' + reg.name + '\n'
-        for regB in processor.regBanks:
-            undefCode += '#undef ' + regB.name + '\n'
-        for alias in processor.aliasRegs:
-            undefCode += '#undef ' + alias.name + '\n'
-        for aliasB in processor.aliasRegBanks:
-            undefCode += '#undef ' + aliasB.name + '\n'
         undefCode += '\n'
 
     codeTemp.appendCode(undefCode)
@@ -270,11 +263,11 @@ def getCPPInstr(self, model, processor, trace, namespace):
 
     if not model.startswith('acc'):
         behaviorCode = 'this->totalInstrCycles = 0;\n'
-    userDefineBehavior = ''
+
     for pipeStage in pipeline:
+        userDefineBehavior = ''
         if model.startswith('acc'):
             behaviorCode = 'this->stageCycles = 0;\n'
-            userDefineBehavior = ''
 
         # Now I start computing the actual user-defined behavior of this instruction
         if self.prebehaviors.has_key(pipeStage.name):
@@ -336,28 +329,28 @@ def getCPPInstr(self, model, processor, trace, namespace):
         # add, if the current one is the writeBack stage, the registers locked in the read stage
         # to the unlock queue
         if model.startswith('acc'):
-            if hasCheckHazard:
-                userDefineBehavior += getToUnlockRegs(self, processor, pipeStage, False, True)
+            if hasCheckHazard and pipeStage.endHazard:
+                userDefineBehavior += getToUnlockRegs(self, processor, pipeStage, True, True)
 
-        if model.startswith('acc') and userDefineBehavior:
-            # now I have to take all the resources and create a define which
-            # renames such resources so that their usage can be transparent
-            # to the developer
-            for reg in processor.regs + processor.regBanks + processor.aliasRegs + processor.aliasRegBanks:
-                behaviorCode += '#define ' + reg.name + ' ' + reg.name + '_' + pipeStage.name + '\n'
-            for instrFieldName in self.machineCode.bitCorrespondence.keys() + self.bitCorrespondence.keys():
-                behaviorCode += '#define ' + instrFieldName + ' ' + instrFieldName + '_' + pipeStage.name + '\n'
-            behaviorCode += '\n'
+            if userDefineBehavior:
+                # now I have to take all the resources and create a define which
+                # renames such resources so that their usage can be transparent
+                # to the developer
+                for reg in processor.regs + processor.regBanks + processor.aliasRegs + processor.aliasRegBanks:
+                    behaviorCode += '#define ' + reg.name + ' ' + reg.name + '_' + pipeStage.name + '\n'
+                for instrFieldName in self.machineCode.bitCorrespondence.keys() + self.bitCorrespondence.keys():
+                    behaviorCode += '#define ' + instrFieldName + ' ' + instrFieldName + '_' + pipeStage.name + '\n'
+                behaviorCode += '\n'
 
         behaviorCode += userDefineBehavior
 
-        if model.startswith('acc') and userDefineBehavior:
-            for reg in processor.regs + processor.regBanks + processor.aliasRegs + processor.aliasRegBanks:
-                behaviorCode += '#undef ' + reg.name + '\n'
-            for instrFieldName in self.machineCode.bitCorrespondence.keys() + self.bitCorrespondence.keys():
-                behaviorCode += '#undef ' + instrFieldName + '\n'
-
         if model.startswith('acc'):
+            if userDefineBehavior:
+                for reg in processor.regs + processor.regBanks + processor.aliasRegs + processor.aliasRegBanks:
+                    behaviorCode += '#undef ' + reg.name + '\n'
+                for instrFieldName in self.machineCode.bitCorrespondence.keys() + self.bitCorrespondence.keys():
+                    behaviorCode += '#undef ' + instrFieldName + '\n'
+
             behaviorCode += 'return this->stageCycles;\n\n'
             registerType = cxx_writer.writer_code.Type('Register')
             unlockQueueType = cxx_writer.writer_code.TemplateType('std::map', ['unsigned int', cxx_writer.writer_code.TemplateType('std::vector', [registerType.makePointer()], 'vector')], 'map')
@@ -387,9 +380,13 @@ def getCPPInstr(self, model, processor, trace, namespace):
         from pipelineWriter import chStage
 
         if hasCheckHazard:
+            for ps in processor.pipes:
+                if ps.checkHazard:
+                    checkHazardStage = ps.name
+
             # checkHazard
             regsToCheck = []
-            checkHazardCode = ''
+            checkHazardCode = 'bool regLocked = false;\n'
             for name, correspondence in self.machineCode.bitCorrespondence.items():
                 if 'in' in self.machineCode.bitDirection[name]:
                     regsToCheck.append(name)
@@ -403,15 +400,14 @@ def getCPPInstr(self, model, processor, trace, namespace):
                 if not regToCheck in self.notLockRegs:
                     parenthesis = regToCheck.find('[')
                     if parenthesis > 0:
-                        realRegName = regToCheck[:parenthesis] + '_' + chStage.name + regToCheck[parenthesis:]
+                        realRegName = regToCheck[:parenthesis] + '_' + checkHazardStage + regToCheck[parenthesis:]
                     else:
-                        realRegName = regToCheck + '_' + chStage.name
-                    checkHazardCode += 'if(this->' + realRegName + '.isLocked()){\n'
-                    checkHazardCode += 'this->' + realRegName + '.waitHazard();\n'
-                    checkHazardCode += '}\n'
+                        realRegName = regToCheck + '_' + checkHazardStage
+                    checkHazardCode += 'regLocked = this->' + realRegName + '.isLocked() || regLocked;\n'
+            checkHazardCode += 'return !regLocked;\n'
 
             checkHazardBody = cxx_writer.writer_code.Code(checkHazardCode)
-            checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', checkHazardBody, cxx_writer.writer_code.voidType, 'pu')
+            checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', checkHazardBody, cxx_writer.writer_code.boolType, 'pu')
             classElements.append(checkHazardDecl)
             # lockRegs
             regsToLock = []
@@ -428,9 +424,9 @@ def getCPPInstr(self, model, processor, trace, namespace):
                 if not regToLock in self.notLockRegs:
                     parenthesis = regToLock.find('[')
                     if parenthesis > 0:
-                        realRegName = regToLock[:parenthesis] + '_' + chStage.name + regToLock[parenthesis:]
+                        realRegName = regToLock[:parenthesis] + '_' + checkHazardStage + regToLock[parenthesis:]
                     else:
-                        realRegName = regToLock + '_' + chStage.name
+                        realRegName = regToLock + '_' + checkHazardStage
                     lockCode += 'this->' + realRegName + '.lock();\n'
             lockBody = cxx_writer.writer_code.Code(lockCode)
             lockDecl = cxx_writer.writer_code.Method('lockRegs', lockBody, cxx_writer.writer_code.voidType, 'pu')
@@ -840,10 +836,7 @@ def getCPPClasses(self, processor, model, trace, namespace):
                     if not processor.pipes[processor.pipes.index(pipeStage) - 1].checkHazard:
                         hasWb = True
         if hasCheckHazard:
-            if processor.externalClock:
-                checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.boolType, 'pu', pure = True)
-            else:
-                checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.voidType, 'pu', pure = True)
+            checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.boolType, 'pu', pure = True)
             instructionElements.append(checkHazardDecl)
             lockDecl = cxx_writer.writer_code.Method('lockRegs', emptyBody, cxx_writer.writer_code.voidType, 'pu', pure = True)
             instructionElements.append(lockDecl)
@@ -1131,10 +1124,7 @@ def getCPPClasses(self, processor, model, trace, namespace):
     invalidInstrElements.append(getIdDecl)
     if model.startswith('acc'):
         if hasCheckHazard:
-            if processor.externalClock:
-                checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', cxx_writer.writer_code.Code('return false;'), cxx_writer.writer_code.boolType, 'pu')
-            else:
-                checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.voidType, 'pu')
+            checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', cxx_writer.writer_code.Code('return false;'), cxx_writer.writer_code.boolType, 'pu')
             invalidInstrElements.append(checkHazardDecl)
             lockDecl = cxx_writer.writer_code.Method('lockRegs', emptyBody, cxx_writer.writer_code.voidType, 'pu')
             invalidInstrElements.append(lockDecl)
@@ -1202,7 +1192,7 @@ def getCPPClasses(self, processor, model, trace, namespace):
         NOPInstructionElements.append(getIdDecl)
 
         if hasCheckHazard:
-            checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.voidType, 'pu')
+            checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.boolType, 'pu')
             NOPInstructionElements.append(checkHazardDecl)
             lockDecl = cxx_writer.writer_code.Method('lockRegs', emptyBody, cxx_writer.writer_code.voidType, 'pu')
             NOPInstructionElements.append(lockDecl)

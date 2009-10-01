@@ -62,6 +62,7 @@ def getGetPipelineStages(self, trace, model, namespace):
 
     stageEndedFlag = cxx_writer.writer_code.Attribute('stageEnded', cxx_writer.writer_code.boolType, 'pu')
     pipelineElements.append(stageEndedFlag)
+    constructorCode += 'this->chStalled = false;\n'
     constructorCode += 'this->stageEnded = false;\n'
     stageBeginningFlag = cxx_writer.writer_code.Attribute('stageBeginning', cxx_writer.writer_code.boolType, 'pu')
     pipelineElements.append(stageBeginningFlag)
@@ -145,9 +146,11 @@ def getGetPipelineStages(self, trace, model, namespace):
         constructorInit.append('stage_' + str(i) + '(stage_' + str(i) + ')')
         baseConstructorInit += 'stage_' + str(i) + ', '
 
-    stageAttr = cxx_writer.writer_code.Attribute('prevStage', pipeType.makePointer(), 'pro')
+    chStalledAttr = cxx_writer.writer_code.Attribute('chStalled', cxx_writer.writer_code.boolType, 'pu')
+    pipelineElements.append(chStalledAttr)
+    stageAttr = cxx_writer.writer_code.Attribute('prevStage', pipeType.makePointer(), 'pu')
     pipelineElements.append(stageAttr)
-    stageAttr = cxx_writer.writer_code.Attribute('succStage', pipeType.makePointer(), 'pro')
+    stageAttr = cxx_writer.writer_code.Attribute('succStage', pipeType.makePointer(), 'pu')
     pipelineElements.append(stageAttr)
     unlockQueueType = cxx_writer.writer_code.TemplateType('std::map', ['unsigned int', cxx_writer.writer_code.TemplateType('std::vector', [registerType.makePointer()], 'vector')], 'map')
     unlockQueueAttr = cxx_writer.writer_code.Attribute('unlockQueue', unlockQueueType, 'pro', static = True)
@@ -249,11 +252,6 @@ def getGetPipelineStages(self, trace, model, namespace):
 
             """
 
-            # Here is the code to notify start of the instruction execution
-            codeString += 'this->instrExecuting = false;\n'
-            if self.systemc:
-                codeString += 'this->instrEndEvent.notify();\n'
-
             codeString += """
             // Now I have to propagate the instruction to the next cycle if
             // the next stage has completed elaboration
@@ -261,7 +259,6 @@ def getGetPipelineStages(self, trace, model, namespace):
                 this->curInstruction = this->NOPInstrInstance;
                 this->hasToFlush = false;
             }
-            this->refreshRegisters();
             this->numInstructions++;
             """
             if hasCheckHazard and not checkHazardsMet:
@@ -275,13 +272,21 @@ def getGetPipelineStages(self, trace, model, namespace):
                     //The current stage is not doing anything since one of the following stages
                     //is blocked to a data hazard.
                     this->waitPipeBegin();
+                    //Note that I need to return controll to the scheduler, otherwise
+                    //I will be impossible to procede, this thread will always execute
+                    wait(this->latency);
                     this->waitPipeEnd();
                     if(!this->chStalled){
                         this->succStage->nextInstruction = this->curInstruction;
                     }
                 }
             """
-            codeString += '}\n'
+            # Here is the code to notify start of the instruction execution
+            codeString += """this->refreshRegisters();
+                this->instrExecuting = false;
+                this->instrEndEvent.notify();
+            }
+            """
         else:
             # This is a normal pipeline stage
 
@@ -333,7 +338,7 @@ def getGetPipelineStages(self, trace, model, namespace):
                 codeString += """}
                 else{
                     //The current stage is stalled because registers needed by the instruction are busy
-                    this->stalled = true;
+                    stalled = true;
                 """
             if pipeStage != self.pipes[-1] and hasCheckHazard and pipeStage.checkHazard:
                 codeString += """//I also have to inform the preceding stages that the we stage is stalled
@@ -342,8 +347,13 @@ def getGetPipelineStages(self, trace, model, namespace):
                         toExamineStage->chStalled = true;
                         toExamineStage = toExamineStage->prevStage;
                     }
-                }
+                    wait(this->latency);
+                    """
+            if trace and hasCheckHazard and pipeStage.checkHazard:
+                codeString += """std::cerr << "Stage: """ + pipeStage.name + """ - Instruction " << curInstruction->getInstructionName() << " stalled on a data hazard" << std::endl << std::endl;
                 """
+            if pipeStage != self.pipes[-1] and hasCheckHazard and pipeStage.checkHazard:
+                codeString +='}\n'
             codeString += """// HERE WAIT FOR END OF ALL STAGES
             this->waitPipeEnd();
 
@@ -377,6 +387,9 @@ def getGetPipelineStages(self, trace, model, namespace):
                     //The current stage is not doing anything since one of the following stages
                     //is blocked to a data hazard.
                     this->waitPipeBegin();
+                    //Note that I need to return controll to the scheduler, otherwise
+                    //I will be impossible to procede, this thread will always execute
+                    wait(this->latency);
                     this->waitPipeEnd();
                     if(!this->chStalled){
                         this->succStage->nextInstruction = this->curInstruction;
@@ -468,12 +481,12 @@ def getGetPipelineStages(self, trace, model, namespace):
                     }
                 }
                 else{
-                    sc_time regLat = unlockQueueIter->first*this->latency;
                     for(regToUnlockIter = unlockQueueIter->second.begin(), regToUnlockEnd = unlockQueueIter->second.end(); regToUnlockIter != regToUnlockEnd; regToUnlockIter++){
-                        (*regToUnlockIter)->unlock(regLat);
+                        (*regToUnlockIter)->unlock(unlockQueueIter->first);
                     }
                 }
             }
+            BasePipeStage::unlockQueue.clear();
             """
             refreshRegistersBody = cxx_writer.writer_code.Code(codeString)
             refreshRegistersDecl = cxx_writer.writer_code.Method('refreshRegisters', refreshRegistersBody, cxx_writer.writer_code.voidType, 'pu')

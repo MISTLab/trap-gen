@@ -346,7 +346,7 @@ def getCPPProc(self, model, trace, namespace):
         # Here is the code to notify start of the instruction execution
         codeString += 'this->instrExecuting = false;\n'
         if self.systemc:
-            codeString += 'this->instrEndEvent.notify;\n'
+            codeString += 'this->instrEndEvent.notify();\n'
 
         codeString += 'this->numInstructions++;\n\n'
         # Now I have to call the update method for all the delayed registers
@@ -1000,8 +1000,9 @@ def getCPPProc(self, model, trace, namespace):
     constrCode += '}\n'
     for irq in self.irqs:
         constrCode += 'this->' + irqPort.name + '_irqInstr = new IRQ_' + irq.name + '_Instruction(' + baseInstrInitElement + ', this->' + irqPort.name + ');\n'
-        for pipeStage in self.pipes:
-            constrCode += pipeStage.name + '_stage.' + irqPort.name + '_irqInstr = this->' + irqPort.name + '_irqInstr;\n'
+        if model.startswith('acc'):
+            for pipeStage in self.pipes:
+                constrCode += 'this->' + pipeStage.name + '_stage.' + irqPort.name + '_irqInstr = this->' + irqPort.name + '_irqInstr;\n'
     constrCode += bodyInits
     if not model.startswith('acc'):
         if self.externalClock:

@@ -105,7 +105,7 @@ def getGetIRQInstr(self, model, trace, namespace):
         # Now we have all the methods related to data hazards detection and management:
         # TODO: is an implementation needed for the IRQ instruction?
         if model.startswith('acc') and hasCheckHazard:
-            checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.voidType, 'pu')
+            checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.boolType, 'pu')
             IRQInstrElements.append(checkHazardDecl)
             lockDecl = cxx_writer.writer_code.Method('lockRegs', emptyBody, cxx_writer.writer_code.voidType, 'pu')
             IRQInstrElements.append(lockDecl)

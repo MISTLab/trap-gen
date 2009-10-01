@@ -407,27 +407,38 @@ def getCPPRegisters(self, model, namespace):
 
     ################ Lock and Unlock methods used for hazards detection ######################
     if model.startswith('acc'):
+        lockedLatencyAttribute = cxx_writer.writer_code.Attribute('lockedLatency', cxx_writer.writer_code.intType, 'pri')
+        registerElements.append(lockedLatencyAttribute)
         lockedAttribute = cxx_writer.writer_code.Attribute('locked', cxx_writer.writer_code.boolType, 'pri')
         registerElements.append(lockedAttribute)
-        lockBody = cxx_writer.writer_code.Code('this->locked = true;')
+        lockBody = cxx_writer.writer_code.Code('this->lockedLatency = -1;\nthis->locked = true;')
         lockMethod = cxx_writer.writer_code.Method('lock', lockBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
         registerElements.append(lockMethod)
-        unlockBody = cxx_writer.writer_code.Code('this->locked = false;\nthis->hazardEvent.notify();')
+        unlockBody = cxx_writer.writer_code.Code('this->lockedLatency = -1;\nthis->locked = false;\n')
         unlockMethod = cxx_writer.writer_code.Method('unlock', unlockBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
         registerElements.append(unlockMethod)
-        latencyParam = cxx_writer.writer_code.Parameter('wbLatency', cxx_writer.writer_code.sc_timeType.makeRef().makeConst())
-        unlockBody = cxx_writer.writer_code.Code('this->locked = false;\nthis->hazardEvent.notify(wbLatency);')
+        latencyParam = cxx_writer.writer_code.Parameter('wbLatency', cxx_writer.writer_code.intType)
+        unlockBody = cxx_writer.writer_code.Code("""if(wbLatency > 0){
+            this->lockedLatency = wbLatency;
+        }
+        else{
+            this->lockedLatency = -1;
+            this->locked = false;
+        }""")
         unlockMethod = cxx_writer.writer_code.Method('unlock', unlockBody, cxx_writer.writer_code.voidType, 'pu', [latencyParam], inline = True, noException = True)
         registerElements.append(unlockMethod)
-        isLockedBody = cxx_writer.writer_code.Code('return this->locked;')
+        isLockedBody = cxx_writer.writer_code.Code("""if(this->lockedLatency > 0){
+            this->lockedLatency--;
+            if(this->lockedLatency == 0){
+                this->locked = false;
+            }
+            return this->locked;
+        }
+        else{
+            return this->locked;
+        }""")
         isLockedMethod = cxx_writer.writer_code.Method('isLocked', isLockedBody, cxx_writer.writer_code.boolType, 'pu', inline = True, noException = True)
         registerElements.append(isLockedMethod)
-        if not self.externalClock:
-            waitHazardBody = cxx_writer.writer_code.Code('wait(this->hazardEvent);')
-            waitHazardMethod = cxx_writer.writer_code.Method('waitHazard', waitHazardBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
-            registerElements.append(waitHazardMethod)
-            hazardEventAttribute = cxx_writer.writer_code.Attribute('hazardEvent', cxx_writer.writer_code.sc_eventType, 'pri')
-            registerElements.append(hazardEventAttribute)
 
     ################ Methods used for the management of delayed registers ######################
     if not model.startswith('acc'):
@@ -648,17 +659,13 @@ def getCPPAlias(self, model, namespace):
         unlockBody = cxx_writer.writer_code.Code('this->reg->unlock();')
         unlockMethod = cxx_writer.writer_code.Method('unlock', unlockBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
         aliasElements.append(unlockMethod)
-        latencyParam = cxx_writer.writer_code.Parameter('wbLatency', cxx_writer.writer_code.sc_timeType.makeRef().makeConst())
+        latencyParam = cxx_writer.writer_code.Parameter('wbLatency', cxx_writer.writer_code.intType)
         unlockBody = cxx_writer.writer_code.Code('this->reg->unlock(wbLatency);')
         unlockMethod = cxx_writer.writer_code.Method('unlock', unlockBody, cxx_writer.writer_code.voidType, 'pu', [latencyParam], inline = True, noException = True)
         aliasElements.append(unlockMethod)
         isLockedBody = cxx_writer.writer_code.Code('return this->reg->isLocked();')
         isLockedMethod = cxx_writer.writer_code.Method('isLocked', isLockedBody, cxx_writer.writer_code.boolType, 'pu', inline = True, noException = True)
         aliasElements.append(isLockedMethod)
-        if not self.externalClock:
-            waitHazardBody = cxx_writer.writer_code.Code('this->reg->waitHazard();')
-            waitHazardMethod = cxx_writer.writer_code.Method('waitHazard', waitHazardBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
-            aliasElements.append(waitHazardMethod)
 
     ################ Methods used for the management of delayed registers ######################
     if not model.startswith('acc'):
