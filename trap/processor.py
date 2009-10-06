@@ -847,9 +847,9 @@ class Processor:
         # alias
         return registerWriter.getCPPAlias(self, model, namespace)
 
-    def getCPPProc(self, model, trace, namespace):
+    def getCPPProc(self, model, trace, combinedTrace, namespace):
         # creates the class describing the processor
-        return procWriter.getCPPProc(self, model, trace, namespace)
+        return procWriter.getCPPProc(self, model, trace, combinedTrace, namespace)
 
     def getCPPMemoryIf(self, model, namespace):
         # creates the class describing the processor
@@ -883,7 +883,7 @@ class Processor:
         # Returns the code implementing the interrupt ports
         return portsWriter.getGetIRQPorts(self, namespace)
 
-    def getGetIRQInstr(self, model, trace, namespace):
+    def getGetIRQInstr(self, model, trace, combinedTrace, namespace):
         # Returns the code implementing the fake interrupt instruction
         return irqWriter.getGetIRQInstr(self, model, trace, namespace)
 
@@ -891,16 +891,16 @@ class Processor:
         # Returns the code implementing the PIN ports
         return portsWriter.getGetPINPorts(self, namespace)
 
-    def getIRQTests(self, trace, namespace):
+    def getIRQTests(self, trace, combinedTrace, namespace):
         # Returns the code implementing the tests for the
         # interrupt lines
-        return portsWriter.getIRQTests(self, trace, namespace)
+        return portsWriter.getIRQTests(self, trace, combinedTrace, namespace)
 
-    def getGetPipelineStages(self, trace, model, namespace):
+    def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
         # Returns the code implementing the pipeline stages
-        return pipelineWriter.getGetPipelineStages(self, trace, model, namespace)
+        return pipelineWriter.getGetPipelineStages(self, trace, combinedTrace, model, namespace)
 
-    def write(self, folder = '', models = validModels, namespace = '', dumpDecoderName = '', trace = False, forceDecoderCreation = False, tests = True, memPenaltyFactor = 4):
+    def write(self, folder = '', models = validModels, namespace = '', dumpDecoderName = '', trace = False, combinedTrace = False, forceDecoderCreation = False, tests = True, memPenaltyFactor = 4):
         # Ok: this method does two things: first of all it performs all
         # the possible checks to ensure that the processor description is
         # coherent. Second it actually calls the write method of the
@@ -997,19 +997,19 @@ class Processor:
             implFileDec.addInclude('decoder.hpp')
             RegClasses = self.getCPPRegisters(model, namespace)
             AliasClass = self.getCPPAlias(model, namespace)
-            ProcClass = self.getCPPProc(model, trace, namespace)
+            ProcClass = self.getCPPProc(model, trace, combinedTrace, namespace)
             if self.abi:
                 IfClass = self.getCPPIf(model, namespace)
             if model.startswith('acc'):
-                pipeClass = self.getGetPipelineStages(trace, model, namespace)
+                pipeClass = self.getGetPipelineStages(trace, combinedTrace, model, namespace)
             MemClass = self.getCPPMemoryIf(model, namespace)
             ExternalIf = self.getCPPExternalPorts(model, namespace)
             if self.pins:
                 PINClasses = self.getGetPINPorts(namespace)
-            ISAClasses = self.isa.getCPPClasses(self, model, trace, namespace)
+            ISAClasses = self.isa.getCPPClasses(self, model, trace, combinedTrace, namespace)
             if self.irqs:
                 IRQClasses = self.getGetIRQPorts(namespace)
-                ISAClasses += self.getGetIRQInstr(model, trace, namespace)
+                ISAClasses += self.getGetIRQInstr(model, trace, combinedTrace, namespace)
             # Ok, now that we have all the classes it is time to write
             # them to file
             curFolder = cxx_writer.writer_code.Folder(os.path.join(folder, model))
@@ -1108,7 +1108,7 @@ class Processor:
                 decTests = dec.getCPPTests(namespace)
                 decTestsFile.addMember(decTests)
                 hdecTestsFile.addMember(decTests)
-                irqTests = self.getIRQTests(trace, namespace)
+                irqTests = self.getIRQTests(trace, combinedTrace, namespace)
                 if irqTests:
                     irqTestsFile = cxx_writer.writer_code.FileDumper('irqTests.cpp', False)
                     irqTestsFile.addInclude('irqTests.hpp')
@@ -1125,7 +1125,7 @@ class Processor:
                     testFolder.addHeader(hirqTestsFile)
                 testFolder.addCode(decTestsFile)
                 testFolder.addHeader(hdecTestsFile)
-                ISATests = self.isa.getCPPTests(self, model, trace, namespace)
+                ISATests = self.isa.getCPPTests(self, model, trace, combinedTrace, namespace)
                 testPerFile = 100
                 numTestFiles = len(ISATests)/testPerFile
                 for i in range(0, numTestFiles):

@@ -91,7 +91,7 @@ hash_map_include = """
 
 # Computes the code defining the execution of an instruction and
 # of the processor tools.
-def getInstrIssueCode(self, trace, instrVarName, hasCheckHazard = False, pipeStage = None):
+def getInstrIssueCode(self, trace, combinedTrace, instrVarName, hasCheckHazard = False, pipeStage = None):
     codeString = """try{
             #ifndef DISABLE_TOOLS
             if(!(this->toolManager.newIssue(curPC, """ + instrVarName + """))){
@@ -118,7 +118,7 @@ def getInstrIssueCode(self, trace, instrVarName, hasCheckHazard = False, pipeSta
 
 # Computes the code defining the execution of an instruction and
 # of the processor tools.
-def getInstrIssueCodePipe(self, trace, instrVarName, hasCheckHazard, pipeStage):
+def getInstrIssueCodePipe(self, trace, combinedTrace, instrVarName, hasCheckHazard, pipeStage):
     unlockHazard = False
     for i in self.pipes:
         if i.checkHazard:
@@ -137,8 +137,10 @@ def getInstrIssueCodePipe(self, trace, instrVarName, hasCheckHazard, pipeStage):
     if instrVarName != 'this->curInstruction':
         codeString += """this->curInstruction = """ + instrVarName + """;
         """
-    if trace and pipeStage == self.pipes[-1]:
-        codeString += instrVarName + '->printTrace();\n'
+    if trace:
+        if not combinedTrace:
+            if pipeStage == self.pipes[-1]:
+                codeString += instrVarName + '->printTrace();\n'
     if pipeStage.checkTools:
         codeString += """#ifndef DISABLE_TOOLS
                     }
@@ -223,7 +225,7 @@ def getInterruptCode(self, pipeStage = None):
 
 # Returns the code necessary for performing a standard instruction fetch: i.e.
 # read from memory and set the instruction parameters
-def standardInstrFetch(self, trace, issueCodeGenerator, hasCheckHazard = False, pipeStage = None):
+def standardInstrFetch(self, trace, combinedTrace, issueCodeGenerator, hasCheckHazard = False, pipeStage = None):
     codeString = 'int instrId = this->decoder.decode(bitString);\n'
     if pipeStage:
         codeString += 'Instruction * instr = ' + pipeStage.name.upper() + '_PipeStage::INSTRUCTIONS[instrId];\n'
@@ -231,10 +233,10 @@ def standardInstrFetch(self, trace, issueCodeGenerator, hasCheckHazard = False, 
         codeString += 'Instruction * instr = Processor::INSTRUCTIONS[instrId];\n'
     codeString += 'instr->setParams(bitString);\n'
 
-    codeString += issueCodeGenerator(self, trace, 'instr', hasCheckHazard, pipeStage)
+    codeString += issueCodeGenerator(self, trace, combinedTrace, 'instr', hasCheckHazard, pipeStage)
     return codeString
 
-def fetchWithCacheCode(self, fetchCode, trace, issueCodeGenerator, hasCheckHazard = False, pipeStage = None):
+def fetchWithCacheCode(self, fetchCode, trace, combinedTrace, issueCodeGenerator, hasCheckHazard = False, pipeStage = None):
     codeString = ''
     if self.fastFetch:
         mapKey = 'curPC'
@@ -248,13 +250,13 @@ def fetchWithCacheCode(self, fetchCode, trace, issueCodeGenerator, hasCheckHazar
         // I can call the instruction, I have found it
         if(curInstrPtr != NULL){
     """
-    codeString += issueCodeGenerator(self, trace, 'curInstrPtr', hasCheckHazard, pipeStage)
+    codeString += issueCodeGenerator(self, trace, combinedTrace, 'curInstrPtr', hasCheckHazard, pipeStage)
 
     # I have found the element in the cache, but not the instruction
     codeString += '}\nelse{\n'
     if self.fastFetch:
         codeString += fetchCode
-    codeString += standardInstrFetch(self, trace, issueCodeGenerator, hasCheckHazard, pipeStage)
+    codeString += standardInstrFetch(self, trace, combinedTrace, issueCodeGenerator, hasCheckHazard, pipeStage)
     codeString += """unsigned int & curCount = cachedInstr->second.count;
         if(curCount < """ + str(self.cacheLimit) + """){
             curCount++;
@@ -277,14 +279,14 @@ def fetchWithCacheCode(self, fetchCode, trace, issueCodeGenerator, hasCheckHazar
     """
     if self.fastFetch:
         codeString += fetchCode
-    codeString += standardInstrFetch(self, trace, issueCodeGenerator, hasCheckHazard, pipeStage)
+    codeString += standardInstrFetch(self, trace, combinedTrace, issueCodeGenerator, hasCheckHazard, pipeStage)
     codeString += """this->instrCache.insert(std::pair< unsigned int, CacheElem >(bitString, CacheElem()));
         instrCacheEnd = this->instrCache.end();
         }
     """
     return codeString
 
-def getCPPProc(self, model, trace, namespace):
+def getCPPProc(self, model, trace, combinedTrace, namespace):
     # creates the class describing the processor
     fetchWordType = self.bitSizes[1]
     includes = fetchWordType.getIncludes()
@@ -330,9 +332,9 @@ def getCPPProc(self, model, trace, namespace):
         # Finally I declare the fetch, decode, execute loop, where the instruction is actually executed;
         # Note the possibility of performing it with the instruction fetch
         if self.instructionCache:
-            codeString += fetchWithCacheCode(self, fetchCode, trace, getInstrIssueCode)
+            codeString += fetchWithCacheCode(self, fetchCode, trace, combinedTrace, getInstrIssueCode)
         else:
-            codeString += standardInstrFetch(self, trace, issueCodeGenerator)
+            codeString += standardInstrFetch(self, trace, combinedTrace, issueCodeGenerator)
 
         if self.irqs:
             codeString += '}\n'

@@ -212,7 +212,7 @@ def getCppOpClass(self, namespace):
     opDecl.addConstructor(opConstr)
     return opDecl
 
-def getCPPInstr(self, model, processor, trace, namespace):
+def getCPPInstr(self, model, processor, trace, combinedTrace, namespace):
     # Returns the code implementing the current instruction: we have to provide the
     # implementation of all the abstract methods and call from the behavior method
     # all the different behaviors contained in the type hierarchy of this class
@@ -608,7 +608,7 @@ def getCPPInstr(self, model, processor, trace, namespace):
     #return [poolDecl, instructionDecl] *** Again removed, related to the instruction pre-allocation
     return [instructionDecl]
 
-def getCPPInstrTest(self, processor, model, trace, namespace = ''):
+def getCPPInstrTest(self, processor, model, trace, combinedTrace, namespace = ''):
     # Returns the code testing the current instruction: note that a test
     # consists in setting the instruction variables, performing the instruction
     # behavior and then comparing the registers with what we expect.
@@ -780,7 +780,7 @@ def getCPPInstrTest(self, processor, model, trace, namespace = ''):
         tests.append(curTestFunction)
     return tests
 
-def getCPPClasses(self, processor, model, trace, namespace):
+def getCPPClasses(self, processor, model, trace, combinedTrace, namespace):
     # I go over each instruction and print the class representing it
     memoryType = cxx_writer.writer_code.Type('MemoryInterface', 'memory.hpp')
     registerType = cxx_writer.writer_code.Type('Register')
@@ -849,6 +849,14 @@ def getCPPClasses(self, processor, model, trace, namespace):
                     instructionElements.append(getUnlockDecl)
 
     if trace:
+        if not combinedTrace:
+            traceStage = processor.pipes[-1]
+        else:
+            for pipeStage in processor.pipes:
+                if pipeStage.checkTools:
+                    traceStage = pipeStage
+                    break
+
         # I have to print the value of all the registers in the processor
         printTraceCode = ''
         if model.startswith('acc'):
@@ -856,19 +864,20 @@ def getCPPClasses(self, processor, model, trace, namespace):
             # renames such resources so that their usage can be transparent
             # to the developer
             for reg in processor.regs:
-                printTraceCode += '#define ' + reg.name + ' ' + reg.name + '_' + processor.pipes[-1].name + '\n'
+                printTraceCode += '#define ' + reg.name + ' ' + reg.name + '_' + traceStage.name + '\n'
             for regB in processor.regBanks:
-                printTraceCode += '#define ' + regB.name + ' ' + regB.name + '_' + processor.pipes[-1].name + '\n'
+                printTraceCode += '#define ' + regB.name + ' ' + regB.name + '_' + traceStage.name + '\n'
             for alias in processor.aliasRegs:
-                printTraceCode += '#define ' + alias.name + ' ' + alias.name + '_' + processor.pipes[-1].name + '\n'
+                printTraceCode += '#define ' + alias.name + ' ' + alias.name + '_' + traceStage.name + '\n'
             for aliasB in processor.aliasRegBanks:
-                printTraceCode += '#define ' + aliasB.name + ' ' + aliasB.name + '_' + processor.pipes[-1].name + '\n'
+                printTraceCode += '#define ' + aliasB.name + ' ' + aliasB.name + '_' + traceStage.name + '\n'
             printTraceCode += '\n'
 
-        if not processor.systemc and not model.startswith('acc') and not model.endswith('AT'):
-            printTraceCode += 'std::cerr << \"Simulated time \" << std::dec << this->totalCycles << std::endl;\n'
-        else:
-            printTraceCode += 'std::cerr << \"Simulated time \" << sc_time_stamp().to_double() << std::endl;\n'
+        if not combinedTrace:
+            if not processor.systemc and not model.startswith('acc') and not model.endswith('AT'):
+                printTraceCode += 'std::cerr << \"Simulated time \" << std::dec << this->totalCycles << std::endl;\n'
+            else:
+                printTraceCode += 'std::cerr << \"Simulated time \" << sc_time_stamp().to_double() << std::endl;\n'
         printTraceCode += 'std::cerr << \"Instruction: \" << this->getInstructionName() << std::endl;\n'
         printTraceCode += 'std::cerr << \"Mnemonic: \" << this->getMnemonic() << std::endl;\n'
         if self.traceRegs:
@@ -1212,10 +1221,10 @@ def getCPPClasses(self, processor, model, trace, namespace):
         classes.append(NOPInstructionClass)
     # Now I go over all the other instructions and I declare them
     for instr in self.instructions.values():
-        classes += instr.getCPPClass(model, processor, trace, namespace)
+        classes += instr.getCPPClass(model, processor, trace, combinedTrace, namespace)
     return classes
 
-def getCPPTests(self, processor, modelType, trace, namespace):
+def getCPPTests(self, processor, modelType, trace, combinedTrace, namespace):
     if not processor.memory:
         return None
     # for each instruction I print the test: I do have to add some custom
@@ -1223,5 +1232,5 @@ def getCPPTests(self, processor, modelType, trace, namespace):
     # part of the instructions
     tests = []
     for instr in self.instructions.values():
-        tests += instr.getCPPTest(processor, modelType, trace, namespace)
+        tests += instr.getCPPTest(processor, modelType, trace, combinedTrace, namespace)
     return tests

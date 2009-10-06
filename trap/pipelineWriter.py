@@ -44,7 +44,7 @@ hasCheckHazard = False
 wbStage = None
 chStage = None
 
-def getGetPipelineStages(self, trace, model, namespace):
+def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
     global hasCheckHazard
     global wbStage
     global chStage
@@ -187,7 +187,9 @@ def getGetPipelineStages(self, trace, model, namespace):
     checkHazardsMet = False
     wbStage = self.pipes[-1]
     chStage = self.pipes[0]
+    seenStages = 0
     for pipeStage in self.pipes:
+        seenStages += 1
         if pipeStage.wb:
             wbStage = pipeStage
         if pipeStage.checkHazard:
@@ -232,15 +234,15 @@ def getGetPipelineStages(self, trace, model, namespace):
             # the index of the cache is the current instruction
             if not (self.instructionCache and self.fastFetch):
                 codeString += fetchCode
-            if trace:
+            if trace and not combinedTrace:
                 codeString += 'std::cerr << \"Current PC: \" << std::hex << std::showbase << curPC << std::endl;\n'
 
             # Now lets starts the real instruction fetch: two paths are possible: the instruction buffer
             # and the normal instruction stream.
             if self.instructionCache:
-                codeString += fetchWithCacheCode(self, fetchCode, trace, getInstrIssueCodePipe, hasCheckHazard, pipeStage)
+                codeString += fetchWithCacheCode(self, fetchCode, trace, combinedTrace, getInstrIssueCodePipe, hasCheckHazard, pipeStage)
             else:
-                codeString += standardInstrFetch(self, trace, getInstrIssueCodePipe, hasCheckHazard, pipeStage)
+                codeString += standardInstrFetch(self, trace, combinedTrace, getInstrIssueCodePipe, hasCheckHazard, pipeStage)
 
             # Finally we have completed waiting for the other cycles in order to be able to go on
             # with this cycle.
@@ -307,6 +309,11 @@ def getGetPipelineStages(self, trace, model, namespace):
             if pipeStage.checkTools:
                 fetchAddress = computeCurrentPC(self, model)
                 codeString += str(self.bitSizes[1]) + ' curPC = ' + fetchAddress + ';\n'
+                if trace and combinedTrace:
+                    fetchOffset = '- ' + str((seenStages - 1)*self.wordSize)
+                    codeString += 'if(this->nextInstruction != this->NOPInstrInstance){\n'
+                    codeString += 'std::cerr << \"Current PC: \" << std::hex << std::showbase << curPC ' + fetchOffset + ' << std::endl;\n'
+                    codeString += '}\n'
             codeString += 'this->curInstruction = this->nextInstruction;\n'
 
             if hasCheckHazard and pipeStage.checkHazard:
@@ -324,7 +331,7 @@ def getGetPipelineStages(self, trace, model, namespace):
                 """
 
             # Now we issue the instruction, i.e. we execute its behavior related to this pipeline stage
-            codeString += getInstrIssueCodePipe(self, trace, 'this->curInstruction', hasCheckHazard, pipeStage)
+            codeString += getInstrIssueCodePipe(self, trace, combinedTrace, 'this->curInstruction', hasCheckHazard, pipeStage)
             # Finally I finalize the pipeline stage by synchrnonizing with the others
             codeString += """wait((numCycles + 1)*this->latency);"""
             codeString += """// flushing current stage
@@ -349,7 +356,7 @@ def getGetPipelineStages(self, trace, model, namespace):
                     }
                     wait(this->latency);
                     """
-            if trace and hasCheckHazard and pipeStage.checkHazard:
+            if trace and hasCheckHazard and pipeStage.checkHazard and not combinedTrace:
                 codeString += """std::cerr << "Stage: """ + pipeStage.name + """ - Instruction " << curInstruction->getInstructionName() << " stalled on a data hazard" << std::endl << std::endl;
                 """
             if pipeStage != self.pipes[-1] and hasCheckHazard and pipeStage.checkHazard:
@@ -358,6 +365,15 @@ def getGetPipelineStages(self, trace, model, namespace):
             this->waitPipeEnd();
 
             """
+
+            # In case we are working in the trace compatibility mode, here I have to print
+            # the instruction trace
+            if combinedTrace:
+                if pipeStage.checkTools:
+                    codeString += 'if(' + instrVarName + ' != this->NOPInstrInstance){\n'
+                    codeString += 'this->curInstruction->printTrace();\n'
+                    codeString += '}\n'
+
             if pipeStage != self.pipes[-1]:
                 # Now I have to check if the current stage is stalled and, in case, propagate
                 # a NOP instruction to successive stages

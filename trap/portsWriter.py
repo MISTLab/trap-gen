@@ -615,7 +615,7 @@ def getGetPINPorts(self, namespace):
 
     return pinClasses
 
-def getIRQTests(self, trace, namespace):
+def getIRQTests(self, trace, combinedTrace, namespace):
     # Returns the code implementing the tests for the interrupts
     from processor import extractRegInterval
     testFuns = []
