@@ -54,7 +54,7 @@ except ImportError:
 import ARMIsa
 
 # Lets now start building the processor
-processor = trap.Processor('ARM7TDMI', version = '0.1', systemc = False, instructionCache = True, fastFetch = True)
+processor = trap.Processor('ARM9TDMI', version = '0.1', systemc = False, instructionCache = True, fastFetch = True)
 processor.setLittleEndian() #little endian
 processor.setWordsize(4, 8) #4 bytes per word, 8 bits per byte
 processor.setISA(ARMIsa.isa) #lets set the instruction set
@@ -197,7 +197,7 @@ processor.setABI(abi)
 # Finally we can dump the processor on file
 #processor.write(folder = 'processor', models = ['funcLT'], dumpDecoderName = 'decoder.dot')
 #processor.write(folder = 'processor', models = ['funcLT'], trace = True)
-processor.write(folder = 'arm', models = ['funcLT'])
+processor.write(folder = 'arm', models = ['funcLT'], tests = False)
 #processor.write(folder = 'processor', models = ['funcAT'], trace = True)
 #processor.write(folder = 'processor', models = ['accAT', 'funcLT'])
 #processor.write(folder = 'processor', models = ['accAT'])

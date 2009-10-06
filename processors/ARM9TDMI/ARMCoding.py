@@ -83,6 +83,7 @@ ls_multiple.setVarField('rn', ('REGS', 0))
 
 branch = trap.MachineCode([('cond', 4), ('opcode', 3), ('l', 1), ('offset', 24)])
 branch.setBitfield('opcode', [1, 0, 1])
+
 branch_thumb = trap.MachineCode([('cond', 4), ('opcode0', 8), ('zero', 12), ('opcode1', 4), ('rm', 4)])
 branch_thumb.setBitfield('opcode0', [0, 0, 0, 1, 0, 0, 1, 0])
 branch_thumb.setBitfield('opcode1', [0, 0, 0, 1])
