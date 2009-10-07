@@ -68,11 +68,13 @@ ls_immOff = trap.MachineCode([('cond', 4), ('opcode', 3), ('p', 1), ('u', 1), ('
 ls_immOff.setBitfield('opcode', [0, 1, 0])
 ls_immOff.setVarField('rn', ('REGS', 0), 'in')
 ls_immOff.setVarField('rd', ('REGS', 0), 'out')
+
 ls_regOff = trap.MachineCode([('cond', 4), ('opcode', 3), ('p', 1), ('u', 1), ('b', 1), ('w', 1), ('l', 1), ('rn', 4), ('rd', 4), ('shift_amm', 5), ('shift_op', 2), ('zero', 1), ('rm', 4)])
 ls_regOff.setBitfield('opcode', [0, 1, 1])
 ls_regOff.setVarField('rn', ('REGS', 0), 'in')
 ls_regOff.setVarField('rd', ('REGS', 0), 'out')
 ls_regOff.setVarField('rm', ('REGS', 0), 'in')
+
 lsshb_regOff = trap.MachineCode([('cond', 4), ('opcode0', 3), ('p', 1), ('u', 1), ('i', 1), ('w', 1), ('l', 1), ('rn', 4), ('rd', 4), ('addr_mode0', 4), ('opcode1', 4), ('addr_mode1', 4)])
 lsshb_regOff.setBitfield('opcode0', [0, 0, 0])
 lsshb_regOff.setVarField('rn', ('REGS', 0), 'in')
@@ -107,8 +109,16 @@ swap.setBitfield('opcode1', [1, 0, 0, 1])
 cp_ls = trap.MachineCode([('cond', 4), ('opcode', 3), ('p', 1), ('u', 1), ('n', 1), ('w', 1), ('l', 1), ('rn', 4), ('crd', 4), ('cpnum', 4), ('offset', 8)])
 cp_ls.setBitfield('opcode', [1, 1, 0])
 cp_ls.setVarField('rn', ('REGS', 0))
-cp_dataProc = trap.MachineCode([('cond', 4), ('opcode0', 4), ('opcode1', 4), ('crn', 4), ('crd', 4), ('cpnum', 4), ('opcode2', 4), ('zero', 1), ('crm', 4)])
+
+cp_dataProc = trap.MachineCode([('cond', 4), ('opcode0', 4), ('opcode1', 4), ('crn', 4), ('crd', 4), ('cpnum', 4), ('opcode2', 3), ('zero', 1), ('crm', 4)])
 cp_dataProc.setBitfield('opcode0', [1, 1, 1, 0])
-cp_regMove = trap.MachineCode([('cond', 4), ('opcode0', 4), ('opcode1', 3), ('l', 1), ('crn', 4), ('crd', 4), ('cpnum', 4), ('opcode2', 4), ('one', 1), ('crm', 4)])
+
+cp_regMove = trap.MachineCode([('cond', 4), ('opcode0', 4), ('opcode1', 3), ('l', 1), ('crn', 4), ('crd', 4), ('cpnum', 4), ('opcode2', 3), ('one', 1), ('crm', 4)])
 cp_regMove.setBitfield('opcode0', [1, 1, 1, 0])
+
+clz = trap.MachineCode([('cond', 4), ('opcode', 8), ('one', 4), ('rd', 4), ('one', 4), ('opcode1', 4), ('rm', 4)])
+clz.setBitfield('opcode' , [0, 0, 0, 1, 0, 1, 1, 0])
+clz.setBitfield('opcode1', [0, 0, 0, 1])
+clz.setVarField('rd', ('REGS', 0), 'out')
+clz.setVarField('rm', ('REGS', 0), 'in')
 

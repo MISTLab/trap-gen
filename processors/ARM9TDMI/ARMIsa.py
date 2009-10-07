@@ -3766,22 +3766,21 @@ swapb_Instr.addTest({'cond' : 0x0, 'rd' : 9, 'rn' : 0, 'rm': 8},
 #endif
 isa.addInstruction(swapb_Instr)
 
-
 # LDRBT
 opCode = cxx_writer.writer_code.Code("""
 rd = dataMem.read_word(address);
 stall(2);
 """)
 ldrbt_imm_Instr = trap.Instruction('LDRBT_imm', True, frequency = 4)
-ldrbt_imm_Instr.setMachineCode(ls_immOff, {'b': [1],'l': [1]}, subInstr = True)
+ldrbt_imm_Instr.setMachineCode(ls_immOff, {'b': [1],'l': [1]} , subInstr = True)
 ldrbt_imm_Instr.setCode(opCode, 'execute')
 ldrbt_imm_Instr.addBehavior(IncrementPC, 'fetch')
 ldrbt_imm_Instr.addBehavior(condCheckOp, 'execute')
 ldrbt_imm_Instr.addBehavior(ls_imm_Op, 'execute')
-ldrbt_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0}, {'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
-ldrbt_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0}, {'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
-ldrbt_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x18})
-ldrbt_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x08})
+ldrbt_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'w': 1, 'u': 1, 'rn': 0, 'rd': 1, 'immediate': 0}  , {'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrbt_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'w': 1, 'u': 0, 'rn': 0, 'rd': 1, 'immediate': 0}  , {'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+ldrbt_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'w': 1, 'u': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x18})
+ldrbt_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'w': 1, 'u': 0, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x08})
 isa.addInstruction(ldrbt_imm_Instr)
 
 ldrbt_off_Instr = trap.Instruction('LDRBT_off', True, frequency = 4)
@@ -3791,13 +3790,13 @@ ldrbt_off_Instr.addBehavior(IncrementPC, 'fetch')
 ldrbt_off_Instr.addBehavior(condCheckOp, 'execute')
 ldrbt_off_Instr.addBehavior(ls_reg_Op, 'execute')
 
-ldrbt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+ldrbt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'w': 1, 'u': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
 			{'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
-ldrbt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+ldrbt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'w': 1, 'u': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
 			{'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
-ldrbt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+ldrbt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'w': 1, 'u': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
 			{'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x18})
-ldrbt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
+ldrbt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'w': 1, 'u': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
 			{'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x08})
 isa.addInstruction(ldrbt_off_Instr)
 
@@ -3939,5 +3938,40 @@ stc_Instr.setMachineCode(cp_ls, {'l': [0]}, 'TODO')
 stc_Instr.setCode(opCode, 'execute')
 isa.addInstruction(stc_Instr)
 
+#MCR
+opCode = cxx_writer.writer_code.Code("""
+    THROW_EXCEPTION("MCR : Undefined Instruction");
+""")
+mcr_Instr = trap.Instruction('MCR', True, frequency = 1)
+mcr_Instr.setMachineCode(cp_regMove, {'l': [0]}, 'TODO')
+mcr_Instr.setCode(opCode, 'execute')
+isa.addInstruction(mcr_Instr)
+
+#MRC
+opCode = cxx_writer.writer_code.Code("""
+    THROW_EXCEPTION("MRC : Undefined Instruction");
+""")
+mrc_Instr = trap.Instruction('MRC', True, frequency = 1)
+mrc_Instr.setMachineCode(cp_regMove, {'l': [1]}, 'TODO')
+mrc_Instr.setCode(opCode, 'execute')
+isa.addInstruction(mrc_Instr)
+
+#CDP
+opCode = cxx_writer.writer_code.Code("""
+    THROW_EXCEPTION("CDP : Undefined Instruction");
+""")
+cdp_Instr = trap.Instruction('CDP', True, frequency = 1)
+cdp_Instr.setMachineCode(cp_dataProc, {}, 'TODO')
+cdp_Instr.setCode(opCode, 'execute')
+isa.addInstruction(cdp_Instr)
+
+#CLZ
+opCode = cxx_writer.writer_code.Code("""
+    THROW_EXCEPTION("CLZ : Undefined Instruction");
+""")
+clz_Instr = trap.Instruction('CLZ', True, frequency = 1)
+clz_Instr.setMachineCode(clz, {}, 'TODO')
+clz_Instr.setCode(opCode, 'execute')
+isa.addInstruction(clz_Instr)
 
 
