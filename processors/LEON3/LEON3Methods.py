@@ -66,7 +66,6 @@ if(((0x01 << (newCwp)) & WIM) != 0){
     return false;
 }
 PSRbp = (PSR & 0xFFFFFFE0) | newCwp;
-PSR.immediateWrite(PSRbp);
 """
 IncrementRegWindow_code += updateAliasCode()
 IncrementRegWindow_code += 'return true;'
@@ -83,7 +82,6 @@ if(((0x01 << (newCwp)) & WIM) != 0){
     return false;
 }
 PSRbp = (PSR & 0xFFFFFFE0) | newCwp;
-PSR.immediateWrite(PSRbp);
 """
 DecrementRegWindow_code += updateAliasCode()
 DecrementRegWindow_code += 'return true;'

@@ -2309,6 +2309,7 @@ if(!okNewWin){
 """)
 opCodeWb = cxx_writer.writer_code.Code("""
 if(okNewWin){
+    PSR.immediateWrite(PSRbp);
     rd = result;
 }
 """)
@@ -2323,6 +2324,7 @@ save_imm_Instr.addVariable(('okNewWin', 'BIT<1>'))
 save_imm_Instr.addVariable(('result', 'BIT<32>'))
 save_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 save_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
+save_imm_Instr.addVariable(('newCwp', 'BIT<32>'))
 save_imm_Instr.removeLockRegRegister('rd')
 isa.addInstruction(save_imm_Instr)
 save_reg_Instr = trap.Instruction('SAVE_reg', True, frequency = 2)
@@ -2336,6 +2338,7 @@ save_reg_Instr.addVariable(('okNewWin', 'BIT<1>'))
 save_reg_Instr.addVariable(('result', 'BIT<32>'))
 save_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 save_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
+save_reg_Instr.addVariable(('newCwp', 'BIT<32>'))
 save_reg_Instr.removeLockRegRegister('rd')
 isa.addInstruction(save_reg_Instr)
 opCodeExec = cxx_writer.writer_code.Code("""
@@ -2358,6 +2361,7 @@ restore_imm_Instr.addVariable(('okNewWin', 'BIT<1>'))
 restore_imm_Instr.addVariable(('result', 'BIT<32>'))
 restore_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 restore_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
+restore_imm_Instr.addVariable(('newCwp', 'BIT<32>'))
 restore_imm_Instr.removeLockRegRegister('rd')
 isa.addInstruction(restore_imm_Instr)
 restore_reg_Instr = trap.Instruction('RESTORE_reg', True, frequency = 6)
@@ -2371,6 +2375,7 @@ restore_reg_Instr.addVariable(('okNewWin', 'BIT<1>'))
 restore_reg_Instr.addVariable(('result', 'BIT<32>'))
 restore_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 restore_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
+restore_reg_Instr.addVariable(('newCwp', 'BIT<32>'))
 restore_reg_Instr.removeLockRegRegister('rd')
 isa.addInstruction(restore_reg_Instr)
 
@@ -2381,8 +2386,8 @@ switch(cond){
         // Branch Always
         unsigned int targetPc = PC + 4*(SignExtend(disp22, 22));
         #ifdef ACC_MODEL
-        PC = targetPc;
-        NPC = targetPc + 4;
+        PC = targetPc - 4;
+        NPC = targetPc;
         if(a == 1){
             flush();
         }
@@ -2437,8 +2442,8 @@ switch(cond){
         if(exec){
             unsigned int targetPc = PC + 4*(SignExtend(disp22, 22));
             #ifdef ACC_MODEL
-            PC = targetPc;
-            NPC = targetPc + 4;
+            PC = targetPc - 4;
+            NPC = targetPc;
             #else
             PC = NPC;
             NPC = targetPc - 4;
@@ -2981,6 +2986,7 @@ opCode = cxx_writer.writer_code.Code("""
 stbar_Instr = trap.Instruction('STBAR', True, frequency = 1)
 stbar_Instr.setMachineCode(stbar_format, {}, ('stbar'), subInstr = True)
 stbar_Instr.setCode(opCode, 'execute')
+stbar_Instr.addBehavior(IncrementPC, 'fetch')
 isa.addInstruction(stbar_Instr)
 
 # Unimplemented Instruction
@@ -2991,6 +2997,7 @@ unimpl_Instr = trap.Instruction('UNIMP', True, frequency = 1)
 unimpl_Instr.setMachineCode(b_sethi_format1, {'op2' : [0, 0, 0]}, ('unimp ', '%imm22'))
 unimpl_Instr.setCode(opCode, 'exception')
 unimpl_Instr.addBehavior(IncrementPC, 'fetch')
+unimpl_Instr.removeLockRegRegister('rd')
 isa.addInstruction(unimpl_Instr)
 
 # Flush Memory
@@ -3000,9 +3007,11 @@ flush_reg_Instr = trap.Instruction('FLUSH_reg', True, frequency = 1)
 flush_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 0, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('flush r', '%rs1', '+r', '%rs2'))
 flush_reg_Instr.setCode(opCode, 'execute')
 flush_reg_Instr.addBehavior(IncrementPC, 'fetch')
+flush_reg_Instr.removeLockRegRegister('rd')
 isa.addInstruction(flush_reg_Instr)
 flush_imm_Instr = trap.Instruction('FLUSH_imm', True, frequency = 1)
 flush_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 0, 1, 1]}, ('flush r', '%rs1', '+', '%simm13'))
 flush_imm_Instr.setCode(opCode, 'execute')
 flush_imm_Instr.addBehavior(IncrementPC, 'fetch')
+flush_imm_Instr.removeLockRegRegister('rd')
 isa.addInstruction(flush_imm_Instr)

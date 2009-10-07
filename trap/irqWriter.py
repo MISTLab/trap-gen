@@ -104,18 +104,23 @@ def getGetIRQInstr(self, model, trace, namespace):
 
         # Now we have all the methods related to data hazards detection and management:
         # TODO: is an implementation needed for the IRQ instruction?
-        if model.startswith('acc') and hasCheckHazard:
-            checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.boolType, 'pu')
-            IRQInstrElements.append(checkHazardDecl)
-            lockDecl = cxx_writer.writer_code.Method('lockRegs', emptyBody, cxx_writer.writer_code.voidType, 'pu')
-            IRQInstrElements.append(lockDecl)
-            unlockHazard = False
-            for pipeStage in self.pipes:
-                if pipeStage.checkHazard:
-                    unlockHazard = True
-                if unlockHazard:
-                    getUnlockDecl = cxx_writer.writer_code.Method('getUnlock_' + pipeStage.name, emptyBody, cxx_writer.writer_code.voidType, 'pu', [unlockQueueParam])
-                    IRQInstrElements.append(getUnlockDecl)
+        if model.startswith('acc'):
+            if hasCheckHazard:
+                checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.boolType, 'pu')
+                IRQInstrElements.append(checkHazardDecl)
+                lockDecl = cxx_writer.writer_code.Method('lockRegs', emptyBody, cxx_writer.writer_code.voidType, 'pu')
+                IRQInstrElements.append(lockDecl)
+                unlockHazard = False
+                for pipeStage in self.pipes:
+                    if pipeStage.checkHazard:
+                        unlockHazard = True
+                    if unlockHazard:
+                        getUnlockDecl = cxx_writer.writer_code.Method('getUnlock_' + pipeStage.name, emptyBody, cxx_writer.writer_code.voidType, 'pu', [unlockQueueParam])
+                        IRQInstrElements.append(getUnlockDecl)
+
+            printBusyRegsDecl = cxx_writer.writer_code.Method('printBusyRegs', cxx_writer.writer_code.Code('return "";'), cxx_writer.writer_code.stringType, 'pu')
+            IRQInstrElements.append(printBusyRegsDecl)
+
 
         # Here I add a method to specify the value of the received interrupt and the related attribute
         from isa import resolveBitType

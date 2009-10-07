@@ -103,7 +103,8 @@ processor.addRegBank(windowRegs)
 psrBitMask = {'IMPL': (28, 31), 'VER': (24, 27), 'ICC_n': (23, 23), 'ICC_z': (22, 22), 'ICC_v': (21, 21), 'ICC_c': (20, 20), 'EC': (13, 13), 'EF': (12, 12), 'PIL': (8, 11), 'S': (7, 7), 'PS': (6, 6), 'ET': (5, 5), 'CWP': (0, 4)}
 psrReg = trap.Register('PSR', 32, psrBitMask)
 psrReg.setDefaultValue(0xF3000080)
-psrReg.setDelay(3)
+# COMMENT FOR COMPARISON
+#psrReg.setDelay(3)
 processor.addRegister(psrReg)
 # Window Invalid Mask Register
 wimBitMask = {}
@@ -111,7 +112,8 @@ for i in range(0, 32):
     wimBitMask['WIM_' + str(i)] = (i, i)
 wimReg = trap.Register('WIM', 32, wimBitMask)
 wimReg.setDefaultValue(0)
-wimReg.setDelay(3)
+# COMMENT FOR COMPARISON
+#wimReg.setDelay(3)
 processor.addRegister(wimReg)
 # Trap Base Register
 tbrBitMask = {'TBA' : (12, 31), 'TT' : (4, 11)}
@@ -175,6 +177,7 @@ PCR = trap.AliasRegister('PCR', 'ASR[17]')
 processor.addAliasReg(PCR)
 
 # Now I add the registers which I want to see printed in the instruction trace
+# COMMENT FOR COMPARISON
 LEON3Isa.isa.addTraceRegister(pcReg)
 LEON3Isa.isa.addTraceRegister(npcReg)
 LEON3Isa.isa.addTraceRegister(psrReg)
@@ -316,5 +319,5 @@ processor.setABI(abi)
 #processor.write(folder = 'processor', models = ['funcAT'])
 #processor.write(folder = 'processor', models = ['funcAT', 'funcLT'], tests = False)
 #processor.write(folder = 'processor', models = ['accAT'], trace = True)
-#processor.write(folder = 'processor', models = ['accLT', 'funcLT'], trace = False)
-processor.write(folder = 'processor', models = ['accLT', 'funcLT'], trace = True, combinedTrace = True)
+processor.write(folder = 'processor', models = ['accLT', 'funcLT'], trace = True)
+#processor.write(folder = 'processor', models = ['accLT', 'funcLT'], trace = True, combinedTrace = True)

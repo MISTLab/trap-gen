@@ -70,15 +70,22 @@ def getCPPRegClass(self, model, regType, namespace):
     normalRegType = regType.makeNormal()
 
     # First of all I determine if there is the need to create a const element
+    constReg = False
     if self.constValue != None and type(self.constValue) != type({}):
         assignValueItem = str(self.constValue)
         readValueItem = str(self.constValue)
+        constReg = True
     elif model.startswith('acc') or type(self.delay) == type({}) or self.delay == 0:
         assignValueItem = 'this->value'
         readValueItem = 'this->value'
     else:
         assignValueItem = 'this->updateSlot[' + str(self.delay - 1) + '] = true;\nthis->values[' + str(self.delay - 1) + ']'
         readValueItem = 'this->value'
+
+    if constReg and model.startswith('acc'):
+        isLockedBody = cxx_writer.writer_code.Code('return false;')
+        isLockedMethod = cxx_writer.writer_code.Method('isLocked', isLockedBody, cxx_writer.writer_code.boolType, 'pu', noException = True)
+        registerElements.append(isLockedMethod)
 
 
     ####################### Lets declare the operators used to access the register fields ##############
@@ -437,7 +444,7 @@ def getCPPRegisters(self, model, namespace):
         else{
             return this->locked;
         }""")
-        isLockedMethod = cxx_writer.writer_code.Method('isLocked', isLockedBody, cxx_writer.writer_code.boolType, 'pu', inline = True, noException = True)
+        isLockedMethod = cxx_writer.writer_code.Method('isLocked', isLockedBody, cxx_writer.writer_code.boolType, 'pu', noException = True, virtual = True)
         registerElements.append(isLockedMethod)
 
     ################ Methods used for the management of delayed registers ######################

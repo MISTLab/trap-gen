@@ -379,11 +379,38 @@ def getCPPInstr(self, model, processor, trace, combinedTrace, namespace):
         from pipelineWriter import wbStage
         from pipelineWriter import chStage
 
-        if hasCheckHazard:
-            for ps in processor.pipes:
-                if ps.checkHazard:
-                    checkHazardStage = ps.name
+        for ps in processor.pipes:
+            if ps.checkHazard:
+                checkHazardStage = ps.name
 
+        # Now we have to print the method for creating the data hazards
+        regsToCheck = []
+        printBusyRegsCode = 'std::string retVal = "";\n'
+        for name, correspondence in self.machineCode.bitCorrespondence.items():
+            if 'in' in self.machineCode.bitDirection[name]:
+                regsToCheck.append(name)
+        for name, correspondence in self.bitCorrespondence.items():
+            if 'in' in self.bitDirection[name]:
+                regsToCheck.append(name)
+        for specialRegName in self.specialInRegs:
+            regsToCheck.append(specialRegName)
+
+        for regToCheck in regsToCheck:
+            if not regToCheck in self.notLockRegs:
+                parenthesis = regToCheck.find('[')
+                if parenthesis > 0:
+                    realRegName = regToCheck[:parenthesis] + '_' + checkHazardStage + regToCheck[parenthesis:]
+                else:
+                    realRegName = regToCheck + '_' + checkHazardStage
+                printBusyRegsCode += 'if(this->' + realRegName + '.isLocked()){\n'
+                printBusyRegsCode += 'retVal += "' + regToCheck + ' - ";\n'
+                printBusyRegsCode += '}\n'
+        printBusyRegsCode += 'return retVal;\n'
+        printBusyRegsBody = cxx_writer.writer_code.Code(printBusyRegsCode)
+        printBusyRegsDecl = cxx_writer.writer_code.Method('printBusyRegs', printBusyRegsBody, cxx_writer.writer_code.stringType, 'pu')
+        classElements.append(printBusyRegsDecl)
+
+        if hasCheckHazard:
             # checkHazard
             regsToCheck = []
             checkHazardCode = 'bool regLocked = false;\n'
@@ -409,6 +436,7 @@ def getCPPInstr(self, model, processor, trace, combinedTrace, namespace):
             checkHazardBody = cxx_writer.writer_code.Code(checkHazardCode)
             checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', checkHazardBody, cxx_writer.writer_code.boolType, 'pu')
             classElements.append(checkHazardDecl)
+
             # lockRegs
             regsToLock = []
             lockCode = ''
@@ -847,15 +875,24 @@ def getCPPClasses(self, processor, model, trace, combinedTrace, namespace):
                 if unlockHazard:
                     getUnlockDecl = cxx_writer.writer_code.Method('getUnlock_' + pipeStage.name, emptyBody, cxx_writer.writer_code.voidType, 'pu', [unlockQueueParam], pure = True)
                     instructionElements.append(getUnlockDecl)
+        # I also have to add the program counter attribute
+        fetchPCAttr = cxx_writer.writer_code.Attribute('fetchPC', processor.bitSizes[1], 'pu')
+        instructionElements.append(fetchPCAttr)
+        # and the inInPipeline attribute, specifying if the instruction is currently already
+        # in the pipeline or not
+        inPipelineAttr = cxx_writer.writer_code.Attribute('inPipeline', cxx_writer.writer_code.boolType, 'pu')
+        instructionElements.append(inPipelineAttr)
+        toDestroyAttr = cxx_writer.writer_code.Attribute('toDestroy', cxx_writer.writer_code.boolType, 'pu')
+        instructionElements.append(toDestroyAttr)
 
     if trace:
-        if not combinedTrace:
-            traceStage = processor.pipes[-1]
-        else:
-            for pipeStage in processor.pipes:
-                if pipeStage.checkTools:
-                    traceStage = pipeStage
-                    break
+        #if not combinedTrace:
+        traceStage = processor.pipes[-1]
+        #else:
+            #for pipeStage in processor.pipes:
+                #if pipeStage.checkTools:
+                    #traceStage = pipeStage
+                    #break
 
         # I have to print the value of all the registers in the processor
         printTraceCode = ''
@@ -910,6 +947,11 @@ def getCPPClasses(self, processor, model, trace, combinedTrace, namespace):
         printTraceBody = cxx_writer.writer_code.Code(printTraceCode)
         printTraceDecl = cxx_writer.writer_code.Method('printTrace', printTraceBody, cxx_writer.writer_code.voidType, 'pu')
         instructionElements.append(printTraceDecl)
+        # Now we have to print the method for creating the data hazards
+        if model.startswith('acc'):
+            printBusyRegsDecl = cxx_writer.writer_code.Method('printBusyRegs', emptyBody, cxx_writer.writer_code.stringType, 'pu', pure = True)
+            instructionElements.append(printBusyRegsDecl)
+
 
     getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', emptyBody, cxx_writer.writer_code.stringType, 'pu', noException = True, const = True, pure = True)
     instructionElements.append(getIstructionNameDecl)
@@ -1064,7 +1106,7 @@ def getCPPClasses(self, processor, model, trace, combinedTrace, namespace):
     else:
         instructionElements.append(cxx_writer.writer_code.Attribute('flushPipeline', cxx_writer.writer_code.boolType, 'pu'))
         instructionElements.append(cxx_writer.writer_code.Attribute('stageCycles', cxx_writer.writer_code.uintType, 'pro'))
-        constrBody = 'this->stageCycles = 0;\nthis->flushPipeline = false;'
+        constrBody = 'this->stageCycles = 0;\nthis->flushPipeline = false;\nthis->fetchPC = 0;\nthis->toDestroy = false;\nthis->inPipeline = false;\n'
 
     for constant in self.constants:
         instructionElements.append(cxx_writer.writer_code.Attribute(constant[1], constant[0].makeConst(), 'pro'))
@@ -1132,6 +1174,8 @@ def getCPPClasses(self, processor, model, trace, combinedTrace, namespace):
     getIdDecl = cxx_writer.writer_code.Method('getId', getIdBody, cxx_writer.writer_code.uintType, 'pu', noException = True, const = True)
     invalidInstrElements.append(getIdDecl)
     if model.startswith('acc'):
+        printBusyRegsDecl = cxx_writer.writer_code.Method('printBusyRegs', cxx_writer.writer_code.Code('return "";'), cxx_writer.writer_code.stringType, 'pu')
+        invalidInstrElements.append(printBusyRegsDecl)
         if hasCheckHazard:
             checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', cxx_writer.writer_code.Code('return false;'), cxx_writer.writer_code.boolType, 'pu')
             invalidInstrElements.append(checkHazardDecl)
@@ -1199,6 +1243,9 @@ def getCPPClasses(self, processor, model, trace, combinedTrace, namespace):
         getIdBody = cxx_writer.writer_code.Code('return (unsigned int)-1;')
         getIdDecl = cxx_writer.writer_code.Method('getId', getIdBody, cxx_writer.writer_code.uintType, 'pu', noException = True, const = True)
         NOPInstructionElements.append(getIdDecl)
+
+        printBusyRegsDecl = cxx_writer.writer_code.Method('printBusyRegs', cxx_writer.writer_code.Code('return "";'), cxx_writer.writer_code.stringType, 'pu')
+        NOPInstructionElements.append(printBusyRegsDecl)
 
         if hasCheckHazard:
             checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.boolType, 'pu')

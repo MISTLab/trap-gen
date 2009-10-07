@@ -129,7 +129,7 @@ def getInstrIssueCodePipe(self, trace, combinedTrace, instrVarName, hasCheckHaza
     codeString += 'try{\n'
     if pipeStage.checkTools:
         codeString += """#ifndef DISABLE_TOOLS
-            if(!(this->toolManager.newIssue(curPC, """ + instrVarName + """))){
+            if(!(this->toolManager.newIssue(""" + instrVarName + """->fetchPC, """ + instrVarName + """))){
             #endif
     """
     codeString += """numCycles = """ + instrVarName + """->behavior_""" + pipeStage.name + """(BasePipeStage::unlockQueue);
@@ -138,9 +138,12 @@ def getInstrIssueCodePipe(self, trace, combinedTrace, instrVarName, hasCheckHaza
         codeString += """this->curInstruction = """ + instrVarName + """;
         """
     if trace:
-        if not combinedTrace:
-            if pipeStage == self.pipes[-1]:
-                codeString += instrVarName + '->printTrace();\n'
+        if pipeStage == self.pipes[-1]:
+            if combinedTrace:
+                codeString += 'if(this->curInstruction != this->NOPInstrInstance){\n'
+            codeString += instrVarName + '->printTrace();\n'
+            if combinedTrace:
+                codeString += '}\n'
     if pipeStage.checkTools:
         codeString += """#ifndef DISABLE_TOOLS
                     }
@@ -229,6 +232,12 @@ def standardInstrFetch(self, trace, combinedTrace, issueCodeGenerator, hasCheckH
     codeString = 'int instrId = this->decoder.decode(bitString);\n'
     if pipeStage:
         codeString += 'Instruction * instr = ' + pipeStage.name.upper() + '_PipeStage::INSTRUCTIONS[instrId];\n'
+        codeString += 'if(instr->inPipeline){\n'
+        codeString += 'instr = instr->replicate();\n'
+        codeString += 'instr->toDestroy = true;\n'
+        codeString += '}\n'
+        codeString += 'instr->inPipeline = true;\n'
+        codeString += 'instr->fetchPC = curPC;\n'
     else:
         codeString += 'Instruction * instr = Processor::INSTRUCTIONS[instrId];\n'
     codeString += 'instr->setParams(bitString);\n'
@@ -250,6 +259,13 @@ def fetchWithCacheCode(self, fetchCode, trace, combinedTrace, issueCodeGenerator
         // I can call the instruction, I have found it
         if(curInstrPtr != NULL){
     """
+    if pipeStage:
+        codeString += 'if(curInstrPtr->inPipeline){\n'
+        codeString += 'curInstrPtr = curInstrPtr->replicate();\n'
+        codeString += 'curInstrPtr->toDestroy = true;\n'
+        codeString += '}\n'
+        codeString += 'curInstrPtr->inPipeline = true;\n'
+        codeString += 'curInstrPtr->fetchPC = curPC;\n'
     codeString += issueCodeGenerator(self, trace, combinedTrace, 'curInstrPtr', hasCheckHazard, pipeStage)
 
     # I have found the element in the cache, but not the instruction
@@ -1212,10 +1228,10 @@ def getMainCode(self, model, namespace):
         code += """
         //Now I initialize the tools (i.e. debugger, os emulator, ...)
         """
-        if model.startswith('acc'):
-            code += 'OSEmulatorCA< ' + str(wordType) + ', -' + str(execOffset*self.wordSize) + ' > osEmu(*(procInst.abiIf), Processor::NOPInstrInstance, ' + str(self.abi.emulOffset) + ');\n'
-        else:
-            code += 'OSEmulator< ' + str(wordType) + ', 0 > osEmu(*(procInst.abiIf), ' + str(self.abi.emulOffset) + ');\n'
+        #if model.startswith('acc'):
+            #code += 'OSEmulatorCA< ' + str(wordType) + ', -' + str(execOffset*self.wordSize) + ' > osEmu(*(procInst.abiIf), Processor::NOPInstrInstance, ' + str(self.abi.emulOffset) + ');\n'
+        #else:
+        code += 'OSEmulator< ' + str(wordType) + ', 0 > osEmu(*(procInst.abiIf), ' + str(self.abi.emulOffset) + ');\n'
         code += """GDBStub< """ + str(wordType) + """ > gdbStub(*(procInst.abiIf));
         Profiler< """ + str(wordType) + """ > profiler(*(procInst.abiIf), vm["application"].as<std::string>());
 
@@ -1348,10 +1364,10 @@ def getMainCode(self, model, namespace):
     if self.abi:
         mainCode.addInclude('GDBStub.hpp')
         mainCode.addInclude('profiler.hpp')
-        if model.startswith('acc'):
-            mainCode.addInclude('osEmulatorCA.hpp')
-        else:
-            mainCode.addInclude('osEmulator.hpp')
+        #if model.startswith('acc'):
+            #mainCode.addInclude('osEmulatorCA.hpp')
+        #else:
+        mainCode.addInclude('osEmulator.hpp')
     mainCode.addInclude('boost/program_options.hpp')
     mainCode.addInclude('boost/timer.hpp')
     mainCode.addInclude('boost/filesystem/operations.hpp')
