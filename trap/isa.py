@@ -301,9 +301,6 @@ class Instruction:
         self.docString = ''
         self.machineCode = None
         self.machineBits = None
-        # stages at which I check for hazards
-        self.hazardStage = ''
-        self.wbStage = ''
         # The bits of the machine code of the instruction; the elements of
         # this list can be 0, 1 or None (don't care)
         self.bitstring = []
@@ -334,9 +331,8 @@ class Instruction:
         # Registers which are read or written in addition to registers which are
         # part of the instruction econding (usually these are the special processor
         # registers)
-        self.specialInRegs = []
-        self.specialOutRegs = []
-        self.specialOutRegsWB = {}
+        self.specialInRegs = {}
+        self.specialOutRegs = {}
         # Specifies if the coding of this instruction is a special case of a more general
         # instruction
         self.subInstr = False
@@ -494,25 +490,22 @@ class Instruction:
     def addDocString(self, docString):
         self.docString += docString + '\n'
 
-    def setPipeProperties(self, hazardStage = '', wbStage = ''):
-        # Sets the stage in which the checks for hazards are performed,
-        self.hazardStage = hazardStage
-        self.wbStage = wbStage
-
     def setTemplateString(self, templateString):
         # This information is used for gcc retargeting.
         raise Exception('GCC Retargeting not yet supported')
         self.templateString = templateString
 
-    def addSpecialRegister(self, regName, direction = 'inout', stage = ''):
+    def addSpecialRegister(self, regName, direction = 'inout', stage = 'default'):
         if direction in ['inout', 'in']:
-            self.specialInRegs.append(regName)
-        if direction in ['inout', 'out']:
-            self.specialOutRegs.append(regName)
-            if self.specialOutRegsWB.has_key(stage):
-                self.specialOutRegsWB[stage].append(regName)
+            if self.specialInRegs.has_key(stage):
+                self.specialInRegs[stage].append(regName)
             else:
-                self.specialOutRegsWB[stage] = [regName]
+                self.specialInRegs[stage] = [regName]
+        if direction in ['inout', 'out']:
+            if self.specialOutRegs.has_key(stage):
+                self.specialOutRegs[stage].append(regName)
+            else:
+                self.specialOutRegs[stage] = [regName]
         if not direction in ['inout', 'out', 'in']:
             raise Exception(str(direction) + ' is  not valid; valid values are: \'inout\', \'in\', and \'out\'')
 

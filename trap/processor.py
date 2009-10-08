@@ -753,7 +753,7 @@ class Processor:
     def checkISARegs(self):
         # Checks that registers declared in the instruction encoding and the ISA really exists
         architecturalNames = [archElem.name for archElem in self.regs + self.regBanks + self.aliasRegs + self.aliasRegBanks]
-        for name, instruction in self.isa.instructions:
+        for name, instruction in self.isa.instructions.items():
             # inside each instruction I have to check for registers defined in the machine code (bitCorrespondence),
             # the correspondence declared inside the instruction itself (bitCorrespondence), the input and output
             # special registers (specialInRegs, specialOutRegs)
@@ -763,7 +763,13 @@ class Processor:
             for regName in instruction.bitCorrespondence.values():
                 if not regName[0] in architecturalNames:
                     raise Exception('Architectural Element ' + str(regName[0]) + ' specified in machine code of instruction ' + name + ' does not exist')
-            for regName in instruction.specialInRegs + instruction.specialOutRegs:
+            outRegs = []
+            for regList in instruction.specialOutRegs.values():
+                outRegs += regList
+            inRegs = []
+            for regList in instruction.specialInRegs.values():
+                inRegs += regList
+            for regName in inRegs + outRegs:
                 index = extractRegInterval(regName)
                 if index:
                     # I'm aliasing part of a register bank or another alias:
@@ -776,9 +782,35 @@ class Processor:
                     # Single register or alias: I check that it exists
                     if self.isRegExisting(regName) is None:
                         raise Exception('Register ' + regName + ' referenced as spcieal register in insrtuction ' + name + ' does not exists')
-            for stage in instruction.specialOutRegsWB.keys():
-                if not stage in [i.name for i in self.pipes]:
-                    raise Exception('Stage ' + stage + ' specified for WB of instruction ' + name + ' does not exists')
+            pipeStageName = [i.name for i in self.pipes] + ['default']
+            beforeCheck = []
+            wbStageName = 'default'
+            hazardStageName = 'default'
+            for i in self.pipes:
+                if i.checkHazard:
+                    hazardStageName = i.name
+                elif i.endHazard:
+                    wbStageName = i.name
+                if hazardStageName == 'default':
+                    beforeCheck.append(i.name)
+            newOutRegs = {}
+            for stage, regs in instruction.specialOutRegs.items():
+                if stage == 'default':
+                    stage = wbStageName
+                if not stage in pipeStageName:
+                    raise Exception('Stage ' + stage + ' specified for special register of instruction ' + name + ' does not exists')
+                newOutRegs[stage] = regs
+            instruction.specialOutRegs = newOutRegs
+            newInRegs = {}
+            for stage, regs in instruction.specialInRegs.items():
+                if stage == 'default':
+                    stage = hazardStageName
+                if not stage in pipeStageName:
+                    raise Exception('Stage ' + stage + ' specified for special register of instruction ' + name + ' does not exists')
+                if not stage in beforeCheck:
+                    stage = hazardStageName
+                newInRegs[stage] = regs
+            instruction.specialInRegs = newInRegs
 
     def checkABI(self):
         # checks that the registers specified for the ABI interface
@@ -919,6 +951,7 @@ class Processor:
         if self.abi:
             self.checkABI()
         self.isa.checkRegisters(extractRegInterval, self.isRegExisting)
+        self.checkISARegs()
         self.checkIRQPorts()
 
         # OK, checks done. Now I can start calling the write methods to

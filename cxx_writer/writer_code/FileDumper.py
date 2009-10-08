@@ -413,16 +413,12 @@ class Folder:
         conf.env.append_unique('CPPFLAGS','/D_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1')
         conf.env.append_unique('CPPFLAGS','/D_CRT_SECURE_NO_WARNINGS=1')
 
-    for flag in conf.env['CPPFLAGS']:
-        conf.check_cc(cflags=flag, mandatory=1)
-    for flag in conf.env['CCFLAGS']:
-        conf.check_cc(cflags=flag, mandatory=1)
-    for flag in conf.env['CXXFLAGS']:
-        conf.check_cxx(cxxflags=flag, mandatory=1)
-    for flag in conf.env['LINKFLAGS']:
-        conf.check_cxx(linkflags=flag, mandatory=1)
-    for flag in conf.env['STLINKFLAGS']:
-        conf.check_cxx(linkflags=flag, mandatory=1)
+    conf.check_cc(cflags=conf.env['CFLAGS'], mandatory=1, msg='Checking for C compilation flags')
+    conf.check_cc(cflags=conf.env['CCFLAGS'], mandatory=1, msg='Checking for C compilation flags')
+    conf.check_cxx(cxxflags=conf.env['CXXFLAGS'], mandatory=1, msg='Checking for G++ compilation flags')
+    conf.check_cxx(linkflags=conf.env['LINKFLAGS'], mandatory=1, msg='Checking for link flags')
+    if conf.env['STLINKFLAGS']:
+        conf.check_cxx(linkflags=conf.env['STLINKFLAGS'], mandatory=1, msg='Checking for link flags')
 
     ########################################
     # Setting the host endianess

@@ -106,10 +106,11 @@ def getGetIRQInstr(self, model, trace, namespace):
         # TODO: is an implementation needed for the IRQ instruction?
         if model.startswith('acc'):
             if hasCheckHazard:
-                checkHazardDecl = cxx_writer.writer_code.Method('checkHazard', emptyBody, cxx_writer.writer_code.boolType, 'pu')
-                IRQInstrElements.append(checkHazardDecl)
-                lockDecl = cxx_writer.writer_code.Method('lockRegs', emptyBody, cxx_writer.writer_code.voidType, 'pu')
-                IRQInstrElements.append(lockDecl)
+                for pipeStage in self.pipes:
+                    checkHazardDecl = cxx_writer.writer_code.Method('checkHazard_' + pipeStage.name, emptyBody, cxx_writer.writer_code.boolType, 'pu')
+                    IRQInstrElements.append(checkHazardDecl)
+                    lockDecl = cxx_writer.writer_code.Method('lockRegs_' + pipeStage.name, emptyBody, cxx_writer.writer_code.voidType, 'pu')
+                    IRQInstrElements.append(lockDecl)
                 unlockHazard = False
                 for pipeStage in self.pipes:
                     if pipeStage.checkHazard:
