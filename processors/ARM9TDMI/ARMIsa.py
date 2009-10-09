@@ -3974,4 +3974,53 @@ clz_Instr.setMachineCode(clz, {}, 'TODO')
 clz_Instr.setCode(opCode, 'execute')
 isa.addInstruction(clz_Instr)
 
+#SWI
+opCode = cxx_writer.writer_code.Code("""
+//R14_svc = address of next instruction after the SWI instruction
+LR_SVC=PC-4; 
+SPSR[2]=CPSR;
+          
+CPSR &= 0xFFFFFFF0;
+CPSR |= 0x00000003;   //enter supervisor mode
+
+CPSR &= 0xFFFFFFEF;   //CPSR[5]= 0: execute in ARM state
+CPSR |= 0x00000080;   //CPSR[7]= 1: disable normal interrupts
+
+//if high vectors configured then
+//	PC    = 0xFFFF0008;
+//else
+  	PC    = 0x00000008;	
+	
+""")
+swi_Instr = trap.Instruction('SWI', True, frequency = 1)
+swi_Instr.setMachineCode(swi, {}, 'TODO')
+swi_Instr.setCode(opCode, 'execute')
+swi_Instr.addBehavior(IncrementPC, 'fetch')
+swi_Instr.addBehavior(condCheckOp, 'execute')
+isa.addInstruction(swi_Instr)
+
+#BKPT
+opCode = cxx_writer.writer_code.Code("""
+//R14_abt= address of BKPT instr+4
+LR_ABT=PC+4;
+SPSR[3]=CPSR;
+
+CPSR &= 0xFFFFFFF0;
+CPSR |= 0x00000007;   //enter abort mode
+
+CPSR &= 0xFFFFFFEF;   //CPSR[5]= 0: execute in ARM state
+CPSR |= 0x00000080;   //CPSR[7]= 1: disable normal interrupts
+
+//if high vectors configured then
+//	 PC    = 0xFFFF000C;
+//else
+  	 PC    = 0x0000000C;	
+	
+""")
+bkpt_Instr = trap.Instruction('BKPT', True, frequency = 1)
+bkpt_Instr.setMachineCode(bkpt, {}, 'TODO')
+bkpt_Instr.setCode(opCode, 'execute')
+bkpt_Instr.addBehavior(IncrementPC, 'fetch')
+bkpt_Instr.addBehavior(condCheckOp, 'execute')
+isa.addInstruction(bkpt_Instr)
 
