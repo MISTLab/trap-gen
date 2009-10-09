@@ -98,6 +98,12 @@ multiply.setVarField('rm', ('REGS', 0), 'in')
 multiply.setBitfield('opcode1', [1, 0, 0, 1])
 
 swi = trap.MachineCode([('cond', 4), ('one', 4), ('swi_number', 24)])
+
+bkpt= trap.MachineCode([('cond', 4), ('opcode0', 8), ('immediate0', 12),('opcode1', 4), ('immediate1', 4)])
+bkpt.setBitfield('cond' , [1, 1, 1, 0])
+bkpt.setBitfield('opcode0' , [0, 0, 0, 1, 0, 0, 1, 0])
+bkpt.setBitfield('opcode1', [0, 1, 1, 1])
+
 swap = trap.MachineCode([('cond', 4), ('opcode0', 5), ('b', 1), ('zero', 2), ('rn', 4), ('rd', 4), ('zero', 4), ('opcode1', 4), ('rm', 4)])
 swap.setVarField('rd', ('REGS', 0), 'out')
 swap.setVarField('rn', ('REGS', 0), 'in')
