@@ -1641,12 +1641,12 @@ mov_shift_imm_Instr.addVariable(('result', 'BIT<32>'))
 #if ConditionPassed(cond) then
 #    Rd = shifter_operand
 #    if S == 1 and Rd == R15 then
-#    	CPSR = SPSR
+#        CPSR = SPSR
 #    else if S == 1 then
-#    	N Flag = Rd[31]
-#    	Z Flag = if Rd == 0 then 1 else 0
-#    	C Flag = shifter_carry_out
-#    	V Flag = unaffected
+#        N Flag = Rd[31]
+#        Z Flag = if Rd == 0 then 1 else 0
+#        C Flag = shifter_carry_out
+#        V Flag = unaffected
 mov_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[8]': 3}, {'CPSR' : 0x20000000, 'REGS[10]': 3})
 mov_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[8]': 0xffffffff}, {'CPSR' : 0x80000000, 'REGS[10]': 0xffffffff})
 # Rd=0 then Z flag=1
@@ -1685,10 +1685,10 @@ mov_shift_reg_Instr.addVariable(('result', 'BIT<32>'))
 
 #Logical shift left by register
 #if S == 1 then
-#    	N Flag = Rd[31]
+#        N Flag = Rd[31]
 mov_shift_reg_Instr.addTest({'cond': 0xe, 's':1, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[0]': 0, 'REGS[8]': 0xffffffff}, {'CPSR' : 0xa0000000, 'REGS[10]': 0xffffffff})
 mov_shift_reg_Instr.addTest({'cond': 0xe, 's':1, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[0]': 1, 'REGS[8]': 3}, {'CPSR' : 0x00000000, 'REGS[10]': 6})
-#    	Z Flag = if Rd == 0 then 1 else 0
+#        Z Flag = if Rd == 0 then 1 else 0
 mov_shift_reg_Instr.addTest({'cond': 0xe, 's':1, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 32, 'REGS[8]': 3}, {'CPSR' : 0x60000000, 'REGS[10]': 0})
 mov_shift_reg_Instr.addTest({'cond': 0xe, 's':1, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x00000000, 'REGS[0]': 33, 'REGS[8]': 3}, {'CPSR' : 0x40000000, 'REGS[10]': 0})
 #S=0 do not update CPSR
@@ -1963,52 +1963,52 @@ msr_imm_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':8, 'rotate': 1, 'immediate': 
 #            SPSR[31:24] = operand[31:24]
 # FIQ mode SPSR[0];
 msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rotate': 1, 'immediate': 0x40},
-		      {'CPSR' : 0x00000011, 'SPSR[0]' : 0x00000000}, {'CPSR' : 0x00000011,'SPSR[0]' : 0x00000010})
+              {'CPSR' : 0x00000011, 'SPSR[0]' : 0x00000000}, {'CPSR' : 0x00000011,'SPSR[0]' : 0x00000010})
 msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rotate': 1, 'immediate': 0x40},
-		      {'CPSR' : 0x00000011, 'SPSR[0]' : 0x00002222}, {'CPSR' : 0x00000011,'SPSR[0]' : 0x00000022})
+              {'CPSR' : 0x00000011, 'SPSR[0]' : 0x00002222}, {'CPSR' : 0x00000011,'SPSR[0]' : 0x00000022})
 msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rotate': 1, 'immediate': 0x40},
-		      {'CPSR' : 0x00000011, 'SPSR[0]' : 0x00441234}, {'CPSR' : 0x00000011,'SPSR[0]' : 0x00001234})
+              {'CPSR' : 0x00000011, 'SPSR[0]' : 0x00441234}, {'CPSR' : 0x00000011,'SPSR[0]' : 0x00001234})
 msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rotate': 1, 'immediate': 0x40},
-		      {'CPSR' : 0x00000011, 'SPSR[0]' : 0x55000000}, {'CPSR' : 0x00000011,'SPSR[0]' : 0x00000000})
+              {'CPSR' : 0x00000011, 'SPSR[0]' : 0x55000000}, {'CPSR' : 0x00000011,'SPSR[0]' : 0x00000000})
 # IRQ mode SPSR[1];
 msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rotate': 1, 'immediate': 0x40},
-		      {'CPSR' : 0x00000012, 'SPSR[1]' : 0x00000000}, {'CPSR' : 0x00000012,'SPSR[1]' : 0x00000010})
+              {'CPSR' : 0x00000012, 'SPSR[1]' : 0x00000000}, {'CPSR' : 0x00000012,'SPSR[1]' : 0x00000010})
 msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rotate': 1, 'immediate': 0x40},
-		      {'CPSR' : 0x00000012, 'SPSR[1]' : 0x00002222}, {'CPSR' : 0x00000012,'SPSR[1]' : 0x00000022})
+              {'CPSR' : 0x00000012, 'SPSR[1]' : 0x00002222}, {'CPSR' : 0x00000012,'SPSR[1]' : 0x00000022})
 msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rotate': 1, 'immediate': 0x40},
-		      {'CPSR' : 0x00000012, 'SPSR[1]' : 0x00441234}, {'CPSR' : 0x00000012,'SPSR[1]' : 0x00001234})
+              {'CPSR' : 0x00000012, 'SPSR[1]' : 0x00441234}, {'CPSR' : 0x00000012,'SPSR[1]' : 0x00001234})
 msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rotate': 1, 'immediate': 0x40},
-		      {'CPSR' : 0x00000012, 'SPSR[1]' : 0x55000000}, {'CPSR' : 0x00000012,'SPSR[1]' : 0x00000000})
+              {'CPSR' : 0x00000012, 'SPSR[1]' : 0x55000000}, {'CPSR' : 0x00000012,'SPSR[1]' : 0x00000000})
 # SVC mode SPSR[2];
 msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rotate': 1, 'immediate': 0x40},
-		      {'CPSR' : 0x00000013, 'SPSR[2]' : 0x00000000}, {'CPSR' : 0x00000013,'SPSR[2]' : 0x00000010})
+              {'CPSR' : 0x00000013, 'SPSR[2]' : 0x00000000}, {'CPSR' : 0x00000013,'SPSR[2]' : 0x00000010})
 msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rotate': 1, 'immediate': 0x40},
-		      {'CPSR' : 0x00000013, 'SPSR[2]' : 0x00002222}, {'CPSR' : 0x00000013,'SPSR[2]' : 0x00000022})
+              {'CPSR' : 0x00000013, 'SPSR[2]' : 0x00002222}, {'CPSR' : 0x00000013,'SPSR[2]' : 0x00000022})
 msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rotate': 1, 'immediate': 0x40},
-		      {'CPSR' : 0x00000013, 'SPSR[2]' : 0x00441234}, {'CPSR' : 0x00000013,'SPSR[2]' : 0x00001234})
+              {'CPSR' : 0x00000013, 'SPSR[2]' : 0x00441234}, {'CPSR' : 0x00000013,'SPSR[2]' : 0x00001234})
 msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rotate': 1, 'immediate': 0x40},
-		      {'CPSR' : 0x00000013, 'SPSR[2]' : 0x55000000}, {'CPSR' : 0x00000013,'SPSR[2]' : 0x00000000})
+              {'CPSR' : 0x00000013, 'SPSR[2]' : 0x55000000}, {'CPSR' : 0x00000013,'SPSR[2]' : 0x00000000})
 # ABT mode SPSR[3];
 msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rotate': 1, 'immediate': 0x40},
-		      {'CPSR' : 0x00000017, 'SPSR[3]' : 0x00000000}, {'CPSR' : 0x00000017,'SPSR[3]' : 0x00000010})
+              {'CPSR' : 0x00000017, 'SPSR[3]' : 0x00000000}, {'CPSR' : 0x00000017,'SPSR[3]' : 0x00000010})
 msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rotate': 1, 'immediate': 0x40},
-		      {'CPSR' : 0x00000017, 'SPSR[3]' : 0x00002222}, {'CPSR' : 0x00000017,'SPSR[3]' : 0x00000022})
+              {'CPSR' : 0x00000017, 'SPSR[3]' : 0x00002222}, {'CPSR' : 0x00000017,'SPSR[3]' : 0x00000022})
 msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rotate': 1, 'immediate': 0x40},
-		      {'CPSR' : 0x00000017, 'SPSR[3]' : 0x00441234}, {'CPSR' : 0x00000017,'SPSR[3]' : 0x00001234})
+              {'CPSR' : 0x00000017, 'SPSR[3]' : 0x00441234}, {'CPSR' : 0x00000017,'SPSR[3]' : 0x00001234})
 msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rotate': 1, 'immediate': 0x40},
-		      {'CPSR' : 0x00000017, 'SPSR[3]' : 0x55000000}, {'CPSR' : 0x00000017,'SPSR[3]' : 0x00000000})
+              {'CPSR' : 0x00000017, 'SPSR[3]' : 0x55000000}, {'CPSR' : 0x00000017,'SPSR[3]' : 0x00000000})
 # UND mode SPSR[4];
 msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rotate': 1, 'immediate': 0x40},
-		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x00000000}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x00000010})
+              {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x00000000}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x00000010})
 msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rotate': 1, 'immediate': 0x40},
-		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x00002222}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x00000022})
+              {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x00002222}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x00000022})
 msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rotate': 1, 'immediate': 0x40},
-		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x00441234}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x00001234})
+              {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x00441234}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x00001234})
 msr_imm_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rotate': 1, 'immediate': 0x40},
-		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x55000000}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x00000000})
+              {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x55000000}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x00000000})
 # condition failed
 msr_imm_Instr.addTest({'cond': 0x0, 'r': 1, 'mask':4, 'rotate': 1, 'immediate': 0x40},
-		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x00441234}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x00441234})
+              {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x00441234}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x00441234})
 isa.addInstruction(msr_imm_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
@@ -2186,52 +2186,52 @@ msr_reg_Instr.addTest({'cond': 0xe, 'r': 0, 'mask':8, 'rm': 8 },{'CPSR' : 0xfe00
 #            SPSR[31:24] = operand[31:24]
 # FIQ mode SPSR[0];
 msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rm': 8 },
-		      {'CPSR' : 0x00000011, 'SPSR[0]' : 0x000000ab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000011,'SPSR[0]' : 0x000000f0})
+              {'CPSR' : 0x00000011, 'SPSR[0]' : 0x000000ab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000011,'SPSR[0]' : 0x000000f0})
 msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rm': 8 },
-		      {'CPSR' : 0x00000011, 'SPSR[0]' : 0x0000abab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000011,'SPSR[0]' : 0x0000f0ab})
+              {'CPSR' : 0x00000011, 'SPSR[0]' : 0x0000abab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000011,'SPSR[0]' : 0x0000f0ab})
 msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rm': 8 },
-		      {'CPSR' : 0x00000011, 'SPSR[0]' : 0x00ababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000011,'SPSR[0]' : 0x00f0abab})
+              {'CPSR' : 0x00000011, 'SPSR[0]' : 0x00ababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000011,'SPSR[0]' : 0x00f0abab})
 msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rm': 8 },
-		      {'CPSR' : 0x00000011, 'SPSR[0]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000011,'SPSR[0]' : 0xf0ababab})
+              {'CPSR' : 0x00000011, 'SPSR[0]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000011,'SPSR[0]' : 0xf0ababab})
 # IRQ mode SPSR[1];
 msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rm': 8 },
-		      {'CPSR' : 0x00000012, 'SPSR[1]' : 0x000000ab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000012,'SPSR[1]' : 0x000000f0})
+              {'CPSR' : 0x00000012, 'SPSR[1]' : 0x000000ab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000012,'SPSR[1]' : 0x000000f0})
 msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rm': 8 },
-		      {'CPSR' : 0x00000012, 'SPSR[1]' : 0x0000abab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000012,'SPSR[1]' : 0x0000f0ab})
+              {'CPSR' : 0x00000012, 'SPSR[1]' : 0x0000abab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000012,'SPSR[1]' : 0x0000f0ab})
 msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rm': 8 },
-		      {'CPSR' : 0x00000012, 'SPSR[1]' : 0x00ababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000012,'SPSR[1]' : 0x00f0abab})
+              {'CPSR' : 0x00000012, 'SPSR[1]' : 0x00ababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000012,'SPSR[1]' : 0x00f0abab})
 msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rm': 8 },
-		      {'CPSR' : 0x00000012, 'SPSR[1]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000012,'SPSR[1]' : 0xf0ababab})
+              {'CPSR' : 0x00000012, 'SPSR[1]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000012,'SPSR[1]' : 0xf0ababab})
 # SVC mode SPSR[2];
 msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rm': 8 },
-		      {'CPSR' : 0x00000013, 'SPSR[2]' : 0x000000ab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000013,'SPSR[2]' : 0x000000f0})
+              {'CPSR' : 0x00000013, 'SPSR[2]' : 0x000000ab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000013,'SPSR[2]' : 0x000000f0})
 msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rm': 8 },
-		      {'CPSR' : 0x00000013, 'SPSR[2]' : 0x0000abab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000013,'SPSR[2]' : 0x0000f0ab})
+              {'CPSR' : 0x00000013, 'SPSR[2]' : 0x0000abab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000013,'SPSR[2]' : 0x0000f0ab})
 msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rm': 8 },
-		      {'CPSR' : 0x00000013, 'SPSR[2]' : 0x00ababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000013,'SPSR[2]' : 0x00f0abab})
+              {'CPSR' : 0x00000013, 'SPSR[2]' : 0x00ababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000013,'SPSR[2]' : 0x00f0abab})
 msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rm': 8 },
-		      {'CPSR' : 0x00000013, 'SPSR[2]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000013,'SPSR[2]' : 0xf0ababab})
+              {'CPSR' : 0x00000013, 'SPSR[2]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000013,'SPSR[2]' : 0xf0ababab})
 # ABT mode SPSR[3];
 msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rm': 8 },
-		      {'CPSR' : 0x00000017, 'SPSR[3]' : 0x000000ab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000017,'SPSR[3]' : 0x000000f0})
+              {'CPSR' : 0x00000017, 'SPSR[3]' : 0x000000ab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000017,'SPSR[3]' : 0x000000f0})
 msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rm': 8 },
-		      {'CPSR' : 0x00000017, 'SPSR[3]' : 0x0000abab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000017,'SPSR[3]' : 0x0000f0ab})
+              {'CPSR' : 0x00000017, 'SPSR[3]' : 0x0000abab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000017,'SPSR[3]' : 0x0000f0ab})
 msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rm': 8 },
-		      {'CPSR' : 0x00000017, 'SPSR[3]' : 0x00ababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000017,'SPSR[3]' : 0x00f0abab})
+              {'CPSR' : 0x00000017, 'SPSR[3]' : 0x00ababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000017,'SPSR[3]' : 0x00f0abab})
 msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rm': 8 },
-		      {'CPSR' : 0x00000017, 'SPSR[3]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000017,'SPSR[3]' : 0xf0ababab})
+              {'CPSR' : 0x00000017, 'SPSR[3]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x00000017,'SPSR[3]' : 0xf0ababab})
 # UND mode SPSR[4];
 msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':1, 'rm': 8 },
-		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x000000ab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x000000f0})
+              {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x000000ab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x000000f0})
 msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':2, 'rm': 8 },
-		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x0000abab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x0000f0ab})
+              {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x0000abab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x0000f0ab})
 msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':4, 'rm': 8 },
-		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x00ababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x00f0abab})
+              {'CPSR' : 0x0000001b, 'SPSR[4]' : 0x00ababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0x00f0abab})
 msr_reg_Instr.addTest({'cond': 0xe, 'r': 1, 'mask':8, 'rm': 8 },
-		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0xf0ababab})
+              {'CPSR' : 0x0000001b, 'SPSR[4]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0xf0ababab})
 # condition failed
 msr_reg_Instr.addTest({'cond': 0x0, 'r': 1, 'mask':8, 'rm': 8 },
-		      {'CPSR' : 0x0000001b, 'SPSR[4]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0xabababab})
+              {'CPSR' : 0x0000001b, 'SPSR[4]' : 0xabababab, 'REGS[8]': 0xf0f0f0f0}, {'CPSR' : 0x0000001b,'SPSR[4]' : 0xabababab})
 isa.addInstruction(msr_reg_Instr)
 
 # MVN instruction family
@@ -2286,10 +2286,10 @@ mvn_shift_reg_Instr.addBehavior(UpdatePSRBit, 'execute', False)
 mvn_shift_reg_Instr.addBehavior(UpdatePC, 'execute', False)
 mvn_shift_reg_Instr.addVariable(('result', 'BIT<32>'))
 # if S == 1 then
-#	N Flag = Rd[31]
-#	Z Flag = if Rd == 0 then 1 else 0
-#	C Flag = shifter_carry_out
-#	V Flag = unaffected
+#    N Flag = Rd[31]
+#    Z Flag = if Rd == 0 then 1 else 0
+#    C Flag = shifter_carry_out
+#    V Flag = unaffected
 
 #logical shift left by register
 mvn_shift_reg_Instr.addTest({'cond': 0xe, 's':1, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[0]': 0, 'REGS[8]': 0xffffffff}, {'CPSR' : 0x60000000, 'REGS[10]': 0})
@@ -2589,7 +2589,7 @@ if (CPSR[key_C] == 0){
 #    if S == 1 and Rd == R15 then
 #       CPSR = SPSR
 #    else if S == 1 then
-#  	N Flag = Rd[31]
+#      N Flag = Rd[31]
 #       Z Flag = if Rd == 0 then 1 else 0
 #       C Flag = NOT BorrowFrom(shifter_operand - Rn - NOT(C Flag))
 #       V Flag = OverflowFrom(shifter_operand - Rn - NOT(C Flag))
@@ -2607,29 +2607,29 @@ rsc_shift_imm_Instr.addVariable(('operand2', 'BIT<32>'))
 #Logical shift left by immediate
 #N Flag = Rd[31]
 rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0},
-			    {'CPSR' : 0x20000000, 'REGS[9]': 2, 'REGS[8]': 1},
-			    {'REGS[10]': -1, 'CPSR' : 0x80000000})
+                {'CPSR' : 0x20000000, 'REGS[9]': 2, 'REGS[8]': 1},
+                {'REGS[10]': -1, 'CPSR' : 0x80000000})
 rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0},
-			    {'CPSR' : 0xa0000000, 'REGS[9]': 2, 'REGS[8]': 3},
-			    {'REGS[10]': 1, 'CPSR' : 0x20000000})
+                {'CPSR' : 0xa0000000, 'REGS[9]': 2, 'REGS[8]': 3},
+                {'REGS[10]': 1, 'CPSR' : 0x20000000})
 #Z Flag = if Rd == 0 then 1 else 0
 rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0},
-			    {'CPSR' : 0x00000000, 'REGS[9]': 2, 'REGS[8]': 3},
-			    {'REGS[10]': 0, 'CPSR' : 0x60000000})
+                {'CPSR' : 0x00000000, 'REGS[9]': 2, 'REGS[8]': 3},
+                {'REGS[10]': 0, 'CPSR' : 0x60000000})
 rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0},
-			    {'CPSR' : 0x60000000, 'REGS[9]': 2, 'REGS[8]': 3}, 
-			    {'REGS[10]': 1, 'CPSR' : 0x20000000})
+                {'CPSR' : 0x60000000, 'REGS[9]': 2, 'REGS[8]': 3}, 
+                {'REGS[10]': 1, 'CPSR' : 0x20000000})
 #C Flag = NOT BorrowFrom(shifter_operand - Rn - NOT(C Flag))
 rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0},
-			    {'CPSR' : 0x20000000, 'REGS[9]': 1, 'REGS[8]': 0xffffffff},
-			    {'REGS[10]':-2, 'CPSR' : 0xa0000000})
+                {'CPSR' : 0x20000000, 'REGS[9]': 1, 'REGS[8]': 0xffffffff},
+                {'REGS[10]':-2, 'CPSR' : 0xa0000000})
 rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, 
                 {'CPSR' : 0x00000000, 'REGS[9]': 1, 'REGS[8]': 3}, 
                 {'REGS[10]':1, 'CPSR' : 0x20000000})
 #V Flag = OverflowFrom(shifter_operand - Rn - NOT(C Flag))
 rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0},
-			    {'CPSR' : 0x20000000, 'REGS[9]': 1, 'REGS[8]': 0x80000000}, 
-			    {'REGS[10]': 0x7fffffff, 'CPSR' : 0x30000000})
+                {'CPSR' : 0x20000000, 'REGS[9]': 1, 'REGS[8]': 0x80000000}, 
+                {'REGS[10]': 0x7fffffff, 'CPSR' : 0x30000000})
 rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x10000000, 'REGS[9]': 1, 'REGS[8]': 5}, {'REGS[10]': 3, 'CPSR' : 0x20000000})
 #S=0 do not update CPSR
 rsc_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0}, {'CPSR' : 0x20000000, 'REGS[9]': 9, 'REGS[8]': 10}, {'CPSR' : 0x20000000, 'REGS[10]': 1})
@@ -2901,57 +2901,57 @@ sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'r
                             {'CPSR' : 0x20000000, 'REGS[10]': 0x00000001})
 #S=0 do not update CPSR
 sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0},
-		   	    {'CPSR' : 0x20000000, 'REGS[0]': 0, 'REGS[9]': 2, 'REGS[8]': -1},
-			    {'CPSR' : 0x20000000, 'REGS[10]': 3})
+                   {'CPSR' : 0x20000000, 'REGS[0]': 0, 'REGS[9]': 2, 'REGS[8]': -1},
+                {'CPSR' : 0x20000000, 'REGS[10]': 3})
 sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0},
-			    {'CPSR' : 0x20000000, 'REGS[0]': 1, 'REGS[9]': 4, 'REGS[8]': 2},
-			    {'CPSR' : 0x20000000, 'REGS[10]': 0})
+                {'CPSR' : 0x20000000, 'REGS[0]': 1, 'REGS[9]': 4, 'REGS[8]': 2},
+                {'CPSR' : 0x20000000, 'REGS[10]': 0})
 
 sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0},
-			    {'CPSR' : 0x20000000, 'REGS[0]': 32, 'REGS[9]': 3, 'REGS[8]': 45},
-			    {'CPSR' : 0x20000000, 'REGS[10]': 3})
+                {'CPSR' : 0x20000000, 'REGS[0]': 32, 'REGS[9]': 3, 'REGS[8]': 45},
+                {'CPSR' : 0x20000000, 'REGS[10]': 3})
 
 sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0},
-			    {'CPSR' : 0x20000000, 'REGS[0]': 33, 'REGS[9]': 3, 'REGS[8]': 34},
+                {'CPSR' : 0x20000000, 'REGS[0]': 33, 'REGS[9]': 3, 'REGS[8]': 34},
                 {'CPSR' : 0x20000000, 'REGS[10]': 3})
 #condition does not satisfied
 sbc_shift_reg_Instr.addTest({'cond': 0x0, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0},
-			    {'CPSR' : 0x20000000, 'REGS[0]': 1, 'REGS[9]': 1 , 'REGS[8]': 0xffffffff},
+                {'CPSR' : 0x20000000, 'REGS[0]': 1, 'REGS[9]': 1 , 'REGS[8]': 0xffffffff},
                 {'CPSR' : 0x20000000})
 #Logical shift right by register
 sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 1},
-			    {'CPSR' : 0x20000000, 'REGS[0]': 0, 'REGS[9]': 0x7fffffff, 'REGS[8]': 0},
-   	                    {'CPSR' : 0x20000000, 'REGS[10]': 0x7fffffff})
+                {'CPSR' : 0x20000000, 'REGS[0]': 0, 'REGS[9]': 0x7fffffff, 'REGS[8]': 0},
+                           {'CPSR' : 0x20000000, 'REGS[10]': 0x7fffffff})
 sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 1},
-			    {'CPSR' : 0x20000000, 'REGS[0]': 1, 'REGS[9]': 8, 'REGS[8]': 3},
-			    {'CPSR' : 0x20000000, 'REGS[10]': 7})
+                {'CPSR' : 0x20000000, 'REGS[0]': 1, 'REGS[9]': 8, 'REGS[8]': 3},
+                {'CPSR' : 0x20000000, 'REGS[10]': 7})
 sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 1},
-			    {'CPSR' : 0x20000000, 'REGS[0]': 32, 'REGS[9]': 4, 'REGS[8]': 3},
-			    {'CPSR' : 0x20000000, 'REGS[10]': 4})
+                {'CPSR' : 0x20000000, 'REGS[0]': 32, 'REGS[9]': 4, 'REGS[8]': 3},
+                {'CPSR' : 0x20000000, 'REGS[10]': 4})
 sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 1},
-			    {'CPSR' : 0x20000000, 'REGS[0]': 33, 'REGS[9]': -4, 'REGS[8]': 3},
-			    {'CPSR' : 0x20000000, 'REGS[10]': -4})
+                {'CPSR' : 0x20000000, 'REGS[0]': 33, 'REGS[9]': -4, 'REGS[8]': 3},
+                {'CPSR' : 0x20000000, 'REGS[10]': -4})
 #Arithmetic shift right by register
 sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 2},
-			    {'CPSR' : 0x00000000, 'REGS[0]': 0, 'REGS[9]': 4, 'REGS[8]': 10},
-			    {'CPSR' : 0x00000000, 'REGS[10]': -7})
+                {'CPSR' : 0x00000000, 'REGS[0]': 0, 'REGS[9]': 4, 'REGS[8]': 10},
+                {'CPSR' : 0x00000000, 'REGS[10]': -7})
 sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 2},
-			    {'CPSR' : 0x20000000, 'REGS[0]': 1, 'REGS[9]': 4, 'REGS[8]': 10}, 
-			    {'CPSR' : 0x20000000, 'REGS[10]': -1})
+                {'CPSR' : 0x20000000, 'REGS[0]': 1, 'REGS[9]': 4, 'REGS[8]': 10}, 
+                {'CPSR' : 0x20000000, 'REGS[10]': -1})
 sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 2}, 
-			    {'CPSR' : 0x20000000, 'REGS[0]': 32, 'REGS[9]': 4, 'REGS[8]': 10},
-			    {'CPSR' : 0x20000000, 'REGS[10]': 4})
+                {'CPSR' : 0x20000000, 'REGS[0]': 32, 'REGS[9]': 4, 'REGS[8]': 10},
+                {'CPSR' : 0x20000000, 'REGS[10]': 4})
 sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 2}, 
-			    {'CPSR' : 0x20000000, 'REGS[0]': 32, 'REGS[9]': 1, 'REGS[8]': 0xf000f000},
-			    {'CPSR' : 0x20000000, 'REGS[10]': 2})
+                {'CPSR' : 0x20000000, 'REGS[0]': 32, 'REGS[9]': 1, 'REGS[8]': 0xf000f000},
+                {'CPSR' : 0x20000000, 'REGS[10]': 2})
 #Rotate right by register
 sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 3},
-			    {'CPSR' : 0x00000000, 'REGS[0]': 0, 'REGS[9]': 5, 'REGS[8]': 10},
-			    {'CPSR' : 0x00000000, 'REGS[10]': -6})
+                {'CPSR' : 0x00000000, 'REGS[0]': 0, 'REGS[9]': 5, 'REGS[8]': 10},
+                {'CPSR' : 0x00000000, 'REGS[10]': -6})
 
 sbc_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 3},
-			    {'CPSR' : 0x20000000, 'REGS[0]': 2, 'REGS[9]': 0x80000002, 'REGS[8]': 10},
-			    {'CPSR' : 0x20000000, 'REGS[10]': 0x0})
+                {'CPSR' : 0x20000000, 'REGS[0]': 2, 'REGS[9]': 0x80000002, 'REGS[8]': 10},
+                {'CPSR' : 0x20000000, 'REGS[10]': 0x0})
 
 isa.addInstruction(sbc_shift_reg_Instr)
 
@@ -3033,31 +3033,31 @@ sub_shift_imm_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 's
                             {'CPSR' : 0x20000000, 'REGS[10]': 0x00000001})
 #S=0 do not update CPSR
 sub_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0},
-			    {'CPSR' : 0x80000000, 'REGS[9]': 10, 'REGS[8]': 10},
-			    {'CPSR' : 0x80000000, 'REGS[10]': 0})
+                {'CPSR' : 0x80000000, 'REGS[9]': 10, 'REGS[8]': 10},
+                {'CPSR' : 0x80000000, 'REGS[10]': 0})
 sub_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 1, 'shift_op': 0}, 
-			    {'CPSR' : 0x20000000, 'REGS[9]': 7, 'REGS[8]': 2},
-			    {'CPSR' : 0x20000000, 'REGS[10]': 3})
+                {'CPSR' : 0x20000000, 'REGS[9]': 7, 'REGS[8]': 2},
+                {'CPSR' : 0x20000000, 'REGS[10]': 3})
 #condition does not satisfied
 sub_shift_imm_Instr.addTest({'cond': 0x0, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 0},
-			    {'CPSR' : 0x20000000, 'REGS[9]': 1, 'REGS[8]': 0x80000000}, {'CPSR' : 0x20000000})
+                {'CPSR' : 0x20000000, 'REGS[9]': 1, 'REGS[8]': 0x80000000}, {'CPSR' : 0x20000000})
 #Logical shift right by immediate
 sub_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 1},
-			    {'REGS[9]': 5, 'REGS[8]': 4}, {'REGS[10]': 5})
+                {'REGS[9]': 5, 'REGS[8]': 4}, {'REGS[10]': 5})
 sub_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 1, 'shift_op': 1},
-			    {'REGS[9]': 3, 'REGS[8]': 6}, {'REGS[10]': 0})
+                {'REGS[9]': 3, 'REGS[8]': 6}, {'REGS[10]': 0})
 #arithmetic shift right by immediate
 sub_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 2},
-			    {'REGS[9]': -2, 'REGS[8]': 6}, {'REGS[10]': -2})
+                {'REGS[9]': -2, 'REGS[8]': 6}, {'REGS[10]': -2})
 sub_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 2},
-			    {'REGS[9]': 1, 'REGS[8]': 0xf0000000}, {'REGS[10]': 2})
+                {'REGS[9]': 1, 'REGS[8]': 0xf0000000}, {'REGS[10]': 2})
 sub_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 1, 'shift_op': 2},
-			    {'REGS[9]': 3, 'REGS[8]': 2}, {'REGS[10]': 2})
+                {'REGS[9]': 3, 'REGS[8]': 2}, {'REGS[10]': 2})
 #Rotate right by immediate
 sub_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 0, 'shift_op': 3},
-			    {'REGS[9]': 6, 'REGS[8]': 2}, {'REGS[10]': 5})
+                {'REGS[9]': 6, 'REGS[8]': 2}, {'REGS[10]': 5})
 sub_shift_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'shift_amm': 1, 'shift_op': 3}, 
-			    {'REGS[9]': 0xffffffff, 'REGS[8]': 1}, {'REGS[10]': 0x7fffffff})
+                {'REGS[9]': 0xffffffff, 'REGS[8]': 1}, {'REGS[10]': 0x7fffffff})
 isa.addInstruction(sub_shift_imm_Instr)
 
 sub_shift_reg_Instr = trap.Instruction('SUB_sr', True, frequency = 5)
@@ -3074,32 +3074,32 @@ sub_shift_reg_Instr.addVariable(('operand2', 'BIT<32>'))
 #logical shift left by register
 #N Flag = Rd[31]
 sub_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0},
-			    {'CPSR' : 0x80000000, 'REGS[0]': 0, 'REGS[9]': 3, 'REGS[8]': 3},
-		            {'CPSR' : 0x60000000, 'REGS[10]': 0})
+                {'CPSR' : 0x80000000, 'REGS[0]': 0, 'REGS[9]': 3, 'REGS[8]': 3},
+                    {'CPSR' : 0x60000000, 'REGS[10]': 0})
 sub_shift_reg_Instr.addTest({'cond' : 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0},  
-			    {'CPSR' : 0x00000000, 'REGS[0]': 0, 'REGS[9]': -1, 'REGS[8]': 1}, 
-  			    {'CPSR' : 0xa0000000, 'REGS[10]': -2})
+                {'CPSR' : 0x00000000, 'REGS[0]': 0, 'REGS[9]': -1, 'REGS[8]': 1}, 
+                  {'CPSR' : 0xa0000000, 'REGS[10]': -2})
 # Z Flag = if Rd == 0 then 1 else 0
 sub_shift_reg_Instr.addTest({'cond' : 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0},
-		 	    {'CPSR' : 0x00000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000003}, 
-			    {'CPSR' : 0x60000000, 'REGS[10]': 0})
+                 {'CPSR' : 0x00000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000003}, 
+                {'CPSR' : 0x60000000, 'REGS[10]': 0})
 sub_shift_reg_Instr.addTest({'cond' : 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
-			    {'CPSR' : 0x40000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000004, 'REGS[8]': 0x00000003},
-			    {'CPSR' : 0x20000000, 'REGS[10]': 1})
+                {'CPSR' : 0x40000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000004, 'REGS[8]': 0x00000003},
+                {'CPSR' : 0x20000000, 'REGS[10]': 1})
 # C Flag = NOT BorrowFrom(Rn - shifter_operand)
 sub_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
-			    {'CPSR': 0x20000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000004}, 
-			    {'CPSR': 0x80000000, 'REGS[10]': -1})
+                {'CPSR': 0x20000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000003, 'REGS[8]': 0x00000004}, 
+                {'CPSR': 0x80000000, 'REGS[10]': -1})
 sub_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0},
-			    {'CPSR': 0x00000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000005, 'REGS[8]': 0x00000004},
-			    {'CPSR': 0x20000000, 'REGS[10]': 1})
+                {'CPSR': 0x00000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000005, 'REGS[8]': 0x00000004},
+                {'CPSR': 0x20000000, 'REGS[10]': 1})
 # V Flag = OverflowFrom(Rn - shifter_operand)
 sub_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, 
-			    {'CPSR': 0x00000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x80000000, 'REGS[8]': 0x00000001},
-			    {'CPSR': 0x30000000, 'REGS[10]': 0x7fffffff})
+                {'CPSR': 0x00000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x80000000, 'REGS[8]': 0x00000001},
+                {'CPSR': 0x30000000, 'REGS[10]': 0x7fffffff})
 sub_shift_reg_Instr.addTest({'cond': 0xe, 's': 1, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0},
-			    {'CPSR': 0x10000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000005, 'REGS[8]': 0x00000004}, 
-			    {'CPSR': 0x20000000, 'REGS[10]': 1})
+                {'CPSR': 0x10000000, 'REGS[0]': 0x00000000, 'REGS[9]': 0x00000005, 'REGS[8]': 0x00000004}, 
+                {'CPSR': 0x20000000, 'REGS[10]': 1})
 #S=0 do not update CPSR
 sub_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0},{'CPSR' : 0x20000000, 'REGS[0]': 0, 'REGS[9]': 2, 'REGS[8]': -1},{'CPSR' : 0x20000000, 'REGS[10]': 3})
 sub_shift_reg_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rm': 8, 'rs': 0, 'shift_op': 0}, {'REGS[0]': 1, 'REGS[9]': 2, 'REGS[8]': 1}, {'REGS[10]': 0})
@@ -3602,49 +3602,49 @@ strb_off_Instr.addBehavior(condCheckOp, 'execute')
 strb_off_Instr.addBehavior(ls_reg_Op, 'execute')
 #post-indexed
 strb_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-		       {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
-		       {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
+               {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+               {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
 strb_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-		       {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
-		       {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
+               {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+               {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
 strb_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-		       {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
-		       {'dataMem[0x10]':123, 'REGS[0]' : 0x18})
+               {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+               {'dataMem[0x10]':123, 'REGS[0]' : 0x18})
 strb_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-		       {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
-		       {'dataMem[0x10]':123, 'REGS[0]' : 0x08})
+               {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+               {'dataMem[0x10]':123, 'REGS[0]' : 0x08})
 #scaled/register offset address mode
 strb_off_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-		       {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 0x5, 'dataMem[0x10]': 0}, 
-		       {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
+               {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 0x5, 'dataMem[0x10]': 0}, 
+               {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
 strb_off_Instr.addTest({'cond': 0x0, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-		       {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 0x5, 'dataMem[0x10]': 0}, 
-		       {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
+               {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'REGS[1]' : 0x5, 'dataMem[0x10]': 0}, 
+               {'dataMem[0x10]': 0, 'REGS[0]' : 0x10})
 
 strb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-		       {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
-		       {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
+               {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+               {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
 strb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-		       {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
-		       {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
+               {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+               {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
 strb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-		       {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
-		       {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
+               {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+               {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
 strb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-		       {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
-		       {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
+               {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+               {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
 strb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-		       {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x18]': 0 }, 
-		       {'dataMem[0x18]':123, 'REGS[0]' : 0x10})
+               {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x18]': 0 }, 
+               {'dataMem[0x18]':123, 'REGS[0]' : 0x10})
 strb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-		       {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x08]': 0 }, 
-		       {'dataMem[0x08]':123, 'REGS[0]' : 0x10})
+               {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x08]': 0 }, 
+               {'dataMem[0x08]':123, 'REGS[0]' : 0x10})
 strb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-		       {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x18]': 0 }, 
-		       {'dataMem[0x18]':123, 'REGS[0]' : 0x18})
+               {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x18]': 0 }, 
+               {'dataMem[0x18]':123, 'REGS[0]' : 0x18})
 strb_off_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-		       {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x08]': 0 }, 
-		       {'dataMem[0x08]':123, 'REGS[0]' : 0x08})
+               {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x08]': 0 }, 
+               {'dataMem[0x08]':123, 'REGS[0]' : 0x08})
 isa.addInstruction(strb_off_Instr)
 # STRH instruction family
 opCode = cxx_writer.writer_code.Code("""
@@ -3765,7 +3765,9 @@ swapb_Instr.addTest({'cond' : 0x0, 'rd' : 9, 'rn' : 0, 'rm': 8},
                    {'REGS[9]': 0x00000000,'dataMem[0x0000000a]': 0xcd})
 #endif
 isa.addInstruction(swapb_Instr)
-
+#
+# ARM 9 instructions
+#
 # LDRBT
 opCode = cxx_writer.writer_code.Code("""
 rd = dataMem.read_word(address);
@@ -3791,13 +3793,13 @@ ldrbt_off_Instr.addBehavior(condCheckOp, 'execute')
 ldrbt_off_Instr.addBehavior(ls_reg_Op, 'execute')
 
 ldrbt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'w': 1, 'u': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-			{'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+            {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
 ldrbt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'w': 1, 'u': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-			{'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
+            {'REGS[2]' : 0x0, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x10})
 ldrbt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'w': 1, 'u': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-			{'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x18})
+            {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x18})
 ldrbt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'w': 1, 'u': 0, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-			{'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x08})
+            {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'dataMem[0x10]': 123}, {'REGS[1]' : 123, 'REGS[0]' : 0x08})
 isa.addInstruction(ldrbt_off_Instr)
 
 #LDRT
@@ -3820,13 +3822,13 @@ ldrt_imm_Instr.addBehavior(condCheckOp, 'execute')
 ldrt_imm_Instr.addBehavior(ls_imm_Op, 'execute')
 ldrt_imm_Instr.addVariable(('memLastBits', 'BIT<32>'))
 ldrt_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0}, 
-		       {'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x10})
+               {'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x10})
 ldrt_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0}, 
-		       {'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x10})
+               {'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x10})
 ldrt_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, 
-		       {'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x18})
+               {'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x18})
 ldrt_imm_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, 
-		       {'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x08})
+               {'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x08})
 isa.addInstruction(ldrt_imm_Instr)
 
 ldrt_off_Instr = trap.Instruction('LDRT_off', True, frequency = 7)
@@ -3837,13 +3839,13 @@ ldrt_off_Instr.addBehavior(condCheckOp, 'execute')
 ldrt_off_Instr.addBehavior(ls_reg_Op, 'execute')
 ldrt_off_Instr.addVariable(('memLastBits', 'BIT<32>'))
 ldrt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-			{'REGS[2]' : 0x0,'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x10})
+            {'REGS[2]' : 0x0,'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x10})
 ldrt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-			{'REGS[2]' : 0x0,'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x10})
+            {'REGS[2]' : 0x0,'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x10})
 ldrt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-			{'REGS[2]' : 0x8,'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x18})
+            {'REGS[2]' : 0x8,'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x18})
 ldrt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-			{'REGS[2]' : 0x8,'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x08})
+            {'REGS[2]' : 0x8,'REGS[0]' : 0x10, 'dataMem[0x10]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x08})
 isa.addInstruction(ldrt_off_Instr)
 
 # STRBT 
@@ -3870,17 +3872,17 @@ strbt_off_Instr.addBehavior(IncrementPC, 'fetch')
 strbt_off_Instr.addBehavior(condCheckOp, 'execute')
 strbt_off_Instr.addBehavior(ls_reg_Op, 'execute')
 strbt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-		       {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
-		       {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
+               {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+               {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
 strbt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-		       {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
-		       {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
+               {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+               {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
 strbt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-		       {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
-		       {'dataMem[0x10]':123, 'REGS[0]' : 0x18})
+               {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+               {'dataMem[0x10]':123, 'REGS[0]' : 0x18})
 strbt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-		       {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
-		       {'dataMem[0x10]':123, 'REGS[0]' : 0x08})
+               {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+               {'dataMem[0x10]':123, 'REGS[0]' : 0x08})
 isa.addInstruction(strbt_off_Instr)
 
 # STRT 
@@ -3907,22 +3909,22 @@ strt_off_Instr.addBehavior(IncrementPC, 'fetch')
 strt_off_Instr.addBehavior(condCheckOp, 'execute')
 strt_off_Instr.addBehavior(ls_reg_Op, 'execute')
 strt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-		       {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
-		       {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
+               {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+               {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
 strt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-		       {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
-		       {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
+               {'REGS[2]' : 0, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+               {'dataMem[0x10]':123, 'REGS[0]' : 0x10})
 strt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-		       {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
-		       {'dataMem[0x10]':123, 'REGS[0]' : 0x18})
+               {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+               {'dataMem[0x10]':123, 'REGS[0]' : 0x18})
 strt_off_Instr.addTest({'cond': 0xe, 'p': 0, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'shift_amm': 0, 'shift_op': 0, 'rm': 2},
-		       {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
-		       {'dataMem[0x10]':123, 'REGS[0]' : 0x08})
+               {'REGS[2]' : 0x8, 'REGS[0]' : 0x10, 'REGS[1]' : 123,'dataMem[0x10]': 0 }, 
+               {'dataMem[0x10]':123, 'REGS[0]' : 0x08})
 isa.addInstruction(strt_off_Instr)
 
 #LDC
 opCode = cxx_writer.writer_code.Code("""
-	THROW_EXCEPTION("LDC : Undefined Instruction");
+    THROW_EXCEPTION("LDC : Undefined Instruction");
 """)
 ldc_Instr = trap.Instruction('LDC', True, frequency = 1)
 ldc_Instr.setMachineCode(cp_ls, {'l': [1]}, 'TODO')
@@ -3931,7 +3933,7 @@ isa.addInstruction(ldc_Instr)
 
 #STC
 opCode = cxx_writer.writer_code.Code("""
-	THROW_EXCEPTION("STC : Undefined Instruction");
+    THROW_EXCEPTION("STC : Undefined Instruction");
 """)
 stc_Instr = trap.Instruction('STC', True, frequency = 1)
 stc_Instr.setMachineCode(cp_ls, {'l': [0]}, 'TODO')
@@ -3972,6 +3974,8 @@ opCode = cxx_writer.writer_code.Code("""
 clz_Instr = trap.Instruction('CLZ', True, frequency = 1)
 clz_Instr.setMachineCode(clz, {}, 'TODO')
 clz_Instr.setCode(opCode, 'execute')
+clz_Instr.addBehavior(IncrementPC, 'fetch')
+clz_Instr.addBehavior(condCheckOp, 'execute')
 isa.addInstruction(clz_Instr)
 
 #SWI
@@ -3987,10 +3991,10 @@ CPSR &= 0xFFFFFFEF;   //CPSR[5]= 0: execute in ARM state
 CPSR |= 0x00000080;   //CPSR[7]= 1: disable normal interrupts
 
 //if high vectors configured then
-//	PC    = 0xFFFF0008;
+//    PC    = 0xFFFF0008;
 //else
-  	PC    = 0x00000008;	
-	
+      PC    = 0x00000008;    
+    
 """)
 swi_Instr = trap.Instruction('SWI', True, frequency = 1)
 swi_Instr.setMachineCode(swi, {}, 'TODO')
@@ -4012,15 +4016,13 @@ CPSR &= 0xFFFFFFEF;   //CPSR[5]= 0: execute in ARM state
 CPSR |= 0x00000080;   //CPSR[7]= 1: disable normal interrupts
 
 //if high vectors configured then
-//	 PC    = 0xFFFF000C;
+//     PC    = 0xFFFF000C;
 //else
-  	 PC    = 0x0000000C;	
-	
+       PC    = 0x0000000C;    
+    
 """)
 bkpt_Instr = trap.Instruction('BKPT', True, frequency = 1)
 bkpt_Instr.setMachineCode(bkpt, {}, 'TODO')
 bkpt_Instr.setCode(opCode, 'execute')
 bkpt_Instr.addBehavior(IncrementPC, 'fetch')
-bkpt_Instr.addBehavior(condCheckOp, 'execute')
 isa.addInstruction(bkpt_Instr)
-
