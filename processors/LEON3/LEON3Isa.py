@@ -2425,20 +2425,20 @@ switch(cond){
         bool icc_v = PSRbp[key_ICC_v];
         bool icc_c = PSRbp[key_ICC_c];
         // All the other non-special situations
-        bool exec = ((cond == 0x9) && icc_z == 0) ||
-                    ((cond == 0x1) && icc_z != 0) ||
-                    ((cond == 0xa) && (icc_z == 0) && (icc_n == icc_v)) ||
-                    ((cond == 0x2) && ((icc_z != 0) || (icc_n != icc_v))) ||
-                    ((cond == 0xb) && icc_n == icc_v) ||
-                    ((cond == 0x3) && icc_n != icc_v) ||
-                    ((cond == 0xc) && (icc_c + icc_z) == 0) ||
-                    ((cond == 0x4) && (icc_c + icc_z) > 0) ||
-                    ((cond == 0xd) && icc_c == 0) ||
-                    ((cond == 0x5) && icc_c != 0) ||
-                    ((cond == 0xe) && icc_n == 0) ||
-                    ((cond == 0x6) && icc_n != 0) ||
-                    ((cond == 0xf) && icc_v == 0) ||
-                    ((cond == 0x7) && icc_v != 0);
+        bool exec = ((cond == 0x9) && !icc_z) ||
+                    ((cond == 0x1) && icc_z) ||
+                    ((cond == 0xa) && !icc_z && (icc_n == icc_v)) ||
+                    ((cond == 0x2) && (icc_z || (icc_n != icc_v))) ||
+                    ((cond == 0xb) && (icc_n == icc_v)) ||
+                    ((cond == 0x3) && (icc_n != icc_v)) ||
+                    ((cond == 0xc) && !icc_c && !icc_z) ||
+                    ((cond == 0x4) && (icc_c || icc_z)) ||
+                    ((cond == 0xd) && !icc_c) ||
+                    ((cond == 0x5) && icc_c) ||
+                    ((cond == 0xe) && !icc_n) ||
+                    ((cond == 0x6) && icc_n) ||
+                    ((cond == 0xf) && !icc_v) ||
+                    ((cond == 0x7) && icc_v);
         if(exec){
             unsigned int targetPc = PC + 4*(SignExtend(disp22, 22));
             #ifdef ACC_MODEL
@@ -2489,8 +2489,8 @@ unsigned int curPC = PC;
 unsigned int target = curPC + (disp30 << 2);
 oldPC = curPC - 4;
 #ifdef ACC_MODEL
-PC = target;
-NPC = target + 4;
+PC = target - 4;
+NPC = target;
 #else
 PC = NPC;
 NPC = target - 4;

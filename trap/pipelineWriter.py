@@ -114,9 +114,9 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
     waitPipeBeginCode = """this->stageBeginning = true;
     this->stageBeginningEv.notify();
     """
-    for i in range(0, len(self.pipes) - 1):
-        waitPipeBeginCode += """if(!this->stage_""" + str(i) + """->stageBeginning){
-            wait(this->stage_""" + str(i) + """->stageBeginningEv);
+    for pipeStage in self.pipes:
+        waitPipeBeginCode += """if(this->stage_""" + pipeStage.name + """ != NULL && !this->stage_""" + pipeStage.name + """->stageBeginning){
+            wait(this->stage_""" + pipeStage.name + """->stageBeginningEv);
         }
         """
     waitPipeBeginCode += 'this->stageEnded = false;'
@@ -129,9 +129,9 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
     this->stageEnded = true;
     this->stageEndedEv.notify();
     """
-    for i in range(0, len(self.pipes) - 1):
-        waitPipeEndCode += """if(!this->stage_""" + str(i) + """->stageEnded){
-            wait(this->stage_""" + str(i) + """->stageEndedEv);
+    for pipeStage in self.pipes:
+        waitPipeEndCode += """if(this->stage_""" + pipeStage.name + """ != NULL && !this->stage_""" + pipeStage.name + """->stageEnded){
+            wait(this->stage_""" + pipeStage.name + """->stageEndedEv);
         }
         """
     returnType = cxx_writer.writer_code.voidType
@@ -139,13 +139,13 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
     waitPipeEndDecl = cxx_writer.writer_code.Method('waitPipeEnd', waitPipeEndBody, cxx_writer.writer_code.voidType, 'pu', noException = True)
     pipelineElements.append(waitPipeEndDecl)
 
-    for i in range(0, len(self.pipes) - 1):
-        otherStageAttr = cxx_writer.writer_code.Attribute('stage_' + str(i), pipeType.makePointer(), 'pro')
+    for pipe in self.pipes:
+        otherStageAttr = cxx_writer.writer_code.Attribute('stage_' + pipe.name, pipeType.makePointer(), 'pro')
         pipelineElements.append(otherStageAttr)
-        otherStageParam = cxx_writer.writer_code.Parameter('stage_' + str(i), pipeType.makePointer())
+        otherStageParam = cxx_writer.writer_code.Parameter('stage_' + pipe.name, pipeType.makePointer())
         constructorParamsBase.append(otherStageParam)
-        constructorInit.append('stage_' + str(i) + '(stage_' + str(i) + ')')
-        baseConstructorInit += 'stage_' + str(i) + ', '
+        constructorInit.append('stage_' + pipe.name + '(stage_' + pipe.name + ')')
+        baseConstructorInit += 'stage_' + pipe.name + ', '
 
     chStalledAttr = cxx_writer.writer_code.Attribute('chStalled', cxx_writer.writer_code.boolType, 'pu')
     pipelineElements.append(chStalledAttr)
@@ -272,6 +272,7 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             // the next stage has completed elaboration
             if(this->hasToFlush){
                 this->curInstruction = this->NOPInstrInstance;
+                this->nextInstruction = this->NOPInstrInstance;
                 this->hasToFlush = false;
             }
             this->numInstructions++;
@@ -291,6 +292,11 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
                     //I will be impossible to procede, this thread will always execute
                     wait(this->latency);
                     this->waitPipeEnd();
+                    if(this->hasToFlush){
+                        this->curInstruction = this->NOPInstrInstance;
+                        this->nextInstruction = this->NOPInstrInstance;
+                        this->hasToFlush = false;
+                    }
                     if(!this->chStalled){
                         this->succStage->nextInstruction = this->curInstruction;
                     }
@@ -311,6 +317,7 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             # to go on.
             codeString += """while(true){
             unsigned int numCycles = 0;
+            bool flushAnnulled = false;
             """
             if hasCheckHazard and not checkHazardsMet and not pipeStage.checkHazard:
                 codeString += 'if(!this->chStalled){\n'
@@ -347,7 +354,7 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             # Finally I finalize the pipeline stage by synchrnonizing with the others
             codeString += 'wait((numCycles + 1)*this->latency);\n'
             codeString += """// flushing current stage
-            if(this->curInstruction->flushPipeline){
+            if(this->curInstruction->flushPipeline || flushAnnulled){
                 this->curInstruction->flushPipeline = false;
                 //Now I have to flush the preceding pipeline stages
                 this->prevStage->flush();
@@ -397,23 +404,42 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
                     if pipeStage.name in checkHazadsStagesDecl:
                         codeString += """if(this->stalled){
                             this->succStage->nextInstruction = this->NOPInstrInstance;
+                            if(this->hasToFlush){
+                                // First of all I have to free any used resource in case there are any
+                                this->curInstruction = this->NOPInstrInstance;
+                                this->nextInstruction = this->NOPInstrInstance;
+                                this->hasToFlush = false;
+                            }
                         }
                         else{
                         """
                 codeString += """// Now I have to propagate the instruction to the next cycle if
                 // the next stage has completed elaboration
                 if(this->hasToFlush){
+                    // First of all I have to free any used resource in case there are any
+                    this->curInstruction->getUnlock_""" + pipeStage.name + """(BasePipeStage::unlockQueue);
                     this->curInstruction = this->NOPInstrInstance;
+                    this->nextInstruction = this->NOPInstrInstance;
                     this->hasToFlush = false;
                 }
                 """
                 codeString += """this->succStage->nextInstruction = this->curInstruction;
                 """
                 if hasCheckHazard:
-                    if not checkHazardsMet:
-                        codeString += '}\n'
                     if pipeStage.name in checkHazadsStagesDecl:
                         codeString += '}\n'
+                    if not checkHazardsMet:
+                        codeString += """}
+                        else{
+                            if(this->hasToFlush){
+                                // First of all I have to free any used resource in case there are any
+                                this->curInstruction->getUnlock_decode(BasePipeStage::unlockQueue);
+                                this->curInstruction = this->NOPInstrInstance;
+                                this->nextInstruction = this->NOPInstrInstance;
+                                this->hasToFlush = false;
+                            }
+                        }
+                        """
             else:
                 # Here I have to check if it is the case of destroying the instruction
                 codeString += 'if(this->curInstruction->toDestroy){\n'
@@ -448,6 +474,17 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
 
         IntructionType = cxx_writer.writer_code.Type('Instruction', 'instructions.hpp')
         IntructionTypePtr = IntructionType.makePointer()
+
+        pipelineStageMap = {}
+        notCheckStages = []
+        checkHazardsStageMet = False
+        for curPipeMap in self.pipes:
+            pipelineStageMap[curPipeMap.name] = curPipeMap
+            if checkHazardsStageMet:
+                notCheckStages.append(curPipeMap.name)
+            if curPipeMap.checkHazard:
+                checkHazardsStageMet = True
+
         if pipeStage == self.pipes[0]:
             # I create the refreshRegisters method; note that in order to update the registers
             # I just need to access any of the instructions, for instance I use the registers
@@ -466,7 +503,14 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
                     codeString += '}\n'
                     for checkPipe in self.pipes:
                         if checkPipe != wbStage:
-                            codeString += 'else if(this->' + reg.name + ' != this->NOPInstrInstance->' + reg.name + '_' + checkPipe.name + '){\n'
+                            if checkPipe.name in notCheckStages:
+                                codeString += 'else if(this->' + reg.name + ' != this->NOPInstrInstance->' + reg.name + '_' + checkPipe.name + '){\n'
+                            else:
+                                if checkPipe != self.pipes[0]:
+                                    stageCheckName = '->stage_' + checkPipe.name
+                                else:
+                                    stageCheckName = ''
+                                codeString += 'else if(this->' + reg.name + ' != this->NOPInstrInstance->' + reg.name + '_' + checkPipe.name + ' && !this' + stageCheckName + '->chStalled){\n'
                             codeString += 'this->' + reg.name + ' = this->NOPInstrInstance->' + reg.name + '_' + checkPipe.name + ';\n'
                             for upPipe in self.pipes:
                                 if upPipe != checkPipe:
@@ -476,7 +520,14 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
                     for customWBStage in self.regOrder[reg.name]:
                         if customWBStage != self.regOrder[reg.name][0]:
                             codeString += 'else '
-                        codeString += 'if(this->' + reg.name + ' != this->NOPInstrInstance->' + reg.name + '_' + customWBStage + '){\n'
+                        if customWBStage in notCheckStages:
+                            codeString += 'if(this->' + reg.name + ' != this->NOPInstrInstance->' + reg.name + '_' + customWBStage + '){\n'
+                        else:
+                            if pipelineStageMap[customWBStage] != self.pipes[0]:
+                                stageCheckName = '->stage_' + customWBStage
+                            else:
+                                stageCheckName = ''
+                            codeString += 'if(this->' + reg.name + ' != this->NOPInstrInstance->' + reg.name + '_' + customWBStage + ' && !this' + stageCheckName + '->chStalled){\n'
                         codeString += 'this->' + reg.name + ' = this->NOPInstrInstance->' + reg.name + '_' + customWBStage + ';\n'
                         for upPipe in self.pipes:
                             if upPipe.name != customWBStage:
@@ -492,9 +543,17 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
                         if upPipe != wbStage:
                             codeString += 'this->NOPInstrInstance->' + regB.name + '_' + upPipe.name + '[i] = this->' + regB.name + '[i];\n'
                     codeString += '}\n'
+                    checkHazardsStageMet = False
                     for checkPipe in self.pipes:
                         if checkPipe != wbStage:
-                            codeString += 'else if(this->' + regB.name + '[i] != this->NOPInstrInstance->' + regB.name + '_' + checkPipe.name + '[i]){\n'
+                            if checkPipe.name in notCheckStages:
+                                codeString += 'else if(this->' + regB.name + '[i] != this->NOPInstrInstance->' + regB.name + '_' + checkPipe.name + '[i]){\n'
+                            else:
+                                if checkPipe != self.pipes[0]:
+                                    stageCheckName = '->stage_' + checkPipe.name
+                                else:
+                                    stageCheckName = ''
+                                codeString += 'else if(this->' + regB.name + '[i] != this->NOPInstrInstance->' + regB.name + '_' + checkPipe.name + '[i] && !this' + stageCheckName + '->chStalled){\n'
                             codeString += 'this->' + regB.name + '[i] = this->NOPInstrInstance->' + regB.name + '_' + checkPipe.name + '[i];\n'
                             for upPipe in self.pipes:
                                 if upPipe != checkPipe:
@@ -504,7 +563,14 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
                     for customWBStage in self.regOrder[regB.name]:
                         if customWBStage != self.regOrder[regB.name][0]:
                             codeString += 'else '
-                        codeString += 'if(this->' + regB.name + '[i] != this->NOPInstrInstance->' + regB.name + '_' + customWBStage + '){\n'
+                        if customWBStage in notCheckStages:
+                            codeString += 'if(this->' + regB.name + '[i] != this->NOPInstrInstance->' + regB.name + '_' + customWBStage + '){\n'
+                        else:
+                            if pipelineStageMap[customWBStage] != self.pipes[0]:
+                                stageCheckName = '->stage_' + customWBStage
+                            else:
+                                stageCheckName = ''
+                            codeString += 'if(this->' + regB.name + '[i] != this->NOPInstrInstance->' + regB.name + '_' + customWBStage + ' && !this' + stageCheckName + '->chStalled){\n'
                         codeString += 'this->' + regB.name + '[i] = this->NOPInstrInstance->' + regB.name + '_' + customWBStage + ';\n'
                         for upPipe in self.pipes:
                             if upPipe.name != customWBStage:

@@ -160,6 +160,8 @@ def getInstrIssueCodePipe(self, trace, combinedTrace, instrVarName, hasCheckHaza
         codeString += instrVarName + """->printTrace();
         std::cerr << "Stage: """ + pipeStage.name + """ - Skipped Instruction " << """ + instrVarName + """->getInstructionName() << std::endl << std::endl;
         """
+    if pipeStage != self.pipes[0]:
+        codeString += 'flushAnnulled = this->curInstruction->flushPipeline;\n'
     if hasCheckHazard and unlockHazard:
         codeString +=  instrVarName + '->getUnlock_' + pipeStage.name + '(BasePipeStage::unlockQueue);\n'
     codeString += """this->curInstruction = this->NOPInstrInstance;
@@ -822,21 +824,8 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         initElements.append(initPortCode)
         processorElements.append(attribute)
     if self.systemc or model.startswith('acc') or model.endswith('AT'):
-        if self.externalClock:
-            totCyclesAttribute = cxx_writer.writer_code.Attribute('waitCycles', cxx_writer.writer_code.uintType, 'pu')
-            processorElements.append(totCyclesAttribute)
-            if hasCheckHazard and pipeStage.checkHazard:
-                if self.externalClock:
-                    codeString += 'if(!this->curInstruction->checkHazard()){\nreturn\n}\n'
-                else:
-                    codeString += 'this->curInstruction->checkHazard();\n'
-
-            bodyInits += 'this->waitCycles = 0;\n'
-            clockAttribute = cxx_writer.writer_code.Attribute('clock', cxx_writer.writer_code.TemplateType('sc_in', [cxx_writer.writer_code.boolType], 'systemc.h'), 'pu')
-            processorElements.append(clockAttribute)
-        else:
-            latencyAttribute = cxx_writer.writer_code.Attribute('latency', cxx_writer.writer_code.sc_timeType, 'pu')
-            processorElements.append(latencyAttribute)
+        latencyAttribute = cxx_writer.writer_code.Attribute('latency', cxx_writer.writer_code.sc_timeType, 'pu')
+        processorElements.append(latencyAttribute)
     else:
         totCyclesAttribute = cxx_writer.writer_code.Attribute('totalCycles', cxx_writer.writer_code.uintType, 'pu')
         processorElements.append(totCyclesAttribute)
@@ -926,6 +915,8 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
             for otherPipeStage in self.pipes:
                 if otherPipeStage != pipeStage:
                     curPipeInit.append('&' + otherPipeStage.name + '_stage')
+                else:
+                    curPipeInit.append('NULL')
             if prevStage:
                 curPipeInit.append('&' + prevStage)
             else:
