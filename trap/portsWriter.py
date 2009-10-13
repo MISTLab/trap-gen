@@ -154,6 +154,9 @@ def getCPPExternalPorts(self, model, namespace):
     if model.endswith('LT'):
         readCode = """ datum = 0;
             if (this->dmi_ptr_valid){
+                if(address + this->dmi_data.get_start_address() > this->dmi_data.get_end_address()){
+                    SC_REPORT_ERROR("TLM-2", "Error in reading memory data through DMI: address out of bounds");
+                }
                 memcpy(&datum, this->dmi_data.get_dmi_ptr() - this->dmi_data.get_start_address() + address, sizeof(datum));
                 this->quantKeeper.inc(this->dmi_data.get_read_latency());
             }
@@ -242,6 +245,9 @@ def getCPPExternalPorts(self, model, namespace):
     writeCode = ''
     if model.endswith('LT'):
         writeCode += """if(this->dmi_ptr_valid){
+                if(address + this->dmi_data.get_start_address() > this->dmi_data.get_end_address()){
+                    SC_REPORT_ERROR("TLM-2", "Error in writing memory data through DMI: address out of bounds");
+                }
                 memcpy(this->dmi_data.get_dmi_ptr() - this->dmi_data.get_start_address() + address, &datum, sizeof(datum));
                 this->quantKeeper.inc(this->dmi_data.get_write_latency());
             }
