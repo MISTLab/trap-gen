@@ -82,6 +82,7 @@ class Register:
         self.offset = 0
         self.constValue = None
         self.delay = 0
+        self.wbStageOrder = []
 
     def setDefaultValue(self, value):
         if self.defValue:
@@ -110,6 +111,9 @@ class Register:
         if self.bitMask:
             raise Exception('For register ' + self.name + ' unable to set an offset since a bit mask is used')
         self.offset = value
+
+    def setWbStageOrder(self, order):
+        self.wbStageOrder = order
 
     def getCPPClass(self, model, regType, namespace):
         return registerWriter.getCPPRegClass(self, model, regType, namespace)
@@ -871,13 +875,19 @@ class Processor:
         # and all the classes for the different bitwidths
         return registerWriter.getCPPRegisters(self, model, namespace)
 
+    def getCPPPipelineReg(self, namespace):
+        return registerWriter.getCPPPipelineReg(self, namespace)
+
     def getRegistersBitfields(self):
         return registerWriter.getRegistersBitfields(self)
 
     def getCPPAlias(self, model, namespace):
         # This method creates the class describing a register
         # alias
-        return registerWriter.getCPPAlias(self, model, namespace)
+        if model.startswith('acc'):
+            return registerWriter.getCPPPipelineAlias(self, namespace)
+        else:
+            return registerWriter.getCPPAlias(self, namespace)
 
     def getCPPProc(self, model, trace, combinedTrace, namespace):
         # creates the class describing the processor

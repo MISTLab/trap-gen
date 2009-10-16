@@ -255,7 +255,7 @@ def getCPPRegClass(self, model, regType, namespace):
     constructorBody = cxx_writer.writer_code.Code(constructorCode)
     constructorParams = [cxx_writer.writer_code.Parameter('name', cxx_writer.writer_code.sc_module_nameType)]
     publicMainClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['Register(name, ' + str(self.bitWidth) + ')'] + fieldInit)
-    publicMainClassEmptyConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', initList = ['Register(sc_gen_unique_name(\"' + regType.name + '\"), ' + str(self.bitWidth) + ')'] + fieldInit)
+    publicMainClassEmptyConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', initList = ['Register(\"' + regType.name + '\", ' + str(self.bitWidth) + ')'] + fieldInit)
 
     # Stream Operators
     outStreamType = cxx_writer.writer_code.Type('std::ostream', 'ostream')
@@ -377,6 +377,177 @@ def getCPPRegBankClass(self, model, regType, namespace):
     # the register bank
     return getCPPRegClass(self, model, regType, namespace)
 
+def getCPPPipelineReg(self, namespace):
+    # This method returns the pipeline registers, which is a special registers
+    # containing both the value of the registres itself and all the pipeline
+    # latches.
+    # I also contains special methods to propagate registers values in the
+    # pipeline.
+    # Note that there are different kinds of such registers, one for the
+    # normal latched registers and one for the registers which are immediately
+    # visible to all the other stages (e.g. for LEON they are the PC and NPC
+    # registers).
+
+    # Lets start with the creation of the latched registers: they have exactly
+    # the same methods of the base registers
+    pipelineRegClasses = []
+    registerElements = []
+    registerType = cxx_writer.writer_code.Type('Register')
+
+    ################ Constructor: it initializes the internal registers ######################
+    constructorParams = [cxx_writer.writer_code.Parameter('name', cxx_writer.writer_code.sc_module_nameRefType.makeConst()),
+                cxx_writer.writer_code.Parameter('bitWidth', cxx_writer.writer_code.uintType)]
+    innerConstrInit = ''
+    constructorCode = ''
+    i = 0
+    for pipeStage in self.pipes:
+        constructorCode += 'this->reg_stage[' + str(i) + '] = reg_' + pipeStage.name + ';\n'
+        constructorParams.append(cxx_writer.writer_code.Parameter('reg_' + pipeStage.name, registerType.makePointer()))
+        innerConstrInit += ', reg_' + pipeStage.name
+        i += 1
+    constructorCode += 'this->reg_all' + ' = reg_all;\n'
+    innerConstrInit += ', reg_all'
+    constructorParams.append(cxx_writer.writer_code.Parameter('reg_all', registerType.makePointer()))
+    constructorBody = cxx_writer.writer_code.Code(constructorCode)
+    publicConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['Register(name, bitWidth)'])
+
+    stagesRegsAttribute = cxx_writer.writer_code.Attribute('reg_stage[' + str(len(self.pipes)) + ']', registerType.makePointer(), 'pri')
+    registerElements.append(stagesRegsAttribute)
+    generalRegAttribute = cxx_writer.writer_code.Attribute('reg_all', registerType.makePointer(), 'pri')
+    registerElements.append(generalRegAttribute)
+
+    ################ Lock and Unlock methods used for hazards detection ######################
+    # For the general register they have a particular behavior: they have to lock all versions of the
+    # registers, unlock unlocks all of them; concerning isLocked method, it returns the status
+    # of the general register. Note that isLocked takes an additional parameter: if specified
+    # the locked status of the corresponding stage register (used for bypass operations, where
+    # we do not wait for the WB, but we take the value from a pipeline register)
+
+    lockBody = cxx_writer.writer_code.Code("""for(int i = 0; i < """ + str(len(self.pipes)) + """; i++){
+        this->reg_stage[i]->lock();
+    }
+    this->reg_all->lock();""")
+    lockMethod = cxx_writer.writer_code.Method('lock', lockBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
+    registerElements.append(lockMethod)
+    unlockBody = cxx_writer.writer_code.Code("""for(int i = 0; i < """ + str(len(self.pipes)) + """; i++){
+        this->reg_stage[i]->unlock();
+    }
+    this->reg_all->unlock();""")
+    unlockMethod = cxx_writer.writer_code.Method('unlock', unlockBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
+    registerElements.append(unlockMethod)
+    latencyParam = cxx_writer.writer_code.Parameter('wbLatency', cxx_writer.writer_code.intType)
+    unlockMethod = cxx_writer.writer_code.Method('unlock', unlockBody, cxx_writer.writer_code.voidType, 'pu', [latencyParam], inline = True, noException = True)
+    registerElements.append(unlockMethod)
+    isLockedBody = cxx_writer.writer_code.Code('return this->reg_all->isLocked();')
+    isLockedMethod = cxx_writer.writer_code.Method('isLocked', isLockedBody, cxx_writer.writer_code.boolType, 'pu', noException = True)
+    registerElements.append(isLockedMethod)
+    stageIdParam = cxx_writer.writer_code.Parameter('stageId', cxx_writer.writer_code.intType)
+    isLockedBody = cxx_writer.writer_code.Code('return this->reg_stage[i]->isLocked();')
+    isLockedMethod = cxx_writer.writer_code.Method('isLocked', isLockedBody, cxx_writer.writer_code.boolType, 'pu', [stageIdParam], noException = True)
+    registerElements.append(isLockedMethod)
+
+    # Propagate method, used to move register values from one stage to the other; the default implementation of such
+    # method proceeded from the last stage to the first one: wb copied in REGS_all, exec in wb, .... REGS_all in fetch
+    propagateCode = '*(this->reg_all) = *(this->reg_stage[' + str(len(self.pipes)) + ']);\n'
+    propagateCode += 'for(int i = ' + str(len(self.pipes) - 2) + '; i >= 0; i--){\n'
+    propagateCode += '*(this->reg_stage[i + 1]) = *(this->reg_stage[i]);\n'
+    propagateCode += '}\n*(this->reg_stage[0]) = *(this->reg_all);'
+    propagateBody = cxx_writer.writer_code.Code(propagateCode)
+    propagateMethod = cxx_writer.writer_code.Method('propagate', propagateBody, cxx_writer.writer_code.voidType, 'pu', noException = True, virtual = True)
+    registerElements.append(propagateMethod)
+
+    # Now here I have to define the method to get the pointer to the various
+    # registers
+    getRegisterParam = cxx_writer.writer_code.Parameter('regIndex', cxx_writer.writer_code.intType, initValue = '-1')
+    getRegisterBody = cxx_writer.writer_code.Code("""if(regIndex < 0){
+        return this->reg_all;
+    }
+    else{
+        return this->reg_stage[regIndex];
+    }""")
+    getRegisterMethod = cxx_writer.writer_code.Method('getRegister', getRegisterBody, registerType.makePointer(), 'pu', [getRegisterParam], inline = True, noException = True)
+    registerElements.append(getRegisterMethod)
+
+    # Simple base methods used to access the general register operators: we simply perform a forward towards
+    # the corresponding operator of the general register (reg_all)
+    InnerFieldType = cxx_writer.writer_code.Type('InnerField')
+    operatorParam = cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.intType)
+    operatorBody = cxx_writer.writer_code.Code('return *(this->reg_all)[bitField];')
+    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, InnerFieldType.makeRef(), 'pu', [operatorParam], noException = True)
+    registerElements.append(operatorDecl)
+    for i in unaryOps:
+        operatorBody = cxx_writer.writer_code.Code('return ' + i + '(*(this->reg_all));')
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', noException = True)
+        registerElements.append(operatorDecl)
+    for i in binaryOps:
+        operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
+        operatorBody = cxx_writer.writer_code.Code('return (*(this->reg_all)) ' + i + ' other;')
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True, noException = True)
+        registerElements.append(operatorDecl)
+    for i in comparisonOps:
+        operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
+        operatorBody = cxx_writer.writer_code.Code('return (*(this->reg_all)) ' + i + ' other;')
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True, noException = True)
+        registerElements.append(operatorDecl)
+
+    pureDeclTypes = [regMaxType, registerType]
+    for pureDecls in pureDeclTypes:
+        for i in assignmentOps:
+            operatorParam = cxx_writer.writer_code.Parameter('other', pureDecls.makeRef().makeConst())
+            operatorBody = cxx_writer.writer_code.Code('return (*(this->reg_all)) ' + i + ' other;')
+            operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, registerType.makeRef(), 'pu', [operatorParam], noException = True)
+            registerElements.append(operatorDecl)
+    # Stream Operators
+    outStreamType = cxx_writer.writer_code.Type('std::ostream', 'ostream')
+    operatorParam = cxx_writer.writer_code.Parameter('stream', outStreamType.makeRef())
+    operatorBody = cxx_writer.writer_code.Code('return stream << (*(this->reg_all));')
+    operatorDecl = cxx_writer.writer_code.MemberOperator('<<', operatorBody, outStreamType.makeRef(), 'pu', [operatorParam], const = True, noException = True)
+    registerElements.append(operatorDecl)
+    operatorBody = cxx_writer.writer_code.Code('return ' + str(regMaxType) + '(*(this->reg_all));')
+    operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True, noException = True)
+    registerElements.append(operatorIntDecl)
+
+    pipelineRegClass = cxx_writer.writer_code.ClassDeclaration('PipelineRegister', registerElements, [registerType], namespaces = [namespace])
+    pipelineRegClass.addConstructor(publicConstr)
+    pipelineRegClasses.append(pipelineRegClass)
+    PipelineRegisterType = pipelineRegClass.getType()
+
+    ############################################################################
+    # Now I have to examine all the registers with special write back conditions
+    # and create a special propagate method for all of them
+    # First I need to create correspondence pipeline stages, numbers
+    pipeNumbers = {}
+    i = 0
+    for pipeStage in self.pipes:
+        pipeNumbers[pipeStage.name] = i
+        i += 1
+    orders = []
+    for reg in self.regs:
+        if reg.wbStageOrder:
+            if not reg.wbStageOrder in orders:
+                orders.append(reg.wbStageOrder)
+    for order in orders:
+        registerElements = []
+        propagateCode = ''
+        for pipeStage in order:
+            if pipeStage != order[0]:
+                propagateCode += 'else '
+            propagateCode += 'if(*(this->reg_stage[' + str(pipeNumbers[pipeStage]) + ']) != *(this->reg_all)){'
+            propagateCode += '*(this->reg_all) = *(this->reg_stage[' + str(pipeNumbers[pipeStage]) + ']);\n'
+            propagateCode += 'for(int i = 0; i < ' + str(len(self.pipes)) + '; i++){\n'
+            propagateCode += '*(this->reg_stage[i]) = *(this->reg_stage[' + str(pipeNumbers[pipeStage]) + ']);\n'
+            propagateCode += '}\n'
+        propagateBody = cxx_writer.writer_code.Code(propagateCode)
+        propagateMethod = cxx_writer.writer_code.Method('propagate', propagateBody, cxx_writer.writer_code.voidType, 'pu', noException = True)
+        registerElements.append(propagateMethod)
+        constructorBody = cxx_writer.writer_code.Code(constructorCode)
+        publicConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['PipelineRegister(name, bitWidth' + innerConstrInit + ')'])
+        pipelineRegClass = cxx_writer.writer_code.ClassDeclaration('PipelineRegister_' + str(order)[1:-1].replace(', ', '_'), registerElements, [PipelineRegisterType], namespaces = [namespace])
+        pipelineRegClass.addConstructor(publicConstr)
+        pipelineRegClasses.append(pipelineRegClass)
+
+    return pipelineRegClasses
+
 def getCPPRegisters(self, model, namespace):
     # This method creates all the classes necessary for declaring
     # the registers: in particular the register base class
@@ -406,22 +577,22 @@ def getCPPRegisters(self, model, namespace):
     registerElements.append(widthAttribute)
     constructorCode = 'this->bitWidth = bitWidth;\nend_module();'
     if model.startswith('acc'):
-        constructorCode = 'this->locked = false;\n' + constructorCode
+        constructorCode = 'this->numLocked = 0;\n' + constructorCode
     constructorBody = cxx_writer.writer_code.Code(constructorCode)
     constructorParams = [cxx_writer.writer_code.Parameter('name', cxx_writer.writer_code.sc_module_nameRefType.makeConst()),
                 cxx_writer.writer_code.Parameter('bitWidth', cxx_writer.writer_code.uintType)]
-    publicConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['sc_module(name)'])
+    publicConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['sc_module(sc_gen_unique_name(name))'])
 
     ################ Lock and Unlock methods used for hazards detection ######################
     if model.startswith('acc'):
         lockedLatencyAttribute = cxx_writer.writer_code.Attribute('lockedLatency', cxx_writer.writer_code.intType, 'pri')
         registerElements.append(lockedLatencyAttribute)
-        lockedAttribute = cxx_writer.writer_code.Attribute('locked', cxx_writer.writer_code.boolType, 'pri')
+        lockedAttribute = cxx_writer.writer_code.Attribute('numLocked', cxx_writer.writer_code.intType, 'pri')
         registerElements.append(lockedAttribute)
-        lockBody = cxx_writer.writer_code.Code('this->lockedLatency = -1;\nthis->locked = true;')
+        lockBody = cxx_writer.writer_code.Code('this->lockedLatency = -1;\nthis->numLocked++;')
         lockMethod = cxx_writer.writer_code.Method('lock', lockBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
         registerElements.append(lockMethod)
-        unlockBody = cxx_writer.writer_code.Code('this->lockedLatency = -1;\nthis->locked = false;\n')
+        unlockBody = cxx_writer.writer_code.Code('this->lockedLatency = -1;\nif(this->numLocked > 0){\nthis->numLocked--;\n}')
         unlockMethod = cxx_writer.writer_code.Method('unlock', unlockBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
         registerElements.append(unlockMethod)
         latencyParam = cxx_writer.writer_code.Parameter('wbLatency', cxx_writer.writer_code.intType)
@@ -430,20 +601,26 @@ def getCPPRegisters(self, model, namespace):
         }
         else{
             this->lockedLatency = -1;
-            this->locked = false;
+            if(this->numLocked > 0){
+                this->numLocked--;
+            }
         }""")
         unlockMethod = cxx_writer.writer_code.Method('unlock', unlockBody, cxx_writer.writer_code.voidType, 'pu', [latencyParam], inline = True, noException = True)
         registerElements.append(unlockMethod)
         isLockedBody = cxx_writer.writer_code.Code("""if(this->lockedLatency > 0){
             this->lockedLatency--;
             if(this->lockedLatency == 0){
-                this->locked = false;
+                this->numLocked--;
             }
-            return this->locked;
+        }
+        if(this->numLocked > 0){
+            return true;
         }
         else{
-            return this->locked;
-        }""")
+            this->numLocked = 0;
+            return false;
+        }
+        """)
         isLockedMethod = cxx_writer.writer_code.Method('isLocked', isLockedBody, cxx_writer.writer_code.boolType, 'pu', noException = True, virtual = True)
         registerElements.append(isLockedMethod)
 
@@ -502,7 +679,6 @@ def getCPPRegisters(self, model, namespace):
     registerElements.append(operatorIntDecl)
 
     ################ Here we determine the different register types which have to be declared ##################
-
     customRegBanksElemens = []
     for i in self.regBanks:
         customRegBanksElemens += i.getConstRegs()
@@ -547,7 +723,6 @@ def getCPPRegisters(self, model, namespace):
     realRegClasses = []
     for regType in regTypes:
         realRegClasses.append(regType.getCPPClass(model, resourceType[regType.name], namespace))
-
     ################ End of part where we determine the different register types which have to be declared ##################
 
     registerDecl = cxx_writer.writer_code.SCModule('Register', registerElements, namespaces = [namespace])
@@ -556,8 +731,9 @@ def getCPPRegisters(self, model, namespace):
     ################ Finally I put everything together##################
     classes = [InnerFieldClass, registerDecl] + realRegClasses
 
+    ###################################################################################
     # I also need to declare a global RegisterBank Class in case there are register banks
-    # with constant registers
+    # containing registers of different types
     hasRegBankClass = False
     for reg in self.regBanks:
         if reg.constValue:
@@ -629,9 +805,13 @@ def getCPPRegisters(self, model, namespace):
         regBankClass.addDestructor(publicRegBankDestr)
         classes.append(regBankClass)
 
+    # Now I have to add the classes for the pipeline registers for the cycle accurate processor
+    if model.startswith('acc'):
+        classes += self.getCPPPipelineReg(namespace)
+
     return classes
 
-def getCPPAlias(self, model, namespace):
+def getCPPAlias(self, namespace):
     # This method creates the class describing a register
     # alias: note that an alias simply holds a pointer to a register; the
     # operators are then redefined in order to call the corresponding operators
@@ -655,41 +835,22 @@ def getCPPAlias(self, model, namespace):
     operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, InnerFieldType.makeRef(), 'pu', operatorParam, noException = True, inline = True)
     aliasElements.append(operatorDecl)
 
-    ################ Lock and Unlock methods used for hazards detection ######################
-    if model.startswith('acc'):
-        getRegBody = cxx_writer.writer_code.Code('return this->reg;')
-        getRegMethod = cxx_writer.writer_code.Method('getReg', getRegBody, registerType.makePointer(), 'pu', inline = True, noException = True)
-        aliasElements.append(getRegMethod)
-        lockBody = cxx_writer.writer_code.Code('this->reg->lock();')
-        lockMethod = cxx_writer.writer_code.Method('lock', lockBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
-        aliasElements.append(lockMethod)
-        unlockBody = cxx_writer.writer_code.Code('this->reg->unlock();')
-        unlockMethod = cxx_writer.writer_code.Method('unlock', unlockBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
-        aliasElements.append(unlockMethod)
-        latencyParam = cxx_writer.writer_code.Parameter('wbLatency', cxx_writer.writer_code.intType)
-        unlockBody = cxx_writer.writer_code.Code('this->reg->unlock(wbLatency);')
-        unlockMethod = cxx_writer.writer_code.Method('unlock', unlockBody, cxx_writer.writer_code.voidType, 'pu', [latencyParam], inline = True, noException = True)
-        aliasElements.append(unlockMethod)
-        isLockedBody = cxx_writer.writer_code.Code('return this->reg->isLocked();')
-        isLockedMethod = cxx_writer.writer_code.Method('isLocked', isLockedBody, cxx_writer.writer_code.boolType, 'pu', inline = True, noException = True)
-        aliasElements.append(isLockedMethod)
-
     ################ Methods used for the management of delayed registers ######################
-    if not model.startswith('acc'):
-        immediateWriteBody = isLockedBody = cxx_writer.writer_code.Code('this->reg->immediateWrite(value);')
-        immediateWriteParam = [cxx_writer.writer_code.Parameter('value', regMaxType.makeRef().makeConst())]
-        immediateWriteMethod = cxx_writer.writer_code.Method('immediateWrite', immediateWriteBody, cxx_writer.writer_code.voidType, 'pu', immediateWriteParam, noException = True)
-        aliasElements.append(immediateWriteMethod)
-        readNewValueBody = isLockedBody = cxx_writer.writer_code.Code('return this->reg->readNewValue();')
-        readNewValueMethod = cxx_writer.writer_code.Method('readNewValue', readNewValueBody, regMaxType, 'pu', noException = True)
-        aliasElements.append(readNewValueMethod)
+    immediateWriteBody = isLockedBody = cxx_writer.writer_code.Code('this->reg->immediateWrite(value);')
+    immediateWriteParam = [cxx_writer.writer_code.Parameter('value', regMaxType.makeRef().makeConst())]
+    immediateWriteMethod = cxx_writer.writer_code.Method('immediateWrite', immediateWriteBody, cxx_writer.writer_code.voidType, 'pu', immediateWriteParam, noException = True)
+    aliasElements.append(immediateWriteMethod)
+    readNewValueBody = isLockedBody = cxx_writer.writer_code.Code('return this->reg->readNewValue();')
+    readNewValueMethod = cxx_writer.writer_code.Method('readNewValue', readNewValueBody, regMaxType, 'pu', noException = True)
+    aliasElements.append(readNewValueMethod)
+
+    getRegBody = cxx_writer.writer_code.Code('return this->reg;')
+    getRegMethod = cxx_writer.writer_code.Method('getReg', getRegBody, registerType.makePointer(), 'pu', inline = True, noException = True)
+    aliasElements.append(getRegMethod)
 
     #################### Lets declare the normal operators (implementation of the pure operators of the base class) ###########
     for i in unaryOps:
-        if model.startswith('acc'):
-            operatorBody = cxx_writer.writer_code.Code('return ' + i + '*this->reg;')
-        else:
-            operatorBody = cxx_writer.writer_code.Code('return ' + i + '(*this->reg + this->offset);')
+        operatorBody = cxx_writer.writer_code.Code('return ' + i + '(*this->reg + this->offset);')
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', noException = True)
         aliasElements.append(operatorDecl)
     # Now I have the three versions of the operators, depending whether they take
@@ -712,10 +873,7 @@ def getCPPAlias(self, model, namespace):
         aliasElements.append(operatorDecl)
     # Alias Register
     for i in binaryOps:
-        if model.startswith('acc'):
-            operatorBody = cxx_writer.writer_code.Code('return (*this->reg ' + i + ' *other.reg);')
-        else:
-            operatorBody = cxx_writer.writer_code.Code('return ((*this->reg + this->offset) ' + i + ' *other.reg);')
+        operatorBody = cxx_writer.writer_code.Code('return ((*this->reg + this->offset) ' + i + ' *other.reg);')
         operatorParam = cxx_writer.writer_code.Parameter('other', aliasType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True, noException = True)
         aliasElements.append(operatorDecl)
@@ -731,18 +889,12 @@ def getCPPAlias(self, model, namespace):
         aliasElements.append(operatorDecl)
     # GENERIC REGISTER:
     for i in binaryOps:
-        if model.startswith('acc'):
-            operatorBody = cxx_writer.writer_code.Code('return (*this->reg ' + i + ' other);')
-        else:
-            operatorBody = cxx_writer.writer_code.Code('return ((*this->reg + this->offset) ' + i + ' other);')
+        operatorBody = cxx_writer.writer_code.Code('return ((*this->reg + this->offset) ' + i + ' other);')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True, inline = True, noException = True)
         aliasElements.append(operatorDecl)
     for i in comparisonOps:
-        if model.startswith('acc'):
-            operatorBody = cxx_writer.writer_code.Code('return (*this->reg ' + i + ' other);')
-        else:
-            operatorBody = cxx_writer.writer_code.Code('return ((*this->reg + this->offset) ' + i + ' other);')
+        operatorBody = cxx_writer.writer_code.Code('return ((*this->reg + this->offset) ' + i + ' other);')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True, noException = True)
         aliasElements.append(operatorDecl)
@@ -752,10 +904,7 @@ def getCPPAlias(self, model, namespace):
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam], noException = True)
         aliasElements.append(operatorDecl)
     # Scalar value cast operator
-    if model.startswith('acc'):
-        operatorBody = cxx_writer.writer_code.Code('return *this->reg;')
-    else:
-        operatorBody = cxx_writer.writer_code.Code('return *this->reg + this->offset;')
+    operatorBody = cxx_writer.writer_code.Code('return *this->reg + this->offset;')
     operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True, noException = True, inline = True)
     aliasElements.append(operatorIntDecl)
 
@@ -763,20 +912,17 @@ def getCPPAlias(self, model, namespace):
     constructorBody = cxx_writer.writer_code.Code('this->referringAliases = NULL;')
     constructorParams = [cxx_writer.writer_code.Parameter('reg', registerType.makePointer())]
     constructorInit = ['reg(reg)']
-    if not model.startswith('acc'):
-        constructorParams.append(cxx_writer.writer_code.Parameter('offset', cxx_writer.writer_code.uintType, initValue = '0'))
-        constructorInit += ['offset(offset)', 'defaultOffset(0)']
+    constructorParams.append(cxx_writer.writer_code.Parameter('offset', cxx_writer.writer_code.uintType, initValue = '0'))
+    constructorInit += ['offset(offset)', 'defaultOffset(0)']
     publicMainClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, constructorInit)
-    if not model.startswith('acc'):
-        constructorInit = ['offset(0)', 'defaultOffset(0)']
+    constructorInit = ['offset(0)', 'defaultOffset(0)']
     publicMainEmptyClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', [], constructorInit)
     # Constructor: takes as input the initial alias
     constructorBody = cxx_writer.writer_code.Code('initAlias->referredAliases.insert(this);\nthis->referringAliases = initAlias;')
     constructorParams = [cxx_writer.writer_code.Parameter('initAlias', aliasType.makePointer())]
     publicAliasConstrInit = ['reg(initAlias->reg)']
-    if not model.startswith('acc'):
-        constructorParams.append(cxx_writer.writer_code.Parameter('offset', cxx_writer.writer_code.uintType, initValue = '0'))
-        publicAliasConstrInit += ['offset(initAlias->offset + offset)', 'defaultOffset(offset)']
+    constructorParams.append(cxx_writer.writer_code.Parameter('offset', cxx_writer.writer_code.uintType, initValue = '0'))
+    publicAliasConstrInit += ['offset(initAlias->offset + offset)', 'defaultOffset(offset)']
     publicAliasConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, publicAliasConstrInit)
     destructorBody = cxx_writer.writer_code.Code("""std::set<Alias *>::iterator referredIter, referredEnd;
         for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
@@ -791,49 +937,39 @@ def getCPPAlias(self, model, namespace):
 
     # Stream Operators
     outStreamType = cxx_writer.writer_code.Type('std::ostream', 'ostream')
-    if model.startswith('acc'):
-        code = 'stream << *this->reg;\nreturn stream;'
-    else:
-        code = 'stream << *this->reg + this->offset;\nreturn stream;'
+    code = 'stream << *this->reg + this->offset;\nreturn stream;'
     operatorBody = cxx_writer.writer_code.Code(code)
     operatorParam = cxx_writer.writer_code.Parameter('stream', outStreamType.makeRef())
     operatorDecl = cxx_writer.writer_code.MemberOperator('<<', operatorBody, outStreamType.makeRef(), 'pu', [operatorParam], const = True, noException = True)
     aliasElements.append(operatorDecl)
 
     # Update method: updates the register pointed by this alias: Standard Alias
-    if not model.startswith('acc'):
-        updateCode = """this->reg = newAlias.reg;
-        this->offset = newAlias.offset + newOffset;
-        this->defaultOffset = newOffset;
-        std::set<Alias *>::iterator referredIter, referredEnd;
-        for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
-            (*referredIter)->newReferredAlias(newAlias.reg, newAlias.offset + newOffset);
-        }
-        if(this->referringAliases != NULL){
-            this->referringAliases->referredAliases.erase(this);
-        }
-        this->referringAliases = &newAlias;
-        newAlias.referredAliases.insert(this);
-        """
-        updateBody = cxx_writer.writer_code.Code(updateCode)
-        updateParam = [cxx_writer.writer_code.Parameter('newAlias', aliasType.makeRef())]
-        updateParam.append(cxx_writer.writer_code.Parameter('newOffset', cxx_writer.writer_code.uintType))
-        updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam, inline = True, noException = True)
-        aliasElements.append(updateDecl)
-    if not model.startswith('acc'):
-        updateCode = """this->offset = newAlias.offset;
-        this->defaultOffset = 0;
-        """
-    else:
-        updateCode = ''
+    updateCode = """this->reg = newAlias.reg;
+    this->offset = newAlias.offset + newOffset;
+    this->defaultOffset = newOffset;
+    std::set<Alias *>::iterator referredIter, referredEnd;
+    for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
+        (*referredIter)->newReferredAlias(newAlias.reg, newAlias.offset + newOffset);
+    }
+    if(this->referringAliases != NULL){
+        this->referringAliases->referredAliases.erase(this);
+    }
+    this->referringAliases = &newAlias;
+    newAlias.referredAliases.insert(this);
+    """
+    updateBody = cxx_writer.writer_code.Code(updateCode)
+    updateParam = [cxx_writer.writer_code.Parameter('newAlias', aliasType.makeRef())]
+    updateParam.append(cxx_writer.writer_code.Parameter('newOffset', cxx_writer.writer_code.uintType))
+    updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam, inline = True, noException = True)
+    aliasElements.append(updateDecl)
+    updateCode = """this->offset = newAlias.offset;
+    this->defaultOffset = 0;
+    """
     updateCode += """this->reg = newAlias.reg;
     std::set<Alias *>::iterator referredIter, referredEnd;
     for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
     """
-    if not model.startswith('acc'):
-        updateCode += '(*referredIter)->newReferredAlias(newAlias.reg, newAlias.offset);'
-    else:
-        updateCode += '(*referredIter)->newReferredAlias(newAlias.reg);'
+    updateCode += '(*referredIter)->newReferredAlias(newAlias.reg, newAlias.offset);'
     updateCode += """
     }
     if(this->referringAliases != NULL){
@@ -847,31 +983,27 @@ def getCPPAlias(self, model, namespace):
     updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam, inline = True, noException = True)
     aliasElements.append(updateDecl)
 
-    if not model.startswith('acc'):
-        updateCode = """this->reg = &newAlias;
-        this->offset = newOffset;
-        this->defaultOffset = 0;
-        std::set<Alias *>::iterator referredIter, referredEnd;
-        for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
-            (*referredIter)->newReferredAlias(&newAlias, newOffset);
-        }
-        if(this->referringAliases != NULL){
-            this->referringAliases->referredAliases.erase(this);
-        }
-        this->referringAliases = NULL;
-        """
-        updateBody = cxx_writer.writer_code.Code(updateCode)
-        updateParam = [cxx_writer.writer_code.Parameter('newAlias', registerType.makeRef())]
-        updateParam.append(cxx_writer.writer_code.Parameter('newOffset', cxx_writer.writer_code.uintType))
-        updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam, inline = True, noException = True)
-        aliasElements.append(updateDecl)
+    updateCode = """this->reg = &newAlias;
+    this->offset = newOffset;
+    this->defaultOffset = 0;
+    std::set<Alias *>::iterator referredIter, referredEnd;
+    for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
+        (*referredIter)->newReferredAlias(&newAlias, newOffset);
+    }
+    if(this->referringAliases != NULL){
+        this->referringAliases->referredAliases.erase(this);
+    }
+    this->referringAliases = NULL;
+    """
+    updateBody = cxx_writer.writer_code.Code(updateCode)
+    updateParam = [cxx_writer.writer_code.Parameter('newAlias', registerType.makeRef())]
+    updateParam.append(cxx_writer.writer_code.Parameter('newOffset', cxx_writer.writer_code.uintType))
+    updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam, inline = True, noException = True)
+    aliasElements.append(updateDecl)
 
-    if not model.startswith('acc'):
-        updateCode = """this->offset = 0;
-        this->defaultOffset = 0;
-        """
-    else:
-        updateCode = ''
+    updateCode = """this->offset = 0;
+    this->defaultOffset = 0;
+    """
     updateCode += """this->reg = &newAlias;
     std::set<Alias *>::iterator referredIter, referredEnd;
     for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
@@ -888,8 +1020,7 @@ def getCPPAlias(self, model, namespace):
     aliasElements.append(updateDecl)
 
     directSetCode = 'this->reg = newAlias.reg;\n'
-    if not model.startswith('acc'):
-        directSetCode += 'this->offset = newAlias.offset;\n'
+    directSetCode += 'this->offset = newAlias.offset;\n'
     directSetCode += """if(this->referringAliases != NULL){
         this->referringAliases->referredAliases.erase(this);
     }
@@ -910,24 +1041,20 @@ def getCPPAlias(self, model, namespace):
     directSetDecl = cxx_writer.writer_code.Method('directSetAlias', directSetBody, cxx_writer.writer_code.voidType, 'pu', directSetParam, noException = True)
     aliasElements.append(directSetDecl)
 
-    if not model.startswith('acc'):
-        updateCode = """this->reg = newAlias;
-        this->offset = newOffset + this->defaultOffset;
-        std::set<Alias *>::iterator referredIter, referredEnd;
-        for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
-            (*referredIter)->newReferredAlias(newAlias, newOffset);
-        }
-        """
-        updateBody = cxx_writer.writer_code.Code(updateCode)
-        updateParam = [cxx_writer.writer_code.Parameter('newAlias', registerType.makePointer())]
-        updateParam.append(cxx_writer.writer_code.Parameter('newOffset', cxx_writer.writer_code.uintType))
-        updateDecl = cxx_writer.writer_code.Method('newReferredAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam, inline = True, noException = True)
-        aliasElements.append(updateDecl)
+    updateCode = """this->reg = newAlias;
+    this->offset = newOffset + this->defaultOffset;
+    std::set<Alias *>::iterator referredIter, referredEnd;
+    for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
+        (*referredIter)->newReferredAlias(newAlias, newOffset);
+    }
+    """
+    updateBody = cxx_writer.writer_code.Code(updateCode)
+    updateParam = [cxx_writer.writer_code.Parameter('newAlias', registerType.makePointer())]
+    updateParam.append(cxx_writer.writer_code.Parameter('newOffset', cxx_writer.writer_code.uintType))
+    updateDecl = cxx_writer.writer_code.Method('newReferredAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam, inline = True, noException = True)
+    aliasElements.append(updateDecl)
 
-    if not model.startswith('acc'):
-        updateCode = 'this->offset = this->defaultOffset;\n'
-    else:
-        updateCode = ''
+    updateCode = 'this->offset = this->defaultOffset;\n'
     updateCode += """this->reg = newAlias;
     std::set<Alias *>::iterator referredIter, referredEnd;
     for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
@@ -941,11 +1068,231 @@ def getCPPAlias(self, model, namespace):
 
     regAttribute = cxx_writer.writer_code.Attribute('reg', registerType.makePointer(), 'pri')
     aliasElements.append(regAttribute)
-    if not model.startswith('acc'):
-        offsetAttribute = cxx_writer.writer_code.Attribute('offset', cxx_writer.writer_code.uintType, 'pri')
-        aliasElements.append(offsetAttribute)
-        offsetAttribute = cxx_writer.writer_code.Attribute('defaultOffset', cxx_writer.writer_code.uintType, 'pri')
-        aliasElements.append(offsetAttribute)
+    offsetAttribute = cxx_writer.writer_code.Attribute('offset', cxx_writer.writer_code.uintType, 'pri')
+    aliasElements.append(offsetAttribute)
+    offsetAttribute = cxx_writer.writer_code.Attribute('defaultOffset', cxx_writer.writer_code.uintType, 'pri')
+    aliasElements.append(offsetAttribute)
+
+    # Finally I declare the class and pass to it all the declared members: Standard Alias
+    aliasesAttribute = cxx_writer.writer_code.Attribute('referredAliases', cxx_writer.writer_code.TemplateType('std::set', [aliasType.makePointer()], 'set'), 'pri')
+    aliasElements.append(aliasesAttribute)
+    aliasesAttribute = cxx_writer.writer_code.Attribute('referringAliases', aliasType.makePointer(), 'pri')
+    aliasElements.append(aliasesAttribute)
+    aliasDecl = cxx_writer.writer_code.ClassDeclaration(aliasType.name, aliasElements, namespaces = [namespace])
+    aliasDecl.addConstructor(publicMainClassConstr)
+    aliasDecl.addConstructor(publicMainEmptyClassConstr)
+    aliasDecl.addConstructor(publicAliasConstr)
+    aliasDecl.addDestructor(publicAliasDestr)
+
+    classes = [aliasDecl]
+    return classes
+
+def getCPPPipelineAlias(self, namespace):
+    # This method creates the class describing a register
+    # alias: note that an alias simply holds a pointer to a register; the
+    # operators are then redefined in order to call the corresponding operators
+    # of the register. In addition there is the updateAlias operation which updates
+    # the register this alias points to (and eventually the offset).
+    regWidthType = regMaxType
+    # If the cycle accurate processor is used, then each alias contains also the pipeline
+    # register, i.e. the registers with the copies (latches) for each pipeline stage
+    pipeRegisterType = cxx_writer.writer_code.Type('PipelineRegister', 'registers.hpp')
+    registerType = cxx_writer.writer_code.Type('Register', 'registers.hpp')
+    aliasType = cxx_writer.writer_code.Type('Alias', 'alias.hpp')
+    aliasElements = []
+    global resourceType
+    from procWriter import resourceType
+
+    for i in self.aliasRegs + self.aliasRegBanks:
+        resourceType[i.name] = aliasType
+
+    ####################### Lets declare the operators used to access the register fields ##############
+    codeOperatorBody = 'return (*this->pipelineReg->getRegister(this->pipeId))[bitField];'
+    InnerFieldType = cxx_writer.writer_code.Type('InnerField')
+    operatorBody = cxx_writer.writer_code.Code(codeOperatorBody)
+    operatorParam = [cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.intType)]
+    operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, InnerFieldType.makeRef(), 'pu', operatorParam, noException = True, inline = True)
+    aliasElements.append(operatorDecl)
+
+    ################ Lock and Unlock methods used for hazards detection ######################
+    getPipeRegBody = cxx_writer.writer_code.Code('return this->pipelineReg;')
+    getPipeRegMethod = cxx_writer.writer_code.Method('getPipeReg', getPipeRegBody, pipeRegisterType.makePointer(), 'pu', inline = True, noException = True)
+    aliasElements.append(getPipeRegMethod)
+    lockBody = cxx_writer.writer_code.Code('this->pipelineReg->lock();')
+    lockMethod = cxx_writer.writer_code.Method('lock', lockBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
+    aliasElements.append(lockMethod)
+    unlockBody = cxx_writer.writer_code.Code('this->pipelineReg->unlock();')
+    unlockMethod = cxx_writer.writer_code.Method('unlock', unlockBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
+    aliasElements.append(unlockMethod)
+    latencyParam = cxx_writer.writer_code.Parameter('wbLatency', cxx_writer.writer_code.intType)
+    unlockBody = cxx_writer.writer_code.Code('this->pipelineReg->unlock(wbLatency);')
+    unlockMethod = cxx_writer.writer_code.Method('unlock', unlockBody, cxx_writer.writer_code.voidType, 'pu', [latencyParam], inline = True, noException = True)
+    aliasElements.append(unlockMethod)
+    isLockedBody = cxx_writer.writer_code.Code('return this->pipelineReg->isLocked();')
+    isLockedMethod = cxx_writer.writer_code.Method('isLocked', isLockedBody, cxx_writer.writer_code.boolType, 'pu', inline = True, noException = True)
+    aliasElements.append(isLockedMethod)
+
+    #################### Lets declare the normal operators (implementation of the pure operators of the base class) ###########
+    for i in unaryOps:
+        operatorBody = cxx_writer.writer_code.Code('return ' + i + '*this->pipelineReg->getRegister(this->pipeId);')
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', noException = True)
+        aliasElements.append(operatorDecl)
+    # Now I have the three versions of the operators, depending whether they take
+    # in input the integer value, the specific register or the base one
+    # INTEGER
+#     for i in binaryOps:
+#         operatorBody = cxx_writer.writer_code.Code('return (*this->reg ' + i + ' other);')
+#         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
+#         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True)
+#         aliasElements.append(operatorDecl)
+#     for i in comparisonOps:
+#         operatorBody = cxx_writer.writer_code.Code('return (*this->reg ' + i + ' (other - this->offset));')
+#         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
+#         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
+#         aliasElements.append(operatorDecl)
+    for i in assignmentOps:
+        operatorBody = cxx_writer.writer_code.Code('*this->pipelineReg->getRegister(this->pipeId) ' + i + ' other;\nreturn *this;')
+        operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam], inline = True, noException = True)
+        aliasElements.append(operatorDecl)
+    # Alias Register
+    for i in binaryOps:
+        operatorBody = cxx_writer.writer_code.Code('return (*this->pipelineReg->getRegister(this->pipeId) ' + i + ' *other.pipelineReg->getRegister(other.pipeId));')
+        operatorParam = cxx_writer.writer_code.Parameter('other', aliasType.makeRef().makeConst())
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True, noException = True)
+        aliasElements.append(operatorDecl)
+#    for i in comparisonOps:
+#        operatorBody = cxx_writer.writer_code.Code('return ((*this->reg + this->offset) ' + i + ' *other.reg);')
+#        operatorParam = cxx_writer.writer_code.Parameter('other', aliasType.makeRef().makeConst())
+#        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True)
+#        aliasElements.append(operatorDecl)
+    for i in assignmentOps:
+        operatorBody = cxx_writer.writer_code.Code('*this->pipelineReg->getRegister(this->pipeId) ' + i + ' *other.pipelineReg->getRegister(other.pipeId);\nreturn *this;')
+        operatorParam = cxx_writer.writer_code.Parameter('other', aliasType.makeRef().makeConst())
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam], noException = True)
+        aliasElements.append(operatorDecl)
+    # GENERIC REGISTER:
+    for i in binaryOps:
+        operatorBody = cxx_writer.writer_code.Code('return  (*this->pipelineReg->getRegister(this->pipeId) ' + i + ' other);')
+        operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True, inline = True, noException = True)
+        aliasElements.append(operatorDecl)
+    for i in comparisonOps:
+        operatorBody = cxx_writer.writer_code.Code('return (*this->pipelineReg->getRegister(this->pipeId) ' + i + ' other);')
+        operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, cxx_writer.writer_code.boolType, 'pu', [operatorParam], const = True, noException = True)
+        aliasElements.append(operatorDecl)
+    for i in assignmentOps:
+        operatorBody = cxx_writer.writer_code.Code('*this->pipelineReg->getRegister(this->pipeId) ' + i + ' other;\nreturn *this;')
+        operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
+        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam], noException = True)
+        aliasElements.append(operatorDecl)
+    # Scalar value cast operator
+    operatorBody = cxx_writer.writer_code.Code('return *this->pipelineReg->getRegister(this->pipeId);')
+    operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True, noException = True, inline = True)
+    aliasElements.append(operatorIntDecl)
+
+    ######### Constructor: takes as input the initial register #########
+    constructorBody = cxx_writer.writer_code.Code('this->referringAliases = NULL;')
+    constructorParams = [cxx_writer.writer_code.Parameter('pipelineReg', pipeRegisterType.makePointer())]
+    constructorParams.append(cxx_writer.writer_code.Parameter('pipeId', cxx_writer.writer_code.uintType, initValue = '-1'))
+    constructorInit = ['pipelineReg(pipelineReg), pipeId(pipeId)']
+    publicMainClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, constructorInit)
+    publicMainEmptyClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', [], constructorInit)
+    # Constructor: takes as input the initial alias
+    constructorBody = cxx_writer.writer_code.Code('initAlias->referredAliases.insert(this);\nthis->referringAliases = initAlias;')
+    constructorParams = [cxx_writer.writer_code.Parameter('initAlias', aliasType.makePointer())]
+    constructorParams.append(cxx_writer.writer_code.Parameter('pipeId', cxx_writer.writer_code.uintType, initValue = '-1'))
+    publicAliasConstrInit = ['pipelineReg(initAlias->pipelineRegs), pipeId(pipeId)']
+    publicAliasConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, publicAliasConstrInit)
+    destructorBody = cxx_writer.writer_code.Code("""std::set<Alias *>::iterator referredIter, referredEnd;
+        for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
+            if((*referredIter)->referringAliases == this)
+                (*referredIter)->referringAliases = NULL;
+        }
+        if(this->referringAliases != NULL){
+            this->referringAliases->referredAliases.erase(this);
+        }
+        this->referringAliases = NULL;""")
+    publicAliasDestr = cxx_writer.writer_code.Constructor(destructorBody, 'pu')
+
+    # Stream Operators
+    outStreamType = cxx_writer.writer_code.Type('std::ostream', 'ostream')
+    code = 'stream << *this->pipelineReg->getRegister(this->pipeId);\nreturn stream;'
+    operatorBody = cxx_writer.writer_code.Code(code)
+    operatorParam = cxx_writer.writer_code.Parameter('stream', outStreamType.makeRef())
+    operatorDecl = cxx_writer.writer_code.MemberOperator('<<', operatorBody, outStreamType.makeRef(), 'pu', [operatorParam], const = True, noException = True)
+    aliasElements.append(operatorDecl)
+
+    # Update method: updates the register pointed by this alias: Standard Alias
+    updateCode = """this->pipelineReg = newAlias.pipelineReg;
+    std::set<Alias *>::iterator referredIter, referredEnd;
+    for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
+    """
+    updateCode += '(*referredIter)->newReferredAlias(newAlias.pipelineReg);'
+    updateCode += """
+    }
+    if(this->referringAliases != NULL){
+        this->referringAliases->referredAliases.erase(this);
+    }
+    this->referringAliases = &newAlias;
+    newAlias.referredAliases.insert(this);
+    """
+    updateBody = cxx_writer.writer_code.Code(updateCode)
+    updateParam = [cxx_writer.writer_code.Parameter('newAlias', aliasType.makeRef())]
+    updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam, inline = True, noException = True)
+    aliasElements.append(updateDecl)
+
+    updateCode = """this->pipelineReg = &newAlias;
+    std::set<Alias *>::iterator referredIter, referredEnd;
+    for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
+        (*referredIter)->newReferredAlias(&newAlias);
+    }
+    if(this->referringAliases != NULL){
+        this->referringAliases->referredAliases.erase(this);
+    }
+    this->referringAliases = NULL;
+    """
+    updateBody = cxx_writer.writer_code.Code(updateCode)
+    updateParam = [cxx_writer.writer_code.Parameter('newAlias', pipeRegisterType.makeRef())]
+    updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam, inline = True, noException = True)
+    aliasElements.append(updateDecl)
+
+    directSetCode = 'this->pipelineReg = newAlias.pipelineReg;\n'
+    directSetCode += """if(this->referringAliases != NULL){
+        this->referringAliases->referredAliases.erase(this);
+    }
+    this->referringAliases = &newAlias;
+    newAlias.referredAliases.insert(this);
+    """
+    directSetBody = cxx_writer.writer_code.Code(directSetCode)
+    directSetParam = [cxx_writer.writer_code.Parameter('newAlias', aliasType.makeRef())]
+    directSetDecl = cxx_writer.writer_code.Method('directSetAlias', directSetBody, cxx_writer.writer_code.voidType, 'pu', directSetParam, noException = True)
+    aliasElements.append(directSetDecl)
+
+    directSetBody = cxx_writer.writer_code.Code("""this->pipelineReg = &newAlias;
+    if(this->referringAliases != NULL){
+        this->referringAliases->referredAliases.erase(this);
+    }
+    this->referringAliases = NULL;""")
+    directSetParam = [cxx_writer.writer_code.Parameter('newAlias', pipeRegisterType.makeRef())]
+    directSetDecl = cxx_writer.writer_code.Method('directSetAlias', directSetBody, cxx_writer.writer_code.voidType, 'pu', directSetParam, noException = True)
+    aliasElements.append(directSetDecl)
+
+    updateCode = """this->pipelineReg = newAlias;
+    std::set<Alias *>::iterator referredIter, referredEnd;
+    for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
+        (*referredIter)->newReferredAlias(newAlias);
+    }"""
+    updateBody = cxx_writer.writer_code.Code(updateCode)
+    updateParam = [cxx_writer.writer_code.Parameter('newAlias', pipeRegisterType.makePointer())]
+    updateDecl = cxx_writer.writer_code.Method('newReferredAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam, inline = True, noException = True)
+    aliasElements.append(updateDecl)
+
+    regAttribute = cxx_writer.writer_code.Attribute('pipelineReg', pipeRegisterType.makePointer(), 'pri')
+    aliasElements.append(regAttribute)
+    pipelineIdAttribute = cxx_writer.writer_code.Attribute('pipeId', cxx_writer.writer_code.uintType, 'pri')
+    aliasElements.append(pipelineIdAttribute)
 
     # Finally I declare the class and pass to it all the declared members: Standard Alias
     aliasesAttribute = cxx_writer.writer_code.Attribute('referredAliases', cxx_writer.writer_code.TemplateType('std::set', [aliasType.makePointer()], 'set'), 'pri')
