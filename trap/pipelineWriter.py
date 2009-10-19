@@ -487,96 +487,25 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
 
         if pipeStage == self.pipes[0]:
             # I create the refreshRegisters method; note that in order to update the registers
-            # I just need to access any of the instructions, for instance I use the registers
-            # if the NOP instruction. I have to see if the register values are different
-            # from the registers in the wb stage: in case they are I update them with these
-            # values, otherwise I go over the other stages and see if there is one different
-            # and I update it. For each update I also update the other pipeline regs
+            # i simply have to call the "propagate" method; I also have to deal with the update of the alias
+            # by manually moving the pointer to the pipeline register from one stage alias to
+            # the other to update the alias
             codeString = ''
             for reg in self.regs:
-                if not reg.name in self.regOrder.keys():
-                    codeString += 'if(this->' + reg.name + ' != this->NOPInstrInstance->' + reg.name + '_' + wbStage.name + '){\n'
-                    codeString += 'this->' + reg.name + ' = this->NOPInstrInstance->' + reg.name + '_' + wbStage.name + ';\n'
-                    for upPipe in self.pipes:
-                        if upPipe != wbStage:
-                            codeString += 'this->NOPInstrInstance->' + reg.name + '_' + upPipe.name + ' = this->' + reg.name + ';\n'
-                    codeString += '}\n'
-                    for checkPipe in self.pipes:
-                        if checkPipe != wbStage:
-                            if checkPipe.name in notCheckStages:
-                                codeString += 'else if(this->' + reg.name + ' != this->NOPInstrInstance->' + reg.name + '_' + checkPipe.name + '){\n'
-                            else:
-                                if checkPipe != self.pipes[0]:
-                                    stageCheckName = '->stage_' + checkPipe.name
-                                else:
-                                    stageCheckName = ''
-                                codeString += 'else if(this->' + reg.name + ' != this->NOPInstrInstance->' + reg.name + '_' + checkPipe.name + ' && !this' + stageCheckName + '->chStalled){\n'
-                            codeString += 'this->' + reg.name + ' = this->NOPInstrInstance->' + reg.name + '_' + checkPipe.name + ';\n'
-                            for upPipe in self.pipes:
-                                if upPipe != checkPipe:
-                                    codeString += 'this->NOPInstrInstance->' + reg.name + '_' + upPipe.name + ' = this->' + reg.name + ';\n'
-                            codeString += '}\n'
-                else:
-                    for customWBStage in self.regOrder[reg.name]:
-                        if customWBStage != self.regOrder[reg.name][0]:
-                            codeString += 'else '
-                        if customWBStage in notCheckStages:
-                            codeString += 'if(this->' + reg.name + ' != this->NOPInstrInstance->' + reg.name + '_' + customWBStage + '){\n'
-                        else:
-                            if pipelineStageMap[customWBStage] != self.pipes[0]:
-                                stageCheckName = '->stage_' + customWBStage
-                            else:
-                                stageCheckName = ''
-                            codeString += 'if(this->' + reg.name + ' != this->NOPInstrInstance->' + reg.name + '_' + customWBStage + ' && !this' + stageCheckName + '->chStalled){\n'
-                        codeString += 'this->' + reg.name + ' = this->NOPInstrInstance->' + reg.name + '_' + customWBStage + ';\n'
-                        for upPipe in self.pipes:
-                            if upPipe.name != customWBStage:
-                                codeString += 'this->NOPInstrInstance->' + reg.name + '_' + upPipe.name + ' = this->' + reg.name + ';\n'
-                        codeString += '}\n'
-
+                codeString += 'this->' + reg.name + '.propagate();\n'
             for regB in self.regBanks:
                 codeString += 'for(int i = 0; i < ' + str(regB.numRegs) + '; i++){\n'
-                if not regB.name in self.regOrder.keys():
-                    codeString += 'if(this->' + regB.name + '[i] != this->NOPInstrInstance->' + regB.name + '_' + wbStage.name + '[i]){\n'
-                    codeString += 'this->' + regB.name + '[i] = this->NOPInstrInstance->' + regB.name + '_' + wbStage.name + '[i];\n'
-                    for upPipe in self.pipes:
-                        if upPipe != wbStage:
-                            codeString += 'this->NOPInstrInstance->' + regB.name + '_' + upPipe.name + '[i] = this->' + regB.name + '[i];\n'
-                    codeString += '}\n'
-                    checkHazardsStageMet = False
-                    for checkPipe in self.pipes:
-                        if checkPipe != wbStage:
-                            if checkPipe.name in notCheckStages:
-                                codeString += 'else if(this->' + regB.name + '[i] != this->NOPInstrInstance->' + regB.name + '_' + checkPipe.name + '[i]){\n'
-                            else:
-                                if checkPipe != self.pipes[0]:
-                                    stageCheckName = '->stage_' + checkPipe.name
-                                else:
-                                    stageCheckName = ''
-                                codeString += 'else if(this->' + regB.name + '[i] != this->NOPInstrInstance->' + regB.name + '_' + checkPipe.name + '[i] && !this' + stageCheckName + '->chStalled){\n'
-                            codeString += 'this->' + regB.name + '[i] = this->NOPInstrInstance->' + regB.name + '_' + checkPipe.name + '[i];\n'
-                            for upPipe in self.pipes:
-                                if upPipe != checkPipe:
-                                    codeString += 'this->NOPInstrInstance->' + regB.name + '_' + upPipe.name + '[i] = this->' + regB.name + '[i];\n'
-                            codeString += '}\n'
-                else:
-                    for customWBStage in self.regOrder[regB.name]:
-                        if customWBStage != self.regOrder[regB.name][0]:
-                            codeString += 'else '
-                        if customWBStage in notCheckStages:
-                            codeString += 'if(this->' + regB.name + '[i] != this->NOPInstrInstance->' + regB.name + '_' + customWBStage + '){\n'
-                        else:
-                            if pipelineStageMap[customWBStage] != self.pipes[0]:
-                                stageCheckName = '->stage_' + customWBStage
-                            else:
-                                stageCheckName = ''
-                            codeString += 'if(this->' + regB.name + '[i] != this->NOPInstrInstance->' + regB.name + '_' + customWBStage + ' && !this' + stageCheckName + '->chStalled){\n'
-                        codeString += 'this->' + regB.name + '[i] = this->NOPInstrInstance->' + regB.name + '_' + customWBStage + ';\n'
-                        for upPipe in self.pipes:
-                            if upPipe.name != customWBStage:
-                                codeString += 'this->NOPInstrInstance->' + regB.name + '_' + upPipe.name + '[i] = this->' + regB.name + '[i];\n'
-                        codeString += '}\n'
+                codeString += 'this->' + regB.name + '[i].propagate();\n'
                 codeString += '}\n'
+            # Now lets procede to the update of the alias: for each stage alias I have to copy the reference
+            # of the general pipeline register from one stage to the other
+            for i in range(0, len(self.pipes) -1):
+                for alias in self.aliasRegs:
+                    codeString += 'this->' + alias.name + '_' + self.pipes[i + 1].name + '.setPipeReg(this->' + alias.name + '_' + self.pipes[i].name + '.getPipeReg());\n'
+                for aliasB in self.aliasRegBanks:
+                    codeString += 'for(int i = 0; i < ' + str(aliasB.numRegs) + '; i++){\n'
+                    codeString += 'this->' + aliasB.name + '_' + self.pipes[i + 1].name + '[i].setPipeReg(this->' + aliasB.name + '_' + self.pipes[i].name + '[i].getPipeReg());\n'
+                    codeString += '}\n'
             # Now I have to produce the code for unlocking the registers in the unlockQueue
             codeString += """
             std::map<unsigned int, std::vector<Register *> >::iterator unlockQueueIter, unlockQueueEnd;
@@ -598,19 +527,31 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             refreshRegistersBody = cxx_writer.writer_code.Code(codeString)
             refreshRegistersDecl = cxx_writer.writer_code.Method('refreshRegisters', refreshRegistersBody, cxx_writer.writer_code.voidType, 'pu')
             curPipeElements.append(refreshRegistersDecl)
-            # Here I declare the references to the real processor registers which I update at the
-            # end of each cycle
+            # Here I declare the references to the pipeline registers and to the alias
+            pipeRegisterType = cxx_writer.writer_code.Type('PipelineRegister', 'registers.hpp')
             for reg in self.regs:
-                if reg.name != self.fetchReg[0]:
-                    attribute = cxx_writer.writer_code.Attribute(reg.name, resourceType[reg.name].makeRef(), 'pu')
-                    constructorParams = [cxx_writer.writer_code.Parameter(reg.name, resourceType[reg.name].makeRef())] + constructorParams
+                if self.fetchReg[0] != reg.name:
+                    attribute = cxx_writer.writer_code.Attribute(reg.name, pipeRegisterType.makeRef(), 'pu')
+                    constructorParams = [cxx_writer.writer_code.Parameter(reg.name, pipeRegisterType.makeRef())] + constructorParams
                     constructorInit.append(reg.name + '(' + reg.name + ')')
                     curPipeElements.append(attribute)
             for regB in self.regBanks:
-                attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name].makeRef(), 'pu')
-                constructorParams = [cxx_writer.writer_code.Parameter(regB.name, resourceType[regB.name].makeRef())] + constructorParams
+                attribute = cxx_writer.writer_code.Attribute(regB.name, pipeRegisterType.makePointer(), 'pu')
+                constructorParams = [cxx_writer.writer_code.Parameter(regB.name, pipeRegisterType.makePointer())] + constructorParams
                 constructorInit.append(regB.name + '(' + regB.name + ')')
                 curPipeElements.append(attribute)
+            aliasType = cxx_writer.writer_code.Type('Alias', 'alias.hpp')
+            for pipeStage in self.pipes:
+                for alias in self.aliasRegs:
+                    attribute = cxx_writer.writer_code.Attribute(alias.name + '_' + pipeStage.name, aliasType.makeRef(), 'pu')
+                    constructorParams = [cxx_writer.writer_code.Parameter(alias.name + '_' + pipeStage.name, aliasType.makeRef())] + constructorParams
+                    constructorInit.append(alias.name + '_' + pipeStage.name + '(' + alias.name + '_' + pipeStage.name + ')')
+                    curPipeElements.append(attribute)
+                for aliasB in self.aliasRegBanks:
+                    attribute = cxx_writer.writer_code.Attribute(aliasB.name + '_' + pipeStage.name, aliasType.makePointer(), 'pu')
+                    constructorParams = [cxx_writer.writer_code.Parameter(aliasB.name + '_' + pipeStage.name, aliasType.makePointer())] + constructorParams
+                    constructorInit.append(aliasB.name + '_' + pipeStage.name + '(' + aliasB.name + '_' + pipeStage.name + ')')
+                    curPipeElements.append(attribute)
             # I have to also instantiate the reference to the memories, in order to be able to
             # fetch instructions
             if self.memory:
@@ -669,10 +610,6 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             curPipeElements.append(toolManagerAttribute)
             constructorParams = [cxx_writer.writer_code.Parameter('toolManager', ToolsManagerType.makeRef())] + constructorParams
             constructorInit.append('toolManager(toolManager)')
-            fetchAttr = cxx_writer.writer_code.Attribute(self.fetchReg[0], resourceType[self.fetchReg[0]].makeRef(), 'pri')
-            constructorParams = [cxx_writer.writer_code.Parameter(self.fetchReg[0], resourceType[self.fetchReg[0]].makeRef())] + constructorParams
-            constructorInit.append(self.fetchReg[0] + '(' + self.fetchReg[0] + ')')
-            curPipeElements.append(fetchAttr)
             instructionsAttribute = cxx_writer.writer_code.Attribute('INSTRUCTIONS', IntructionTypePtr.makePointer().makeRef(), 'pri')
             constructorInit.append('INSTRUCTIONS(INSTRUCTIONS)')
             curPipeElements.append(instructionsAttribute)

@@ -1044,6 +1044,19 @@ def getCPPClasses(self, processor, model, trace, combinedTrace, namespace):
             baseInitElement += aliasB.name + ', '
             instructionElements.append(attribute)
     else:
+        pipeRegisterType = cxx_writer.writer_code.Type('PipelineRegister', 'registers.hpp')
+        for reg in processor.regs:
+            attribute = cxx_writer.writer_code.Attribute(reg.name + '_pipe', pipeRegisterType.makeRef(), 'pu')
+            baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(reg.name + '_pipe', pipeRegisterType.makeRef()))
+            initElements.append(reg.name + '_pipe(' + reg.name + '_pipe)')
+            baseInitElement += reg.name + '_pipe, '
+            instructionElements.append(attribute)
+        for regB in processor.regBanks:
+            attribute = cxx_writer.writer_code.Attribute(regB.name + '_pipe', pipeRegisterType.makePointer(), 'pu')
+            baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(regB.name + '_pipe', pipeRegisterType.makePointer()))
+            initElements.append(regB.name + '_pipe(' + regB.name + '_pipe)')
+            baseInitElement += regB.name + '_pipe, '
+            instructionElements.append(attribute)
         for pipeStage in processor.pipes:
             for reg in processor.regs:
                 attribute = cxx_writer.writer_code.Attribute(reg.name + '_' + pipeStage.name, resourceType[reg.name].makeRef(), 'pu')

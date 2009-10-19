@@ -397,19 +397,25 @@ def getCPPPipelineReg(self, namespace):
     ################ Constructor: it initializes the internal registers ######################
     constructorParams = [cxx_writer.writer_code.Parameter('name', cxx_writer.writer_code.sc_module_nameRefType.makeConst()),
                 cxx_writer.writer_code.Parameter('bitWidth', cxx_writer.writer_code.uintType)]
+    fullConstructorParams = []
     innerConstrInit = ''
-    constructorCode = ''
+    fullConstructorCode = ''
+    emptyConstructorCode = ''
     i = 0
     for pipeStage in self.pipes:
-        constructorCode += 'this->reg_stage[' + str(i) + '] = reg_' + pipeStage.name + ';\n'
-        constructorParams.append(cxx_writer.writer_code.Parameter('reg_' + pipeStage.name, registerType.makePointer()))
+        fullConstructorCode += 'this->reg_stage[' + str(i) + '] = reg_' + pipeStage.name + ';\n'
+        emptyConstructorCode += 'this->reg_stage[' + str(i) + '] = NULL;\n'
+        fullConstructorParams.append(cxx_writer.writer_code.Parameter('reg_' + pipeStage.name, registerType.makePointer()))
         innerConstrInit += ', reg_' + pipeStage.name
         i += 1
-    constructorCode += 'this->reg_all' + ' = reg_all;\n'
+    fullConstructorCode += 'this->reg_all' + ' = reg_all;\n'
+    emptyConstructorCode += 'this->reg_all' + ' = NULL;\n'
     innerConstrInit += ', reg_all'
-    constructorParams.append(cxx_writer.writer_code.Parameter('reg_all', registerType.makePointer()))
-    constructorBody = cxx_writer.writer_code.Code(constructorCode)
-    publicConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['Register(name, bitWidth)'])
+    fullConstructorParams.append(cxx_writer.writer_code.Parameter('reg_all', registerType.makePointer()))
+    constructorBody = cxx_writer.writer_code.Code(fullConstructorCode)
+    publicFullConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams + fullConstructorParams, ['Register(name, bitWidth)'])
+    constructorBody = cxx_writer.writer_code.Code(emptyConstructorCode)
+    publicEmptyConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['Register(name, bitWidth)'])
 
     stagesRegsAttribute = cxx_writer.writer_code.Attribute('reg_stage[' + str(len(self.pipes)) + ']', registerType.makePointer(), 'pri')
     registerElements.append(stagesRegsAttribute)
@@ -464,17 +470,32 @@ def getCPPPipelineReg(self, namespace):
     propagateMethod = cxx_writer.writer_code.Method('propagate', propagateBody, cxx_writer.writer_code.voidType, 'pu', noException = True, virtual = True)
     registerElements.append(propagateMethod)
 
-    # Now here I have to define the method to get the pointer to the various
+    # Now here I have to define the method to get/set the pointer to the various
     # registers
-    getRegisterParam = cxx_writer.writer_code.Parameter('regIndex', cxx_writer.writer_code.intType, initValue = '-1')
+    regIndexParam = cxx_writer.writer_code.Parameter('regIndex', cxx_writer.writer_code.intType, initValue = '-1')
     getRegisterBody = cxx_writer.writer_code.Code("""if(regIndex < 0){
         return this->reg_all;
     }
     else{
         return this->reg_stage[regIndex];
     }""")
-    getRegisterMethod = cxx_writer.writer_code.Method('getRegister', getRegisterBody, registerType.makePointer(), 'pu', [getRegisterParam], inline = True, noException = True)
+    getRegisterMethod = cxx_writer.writer_code.Method('getRegister', getRegisterBody, registerType.makePointer(), 'pu', [regIndexParam], inline = True, noException = True)
     registerElements.append(getRegisterMethod)
+    regPointerParam = cxx_writer.writer_code.Parameter('regPtr', registerType.makePointer())
+    getRegisterBody = cxx_writer.writer_code.Code("""if(regIndex < 0){
+        if(this->reg_all != NULL){
+            THROW_EXCEPTION("Error, trying to initialize main register after the pipeline register initialization has already completed");
+        }
+        this->reg_all = regPtr;
+    }
+    else{
+        if(this->reg_stage[regIndex] != NULL){
+            THROW_EXCEPTION("Error, trying to initialize register " << regIndex << " after the pipeline register initialization has already completed");
+        }
+        this->reg_stage[regIndex] = regPtr;
+    }""")
+    setRegisterMethod = cxx_writer.writer_code.Method('setRegister', getRegisterBody, cxx_writer.writer_code.voidType, 'pu', [regPointerParam, regIndexParam])
+    registerElements.append(setRegisterMethod)
 
     # Simple base methods used to access the general register operators: we simply perform a forward towards
     # the corresponding operator of the general register (reg_all)
@@ -516,7 +537,8 @@ def getCPPPipelineReg(self, namespace):
     registerElements.append(operatorIntDecl)
 
     pipelineRegClass = cxx_writer.writer_code.ClassDeclaration('PipelineRegister', registerElements, [registerType], namespaces = [namespace])
-    pipelineRegClass.addConstructor(publicConstr)
+    pipelineRegClass.addConstructor(publicFullConstr)
+    pipelineRegClass.addConstructor(publicEmptyConstr)
     pipelineRegClasses.append(pipelineRegClass)
     PipelineRegisterType = pipelineRegClass.getType()
 
@@ -1123,9 +1145,17 @@ def getCPPPipelineAlias(self, namespace):
     aliasElements.append(operatorDecl)
 
     ################ Lock and Unlock methods used for hazards detection ######################
+    pipeIdParam = cxx_writer.writer_code.Parameter('pipeId', pipeRegisterType.makePointer())
+    setpipeIdBody = cxx_writer.writer_code.Code('if(this->pipeId < 0){\nthis->pipeId = pipeId;\n}\nelse{\nTHROW_EXCEPTION(\"Error, pipeline Id of alias can only be set during alias initialization\");\n}')
+    setpipeIdMethod = cxx_writer.writer_code.Method('setPipeId', setpipeIdBody, cxx_writer.writer_code.voidType, 'pu', [pipeIdParam])
+    aliasElements.append(setpipeIdMethod)
     getPipeRegBody = cxx_writer.writer_code.Code('return this->pipelineReg;')
     getPipeRegMethod = cxx_writer.writer_code.Method('getPipeReg', getPipeRegBody, pipeRegisterType.makePointer(), 'pu', inline = True, noException = True)
     aliasElements.append(getPipeRegMethod)
+    newPipelineRegParam = cxx_writer.writer_code.Parameter('newPipelineReg', pipeRegisterType.makePointer())
+    setPipeRegBody = cxx_writer.writer_code.Code('return this->pipelineReg = newPipelineReg;')
+    setPipeRegMethod = cxx_writer.writer_code.Method('setPipeReg', getPipeRegBody, cxx_writer.writer_code.voidType, 'pu', [newPipelineRegParam], inline = True, noException = True)
+    aliasElements.append(setPipeRegMethod)
     lockBody = cxx_writer.writer_code.Code('this->pipelineReg->lock();')
     lockMethod = cxx_writer.writer_code.Method('lock', lockBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
     aliasElements.append(lockMethod)
@@ -1202,11 +1232,11 @@ def getCPPPipelineAlias(self, namespace):
 
     ######### Constructor: takes as input the initial register #########
     constructorBody = cxx_writer.writer_code.Code('this->referringAliases = NULL;')
-    constructorParams = [cxx_writer.writer_code.Parameter('pipelineReg', pipeRegisterType.makePointer())]
-    constructorParams.append(cxx_writer.writer_code.Parameter('pipeId', cxx_writer.writer_code.uintType, initValue = '-1'))
-    constructorInit = ['pipelineReg(pipelineReg), pipeId(pipeId)']
-    publicMainClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, constructorInit)
-    publicMainEmptyClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', [], constructorInit)
+    pipeRegParam = cxx_writer.writer_code.Parameter('pipelineReg', pipeRegisterType.makePointer())
+    pipeIdParam = cxx_writer.writer_code.Parameter('pipeId', cxx_writer.writer_code.uintType)
+    publicMainClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', [pipeRegParam, pipeIdParam], ['pipelineReg(pipelineReg), pipeId(pipeId)'])
+    publicMainEmptyClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', [pipeIdParam], ['pipelineReg(NULL), pipeId(pipeId)'])
+    publicMainEmpty2ClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', [pipeIdParam], ['pipelineReg(NULL), pipeId(-1)'])
     # Constructor: takes as input the initial alias
     constructorBody = cxx_writer.writer_code.Code('initAlias->referredAliases.insert(this);\nthis->referringAliases = initAlias;')
     constructorParams = [cxx_writer.writer_code.Parameter('initAlias', aliasType.makePointer())]
@@ -1310,6 +1340,7 @@ def getCPPPipelineAlias(self, namespace):
     aliasDecl = cxx_writer.writer_code.ClassDeclaration(aliasType.name, aliasElements, namespaces = [namespace])
     aliasDecl.addConstructor(publicMainClassConstr)
     aliasDecl.addConstructor(publicMainEmptyClassConstr)
+    aliasDecl.addConstructor(publicMainEmpty2ClassConstr)
     aliasDecl.addConstructor(publicAliasConstr)
     aliasDecl.addDestructor(publicAliasDestr)
 

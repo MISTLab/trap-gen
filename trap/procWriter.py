@@ -304,6 +304,475 @@ def fetchWithCacheCode(self, fetchCode, trace, combinedTrace, issueCodeGenerator
     """
     return codeString
 
+def createPipeStage(self, processorElements, initElements):
+    # Creates the pipeleine stages and the code necessary to initialize them
+    prevStage = ''
+    for pipeStage in self.pipes:
+        pipelineType = cxx_writer.writer_code.Type(pipeStage.name.upper() + '_PipeStage', 'pipeline.hpp')
+        curStageAttr = cxx_writer.writer_code.Attribute(pipeStage.name + '_stage', pipelineType, 'pu')
+        processorElements.append(curStageAttr)
+        curPipeInit = ['\"' + pipeStage.name + '\"']
+        curPipeInit.append('latency')
+        for otherPipeStage in self.pipes:
+            if otherPipeStage != pipeStage:
+                curPipeInit.append('&' + otherPipeStage.name + '_stage')
+            else:
+                curPipeInit.append('NULL')
+        if prevStage:
+            curPipeInit.append('&' + prevStage)
+        else:
+            curPipeInit.append('NULL')
+        if self.pipes.index(pipeStage) + 1 < len(self.pipes):
+            curPipeInit.append('&' + self.pipes[self.pipes.index(pipeStage) + 1].name + '_stage')
+        else:
+            curPipeInit.append('NULL')
+        if pipeStage == self.pipes[0]:
+            for reg in self.regs:
+                if self.fetchReg[0] != reg.name:
+                    curPipeInit = [reg.name] + curPipeInit
+            for regB in self.regBanks:
+                curPipeInit = [regB.name] + curPipeInit
+            for pipeStage_2 in self.pipes:
+                for alias in self.aliasRegs:
+                    curPipeInit = [alias.name + '_' + pipeStage_2.name] + curPipeInit
+                for aliasB in self.aliasRegBanks:
+                    curPipeInit = [aliasB.name + '_' + pipeStage_2.name] + curPipeInit
+            # It is the first stage, I also have to allocate the memory
+            if self.memory:
+                # I perform the fetch from the local memory
+                memName = self.memory[0]
+            else:
+                for name, isFetch  in self.tlmPorts.items():
+                    if isFetch:
+                        memName = name
+            curPipeInit = [self.fetchReg[0], 'Processor::INSTRUCTIONS', memName] + curPipeInit
+            curPipeInit = ['numInstructions'] + curPipeInit
+            curPipeInit = ['instrExecuting'] + curPipeInit
+            curPipeInit = ['instrEndEvent'] + curPipeInit
+            for irq in self.irqs:
+                curPipeInit = ['this->' + irq.name] + curPipeInit
+        if pipeStage.checkTools:
+            curPipeInit = ['toolManager'] + curPipeInit
+        initElements.append(pipeStage.name + '_stage(' + ', '.join(curPipeInit)  + ')')
+        prevStage = pipeStage.name + '_stage'
+    NOPIntructionType = cxx_writer.writer_code.Type('NOPInstruction', 'instructions.hpp')
+    NOPinstructionsAttribute = cxx_writer.writer_code.Attribute('NOPInstrInstance', NOPIntructionType.makePointer(), 'pu', True)
+    processorElements.append(NOPinstructionsAttribute)
+
+def procInitCode(self, model):
+    # Creates the processor initialization code, initializing the default value of
+    # registers, aliases, etc.
+    initString = ''
+    for elem in self.regBanks + self.aliasRegBanks:
+        curId = 0
+        for defValue in elem.defValues:
+            try:
+                if curId in elem.constValue.keys():
+                    curId += 1
+                    continue
+            except AttributeError:
+                pass
+            if defValue != None:
+                try:
+                    if not type(defValue) == type(''):
+                        enumerate(defValue)
+                        # ok, the element is iterable, so it is an initialization
+                        # with a constant and an offset
+                        initString += elem.name + '[' + str(curId) + ']'
+                        if model.startswith('acc'):
+                            initString += ' = '
+                        else:
+                            initString += '.immediateWrite('
+                        initString += str(defValue[0]) + ' + ' + str(defValue[1])
+                        if model.startswith('acc'):
+                            initString += ';\n'
+                        else:
+                            initString += ');\n'
+                        continue
+                except TypeError:
+                    pass
+                initString += elem.name + '[' + str(curId) + ']'
+                if model.startswith('acc'):
+                    initString += ' = '
+                else:
+                    initString += '.immediateWrite('
+                try:
+                    initString += hex(defValue)
+                except TypeError:
+                    initString += str(defValue)
+                if model.startswith('acc'):
+                    initString += ';\n'
+                else:
+                    initString += ');\n'
+            curId += 1
+    for elem in self.regs + self.aliasRegs:
+        try:
+            if elem.constValue != None:
+                continue
+        except AttributeError:
+            pass
+        if elem.defValue != None:
+            try:
+                if not type(elem.defValue) == type(''):
+                    enumerate(elem.defValue)
+                    # ok, the element is iterable, so it is an initialization
+                    # with a constant and an offset
+                    initString += elem.name
+                    if model.startswith('acc'):
+                        initString += ' = '
+                    else:
+                        initString += '.immediateWrite('
+                    initString += str(elem.defValue[0]) + ' + ' + str(elem.defValue[1])
+                    if model.startswith('acc'):
+                        initString += ';\n'
+                    else:
+                        initString += ');\n'
+                    continue
+            except TypeError:
+                pass
+            initString += elem.name
+            if model.startswith('acc'):
+                initString += ' = '
+            else:
+                initString += '.immediateWrite('
+            try:
+                initString += hex(elem.defValue)
+            except TypeError:
+                initString += str(elem.defValue)
+            if model.startswith('acc'):
+                initString += ';\n'
+            else:
+                initString += ');\n'
+    if model.startswith('acc'):
+        for reg in self.regs:
+            for pipeStage in self.pipes:
+                initString += reg.name + '_' + pipeStage.name + ' = ' + reg.name + ';\n'
+        for regB in self.regBanks:
+            initString += 'for(int i = 0; i < ' + str(regB.numRegs) + '; i++){\n'
+            for pipeStage in self.pipes:
+                initString += regB.name + '_' + pipeStage.name + '[i] = ' + regB.name + '[i];\n'
+            initString += '}\n'
+    for irqPort in self.irqs:
+        initString += 'this->' + irqPort.name + ' = -1;\n'
+    return initString
+
+def createRegsAttributes(self, model, processorElements, abiIfInit, bodyDestructor, bodyInits, initElements, bodyAliasInit, aliasInit):
+    # Creates the code for the processor attributes (registers, aliases, etc) and the code to initialize them in the
+    # processor constructor
+    pipeRegisterType = cxx_writer.writer_code.Type('PipelineRegister', 'registers.hpp')
+
+    checkToolPipeStage = self.pipes[-1]
+    for pipeStage in self.pipes:
+        if pipeStage.checkTools:
+            checkToolPipeStage = pipeStage
+            break
+    from processor import extractRegInterval
+    for reg in self.regs:
+        attribute = cxx_writer.writer_code.Attribute(reg.name, resourceType[reg.name], 'pu')
+        processorElements.append(attribute)
+        initElements.append(attribute.name + '(\"' + attribute.name + '\")')
+        if model.startswith('acc'):
+            for pipeStage in self.pipes:
+                attribute = cxx_writer.writer_code.Attribute(reg.name + '_' + pipeStage.name, resourceType[reg.name], 'pu')
+                processorElements.append(attribute)
+                initElements.append(attribute.name + '(\"' + attribute.name + '\")')
+            attribute = cxx_writer.writer_code.Attribute(reg.name + '_pipe', pipeRegisterType, 'pu')
+            processorElements.append(attribute)
+            initElements.append(attribute.name + '(\"' + attribute.name + '\", ' + str(reg.bitWidth) + ')')
+            bodyInits += ''
+        if self.abi:
+            abiIfInit += 'this->' + reg.name
+            if model.startswith('acc'):
+                abiIfInit += '_' + checkToolPipeStage.name
+            abiIfInit += ', '
+    for regB in self.regBanks:
+        attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name], 'pu')
+        processorElements.append(attribute)
+        if model.startswith('acc'):
+            for pipeStage in self.pipes:
+                attribute = cxx_writer.writer_code.Attribute(regB.name + '_' + pipeStage.name, resourceType[regB.name], 'pu')
+                processorElements.append(attribute)
+            attribute = cxx_writer.writer_code.Attribute(regB.name + '_pipe[' + str(regB.numRegs) + ']', pipeRegisterType, 'pu')
+            processorElements.append(attribute)
+        if (regB.constValue and len(regB.constValue) < regB.numRegs)  or ((regB.delay and len(regB.delay) < regB.numRegs) and not model.startswith('acc')):
+            # There are constant registers, so I have to declare the special register bank
+            bodyInits += 'this->' + regB.name + '.setSize(' + str(regB.numRegs) + ');\n'
+            for i in range(0, regB.numRegs):
+                if regB.constValue.has_key(i) or regB.delay.has_key(i):
+                    bodyInits += 'this->' + regB.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '[' + str(i) + ']']) + '());\n'
+                else:
+                    bodyInits += 'this->' + regB.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '_baseType']) + '());\n'
+            if model.startswith('acc'):
+                for pipeStage in self.pipes:
+                    bodyInits += 'this->' + regB.name + '_' + pipeStage.name + '.setSize(' + str(regB.numRegs) + ');\n'
+                    for i in range(0, regB.numRegs):
+                        if regB.constValue.has_key(i):
+                            bodyInits += 'this->' + regB.name + '_' + pipeStage.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '[' + str(i) + ']']) + '());\n'
+                        else:
+                            bodyInits += 'this->' + regB.name + '_' + pipeStage.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '_baseType']) + '());\n'
+                bodyInits += 'this->' + regB.name + '_pipe.setSize(' + str(regB.numRegs) + ');\n'
+                for i in range(0, regB.numRegs):
+                    if regB.constValue.has_key(i) or regB.delay.has_key(i):
+                        bodyInits += 'this->' + regB.name + '_pipe.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '[' + str(i) + ']']) + '());\n'
+                    else:
+                        bodyInits += 'this->' + regB.name + '_pipe.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '_baseType']) + '());\n'
+        else:
+            bodyInits += 'this->' + regB.name + ' = new ' + str(resourceType[regB.name].makeNormal()) + '[' + str(regB.numRegs) + '];\n'
+            bodyDestructor += 'delete [] this->' + regB.name + ';\n'
+            if model.startswith('acc'):
+                for pipeStage in self.pipes:
+                    bodyInits += 'this->' + regB.name + '_' + pipeStage.name + ' = new ' + str(resourceType[regB.name].makeNormal()) + '[' + str(regB.numRegs) + '];\n'
+                    bodyDestructor += 'delete [] this->' + regB.name + '_' + pipeStage.name + ';\n'
+                bodyInits += 'this->' + regB.name + '_pipe = new ' + str(resourceType[regB.name].makeNormal()) + '[' + str(regB.numRegs) + '];\n'
+                bodyDestructor += 'delete [] this->' + regB.name + '_pipe;\n'
+        if self.abi:
+            abiIfInit += 'this->' + regB.name
+            if model.startswith('acc'):
+                abiIfInit += '_' + checkToolPipeStage.name
+            abiIfInit += ', '
+    for alias in self.aliasRegs:
+        if model.startswith('acc'):
+            for pipeStage in self.pipes:
+                attribute = cxx_writer.writer_code.Attribute(alias.name + '_' + pipeStage.name, resourceType[alias.name], 'pu')
+                processorElements.append(attribute)
+        else:
+            attribute = cxx_writer.writer_code.Attribute(alias.name, resourceType[alias.name], 'pu')
+            processorElements.append(attribute)
+        # first of all I have to make sure that the alias does not refer to a delayed or constant
+        # register bank, otherwise I have to initialize it in the constructor body and not
+        # inline in the constuctor
+        if model.startswith('acc'):
+            hasToDeclareInit = True
+            if alias.initAlias.find('[') > -1:
+                referredName = alias.initAlias[:alias.initAlias.find('[')]
+                for regB in self.regBanks:
+                    if regB.name == referredName:
+                        if regB.constValue:
+                            hasToDeclareInit = False
+                            break
+            curStageId = 0
+            for pipeStage in self.pipes:
+                aliasInitStr = alias.name + '_' + pipeStage.name + '(' + str(curStageId)
+                if hasToDeclareInit:
+                    if alias.initAlias.find('[') > -1:
+                        aliasInitStr += ', &' + alias.initAlias[:alias.initAlias.find('[')] + '_pipe' + alias.initAlias[alias.initAlias.find('['):]
+                    else:
+                        aliasInitStr += ', &' + alias.initAlias
+                aliasInit[alias.name + '_' + pipeStage.name] = (aliasInitStr + ')')
+                curStageId += 1
+        else:
+            hasToDeclareInit = True
+            if alias.initAlias.find('[') > -1:
+                referredName = alias.initAlias[:alias.initAlias.find('[')]
+                for regB in self.regBanks:
+                    if regB.name == referredName:
+                        if regB.constValue or regB.delay:
+                            hasToDeclareInit = False
+                            break
+            if hasToDeclareInit:
+                aliasInitStr = alias.name + '(&' + alias.initAlias
+                aliasInitStr += ', ' + str(alias.offset)
+                aliasInit[alias.name] = (aliasInitStr + ')')
+
+        index = extractRegInterval(alias.initAlias)
+        if index:
+            # we are dealing with a member of a register bank
+            curIndex = index[0]
+            if not model.startswith('acc'):
+                bodyAliasInit[alias.name] = 'this->' + alias.name + '.updateAlias(this->' + alias.initAlias[:alias.initAlias.find('[')] + '[' + str(curIndex) + ']'
+                bodyAliasInit[alias.name] += ', ' + str(alias.offset)
+                bodyAliasInit[alias.name] += ');\n'
+            else:
+                bodyAliasInit[alias.name] = ''
+                for pipeStage in self.pipes:
+                    bodyAliasInit[alias.name] += 'this->' + alias.name + '_' + pipeStage.name + '.updateAlias(this->' + alias.initAlias[:alias.initAlias.find('[')] + '_pipe[' + str(curIndex) + ']);\n'
+        else:
+            if not model.startswith('acc'):
+                bodyAliasInit[alias.name] = 'this->' + alias.name + '.updateAlias(this->' + alias.initAlias
+                bodyAliasInit[alias.name] += ', ' + str(alias.offset)
+                bodyAliasInit[alias.name] += ');\n'
+            else:
+                for pipeStage in self.pipes:
+                    bodyAliasInit[alias.name] += 'this->' + alias.name + '_' + pipeStage.name + '.updateAlias(this->' + alias.initAlias + '_pipe);\n'
+        if self.abi:
+            abiIfInit += 'this->' + alias.name
+            if model.startswith('acc'):
+                abiIfInit += '_' + checkToolPipeStage.name
+            abiIfInit += ', '
+    for aliasB in self.aliasRegBanks:
+        if model.startswith('acc'):
+            curStageId = 0
+            bodyAliasInit[aliasB.name] = ''
+            for pipeStage in self.pipes:
+                attribute = cxx_writer.writer_code.Attribute(aliasB.name + '_' + pipeStage.name, resourceType[aliasB.name].makePointer(), 'pu')
+                processorElements.append(attribute)
+                bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '_' + pipeStage.name + ' = new ' + str(resourceType[aliasB.name]) + '[' + str(aliasB.numRegs) + '];\n'
+                bodyAliasInit[aliasB.name] += 'for(int i = 0; i < ' + str(aliasB.numRegs) + '; i++){\n'
+                bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '_' + pipeStage.name + '[i].setPipeId(' + str(curStageId) + ');\n}\n'
+                bodyDestructor += 'delete [] this->' + aliasB.name + '_' + pipeStage.name + ';\n'
+                curStageId += 1
+        else:
+            attribute = cxx_writer.writer_code.Attribute(aliasB.name, resourceType[aliasB.name].makePointer(), 'pu')
+            processorElements.append(attribute)
+            bodyAliasInit[aliasB.name] = 'this->' + aliasB.name + ' = new ' + str(resourceType[aliasB.name]) + '[' + str(aliasB.numRegs) + '];\n'
+            bodyDestructor += 'delete [] this->' + aliasB.name + ';\n'
+        # Lets now deal with the initialization of the single elements of the regBank
+        if isinstance(aliasB.initAlias, type('')):
+            index = extractRegInterval(aliasB.initAlias)
+            curIndex = index[0]
+            if model.startswith('acc'):
+                for pipeStage in self.pipes:
+                    curIndex = index[0]
+                    bodyAliasInit[aliasB.name] += 'for(int  i = 0; i < ' + str(aliasB.numRegs) + 'i++){\n'
+                    bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '_' + pipeStage.name + '[i].updateAlias(this->' + aliasB.initAlias[:aliasB.initAlias.find('[')] + '_pipes[i + ' + str(curIndex) + ']);\n}\n'
+            else:
+                for i in range(0, aliasB.numRegs):
+                    bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '[' + str(i) + '].updateAlias(this->' + aliasB.initAlias[:aliasB.initAlias.find('[')] + '[' + str(curIndex) + ']'
+                    if aliasB.offsets.has_key(i):
+                        bodyAliasInit[aliasB.name] += ', ' + str(aliasB.offsets[i])
+                    bodyAliasInit[aliasB.name] += ');\n'
+                    curIndex += 1
+        else:
+            if model.startswith('acc'):
+                for pipeStage in self.pipes:
+                    curIndex = 0
+                    for curAlias in aliasB.initAlias:
+                        index = extractRegInterval(curAlias)
+                        if index:
+                            for curRange in range(index[0], index[1] + 1):
+                                bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '_' + pipeStage.name + '[' + str(curIndex) + '].updateAlias(this->' + curAlias[:curAlias.find('[')] + '_pipe[' + str(curRange) + ']);\n'
+                                curIndex += 1
+                        else:
+                            bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '_' + pipeStage.name + '[' + str(curIndex) + '].updateAlias(this->' + curAlias + '_pipe);\n'
+                            curIndex += 1
+            else:
+                curIndex = 0
+                for curAlias in aliasB.initAlias:
+                    index = extractRegInterval(curAlias)
+                    if index:
+                        for curRange in range(index[0], index[1] + 1):
+                            bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '[' + str(curIndex) + '].updateAlias(this->' + curAlias[:curAlias.find('[')] + '[' + str(curRange) + ']'
+                            if aliasB.offsets.has_key(curIndex):
+                                bodyAliasInit[aliasB.name] += ', ' + str(aliasB.offsets[curIndex])
+                            bodyAliasInit[aliasB.name] += ');\n'
+                            curIndex += 1
+                    else:
+                        bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '[' + str(curIndex) + '].updateAlias(this->' + curAlias
+                        if aliasB.offsets.has_key(curIndex):
+                            bodyAliasInit[aliasB.name] += ', ' + str(aliasB.offsets[curIndex])
+                        bodyAliasInit[aliasB.name] += ');\n'
+                        curIndex += 1
+        if self.abi:
+            abiIfInit += 'this->' + aliasB.name
+            if model.startswith('acc'):
+                abiIfInit += '_' + checkToolPipeStage.name
+            abiIfInit += ', '
+
+    # Finally
+    if self.abi:
+        abiIfInit = abiIfInit[:-2]
+
+    # the initialization of the aliases must be chained (we should
+    # create an initialization graph since an alias might depend on another one ...)
+    global aliasGraph
+    if nxVersion < 0.99:
+        aliasGraph = NX.XDiGraph()
+    else:
+        aliasGraph = NX.DiGraph()
+    for alias in self.aliasRegs + self.aliasRegBanks:
+        aliasGraph.add_node(alias)
+    for alias in self.aliasRegs + self.aliasRegBanks:
+        initAliases = []
+        if isinstance(alias.initAlias, type('')):
+            bracketIdx = alias.initAlias.find('[')
+            if bracketIdx > 0:
+                initAliases.append(alias.initAlias[:bracketIdx])
+            else:
+                initAliases.append(alias.initAlias)
+        else:
+            for curAlias in alias.initAlias:
+                bracketIdx = curAlias.find('[')
+                if bracketIdx > 0:
+                    initAliases.append(curAlias[:bracketIdx])
+                else:
+                    initAliases.append(curAlias)
+        for initAlias in initAliases:
+            for targetInit in self.aliasRegs + self.aliasRegBanks:
+                if initAlias == targetInit.name:
+                    aliasGraph.add_edge(targetInit, alias)
+                elif self.isBank(initAlias):
+                    aliasGraph.add_edge('stop', alias)
+    # now I have to check for loops, if there are then the alias assignment is not valid
+    if not NX.is_directed_acyclic_graph(aliasGraph):
+        raise Exception('There is a circular dependency in the aliases initialization: a set of aliases depend on each other')
+    # I do a topological sort and take the elements in this ordes and I add them to the initialization;
+    # note that the ones whose initialization depend on banks (either register or alias)
+    # have to be postponned after the creation of the arrays
+    orderedNodes = NX.topological_sort(aliasGraph)
+    if not model.startswith('acc'):
+        orderedNodesTemp = []
+        for alias in orderedNodes:
+            if alias == 'stop':
+                continue
+            if self.isBank(alias.name):
+                break
+            aliasGraphRev = aliasGraph.reverse()
+            if nxVersion < 0.99:
+                edgeType = aliasGraphRev.edges(alias)[0][0]
+            else:
+                edgeType = aliasGraphRev.edges(alias, data = True)[0][0]
+            if edgeType == 'stop':
+                break
+            if aliasInit.has_key(alias.name):
+                initElements.append(aliasInit[alias.name])
+            else:
+                break
+            orderedNodesTemp.append(alias)
+        for alias in orderedNodesTemp:
+            orderedNodes.remove(alias)
+    # Now I have the remaining aliases, I have to add their initialization after
+    # the registers has been created
+    for alias in orderedNodes:
+        if alias == 'stop':
+            continue
+        bodyInits += bodyAliasInit[alias.name]
+
+def createInstrInitCode(self, model, trace):
+    baseInstrInitElement = ''
+    if model.startswith('acc'):
+        for reg in self.regs:
+            baseInstrInitElement += reg.name + '_pipe, '
+        for regB in self.regBanks:
+            baseInstrInitElement += regB.name + '_pipe, '
+        for pipeStage in self.pipes:
+            for reg in self.regs:
+                baseInstrInitElement += reg.name + '_' + pipeStage.name + ', '
+            for regB in self.regBanks:
+                baseInstrInitElement += regB.name + '_' + pipeStage.name + ', '
+            for alias in self.aliasRegs:
+                baseInstrInitElement += alias.name + '_' + pipeStage.name + ', '
+            for aliasB in self.aliasRegBanks:
+                baseInstrInitElement += aliasB.name + '_' + pipeStage.name + ', '
+    else:
+        for reg in self.regs:
+            baseInstrInitElement += reg.name + ', '
+        for regB in self.regBanks:
+            baseInstrInitElement += regB.name + ', '
+        for alias in self.aliasRegs:
+            baseInstrInitElement += alias.name + ', '
+        for aliasB in self.aliasRegBanks:
+            baseInstrInitElement += aliasB.name + ', '
+    if self.memory:
+        baseInstrInitElement += self.memory[0] + ', '
+    for tlmPorts in self.tlmPorts.keys():
+        baseInstrInitElement += tlmPorts + ', '
+    for pinPort in self.pins:
+        if not pinPort.inbound:
+            baseInstrInitElement += pinPort.name + ', '
+    if trace and not self.systemc and not model.startswith('acc'):
+        baseInstrInitElement += 'totalCycles, '
+    return baseInstrInitElement[:-2]
+
 def getCPPProc(self, model, trace, combinedTrace, namespace):
     # creates the class describing the processor
     fetchWordType = self.bitSizes[1]
@@ -404,99 +873,7 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
     else:
         import copy
         resetOpTemp = copy.deepcopy(self.resetOp)
-    initString = ''
-    for elem in self.regBanks + self.aliasRegBanks:
-        curId = 0
-        for defValue in elem.defValues:
-            try:
-                if curId in elem.constValue.keys():
-                    curId += 1
-                    continue
-            except AttributeError:
-                pass
-            if defValue != None:
-                try:
-                    if not type(defValue) == type(''):
-                        enumerate(defValue)
-                        # ok, the element is iterable, so it is an initialization
-                        # with a constant and an offset
-                        initString += elem.name + '[' + str(curId) + ']'
-                        if model.startswith('acc'):
-                            initString += ' = '
-                        else:
-                            initString += '.immediateWrite('
-                        initString += str(defValue[0]) + ' + ' + str(defValue[1])
-                        if model.startswith('acc'):
-                            initString += ';\n'
-                        else:
-                            initString += ');\n'
-                        continue
-                except TypeError:
-                    pass
-                initString += elem.name + '[' + str(curId) + ']'
-                if model.startswith('acc'):
-                    initString += ' = '
-                else:
-                    initString += '.immediateWrite('
-                try:
-                    initString += hex(defValue)
-                except TypeError:
-                    initString += str(defValue)
-                if model.startswith('acc'):
-                    initString += ';\n'
-                else:
-                    initString += ');\n'
-            curId += 1
-    for elem in self.regs + self.aliasRegs:
-        try:
-            if elem.constValue != None:
-                continue
-        except AttributeError:
-            pass
-        if elem.defValue != None:
-            try:
-                if not type(elem.defValue) == type(''):
-                    enumerate(elem.defValue)
-                    # ok, the element is iterable, so it is an initialization
-                    # with a constant and an offset
-                    initString += elem.name
-                    if model.startswith('acc'):
-                        initString += ' = '
-                    else:
-                        initString += '.immediateWrite('
-                    initString += str(elem.defValue[0]) + ' + ' + str(elem.defValue[1])
-                    if model.startswith('acc'):
-                        initString += ';\n'
-                    else:
-                        initString += ');\n'
-                    continue
-            except TypeError:
-                pass
-            initString += elem.name
-            if model.startswith('acc'):
-                initString += ' = '
-            else:
-                initString += '.immediateWrite('
-            try:
-                initString += hex(elem.defValue)
-            except TypeError:
-                initString += str(elem.defValue)
-            if model.startswith('acc'):
-                initString += ';\n'
-            else:
-                initString += ');\n'
-    if model.startswith('acc'):
-        for reg in self.regs:
-            for pipeStage in self.pipes:
-                initString += reg.name + '_' + pipeStage.name + ' = ' + reg.name + ';\n'
-        for regB in self.regBanks:
-            initString += 'for(int i = 0; i < ' + str(regB.numRegs) + '; i++){\n'
-            for pipeStage in self.pipes:
-                initString += regB.name + '_' + pipeStage.name + '[i] = ' + regB.name + '[i];\n'
-            initString += '}\n'
-
-    for irqPort in self.irqs:
-        initString += 'this->' + irqPort.name + ' = -1;\n'
+    initString = procInitCode(self, model)
     resetOpTemp.prependCode(initString)
     if self.beginOp:
         resetOpTemp.appendCode('//user-defined initialization\nthis->beginOp();\n')
@@ -511,7 +888,9 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
     # at begin or end of simulation or to reset it)
     ##########################################################################
 
+    ##########################################################################
     # Method for external instruction decoding
+    ##########################################################################
     if model.startswith('acc'):
         decodeBody = 'int instrId = this->' + self.pipes[0].name + '_stage.decoder.decode(bitString);\n'
     else:
@@ -530,6 +909,11 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
     if not model.startswith('acc'):
         decoderAttribute = cxx_writer.writer_code.Attribute('decoder', cxx_writer.writer_code.Type('Decoder', 'decoder.hpp'), 'pri')
         processorElements.append(decoderAttribute)
+
+    ####################################################################################
+    # Instantiation of the ABI for accessing the processor internals (registers, etc)
+    # from the outside world
+    ####################################################################################
     if self.abi:
         interfaceAttribute = cxx_writer.writer_code.Attribute('abiIf', interfaceType.makePointer(), 'pu')
         processorElements.append(interfaceAttribute)
@@ -557,243 +941,9 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         processorElements.append(quantumKeeperAttribute)
         bodyInits += 'quantKeeper.set_global_quantum( this->latency*100 );\nquantKeeper.reset();\n'
     # Lets now add the registers, the reg banks, the aliases, etc.
-    # We also need to add the memory
-    checkToolPipeStage = self.pipes[-1]
-    for pipeStage in self.pipes:
-        if pipeStage.checkTools:
-            checkToolPipeStage = pipeStage
-            break
-    from processor import extractRegInterval
-    for reg in self.regs:
-        attribute = cxx_writer.writer_code.Attribute(reg.name, resourceType[reg.name], 'pu')
-        initElements.append(reg.name + '(\"' + reg.name + '\")')
-        if self.abi:
-            abiIfInit += 'this->' + reg.name
-            if model.startswith('acc'):
-                abiIfInit += '_' + checkToolPipeStage.name
-            abiIfInit += ', '
-        processorElements.append(attribute)
-        if model.startswith('acc'):
-            for pipeStage in self.pipes:
-                attribute = cxx_writer.writer_code.Attribute(reg.name + '_' + pipeStage.name, resourceType[reg.name], 'pu')
-                processorElements.append(attribute)
-    for regB in self.regBanks:
-        attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name], 'pu')
-        if (regB.constValue and len(regB.constValue) < regB.numRegs)  or ((regB.delay and len(regB.delay) < regB.numRegs) and not model.startswith('acc')):
-            # There are constant registers, so I have to declare the special register bank
-            bodyInits += 'this->' + regB.name + '.setSize(' + str(regB.numRegs) + ');\n'
-            for i in range(0, regB.numRegs):
-                if regB.constValue.has_key(i) or regB.delay.has_key(i):
-                    bodyInits += 'this->' + regB.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '[' + str(i) + ']']) + '());\n'
-                else:
-                    bodyInits += 'this->' + regB.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '_baseType']) + '());\n'
-            if model.startswith('acc'):
-                for pipeStage in self.pipes:
-                    bodyInits += 'this->' + regB.name + '_' + pipeStage.name + '.setSize(' + str(regB.numRegs) + ');\n'
-                    for i in range(0, regB.numRegs):
-                        if regB.constValue.has_key(i):
-                            bodyInits += 'this->' + regB.name + '_' + pipeStage.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '[' + str(i) + ']']) + '());\n'
-                        else:
-                            bodyInits += 'this->' + regB.name + '_' + pipeStage.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '_baseType']) + '());\n'
-        else:
-            bodyInits += 'this->' + regB.name + ' = new ' + str(resourceType[regB.name].makeNormal()) + '[' + str(regB.numRegs) + '];\n'
-            bodyDestructor += 'delete [] this->' + regB.name + ';\n'
-            if model.startswith('acc'):
-                for pipeStage in self.pipes:
-                    bodyInits += 'this->' + regB.name + '_' + pipeStage.name + ' = new ' + str(resourceType[regB.name].makeNormal()) + '[' + str(regB.numRegs) + '];\n'
-                    bodyDestructor += 'delete [] this->' + regB.name + '_' + pipeStage.name + ';\n'
-        if self.abi:
-            abiIfInit += 'this->' + regB.name
-            if model.startswith('acc'):
-                abiIfInit += '_' + checkToolPipeStage.name
-            abiIfInit += ', '
-        processorElements.append(attribute)
-        if model.startswith('acc'):
-            for pipeStage in self.pipes:
-                attribute = cxx_writer.writer_code.Attribute(regB.name + '_' + pipeStage.name, resourceType[regB.name], 'pu')
-                processorElements.append(attribute)
-    for alias in self.aliasRegs:
-        attribute = cxx_writer.writer_code.Attribute(alias.name, resourceType[alias.name], 'pu')
-        # first of all I have to make sure that the alias does not refer to a delayed or constant
-        # register bank, otherwise I have to initialize it in the constructor body and not
-        # inline in the constuctor
-        hasToDeclareInit = True
-        if alias.initAlias.find('[') > -1:
-            referredName = alias.initAlias[:alias.initAlias.find('[')]
-            for regB in self.regBanks:
-                if regB.name == referredName:
-                    if regB.constValue or (not model.startswith('acc') and regB.delay):
-                        hasToDeclareInit = False
-                        break
-        if hasToDeclareInit:
-            aliasInitStr = alias.name + '(&' + alias.initAlias
-            if not model.startswith('acc'):
-                aliasInitStr += ', ' + str(alias.offset)
-            aliasInit[alias.name] = (aliasInitStr + ')')
+    createRegsAttributes(self, model, processorElements, abiIfInit, bodyDestructor, bodyInits, initElements, bodyAliasInit, aliasInit)
 
-        index = extractRegInterval(alias.initAlias)
-        if index:
-            # we are dealing with a member of a register bank
-            curIndex = index[0]
-            bodyAliasInit[alias.name] = 'this->' + alias.name + '.updateAlias(this->' + alias.initAlias[:alias.initAlias.find('[')] + '[' + str(curIndex) + ']'
-            if not model.startswith('acc'):
-                bodyAliasInit[alias.name] += ', ' + str(alias.offset)
-            bodyAliasInit[alias.name] += ');\n'
-            if model.startswith('acc'):
-                for pipeStage in self.pipes:
-                    bodyAliasInit[alias.name] += 'this->' + alias.name + '_' + pipeStage.name + '.updateAlias(this->' + alias.initAlias[:alias.initAlias.find('[')] + '_' + pipeStage.name + '[' + str(curIndex) + ']'
-                    bodyAliasInit[alias.name] += ');\n'
-        else:
-            bodyAliasInit[alias.name] = 'this->' + alias.name + '.updateAlias(this->' + alias.initAlias
-            if not model.startswith('acc'):
-                bodyAliasInit[alias.name] += ', ' + str(alias.offset)
-            bodyAliasInit[alias.name] += ');\n'
-            if model.startswith('acc'):
-                for pipeStage in self.pipes:
-                    bodyAliasInit[alias.name] += 'this->' + alias.name + '_' + pipeStage.name + '.updateAlias(this->' + alias.initAlias + '_' + pipeStage.name
-                    bodyAliasInit[alias.name] += ');\n'
-        if self.abi:
-            abiIfInit += 'this->' + alias.name
-            if model.startswith('acc'):
-                abiIfInit += '_' + checkToolPipeStage.name
-            abiIfInit += ', '
-        processorElements.append(attribute)
-        if model.startswith('acc'):
-            for pipeStage in self.pipes:
-                attribute = cxx_writer.writer_code.Attribute(alias.name + '_' + pipeStage.name, resourceType[alias.name], 'pu')
-                processorElements.append(attribute)
-    for aliasB in self.aliasRegBanks:
-        attribute = cxx_writer.writer_code.Attribute(aliasB.name, resourceType[aliasB.name].makePointer(), 'pu')
-        bodyAliasInit[aliasB.name] = 'this->' + aliasB.name + ' = new ' + str(resourceType[aliasB.name]) + '[' + str(aliasB.numRegs) + '];\n'
-        bodyDestructor += 'delete [] this->' + aliasB.name + ';\n'
-        if model.startswith('acc'):
-            for pipeStage in self.pipes:
-                bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '_' + pipeStage.name + ' = new ' + str(resourceType[aliasB.name]) + '[' + str(aliasB.numRegs) + '];\n'
-                bodyDestructor += 'delete [] this->' + aliasB.name + '_' + pipeStage.name + ';\n'
-        # Lets now deal with the initialization of the single elements of the regBank
-        if isinstance(aliasB.initAlias, type('')):
-            index = extractRegInterval(aliasB.initAlias)
-            curIndex = index[0]
-            for i in range(0, aliasB.numRegs):
-                bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '[' + str(i) + '].updateAlias(this->' + aliasB.initAlias[:aliasB.initAlias.find('[')] + '[' + str(curIndex) + ']'
-                if aliasB.offsets.has_key(i) and not model.startswith('acc'):
-                    bodyAliasInit[aliasB.name] += ', ' + str(aliasB.offsets[i])
-                bodyAliasInit[aliasB.name] += ');\n'
-                curIndex += 1
-            if model.startswith('acc'):
-                for pipeStage in self.pipes:
-                    curIndex = index[0]
-                    for i in range(0, aliasB.numRegs):
-                        bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '_' + pipeStage.name + '[' + str(i) + '].updateAlias(this->' + aliasB.initAlias[:aliasB.initAlias.find('[')] + '_' + pipeStage.name + '[' + str(curIndex) + ']'
-                        bodyAliasInit[aliasB.name] += ');\n'
-                        curIndex += 1
-        else:
-            curIndex = 0
-            for curAlias in aliasB.initAlias:
-                index = extractRegInterval(curAlias)
-                if index:
-                    for curRange in range(index[0], index[1] + 1):
-                        bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '[' + str(curIndex) + '].updateAlias(this->' + curAlias[:curAlias.find('[')] + '[' + str(curRange) + ']'
-                        if aliasB.offsets.has_key(curIndex) and not model.startswith('acc'):
-                            bodyAliasInit[aliasB.name] += ', ' + str(aliasB.offsets[curIndex])
-                        bodyAliasInit[aliasB.name] += ');\n'
-                        curIndex += 1
-                else:
-                    bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '[' + str(curIndex) + '].updateAlias(this->' + curAlias + ')'
-                    if aliasB.offsets.has_key(curIndex) and not model.startswith('acc'):
-                        bodyAliasInit[aliasB.name] += ', ' + str(aliasB.offsets[curIndex])
-                    bodyAliasInit[aliasB.name] += ');\n'
-                    curIndex += 1
-            if model.startswith('acc'):
-                for pipeStage in self.pipes:
-                    curIndex = 0
-                    for curAlias in aliasB.initAlias:
-                        index = extractRegInterval(curAlias)
-                        if index:
-                            for curRange in range(index[0], index[1] + 1):
-                                bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '_' + pipeStage.name + '[' + str(curIndex) + '].updateAlias(this->' + curAlias[:curAlias.find('[')] + '_' + pipeStage.name + '[' + str(curRange) + ']'
-                                bodyAliasInit[aliasB.name] += ');\n'
-                                curIndex += 1
-                        else:
-                            bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '_' + pipeStage.name + '[' + str(curIndex) + '].updateAlias(this->' + curAlias + '_' + pipeStage.name + ')'
-                            bodyAliasInit[aliasB.name] += ');\n'
-                            curIndex += 1
-
-        if self.abi:
-            abiIfInit += 'this->' + aliasB.name
-            if model.startswith('acc'):
-                abiIfInit += '_' + checkToolPipeStage.name
-            abiIfInit += ', '
-        processorElements.append(attribute)
-        if model.startswith('acc'):
-            for pipeStage in self.pipes:
-                attribute = cxx_writer.writer_code.Attribute(aliasB.name + '_' + pipeStage.name, resourceType[aliasB.name].makePointer(), 'pu')
-                processorElements.append(attribute)
-    if self.abi:
-        abiIfInit = abiIfInit[:-2]
-    # the initialization of the aliases must be chained (we should
-    # create an initialization graph since an alias might depend on another one ...)
-    global aliasGraph
-    if nxVersion < 0.99:
-        aliasGraph = NX.XDiGraph()
-    else:
-        aliasGraph = NX.DiGraph()
-    for alias in self.aliasRegs + self.aliasRegBanks:
-        aliasGraph.add_node(alias)
-    for alias in self.aliasRegs + self.aliasRegBanks:
-        initAliases = []
-        if isinstance(alias.initAlias, type('')):
-            bracketIdx = alias.initAlias.find('[')
-            if bracketIdx > 0:
-                initAliases.append(alias.initAlias[:bracketIdx])
-            else:
-                initAliases.append(alias.initAlias)
-        else:
-            for curAlias in alias.initAlias:
-                bracketIdx = curAlias.find('[')
-                if bracketIdx > 0:
-                    initAliases.append(curAlias[:bracketIdx])
-                else:
-                    initAliases.append(curAlias)
-        for initAlias in initAliases:
-            for targetInit in self.aliasRegs + self.aliasRegBanks:
-                if initAlias == targetInit.name:
-                    aliasGraph.add_edge(targetInit, alias)
-                elif self.isBank(initAlias):
-                    aliasGraph.add_edge('stop', alias)
-    # now I have to check for loops, if there are then the alias assignment is not valid
-    if not NX.is_directed_acyclic_graph(aliasGraph):
-        raise Exception('There is a circular dependency in the aliases initialization')
-    # I do a topological sort and take the elements in this ordes and I add them to the initialization;
-    # note that the ones whose initialization depend on banks (either register or alias)
-    # have to be postponned after the creation of the arrays
-    orderedNodes = NX.topological_sort(aliasGraph)
-    orderedNodesTemp = []
-    for alias in orderedNodes:
-        if alias == 'stop':
-            continue
-        if self.isBank(alias.name):
-            break
-        aliasGraphRev = aliasGraph.reverse()
-        if nxVersion < 0.99:
-            edgeType = aliasGraphRev.edges(alias)[0][0]
-        else:
-            edgeType = aliasGraphRev.edges(alias, data = True)[0][0]
-        if edgeType == 'stop':
-            break
-        if aliasInit.has_key(alias.name):
-            initElements.append(aliasInit[alias.name])
-        else:
-            break
-        orderedNodesTemp.append(alias)
-    for alias in orderedNodesTemp:
-        orderedNodes.remove(alias)
-    # Now I have the remaining aliases, I have to add their initialization after
-    # the registers has been created
-    for alias in orderedNodes:
-        if alias == 'stop':
-            continue
-        bodyInits += bodyAliasInit[alias.name]
+    # Finally memories, TLM ports, etc.
     if self.memory:
         attribute = cxx_writer.writer_code.Attribute(self.memory[0], cxx_writer.writer_code.Type('LocalMemory', 'memory.hpp'), 'pu')
         initMemCode = self.memory[0] + '(' + str(self.memory[1])
@@ -905,54 +1055,7 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
     ####################################################################
     if model.startswith('acc'):
         # I have to instantiate the pipeline and its stages ...
-        prevStage = ''
-        for pipeStage in self.pipes:
-            pipelineType = cxx_writer.writer_code.Type(pipeStage.name.upper() + '_PipeStage', 'pipeline.hpp')
-            curStageAttr = cxx_writer.writer_code.Attribute(pipeStage.name + '_stage', pipelineType, 'pu')
-            processorElements.append(curStageAttr)
-            curPipeInit = ['\"' + pipeStage.name + '\"']
-            curPipeInit.append('latency')
-            for otherPipeStage in self.pipes:
-                if otherPipeStage != pipeStage:
-                    curPipeInit.append('&' + otherPipeStage.name + '_stage')
-                else:
-                    curPipeInit.append('NULL')
-            if prevStage:
-                curPipeInit.append('&' + prevStage)
-            else:
-                curPipeInit.append('NULL')
-            if self.pipes.index(pipeStage) + 1 < len(self.pipes):
-                curPipeInit.append('&' + self.pipes[self.pipes.index(pipeStage) + 1].name + '_stage')
-            else:
-                curPipeInit.append('NULL')
-            if pipeStage == self.pipes[0]:
-                for reg in self.regs:
-                    if self.fetchReg[0] != reg.name:
-                        curPipeInit = [reg.name] + curPipeInit
-                for regB in self.regBanks:
-                    curPipeInit = [regB.name] + curPipeInit
-                # It is the first stage, I also have to allocate the memory
-                if self.memory:
-                    # I perform the fetch from the local memory
-                    memName = self.memory[0]
-                else:
-                    for name, isFetch  in self.tlmPorts.items():
-                        if isFetch:
-                            memName = name
-                curPipeInit = [self.fetchReg[0], 'Processor::INSTRUCTIONS', memName] + curPipeInit
-                curPipeInit = ['numInstructions'] + curPipeInit
-                curPipeInit = ['instrExecuting'] + curPipeInit
-                curPipeInit = ['instrEndEvent'] + curPipeInit
-                for irq in self.irqs:
-                    curPipeInit = ['this->' + irq.name] + curPipeInit
-            if pipeStage.checkTools:
-                curPipeInit = [self.fetchReg[0], 'toolManager'] + curPipeInit
-            initString += ')'
-            initElements.append(pipeStage.name + '_stage(' + ', '.join(curPipeInit)  + ')')
-            prevStage = pipeStage.name + '_stage'
-        NOPIntructionType = cxx_writer.writer_code.Type('NOPInstruction', 'instructions.hpp')
-        NOPinstructionsAttribute = cxx_writer.writer_code.Attribute('NOPInstrInstance', NOPIntructionType.makePointer(), 'pu', True)
-        processorElements.append(NOPinstructionsAttribute)
+        createPipeStage(self, processorElements, initElements)
 
     # Lets declare the interrupt instructions in case we have any
     for irq in self.irqs:
@@ -960,40 +1063,13 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         IRQinstructionAttribute = cxx_writer.writer_code.Attribute(irq.name + '_irqInstr', IRQIntructionType.makePointer(), 'pu')
         processorElements.append(IRQinstructionAttribute)
 
+    ########################################################################
     # Ok, here I have to create the code for the constructor: I have to
     # initialize the INSTRUCTIONS array, the local memory (if present)
     # the TLM ports
+    ########################################################################
     global baseInstrInitElement
-    baseInstrInitElement = ''
-    if model.startswith('acc'):
-        for pipeStage in self.pipes:
-            for reg in self.regs:
-                baseInstrInitElement += reg.name + '_' + pipeStage.name + ', '
-            for regB in self.regBanks:
-                baseInstrInitElement += regB.name + '_' + pipeStage.name + ', '
-            for alias in self.aliasRegs:
-                baseInstrInitElement += alias.name + '_' + pipeStage.name + ', '
-            for aliasB in self.aliasRegBanks:
-                baseInstrInitElement += aliasB.name + '_' + pipeStage.name + ', '
-    else:
-        for reg in self.regs:
-            baseInstrInitElement += reg.name + ', '
-        for regB in self.regBanks:
-            baseInstrInitElement += regB.name + ', '
-        for alias in self.aliasRegs:
-            baseInstrInitElement += alias.name + ', '
-        for aliasB in self.aliasRegBanks:
-            baseInstrInitElement += aliasB.name + ', '
-    if self.memory:
-        baseInstrInitElement += self.memory[0] + ', '
-    for tlmPorts in self.tlmPorts.keys():
-        baseInstrInitElement += tlmPorts + ', '
-    for pinPort in self.pins:
-        if not pinPort.inbound:
-            baseInstrInitElement += pinPort.name + ', '
-    if trace and not self.systemc and not model.startswith('acc'):
-        baseInstrInitElement += 'totalCycles, '
-    baseInstrInitElement = baseInstrInitElement[:-2]
+    baseInstrInitElement = createInstrInitCode(self, model, trace)
 
     constrCode = 'Processor::numInstances++;\nif(Processor::INSTRUCTIONS == NULL){\n'
     constrCode += '// Initialization of the array holding the initial instance of the instructions\n'
@@ -1014,10 +1090,7 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
                 constrCode += 'this->' + pipeStage.name + '_stage.' + irqPort.name + '_irqInstr = this->' + irqPort.name + '_irqInstr;\n'
     constrCode += bodyInits
     if not model.startswith('acc'):
-        if self.externalClock:
-            constrCode += 'SC_METHOD(mainLoop);\nsensitive << this->clock.pos();\ndont_initialize();\n'
-        else:
-            constrCode += 'SC_THREAD(mainLoop);\n'
+        constrCode += 'SC_THREAD(mainLoop);\n'
     if not self.systemc and not model.startswith('acc'):
         constrCode += 'this->totalCycles = 0;\n'
     constrCode += 'end_module();'
