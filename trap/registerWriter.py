@@ -448,10 +448,18 @@ def getCPPPipelineReg(self, namespace):
 
     # Propagate method, used to move register values from one stage to the other; the default implementation of such
     # method proceeded from the last stage to the first one: wb copied in REGS_all, exec in wb, .... REGS_all in fetch
+    regReadUpdate = ''
+    firstStages = 0
+    for pipeStage in self.pipes:
+        regReadUpdate += '*(this->reg_stage[' + str(firstStages) + ']) = *(this->reg_all)\n'
+        firstStages += 1
+        if pipeStage.checkHazard:
+            break
     propagateCode = '*(this->reg_all) = *(this->reg_stage[' + str(len(self.pipes)) + ']);\n'
-    propagateCode += 'for(int i = ' + str(len(self.pipes) - 2) + '; i >= 0; i--){\n'
+    propagateCode += 'for(int i = ' + str(len(self.pipes) - 2) + '; i >= ' + str(firstStages) + '; i--){\n'
     propagateCode += '*(this->reg_stage[i + 1]) = *(this->reg_stage[i]);\n'
-    propagateCode += '}\n*(this->reg_stage[0]) = *(this->reg_all);'
+    propagateCode += '}\n'
+    propagateCode += regReadUpdate
     propagateBody = cxx_writer.writer_code.Code(propagateCode)
     propagateMethod = cxx_writer.writer_code.Method('propagate', propagateBody, cxx_writer.writer_code.voidType, 'pu', noException = True, virtual = True)
     registerElements.append(propagateMethod)
