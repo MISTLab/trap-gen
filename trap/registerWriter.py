@@ -448,7 +448,7 @@ def getCPPPipelineReg(self, namespace):
     isLockedMethod = cxx_writer.writer_code.Method('isLocked', isLockedBody, cxx_writer.writer_code.boolType, 'pu', noException = True)
     registerElements.append(isLockedMethod)
     stageIdParam = cxx_writer.writer_code.Parameter('stageId', cxx_writer.writer_code.intType)
-    isLockedBody = cxx_writer.writer_code.Code('return this->reg_stage[i]->isLocked();')
+    isLockedBody = cxx_writer.writer_code.Code('return this->reg_stage[stageId]->isLocked();')
     isLockedMethod = cxx_writer.writer_code.Method('isLocked', isLockedBody, cxx_writer.writer_code.boolType, 'pu', [stageIdParam], noException = True)
     registerElements.append(isLockedMethod)
 
@@ -457,7 +457,7 @@ def getCPPPipelineReg(self, namespace):
     regReadUpdate = ''
     firstStages = 0
     for pipeStage in self.pipes:
-        regReadUpdate += '*(this->reg_stage[' + str(firstStages) + ']) = *(this->reg_all)\n'
+        regReadUpdate += '*(this->reg_stage[' + str(firstStages) + ']) = *(this->reg_all);\n'
         firstStages += 1
         if pipeStage.checkHazard:
             break
@@ -501,7 +501,7 @@ def getCPPPipelineReg(self, namespace):
     # the corresponding operator of the general register (reg_all)
     InnerFieldType = cxx_writer.writer_code.Type('InnerField')
     operatorParam = cxx_writer.writer_code.Parameter('bitField', cxx_writer.writer_code.intType)
-    operatorBody = cxx_writer.writer_code.Code('return *(this->reg_all)[bitField];')
+    operatorBody = cxx_writer.writer_code.Code('return (*(this->reg_all))[bitField];')
     operatorDecl = cxx_writer.writer_code.MemberOperator('[]', operatorBody, InnerFieldType.makeRef(), 'pu', [operatorParam], noException = True)
     registerElements.append(operatorDecl)
     for i in unaryOps:
@@ -532,7 +532,7 @@ def getCPPPipelineReg(self, namespace):
     operatorBody = cxx_writer.writer_code.Code('return stream << (*(this->reg_all));')
     operatorDecl = cxx_writer.writer_code.MemberOperator('<<', operatorBody, outStreamType.makeRef(), 'pu', [operatorParam], const = True, noException = True)
     registerElements.append(operatorDecl)
-    operatorBody = cxx_writer.writer_code.Code('return ' + str(regMaxType) + '(*(this->reg_all));')
+    operatorBody = cxx_writer.writer_code.Code('return *(this->reg_all);')
     operatorIntDecl = cxx_writer.writer_code.MemberOperator(str(regMaxType), operatorBody, cxx_writer.writer_code.Type(''), 'pu', const = True, noException = True)
     registerElements.append(operatorIntDecl)
 
@@ -608,10 +608,19 @@ def getCPPRegisters(self, model, namespace):
     constructorCode = 'this->bitWidth = bitWidth;\nend_module();'
     if model.startswith('acc'):
         constructorCode = 'this->numLocked = 0;\n' + constructorCode
+        constructorCode = 'this->lockedLatency = -1;\n' + constructorCode
     constructorBody = cxx_writer.writer_code.Code(constructorCode)
     constructorParams = [cxx_writer.writer_code.Parameter('name', cxx_writer.writer_code.sc_module_nameRefType.makeConst()),
                 cxx_writer.writer_code.Parameter('bitWidth', cxx_writer.writer_code.uintType)]
     publicConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['sc_module(sc_gen_unique_name(name))'])
+
+    copyConstrCode = 'this->bitWidth = other.bitWidth;\n'
+    if model.startswith('acc'):
+        constructorCode = 'this->numLocked = other.numLocked;\n' + constructorCode
+        constructorCode = 'this->lockedLatency = other.lockedLatency;\n' + constructorCode
+    copyConstrParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
+    copyConstrBody = cxx_writer.writer_code.Code(copyConstrCode)
+    copyConstr = cxx_writer.writer_code.Constructor(copyConstrBody, 'pu', [copyConstrParam], ['sc_module(sc_gen_unique_name(other.name()))'])
 
     ################ Lock and Unlock methods used for hazards detection ######################
     if model.startswith('acc'):
@@ -757,6 +766,7 @@ def getCPPRegisters(self, model, namespace):
 
     registerDecl = cxx_writer.writer_code.SCModule('Register', registerElements, namespaces = [namespace])
     registerDecl.addConstructor(publicConstr)
+    registerDecl.addConstructor(copyConstr)
 
     ################ Finally I put everything together##################
     classes = [InnerFieldClass, registerDecl] + realRegClasses
@@ -1145,16 +1155,19 @@ def getCPPPipelineAlias(self, namespace):
     aliasElements.append(operatorDecl)
 
     ################ Lock and Unlock methods used for hazards detection ######################
-    pipeIdParam = cxx_writer.writer_code.Parameter('pipeId', pipeRegisterType.makePointer())
+    pipeIdParam = cxx_writer.writer_code.Parameter('pipeId', cxx_writer.writer_code.uintType)
     setpipeIdBody = cxx_writer.writer_code.Code('if(this->pipeId < 0){\nthis->pipeId = pipeId;\n}\nelse{\nTHROW_EXCEPTION(\"Error, pipeline Id of alias can only be set during alias initialization\");\n}')
     setpipeIdMethod = cxx_writer.writer_code.Method('setPipeId', setpipeIdBody, cxx_writer.writer_code.voidType, 'pu', [pipeIdParam])
     aliasElements.append(setpipeIdMethod)
     getPipeRegBody = cxx_writer.writer_code.Code('return this->pipelineReg;')
     getPipeRegMethod = cxx_writer.writer_code.Method('getPipeReg', getPipeRegBody, pipeRegisterType.makePointer(), 'pu', inline = True, noException = True)
     aliasElements.append(getPipeRegMethod)
+    getRegBody = cxx_writer.writer_code.Code('return this->pipelineReg->getRegister(this->pipeId);')
+    getRegMethod = cxx_writer.writer_code.Method('getReg', getRegBody, registerType.makePointer(), 'pu', inline = True, noException = True)
+    aliasElements.append(getRegMethod)
     newPipelineRegParam = cxx_writer.writer_code.Parameter('newPipelineReg', pipeRegisterType.makePointer())
-    setPipeRegBody = cxx_writer.writer_code.Code('return this->pipelineReg = newPipelineReg;')
-    setPipeRegMethod = cxx_writer.writer_code.Method('setPipeReg', getPipeRegBody, cxx_writer.writer_code.voidType, 'pu', [newPipelineRegParam], inline = True, noException = True)
+    setPipeRegBody = cxx_writer.writer_code.Code('this->pipelineReg = newPipelineReg;')
+    setPipeRegMethod = cxx_writer.writer_code.Method('setPipeReg', setPipeRegBody, cxx_writer.writer_code.voidType, 'pu', [newPipelineRegParam], inline = True, noException = True)
     aliasElements.append(setPipeRegMethod)
     lockBody = cxx_writer.writer_code.Code('this->pipelineReg->lock();')
     lockMethod = cxx_writer.writer_code.Method('lock', lockBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
@@ -1194,11 +1207,11 @@ def getCPPPipelineAlias(self, namespace):
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, aliasType.makeRef(), 'pu', [operatorParam], inline = True, noException = True)
         aliasElements.append(operatorDecl)
     # Alias Register
-    for i in binaryOps:
-        operatorBody = cxx_writer.writer_code.Code('return (*this->pipelineReg->getRegister(this->pipeId) ' + i + ' *other.pipelineReg->getRegister(other.pipeId));')
-        operatorParam = cxx_writer.writer_code.Parameter('other', aliasType.makeRef().makeConst())
-        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True, noException = True)
-        aliasElements.append(operatorDecl)
+#    for i in binaryOps:
+#        operatorBody = cxx_writer.writer_code.Code('return (*this->pipelineReg->getRegister(this->pipeId) ' + i + ' *other.pipelineReg->getRegister(other.pipeId));')
+#        operatorParam = cxx_writer.writer_code.Parameter('other', aliasType.makeRef().makeConst())
+#        operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regMaxType, 'pu', [operatorParam], const = True, noException = True)
+#        aliasElements.append(operatorDecl)
 #    for i in comparisonOps:
 #        operatorBody = cxx_writer.writer_code.Code('return ((*this->reg + this->offset) ' + i + ' *other.reg);')
 #        operatorParam = cxx_writer.writer_code.Parameter('other', aliasType.makeRef().makeConst())
@@ -1236,12 +1249,12 @@ def getCPPPipelineAlias(self, namespace):
     pipeIdParam = cxx_writer.writer_code.Parameter('pipeId', cxx_writer.writer_code.uintType)
     publicMainClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', [pipeRegParam, pipeIdParam], ['pipelineReg(pipelineReg), pipeId(pipeId)'])
     publicMainEmptyClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', [pipeIdParam], ['pipelineReg(NULL), pipeId(pipeId)'])
-    publicMainEmpty2ClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', [pipeIdParam], ['pipelineReg(NULL), pipeId(-1)'])
+    publicMainEmpty2ClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', initList = ['pipelineReg(NULL), pipeId(-1)'])
     # Constructor: takes as input the initial alias
     constructorBody = cxx_writer.writer_code.Code('initAlias->referredAliases.insert(this);\nthis->referringAliases = initAlias;')
     constructorParams = [cxx_writer.writer_code.Parameter('initAlias', aliasType.makePointer())]
     constructorParams.append(cxx_writer.writer_code.Parameter('pipeId', cxx_writer.writer_code.uintType, initValue = '-1'))
-    publicAliasConstrInit = ['pipelineReg(initAlias->pipelineRegs), pipeId(pipeId)']
+    publicAliasConstrInit = ['pipelineReg(initAlias->pipelineReg), pipeId(pipeId)']
     publicAliasConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, publicAliasConstrInit)
     destructorBody = cxx_writer.writer_code.Code("""std::set<Alias *>::iterator referredIter, referredEnd;
         for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){

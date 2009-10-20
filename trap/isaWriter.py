@@ -49,9 +49,13 @@ def getToUnlockRegs(self, processor, pipeStage, getAll, delayedUnlock):
     code = ''
     regsToUnlock = []
 
-    for ps in processor.pipes:
-        if ps.checkHazard:
-            checkHazardStage = ps.name
+    # Returns the list of registers which have to be unlocked in the current
+    # pipeline stage; in case getAll is true, I have to unlock all of the
+    # locked registers, and I return the pipeline register (ending with _pipe).
+    # Else, I have to return only the registers for this particular stage,
+    # so that only the stage register is unlocked
+
+    checkHazardStage = processor.pipes[-1].name
 
     # Now I have to insert the code to fill in the queue of registers to unlock
     if not getAll:
@@ -820,11 +824,6 @@ def getCPPClasses(self, processor, model, trace, combinedTrace, namespace):
     unlockQueueType = cxx_writer.writer_code.TemplateType('std::map', ['unsigned int', cxx_writer.writer_code.TemplateType('std::vector', [registerType.makePointer()], 'vector')], 'map')
 
     classes = []
-    # Here I add the define code, definig the type of the current model
-    defString = '#define ' + model[:-2].upper() + '_MODEL\n'
-    defString += '#define ' + model[-2:].upper() + '_IF\n'
-    defCode = cxx_writer.writer_code.Define(defString)
-    classes.append(defCode)
     # Now I add the custon definitions
     for i in self.defines:
         classes.append(cxx_writer.writer_code.Define(i + '\n'))
@@ -1045,6 +1044,7 @@ def getCPPClasses(self, processor, model, trace, combinedTrace, namespace):
             instructionElements.append(attribute)
     else:
         pipeRegisterType = cxx_writer.writer_code.Type('PipelineRegister', 'registers.hpp')
+        vectorPipeRegType = cxx_writer.writer_code.TemplateType('std::vector', [pipeRegisterType], ['vector'])
         for reg in processor.regs:
             attribute = cxx_writer.writer_code.Attribute(reg.name + '_pipe', pipeRegisterType.makeRef(), 'pu')
             baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(reg.name + '_pipe', pipeRegisterType.makeRef()))
@@ -1052,8 +1052,8 @@ def getCPPClasses(self, processor, model, trace, combinedTrace, namespace):
             baseInitElement += reg.name + '_pipe, '
             instructionElements.append(attribute)
         for regB in processor.regBanks:
-            attribute = cxx_writer.writer_code.Attribute(regB.name + '_pipe', pipeRegisterType.makePointer(), 'pu')
-            baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(regB.name + '_pipe', pipeRegisterType.makePointer()))
+            attribute = cxx_writer.writer_code.Attribute(regB.name + '_pipe', vectorPipeRegType.makeRef(), 'pu')
+            baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(regB.name + '_pipe', vectorPipeRegType.makeRef()))
             initElements.append(regB.name + '_pipe(' + regB.name + '_pipe)')
             baseInitElement += regB.name + '_pipe, '
             instructionElements.append(attribute)

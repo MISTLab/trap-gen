@@ -490,7 +490,7 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             # i simply have to call the "propagate" method; I also have to deal with the update of the alias
             # by manually moving the pointer to the pipeline register from one stage alias to
             # the other to update the alias
-            codeString = ''
+            codeString = '// Now we update the registers to propagate the values in the pipeline\n'
             for reg in self.regs:
                 codeString += 'this->' + reg.name + '.propagate();\n'
             for regB in self.regBanks:
@@ -499,7 +499,8 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
                 codeString += '}\n'
             # Now lets procede to the update of the alias: for each stage alias I have to copy the reference
             # of the general pipeline register from one stage to the other
-            for i in range(0, len(self.pipes) -1):
+            codeString += '\n//Here we update the aliases, so that what they point to is updated in the pipeline\n'
+            for i in reversed(range(0, len(self.pipes) -1)):
                 for alias in self.aliasRegs:
                     codeString += 'this->' + alias.name + '_' + self.pipes[i + 1].name + '.setPipeReg(this->' + alias.name + '_' + self.pipes[i].name + '.getPipeReg());\n'
                 for aliasB in self.aliasRegBanks:
@@ -508,6 +509,7 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
                     codeString += '}\n'
             # Now I have to produce the code for unlocking the registers in the unlockQueue
             codeString += """
+            // Finally registers are unlocked, so that stalls due to data hazards can be resolved
             std::map<unsigned int, std::vector<Register *> >::iterator unlockQueueIter, unlockQueueEnd;
             for(unlockQueueIter = BasePipeStage::unlockQueue.begin(), unlockQueueEnd = BasePipeStage::unlockQueue.end(); unlockQueueIter != unlockQueueEnd; unlockQueueIter++){
                 std::vector<Register *>::iterator regToUnlockIter, regToUnlockEnd;
@@ -529,6 +531,7 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             curPipeElements.append(refreshRegistersDecl)
             # Here I declare the references to the pipeline registers and to the alias
             pipeRegisterType = cxx_writer.writer_code.Type('PipelineRegister', 'registers.hpp')
+            vectorPipeRegType = cxx_writer.writer_code.TemplateType('std::vector', [pipeRegisterType], ['vector'])
             for reg in self.regs:
                 if self.fetchReg[0] != reg.name:
                     attribute = cxx_writer.writer_code.Attribute(reg.name, pipeRegisterType.makeRef(), 'pu')
@@ -536,21 +539,21 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
                     constructorInit.append(reg.name + '(' + reg.name + ')')
                     curPipeElements.append(attribute)
             for regB in self.regBanks:
-                attribute = cxx_writer.writer_code.Attribute(regB.name, pipeRegisterType.makePointer(), 'pu')
-                constructorParams = [cxx_writer.writer_code.Parameter(regB.name, pipeRegisterType.makePointer())] + constructorParams
+                attribute = cxx_writer.writer_code.Attribute(regB.name, vectorPipeRegType.makeRef(), 'pu')
+                constructorParams = [cxx_writer.writer_code.Parameter(regB.name, vectorPipeRegType.makeRef())] + constructorParams
                 constructorInit.append(regB.name + '(' + regB.name + ')')
                 curPipeElements.append(attribute)
             aliasType = cxx_writer.writer_code.Type('Alias', 'alias.hpp')
-            for pipeStage in self.pipes:
+            for pipeStageInner in self.pipes:
                 for alias in self.aliasRegs:
-                    attribute = cxx_writer.writer_code.Attribute(alias.name + '_' + pipeStage.name, aliasType.makeRef(), 'pu')
-                    constructorParams = [cxx_writer.writer_code.Parameter(alias.name + '_' + pipeStage.name, aliasType.makeRef())] + constructorParams
-                    constructorInit.append(alias.name + '_' + pipeStage.name + '(' + alias.name + '_' + pipeStage.name + ')')
+                    attribute = cxx_writer.writer_code.Attribute(alias.name + '_' + pipeStageInner.name, aliasType.makeRef(), 'pu')
+                    constructorParams = [cxx_writer.writer_code.Parameter(alias.name + '_' + pipeStageInner.name, aliasType.makeRef())] + constructorParams
+                    constructorInit.append(alias.name + '_' + pipeStageInner.name + '(' + alias.name + '_' + pipeStageInner.name + ')')
                     curPipeElements.append(attribute)
                 for aliasB in self.aliasRegBanks:
-                    attribute = cxx_writer.writer_code.Attribute(aliasB.name + '_' + pipeStage.name, aliasType.makePointer(), 'pu')
-                    constructorParams = [cxx_writer.writer_code.Parameter(aliasB.name + '_' + pipeStage.name, aliasType.makePointer())] + constructorParams
-                    constructorInit.append(aliasB.name + '_' + pipeStage.name + '(' + aliasB.name + '_' + pipeStage.name + ')')
+                    attribute = cxx_writer.writer_code.Attribute(aliasB.name + '_' + pipeStageInner.name, aliasType.makePointer(), 'pu')
+                    constructorParams = [cxx_writer.writer_code.Parameter(aliasB.name + '_' + pipeStageInner.name, aliasType.makePointer())] + constructorParams
+                    constructorInit.append(aliasB.name + '_' + pipeStageInner.name + '(' + aliasB.name + '_' + pipeStageInner.name + ')')
                     curPipeElements.append(attribute)
             # I have to also instantiate the reference to the memories, in order to be able to
             # fetch instructions
@@ -574,8 +577,13 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             curPipeElements.append(instructionsAttribute)
             constructorParams = [cxx_writer.writer_code.Parameter('INSTRUCTIONS', IntructionTypePtr.makePointer().makeRef())] + constructorParams
             constructorInit.append('INSTRUCTIONS(INSTRUCTIONS)')
-            fetchAttr = cxx_writer.writer_code.Attribute(self.fetchReg[0], resourceType[self.fetchReg[0]].makeRef(), 'pu')
-            constructorParams = [cxx_writer.writer_code.Parameter(self.fetchReg[0], resourceType[self.fetchReg[0]].makeRef())] + constructorParams
+            # fetch register;
+            regsNames = [i.name for i in self.regBanks + self.regs]
+            fetchRegType = resourceType[self.fetchReg[0]]
+            if self.fetchReg[0] in regsNames:
+                fetchRegType = pipeRegisterType
+            fetchAttr = cxx_writer.writer_code.Attribute(self.fetchReg[0], fetchRegType.makeRef(), 'pu')
+            constructorParams = [cxx_writer.writer_code.Parameter(self.fetchReg[0], fetchRegType.makeRef())] + constructorParams
             constructorInit.append(self.fetchReg[0] + '(' + self.fetchReg[0] + ')')
             curPipeElements.append(fetchAttr)
             numInstructions = cxx_writer.writer_code.Attribute('numInstructions', cxx_writer.writer_code.uintType.makeRef(), 'pri')

@@ -71,13 +71,13 @@ pipelinedMult = False
 LEON3Isa.pipelinedMult = pipelinedMult
 
 # Code used to move to a new register window
-updateWinCode = """for(int i = 8; i < 32; i++){
+updateWinCode = """
+#ifndef ACC_MODEL
+for(int i = 8; i < 32; i++){
     REGS[i].updateAlias(WINREGS[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
 }
+#endif
 """
-#updateWinCode = ''
-#for i in range(8, 32):
-    #updateWinCode += 'REGS[' + str(i) + '].updateAlias(WINREGS[(newCwp*16 + ' + str(i - 8) + ') % (16*' + str(numRegWindows) + ')]);\n'
 
 # Here I add a constant to the instruction set so that it can be used from the code implementing
 # the various instructions
@@ -103,7 +103,7 @@ processor.addRegBank(windowRegs)
 psrBitMask = {'IMPL': (28, 31), 'VER': (24, 27), 'ICC_n': (23, 23), 'ICC_z': (22, 22), 'ICC_v': (21, 21), 'ICC_c': (20, 20), 'EC': (13, 13), 'EF': (12, 12), 'PIL': (8, 11), 'S': (7, 7), 'PS': (6, 6), 'ET': (5, 5), 'CWP': (0, 4)}
 psrReg = trap.Register('PSR', 32, psrBitMask)
 psrReg.setDefaultValue(0xF3000080)
-psrReg.setDelay(3)
+##############psrReg.setDelay(3)
 processor.addRegister(psrReg)
 # Window Invalid Mask Register
 wimBitMask = {}
@@ -277,10 +277,10 @@ wbStage = trap.PipeStage('wb')
 wbStage.setWriteBack()
 wbStage.setEndHazard()
 processor.addPipeStage(wbStage)
-processor.setWBOrder('NPC', ('decode', 'execute', 'wb'))
-processor.setWBOrder('PC', ('decode', 'fetch', 'execute', 'wb'))
-processor.setWBOrder('PSRbp', ('execute', 'wb'))
-processor.setWBOrder('Ybp', ('execute', 'wb'))
+#processor.setWBOrder('NPC', ('decode', 'execute', 'wb'))
+#processor.setWBOrder('PC', ('decode', 'fetch', 'execute', 'wb'))
+#processor.setWBOrder('PSRbp', ('execute', 'wb'))
+#processor.setWBOrder('Ybp', ('execute', 'wb'))
 
 # The ABI is necessary to emulate system calls, personalize the GDB stub and,
 # eventually, retarget GCC

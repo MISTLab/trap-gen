@@ -1020,9 +1020,12 @@ class Processor:
             dec.printDecoder(dumpDecoderName)
         mainFolder = cxx_writer.writer_code.Folder(os.path.expanduser(os.path.expandvars(folder)))
         for model in models:
-            if model.endswith('AT') and self.externalClock:
-                print ('ERROR: creating models with and external clock and the Approximate-Timed interface is not yet supported')
-                continue
+            # Here I add the define code, definig the type of the current model;
+            # such define code has to be added to each created header file
+            defString = '#define ' + model[:-2].upper() + '_MODEL\n'
+            defString += '#define ' + model[-2:].upper() + '_IF\n'
+            defCode = cxx_writer.writer_code.Define(defString)
+
             print ('\t\tCreating the implementation for model ' + model)
             if not model in validModels:
                 raise Exception(model + ' is not a valid model type')
@@ -1033,6 +1036,7 @@ class Processor:
             decClasses = dec.getCPPClass(self.bitSizes[1], self.instructionCache, namespace)
             implFileDec = cxx_writer.writer_code.FileDumper('decoder.cpp', False)
             headFileDec = cxx_writer.writer_code.FileDumper('decoder.hpp', True)
+            headFileDec.addMember(defCode)
             implFileDec.addMember(namespaceUse)
             for i in decClasses:
                 implFileDec.addMember(i)
@@ -1060,6 +1064,7 @@ class Processor:
             implFileRegs = cxx_writer.writer_code.FileDumper('registers.cpp', False)
             implFileRegs.addInclude('registers.hpp')
             headFileRegs = cxx_writer.writer_code.FileDumper('registers.hpp', True)
+            headFileRegs.addMember(defCode)
             headFileRegs.addMember(self.getRegistersBitfields())
             implFileRegs.addMember(namespaceUse)
             for i in RegClasses:
@@ -1068,6 +1073,7 @@ class Processor:
             implFileAlias = cxx_writer.writer_code.FileDumper('alias.cpp', False)
             implFileAlias.addInclude('alias.hpp')
             headFileAlias = cxx_writer.writer_code.FileDumper('alias.hpp', True)
+            headFileAlias.addMember(defCode)
             implFileAlias.addMember(namespaceUse)
             for i in AliasClass:
                 implFileAlias.addMember(i)
@@ -1077,12 +1083,14 @@ class Processor:
             implFileProc.addMember(namespaceUse)
             implFileProc.addMember(namespaceTrapUse)
             implFileProc.addMember(ProcClass)
+            headFileProc.addMember(defCode)
             headFileProc.addMember(namespaceTrapUse)
             headFileProc.addMember(ProcClass)
             implFileProc.addInclude('processor.hpp')
             if model.startswith('acc'):
                 implFilePipe = cxx_writer.writer_code.FileDumper('pipeline.cpp', False)
                 headFilePipe = cxx_writer.writer_code.FileDumper('pipeline.hpp', True)
+                headFilePipe.addMember(defCode)
                 implFilePipe.addMember(namespaceUse)
                 implFilePipe.addMember(namespaceTrapUse)
                 headFilePipe.addMember(namespaceTrapUse)
@@ -1092,6 +1100,7 @@ class Processor:
                 implFilePipe.addInclude('pipeline.hpp')
             implFileInstr = cxx_writer.writer_code.FileDumper('instructions.cpp', False)
             headFileInstr = cxx_writer.writer_code.FileDumper('instructions.hpp', True)
+            headFileInstr.addMember(defCode)
             implFileInstr.addMember(namespaceUse)
             for i in ISAClasses:
                 implFileInstr.addMember(i)
@@ -1100,6 +1109,7 @@ class Processor:
                 implFileIf = cxx_writer.writer_code.FileDumper('interface.cpp', False)
                 implFileIf.addInclude('interface.hpp')
                 headFileIf = cxx_writer.writer_code.FileDumper('interface.hpp', True)
+                headFileIf.addMember(defCode)
                 implFileIf.addMember(namespaceUse)
                 implFileIf.addMember(namespaceTrapUse)
                 headFileIf.addMember(namespaceTrapUse)
@@ -1108,6 +1118,7 @@ class Processor:
             implFileMem = cxx_writer.writer_code.FileDumper('memory.cpp', False)
             implFileMem.addInclude('memory.hpp')
             headFileMem = cxx_writer.writer_code.FileDumper('memory.hpp', True)
+            headFileMem.addMember(defCode)
             implFileMem.addMember(namespaceUse)
             implFileMem.addMember(namespaceTrapUse)
             headFileMem.addMember(namespaceTrapUse)
@@ -1118,6 +1129,7 @@ class Processor:
                 implFileExt = cxx_writer.writer_code.FileDumper('externalPorts.cpp', False)
                 implFileExt.addInclude('externalPorts.hpp')
                 headFileExt = cxx_writer.writer_code.FileDumper('externalPorts.hpp', True)
+                headFileExt.addMember(defCode)
                 implFileExt.addMember(namespaceUse)
                 implFileExt.addMember(ExternalIf)
                 headFileExt.addMember(ExternalIf)
@@ -1125,6 +1137,7 @@ class Processor:
                 implFileIRQ = cxx_writer.writer_code.FileDumper('irqPorts.cpp', False)
                 implFileIRQ.addInclude('irqPorts.hpp')
                 headFileIRQ = cxx_writer.writer_code.FileDumper('irqPorts.hpp', True)
+                headFileIRQ.addMember(defCode)
                 implFileIRQ.addMember(namespaceUse)
                 for i in IRQClasses:
                     implFileIRQ.addMember(i)
@@ -1133,6 +1146,7 @@ class Processor:
                 implFilePIN = cxx_writer.writer_code.FileDumper('externalPins.cpp', False)
                 implFilePIN.addInclude('externalPins.hpp')
                 headFilePIN = cxx_writer.writer_code.FileDumper('externalPins.hpp', True)
+                headFilePIN.addMember(defCode)
                 implFilePIN.addMember(namespaceUse)
                 for i in PINClasses:
                     implFilePIN.addMember(i)
