@@ -126,11 +126,12 @@ processor.addRegister(yReg)
 pcReg = trap.Register('PC', 32)
 pcReg.setDefaultValue('ENTRY_POINT')
 pcReg.setOffset(4)
+pcReg.setWbStageOrder(['decode', 'fetch'])
 processor.addRegister(pcReg)
 # Program Counter
 npcReg = trap.Register('NPC', 32)
 npcReg.setDefaultValue(('ENTRY_POINT', 4))
-#npcReg.setOffset(4)
+npcReg.setWbStageOrder(['decode', 'fetch'])
 processor.addRegister(npcReg)
 # Ancillary State Registers
 # in the LEON3 processor some of them have a special meaning:

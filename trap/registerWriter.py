@@ -118,11 +118,21 @@ def getCPPRegClass(self, model, regType, namespace):
         clockCycleBody = cxx_writer.writer_code.Code(clockCycleCode)
         clockCycleMethod = cxx_writer.writer_code.Method('clockCycle', clockCycleBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
         registerElements.append(clockCycleMethod)
+    elif model.startswith('acc'):
+        if self.constValue == None or type(self.constValue) == type({}):
+            forceValueBody = cxx_writer.writer_code.Code('this->value = value;')
+        else:
+            forceValueBody = cxx_writer.writer_code.Code('')
+        forceValueParam = [cxx_writer.writer_code.Parameter('value', regMaxType.makeRef().makeConst())]
+        forceValueMethod = cxx_writer.writer_code.Method('forceValue', forceValueBody, cxx_writer.writer_code.voidType, 'pu', forceValueParam, noException = True)
+        registerElements.append(forceValueMethod)
     if self.constValue == None or type(self.constValue) == type({}):
         immediateWriteCode = 'this->value = value;\n'
         if not model.startswith('acc') and type(self.delay) != type({}) and self.delay > 0:
             for i in range(0, self.delay):
                 immediateWriteCode += 'this->updateSlot[' + str(i) + '] = false;\n'
+        elif model.startswith('acc'):
+            immediateWriteCode += '*(this->hasToPropagate) = true;\nthis->timeStamp = sc_time_stamp();\n'
     else:
         immediateWriteCode = ''
     immediateWriteBody = cxx_writer.writer_code.Code(immediateWriteCode)
@@ -173,6 +183,8 @@ def getCPPRegClass(self, model, regType, namespace):
     for i in assignmentOps:
         if self.constValue != None and type(self.constValue) != type({}):
             operatorBody = cxx_writer.writer_code.Code('return *this;')
+        elif model.startswith('acc'):
+            operatorBody = cxx_writer.writer_code.Code(assignValueItem + ' ' + i + ' other;\n*(this->hasToPropagate) = true;\nthis->timeStamp = sc_time_stamp();\nreturn *this;')
         else:
             operatorBody = cxx_writer.writer_code.Code(assignValueItem + ' ' + i + ' other;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
@@ -198,8 +210,10 @@ def getCPPRegClass(self, model, regType, namespace):
     for i in assignmentOps:
         if self.constValue != None and type(self.constValue) != type({}):
             operatorBody = cxx_writer.writer_code.Code('return *this;')
+        elif model.startswith('acc'):
+            operatorBody = cxx_writer.writer_code.Code(assignValueItem + ' ' + i + ' other;\n*(this->hasToPropagate) = true;\nthis->timeStamp = sc_time_stamp();\nreturn *this;')
         else:
-            operatorBody = cxx_writer.writer_code.Code(assignValueItem + ' ' + i + ' other.value;\nreturn *this;')
+            operatorBody = cxx_writer.writer_code.Code(assignValueItem + ' ' + i + ' other;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', regType.makeRef().makeConst())
         operatorDecl = cxx_writer.writer_code.MemberOperator(i, operatorBody, regType.makeRef(), 'pu', [operatorParam], noException = True)
         registerElements.append(operatorDecl)
@@ -224,6 +238,8 @@ def getCPPRegClass(self, model, regType, namespace):
     for i in assignmentOps:
         if self.constValue != None and type(self.constValue) != type({}):
             operatorBody = cxx_writer.writer_code.Code('return *this;')
+        elif model.startswith('acc'):
+            operatorBody = cxx_writer.writer_code.Code(assignValueItem + ' ' + i + ' other;\n*(this->hasToPropagate) = true;\nthis->timeStamp = sc_time_stamp();\nreturn *this;')
         else:
             operatorBody = cxx_writer.writer_code.Code(assignValueItem + ' ' + i + ' other;\nreturn *this;')
         operatorParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
@@ -242,6 +258,9 @@ def getCPPRegClass(self, model, regType, namespace):
     if not model.startswith('acc') and type(self.delay) != type({}) and self.delay > 0:
         for field in self.bitMask.keys():
             fieldInit.append('field_' + field + '(this->value, this->values[' + str(self.delay - 1) + '], this->updateSlot[' + str(self.delay - 1) + '])')
+    elif model.startswith('acc'):
+        for field in self.bitMask.keys():
+            fieldInit.append('field_' + field + '(this->value, this->timeStamp, this->hasToPropagate)')
     else:
         for field in self.bitMask.keys():
             fieldInit.append('field_' + field + '(this->value)')
@@ -253,9 +272,7 @@ def getCPPRegClass(self, model, regType, namespace):
         for i in range(0, self.delay):
             constructorCode += 'this->updateSlot[' + str(i) + '] = false;\n'
     constructorBody = cxx_writer.writer_code.Code(constructorCode)
-    constructorParams = [cxx_writer.writer_code.Parameter('name', cxx_writer.writer_code.sc_module_nameType)]
-    publicMainClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['Register(name, ' + str(self.bitWidth) + ')'] + fieldInit)
-    publicMainClassEmptyConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', initList = ['Register(\"' + regType.name + '\", ' + str(self.bitWidth) + ')'] + fieldInit)
+    publicMainClassEmptyConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', initList = fieldInit)
 
     # Stream Operators
     outStreamType = cxx_writer.writer_code.Type('std::ostream', 'ostream')
@@ -306,6 +323,8 @@ def getCPPRegClass(self, model, regType, namespace):
                     operatorCode += '((other & ' + hex(int(fieldLenMask, 2)) + ') << ' + str(length[0]) + ');\n'
                 else:
                     operatorCode += 'other;\n'
+        if model.startswith('acc'):
+            operatorCode += '*(this->hasToPropagate) = true;\nthis->timeStamp = sc_time_stamp();\n'
         operatorCode += 'return *this;'
         operatorBody = cxx_writer.writer_code.Code(operatorCode)
         operatorParam = cxx_writer.writer_code.Parameter('other', regMaxType.makeRef().makeConst())
@@ -325,6 +344,11 @@ def getCPPRegClass(self, model, regType, namespace):
             InnerFieldElems.append(fieldAttribute)
             fieldAttribute = cxx_writer.writer_code.Attribute('lastValid', cxx_writer.writer_code.boolType.makeRef(), 'pri')
             InnerFieldElems.append(fieldAttribute)
+        elif model.startswith('acc'):
+            timeStampAttribute = cxx_writer.writer_code.Attribute('timeStamp', cxx_writer.writer_code.sc_timeType.makeRef(), 'pri')
+            InnerFieldElems.append(timeStampAttribute)
+            propagateAttribute = cxx_writer.writer_code.Attribute('hasToPropagate', cxx_writer.writer_code.boolType.makePointer(), 'pri')
+            InnerFieldElems.append(propagateAttribute)
         constructorParams = [cxx_writer.writer_code.Parameter('value', regMaxType.makeRef())]
         constructorInit = ['value(value)']
         if not model.startswith('acc') and type(self.delay) != type({}) and self.delay > 0:
@@ -332,6 +356,11 @@ def getCPPRegClass(self, model, regType, namespace):
             constructorInit.append('valueLast(valueLast)')
             constructorParams.append(cxx_writer.writer_code.Parameter('lastValid', cxx_writer.writer_code.boolType.makeRef()))
             constructorInit.append('lastValid(lastValid)')
+        elif model.startswith('acc'):
+            constructorParams.append(cxx_writer.writer_code.Parameter('timeStamp', cxx_writer.writer_code.sc_timeType.makeRef()))
+            constructorInit.append('timeStamp(timeStamp)')
+            constructorParams.append(cxx_writer.writer_code.Parameter('hasToPropagate', cxx_writer.writer_code.boolType.makePointer()))
+            constructorInit.append('hasToPropagate(hasToPropagate)')
         publicConstr = cxx_writer.writer_code.Constructor(cxx_writer.writer_code.Code(''), 'pu', constructorParams, constructorInit)
         InnerFieldClass = cxx_writer.writer_code.ClassDeclaration('InnerField_' + field, InnerFieldElems, [cxx_writer.writer_code.Type('InnerField')])
         InnerFieldClass.addConstructor(publicConstr)
@@ -366,7 +395,6 @@ def getCPPRegClass(self, model, regType, namespace):
     registerElements = attrs + registerElements
 
     registerDecl = cxx_writer.writer_code.ClassDeclaration(regType.name, registerElements, [registerType], namespaces = [namespace])
-    registerDecl.addConstructor(publicMainClassConstr)
     registerDecl.addConstructor(publicMainClassEmptyConstr)
     for i in innerClasses:
         registerDecl.addInnerClass(i)
@@ -395,8 +423,6 @@ def getCPPPipelineReg(self, namespace):
     registerType = cxx_writer.writer_code.Type('Register')
 
     ################ Constructor: it initializes the internal registers ######################
-    constructorParams = [cxx_writer.writer_code.Parameter('name', cxx_writer.writer_code.sc_module_nameRefType.makeConst()),
-                cxx_writer.writer_code.Parameter('bitWidth', cxx_writer.writer_code.uintType)]
     fullConstructorParams = []
     innerConstrInit = ''
     fullConstructorCode = ''
@@ -404,23 +430,27 @@ def getCPPPipelineReg(self, namespace):
     i = 0
     for pipeStage in self.pipes:
         fullConstructorCode += 'this->reg_stage[' + str(i) + '] = reg_' + pipeStage.name + ';\n'
+        fullConstructorCode += 'this->reg_stage[' + str(i) + ']->hasToPropagate = &(this->hasToPropagate);\n'
         emptyConstructorCode += 'this->reg_stage[' + str(i) + '] = NULL;\n'
         fullConstructorParams.append(cxx_writer.writer_code.Parameter('reg_' + pipeStage.name, registerType.makePointer()))
-        innerConstrInit += ', reg_' + pipeStage.name
+        innerConstrInit += 'reg_' + pipeStage.name + ', '
         i += 1
-    fullConstructorCode += 'this->reg_all' + ' = reg_all;\n'
-    emptyConstructorCode += 'this->reg_all' + ' = NULL;\n'
-    innerConstrInit += ', reg_all'
+    fullConstructorCode += 'this->reg_all = reg_all;\n'
+    fullConstructorCode += 'this->reg_all->hasToPropagate = &(this->hasToPropagate);\n'
+    emptyConstructorCode += 'this->reg_all = NULL;\n'
+    innerConstrInit += 'reg_all'
     fullConstructorParams.append(cxx_writer.writer_code.Parameter('reg_all', registerType.makePointer()))
     constructorBody = cxx_writer.writer_code.Code(fullConstructorCode)
-    publicFullConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams + fullConstructorParams, ['Register(name, bitWidth)'])
+    publicFullConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', fullConstructorParams)
     constructorBody = cxx_writer.writer_code.Code(emptyConstructorCode)
-    publicEmptyConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['Register(name, bitWidth)'])
+    publicEmptyConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu')
 
-    stagesRegsAttribute = cxx_writer.writer_code.Attribute('reg_stage[' + str(len(self.pipes)) + ']', registerType.makePointer(), 'pri')
+    stagesRegsAttribute = cxx_writer.writer_code.Attribute('reg_stage[' + str(len(self.pipes)) + ']', registerType.makePointer(), 'pro')
     registerElements.append(stagesRegsAttribute)
-    generalRegAttribute = cxx_writer.writer_code.Attribute('reg_all', registerType.makePointer(), 'pri')
+    generalRegAttribute = cxx_writer.writer_code.Attribute('reg_all', registerType.makePointer(), 'pro')
     registerElements.append(generalRegAttribute)
+    propagateAttribute = cxx_writer.writer_code.Attribute('hasToPropagate', cxx_writer.writer_code.boolType, 'pu')
+    registerElements.append(propagateAttribute)
 
     ################ Lock and Unlock methods used for hazards detection ######################
     # For the general register they have a particular behavior: they have to lock all versions of the
@@ -452,20 +482,38 @@ def getCPPPipelineReg(self, namespace):
     isLockedMethod = cxx_writer.writer_code.Method('isLocked', isLockedBody, cxx_writer.writer_code.boolType, 'pu', [stageIdParam], noException = True)
     registerElements.append(isLockedMethod)
 
+    # Now some virtual methods inherited from the base class
+    forceValueBody = cxx_writer.writer_code.Code('this->reg_all->forceValue(value);')
+    forceValueParam = [cxx_writer.writer_code.Parameter('value', regMaxType.makeRef().makeConst())]
+    forceValueMethod = cxx_writer.writer_code.Method('forceValue', forceValueBody, cxx_writer.writer_code.voidType, 'pu', forceValueParam, noException = True)
+    registerElements.append(forceValueMethod)
+
     # Propagate method, used to move register values from one stage to the other; the default implementation of such
     # method proceeded from the last stage to the first one: wb copied in REGS_all, exec in wb, .... REGS_all in fetch
     regReadUpdate = ''
     firstStages = 0
     for pipeStage in self.pipes:
-        regReadUpdate += '*(this->reg_stage[' + str(firstStages) + ']) = *(this->reg_all);\n'
+        regReadUpdate += 'if(this->reg_all->timeStamp > this->reg_stage[' + str(firstStages) + ']->timeStamp){\n'
+        regReadUpdate += 'hasChanges = true;\n'
+        regReadUpdate += 'this->reg_stage[' + str(firstStages) + ']->timeStamp = this->reg_all->timeStamp;\n'
+        regReadUpdate += 'this->reg_stage[' + str(firstStages) + ']->forceValue(*(this->reg_all));\n}\n'
         firstStages += 1
         if pipeStage.checkHazard:
             break
-    propagateCode = '*(this->reg_all) = *(this->reg_stage[' + str(len(self.pipes)) + ']);\n'
+    propagateCode = 'bool hasChanges = false;\n'
+    propagateCode += 'if(!this->hasToPropagate){\nreturn;\n}'
+    propagateCode += 'if(this->reg_stage[' + str(len(self.pipes)) + ']->timeStamp > this->reg_all->timeStamp){\n'
+    propagateCode += 'hasChanges = true;\n'
+    propagateCode += 'this->reg_all->timeStamp = this->reg_stage[' + str(len(self.pipes)) + ']->timeStamp;\n'
+    propagateCode += 'this->reg_all->forceValue(*(this->reg_stage[' + str(len(self.pipes)) + ']));\n}\n'
     propagateCode += 'for(int i = ' + str(len(self.pipes) - 2) + '; i >= ' + str(firstStages) + '; i--){\n'
-    propagateCode += '*(this->reg_stage[i + 1]) = *(this->reg_stage[i]);\n'
+    propagateCode += 'if(this->reg_stage[i]->timeStamp > this->reg_stage[i + 1]->timeStamp){\n'
+    propagateCode += 'hasChanges = true;\n'
+    propagateCode += 'this->reg_stage[i + 1]->timeStamp = this->reg_stage[i]->timeStamp;\n'
+    propagateCode += 'this->reg_stage[i + 1]->forceValue(*(this->reg_stage[i]));\n}\n'
     propagateCode += '}\n'
     propagateCode += regReadUpdate
+    propagateCode += 'this->hasToPropagate = hasChanges;\n'
     propagateBody = cxx_writer.writer_code.Code(propagateCode)
     propagateMethod = cxx_writer.writer_code.Method('propagate', propagateBody, cxx_writer.writer_code.voidType, 'pu', noException = True, virtual = True)
     registerElements.append(propagateMethod)
@@ -487,12 +535,14 @@ def getCPPPipelineReg(self, namespace):
             THROW_EXCEPTION("Error, trying to initialize main register after the pipeline register initialization has already completed");
         }
         this->reg_all = regPtr;
+        this->reg_all->hasToPropagate = &(this->hasToPropagate);
     }
     else{
         if(this->reg_stage[regIndex] != NULL){
             THROW_EXCEPTION("Error, trying to initialize register " << regIndex << " after the pipeline register initialization has already completed");
         }
         this->reg_stage[regIndex] = regPtr;
+        this->reg_stage[regIndex]->hasToPropagate = &(this->hasToPropagate);
     }""")
     setRegisterMethod = cxx_writer.writer_code.Method('setRegister', getRegisterBody, cxx_writer.writer_code.voidType, 'pu', [regPointerParam, regIndexParam])
     registerElements.append(setRegisterMethod)
@@ -558,22 +608,27 @@ def getCPPPipelineReg(self, namespace):
                 orders.append(reg.wbStageOrder)
     for order in orders:
         registerElements = []
-        propagateCode = ''
+        propagateCode = 'bool hasChanges = false;\n'
+        propagateCode += 'if(!this->hasToPropagate){\nreturn;\n}'
         for pipeStage in order:
-            if pipeStage != order[0]:
+            if pipeStage != orders[0]:
                 propagateCode += 'else '
-            propagateCode += 'if(*(this->reg_stage[' + str(pipeNumbers[pipeStage]) + ']) != *(this->reg_all)){'
-            propagateCode += '*(this->reg_all) = *(this->reg_stage[' + str(pipeNumbers[pipeStage]) + ']);\n'
+            propagateCode += 'if(this->reg_stage[' + str(pipeNumbers[pipeStage]) + ']->timeStamp > this->reg_all->timeStamp){\n'
+            propagateCode += 'hasChanges = true;\n'
+            propagateCode += 'this->reg_all->forceValue(*(this->reg_stage[' + str(pipeNumbers[pipeStage]) + ']));\n'
             propagateCode += 'for(int i = 0; i < ' + str(len(self.pipes)) + '; i++){\n'
-            propagateCode += '*(this->reg_stage[i]) = *(this->reg_stage[' + str(pipeNumbers[pipeStage]) + ']);\n'
-            propagateCode += '}\n'
+            propagateCode += 'this->reg_stage[i]->forceValue(*(this->reg_stage[' + str(pipeNumbers[pipeStage]) + ']));\n'
+            propagateCode += '}\n}\n'
+        propagateCode += 'this->hasToPropagate = hasChanges;\n'
         propagateBody = cxx_writer.writer_code.Code(propagateCode)
         propagateMethod = cxx_writer.writer_code.Method('propagate', propagateBody, cxx_writer.writer_code.voidType, 'pu', noException = True)
         registerElements.append(propagateMethod)
-        constructorBody = cxx_writer.writer_code.Code(constructorCode)
-        publicConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['PipelineRegister(name, bitWidth' + innerConstrInit + ')'])
-        pipelineRegClass = cxx_writer.writer_code.ClassDeclaration('PipelineRegister_' + str(order)[1:-1].replace(', ', '_'), registerElements, [PipelineRegisterType], namespaces = [namespace])
-        pipelineRegClass.addConstructor(publicConstr)
+
+        publicFullConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', fullConstructorParams, ['PipelineRegister(' + innerConstrInit + ')'])
+        publicEmptyConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu')
+        pipelineRegClass = cxx_writer.writer_code.ClassDeclaration('PipelineRegister_' + str(order)[1:-1].replace(', ', '_').replace('\'', ''), registerElements, [PipelineRegisterType], namespaces = [namespace])
+        pipelineRegClass.addConstructor(publicFullConstr)
+        pipelineRegClass.addConstructor(publicEmptyConstr)
         pipelineRegClasses.append(pipelineRegClass)
 
     return pipelineRegClasses
@@ -603,24 +658,24 @@ def getCPPRegisters(self, model, namespace):
     emptyBody = cxx_writer.writer_code.Code('')
 
     ################ Constructor: it initializes the width of the register ######################
-    widthAttribute = cxx_writer.writer_code.Attribute('bitWidth', cxx_writer.writer_code.uintType, 'pri')
-    registerElements.append(widthAttribute)
-    constructorCode = 'this->bitWidth = bitWidth;\nend_module();'
+    constructorCode = ''
     if model.startswith('acc'):
-        constructorCode = 'this->numLocked = 0;\n' + constructorCode
-        constructorCode = 'this->lockedLatency = -1;\n' + constructorCode
+        constructorCode += 'this->numLocked = 0;\n'
+        constructorCode += 'this->lockedLatency = -1;\n'
+        constructorCode += 'this->hasToPropagate = NULL;\n'
+        constructorCode += 'this->timeStamp = SC_ZERO_TIME;\n'
     constructorBody = cxx_writer.writer_code.Code(constructorCode)
-    constructorParams = [cxx_writer.writer_code.Parameter('name', cxx_writer.writer_code.sc_module_nameRefType.makeConst()),
-                cxx_writer.writer_code.Parameter('bitWidth', cxx_writer.writer_code.uintType)]
-    publicConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, ['sc_module(sc_gen_unique_name(name))'])
+    publicConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu')
 
-    copyConstrCode = 'this->bitWidth = other.bitWidth;\n'
+    constructorCode = ''
     if model.startswith('acc'):
-        constructorCode = 'this->numLocked = other.numLocked;\n' + constructorCode
-        constructorCode = 'this->lockedLatency = other.lockedLatency;\n' + constructorCode
+        constructorCode += 'this->numLocked = other.numLocked;\n'
+        constructorCode += 'this->lockedLatency = other.lockedLatency;\n'
+        constructorCode += 'this->hasToPropagate = other.hasToPropagate;\n'
+        constructorCode += 'this->timeStamp = other.timeStamp;\n'
     copyConstrParam = cxx_writer.writer_code.Parameter('other', registerType.makeRef().makeConst())
-    copyConstrBody = cxx_writer.writer_code.Code(copyConstrCode)
-    copyConstr = cxx_writer.writer_code.Constructor(copyConstrBody, 'pu', [copyConstrParam], ['sc_module(sc_gen_unique_name(other.name()))'])
+    copyConstrBody = cxx_writer.writer_code.Code(constructorCode)
+    copyConstr = cxx_writer.writer_code.Constructor(copyConstrBody, 'pu', [copyConstrParam])
 
     ################ Lock and Unlock methods used for hazards detection ######################
     if model.startswith('acc'):
@@ -628,6 +683,10 @@ def getCPPRegisters(self, model, namespace):
         registerElements.append(lockedLatencyAttribute)
         lockedAttribute = cxx_writer.writer_code.Attribute('numLocked', cxx_writer.writer_code.intType, 'pri')
         registerElements.append(lockedAttribute)
+        propagateAttribute = cxx_writer.writer_code.Attribute('hasToPropagate', cxx_writer.writer_code.boolType.makePointer(), 'pu')
+        registerElements.append(propagateAttribute)
+        timeStampAttribute = cxx_writer.writer_code.Attribute('timeStamp', cxx_writer.writer_code.sc_timeType, 'pu')
+        registerElements.append(timeStampAttribute)
         lockBody = cxx_writer.writer_code.Code('this->lockedLatency = -1;\nthis->numLocked++;')
         lockMethod = cxx_writer.writer_code.Method('lock', lockBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
         registerElements.append(lockMethod)
@@ -672,6 +731,10 @@ def getCPPRegisters(self, model, namespace):
         registerElements.append(immediateWriteMethod)
         readNewValueMethod = cxx_writer.writer_code.Method('readNewValue', emptyBody, regMaxType, 'pu', pure = True, noException = True)
         registerElements.append(readNewValueMethod)
+    else:
+        forceValueParam = [cxx_writer.writer_code.Parameter('value', regMaxType.makeRef().makeConst())]
+        forceValueMethod = cxx_writer.writer_code.Method('forceValue', emptyBody, cxx_writer.writer_code.voidType, 'pu', forceValueParam, pure = True, noException = True)
+        registerElements.append(forceValueMethod)
 
     ################ Operators working with the base class, employed when polimorphism is used ##################
     # First lets declare the class which will be used to manipulate the
@@ -764,7 +827,7 @@ def getCPPRegisters(self, model, namespace):
         realRegClasses.append(regType.getCPPClass(model, resourceType[regType.name], namespace))
     ################ End of part where we determine the different register types which have to be declared ##################
 
-    registerDecl = cxx_writer.writer_code.SCModule('Register', registerElements, namespaces = [namespace])
+    registerDecl = cxx_writer.writer_code.ClassDeclaration('Register', registerElements, namespaces = [namespace])
     registerDecl.addConstructor(publicConstr)
     registerDecl.addConstructor(copyConstr)
 

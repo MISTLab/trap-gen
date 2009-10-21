@@ -500,6 +500,8 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             # Now lets procede to the update of the alias: for each stage alias I have to copy the reference
             # of the general pipeline register from one stage to the other
             codeString += '\n//Here we update the aliases, so that what they point to is updated in the pipeline\n'
+            codeString += '//TODO: WE NEED TO FIND A WAY OF UPDATING THE ALISES ONLY WHEN NEEDED\n'
+            codeString += '//TODO: IT IS MORE EFFICIENT SINCE THEY ARE SELDOM USED\n'
             for i in reversed(range(0, len(self.pipes) -1)):
                 for alias in self.aliasRegs:
                     codeString += 'this->' + alias.name + '_' + self.pipes[i + 1].name + '.setPipeReg(this->' + alias.name + '_' + self.pipes[i].name + '.getPipeReg());\n'
@@ -531,7 +533,6 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             curPipeElements.append(refreshRegistersDecl)
             # Here I declare the references to the pipeline registers and to the alias
             pipeRegisterType = cxx_writer.writer_code.Type('PipelineRegister', 'registers.hpp')
-            vectorPipeRegType = cxx_writer.writer_code.TemplateType('std::vector', [pipeRegisterType], ['vector'])
             for reg in self.regs:
                 if self.fetchReg[0] != reg.name:
                     attribute = cxx_writer.writer_code.Attribute(reg.name, pipeRegisterType.makeRef(), 'pu')
@@ -539,8 +540,8 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
                     constructorInit.append(reg.name + '(' + reg.name + ')')
                     curPipeElements.append(attribute)
             for regB in self.regBanks:
-                attribute = cxx_writer.writer_code.Attribute(regB.name, vectorPipeRegType.makeRef(), 'pu')
-                constructorParams = [cxx_writer.writer_code.Parameter(regB.name, vectorPipeRegType.makeRef())] + constructorParams
+                attribute = cxx_writer.writer_code.Attribute(regB.name, pipeRegisterType.makePointer(), 'pu')
+                constructorParams = [cxx_writer.writer_code.Parameter(regB.name, pipeRegisterType.makePointer())] + constructorParams
                 constructorInit.append(regB.name + '(' + regB.name + ')')
                 curPipeElements.append(attribute)
             aliasType = cxx_writer.writer_code.Type('Alias', 'alias.hpp')

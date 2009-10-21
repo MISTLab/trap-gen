@@ -480,19 +480,16 @@ def createRegsAttributes(self, model, processorElements, initElements, bodyAlias
     for reg in self.regs:
         attribute = cxx_writer.writer_code.Attribute(reg.name, resourceType[reg.name], 'pu')
         processorElements.append(attribute)
-        initElements.append(attribute.name + '(\"' + attribute.name + '\")')
         if model.startswith('acc'):
             bodyInits += 'this->' + reg.name + '_pipe.setRegister(&' + reg.name + ');\n'
             pipeCount = 0
             for pipeStage in self.pipes:
                 attribute = cxx_writer.writer_code.Attribute(reg.name + '_' + pipeStage.name, resourceType[reg.name], 'pu')
                 processorElements.append(attribute)
-                initElements.append(attribute.name + '(\"' + attribute.name + '\")')
                 bodyInits += 'this->' + reg.name + '_pipe.setRegister(&' + reg.name + '_' + pipeStage.name + ', ' + str(pipeCount) + ');\n'
                 pipeCount += 1
             attribute = cxx_writer.writer_code.Attribute(reg.name + '_pipe', pipeRegisterType, 'pu')
             processorElements.append(attribute)
-            initElements.append(attribute.name + '(\"' + attribute.name + '\", ' + str(reg.bitWidth) + ')')
         if self.abi:
             abiIfInit += 'this->' + reg.name
             if model.startswith('acc'):
@@ -500,19 +497,15 @@ def createRegsAttributes(self, model, processorElements, initElements, bodyAlias
             abiIfInit += ', '
     bodyInits += '// Initialization of the register banks\n'
     for regB in self.regBanks:
-        attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name], 'pu')
-        processorElements.append(attribute)
-        if model.startswith('acc'):
-            for pipeStage in self.pipes:
-                attribute = cxx_writer.writer_code.Attribute(regB.name + '_' + pipeStage.name, resourceType[regB.name], 'pu')
-                processorElements.append(attribute)
-            vectorPipeRegType = cxx_writer.writer_code.TemplateType('std::vector', [pipeRegisterType], ['vector'])
-            attribute = cxx_writer.writer_code.Attribute(regB.name + '_pipe',  vectorPipeRegType, 'pu')
-            processorElements.append(attribute)
-            bodyInits += 'for(int i = 0; i < ' + str(regB.numRegs) + '; i++){\n'
-            bodyInits += str(pipeRegisterType) + ' pipeReg(\"' + regB.name + '_pipe\", ' + str(regB.bitWidth) + ');\n'
-            bodyInits += 'this->' + regB.name + '_pipe.push_back(pipeReg);\n}\n'
         if (regB.constValue and len(regB.constValue) < regB.numRegs)  or ((regB.delay and len(regB.delay) < regB.numRegs) and not model.startswith('acc')):
+            attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name], 'pu')
+            processorElements.append(attribute)
+            if model.startswith('acc'):
+                for pipeStage in self.pipes:
+                    attribute = cxx_writer.writer_code.Attribute(regB.name + '_' + pipeStage.name, resourceType[regB.name], 'pu')
+                    processorElements.append(attribute)
+                attribute = cxx_writer.writer_code.Attribute(regB.name + '_pipe[' + str(regB.numRegs) + ']',  pipeRegisterType, 'pu')
+                processorElements.append(attribute)
             # There are constant registers, so I have to declare the special register bank
             bodyInits += 'this->' + regB.name + '.setSize(' + str(regB.numRegs) + ');\n'
             for i in range(0, regB.numRegs):
@@ -529,12 +522,14 @@ def createRegsAttributes(self, model, processorElements, initElements, bodyAlias
                         else:
                             bodyInits += 'this->' + regB.name + '_' + pipeStage.name + '.setNewRegister(' + str(i) + ', new ' + str(resourceType[regB.name + '_baseType']) + '());\n'
         else:
-            bodyInits += 'this->' + regB.name + ' = new ' + str(resourceType[regB.name].makeNormal()) + '[' + str(regB.numRegs) + '];\n'
-            bodyDestructor += 'delete [] this->' + regB.name + ';\n'
+            attribute = cxx_writer.writer_code.Attribute(regB.name + '[' + str(regB.numRegs) + ']', resourceType[regB.name].makeNormal(), 'pu')
+            processorElements.append(attribute)
             if model.startswith('acc'):
                 for pipeStage in self.pipes:
-                    bodyInits += 'this->' + regB.name + '_' + pipeStage.name + ' = new ' + str(resourceType[regB.name].makeNormal()) + '[' + str(regB.numRegs) + '];\n'
-                    bodyDestructor += 'delete [] this->' + regB.name + '_' + pipeStage.name + ';\n'
+                    attribute = cxx_writer.writer_code.Attribute(regB.name + '_' + pipeStage.name + '[' + str(regB.numRegs) + ']', resourceType[regB.name].makeNormal(), 'pu')
+                    processorElements.append(attribute)
+                attribute = cxx_writer.writer_code.Attribute(regB.name + '_pipe[' + str(regB.numRegs) + ']',  pipeRegisterType, 'pu')
+                processorElements.append(attribute)
         if model.startswith('acc'):
             # Now I need to set the pipeline registers
             bodyInits += 'for(int i = 0; i < ' + str(regB.numRegs) + '; i++){\n'
@@ -626,22 +621,18 @@ def createRegsAttributes(self, model, processorElements, initElements, bodyAlias
                 abiIfInit += '_' + checkToolPipeStage.name
             abiIfInit += ', '
     for aliasB in self.aliasRegBanks:
+        bodyAliasInit[aliasB.name] = ''
         if model.startswith('acc'):
             curStageId = 0
-            bodyAliasInit[aliasB.name] = ''
             for pipeStage in self.pipes:
-                attribute = cxx_writer.writer_code.Attribute(aliasB.name + '_' + pipeStage.name, resourceType[aliasB.name].makePointer(), 'pu')
+                attribute = cxx_writer.writer_code.Attribute(aliasB.name + '_' + pipeStage.name + '[' + str(aliasB.numRegs) + ']', resourceType[aliasB.name], 'pu')
                 processorElements.append(attribute)
-                bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '_' + pipeStage.name + ' = new ' + str(resourceType[aliasB.name]) + '[' + str(aliasB.numRegs) + '];\n'
                 bodyAliasInit[aliasB.name] += 'for(int i = 0; i < ' + str(aliasB.numRegs) + '; i++){\n'
                 bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '_' + pipeStage.name + '[i].setPipeId(' + str(curStageId) + ');\n}\n'
-                bodyDestructor += 'delete [] this->' + aliasB.name + '_' + pipeStage.name + ';\n'
                 curStageId += 1
         else:
-            attribute = cxx_writer.writer_code.Attribute(aliasB.name, resourceType[aliasB.name].makePointer(), 'pu')
+            attribute = cxx_writer.writer_code.Attribute(aliasB.name + '[' + str(aliasB.numRegs) + ']', resourceType[aliasB.name], 'pu')
             processorElements.append(attribute)
-            bodyAliasInit[aliasB.name] = 'this->' + aliasB.name + ' = new ' + str(resourceType[aliasB.name]) + '[' + str(aliasB.numRegs) + '];\n'
-            bodyDestructor += 'delete [] this->' + aliasB.name + ';\n'
         # Lets now deal with the initialization of the single elements of the regBank
         if isinstance(aliasB.initAlias, type('')):
             index = extractRegInterval(aliasB.initAlias)
@@ -980,7 +971,7 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
     aliasInit = {}
     bodyAliasInit = {}
     abiIfInit = ''
-    if model.endswith('LT') and len(self.tlmPorts) > 0 and not self.externalClock:
+    if model.endswith('LT') and len(self.tlmPorts) > 0 and not model.startswith('acc'):
         quantumKeeperType = cxx_writer.writer_code.Type('tlm_utils::tlm_quantumkeeper', 'tlm_utils/tlm_quantumkeeper.h')
         quantumKeeperAttribute = cxx_writer.writer_code.Attribute('quantKeeper', quantumKeeperType, 'pri')
         processorElements.append(quantumKeeperAttribute)
@@ -1006,11 +997,8 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
     for tlmPortName in self.tlmPorts.keys():
         attribute = cxx_writer.writer_code.Attribute(tlmPortName, cxx_writer.writer_code.Type('TLMMemory', 'externalPorts.hpp'), 'pu')
         initPortCode = tlmPortName + '(\"' + tlmPortName + '\"'
-        if self.systemc and model.endswith('LT'):
-            if self.externalClock:
-                initPortCode += ', this->waitCycles'
-            else:
-                initPortCode += ', this->quantKeeper'
+        if self.systemc and model.endswith('LT') and not model.startswith('acc'):
+            initPortCode += ', this->quantKeeper'
         for memAl in self.memAlias:
             initPortCode += ', ' + memAl.alias
         initPortCode += ')'

@@ -1025,8 +1025,12 @@ def getCPPClasses(self, processor, model, trace, combinedTrace, namespace):
             baseInitElement += reg.name + ', '
             instructionElements.append(attribute)
         for regB in processor.regBanks:
-            attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name].makeRef(), 'pro')
-            baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(regB.name, resourceType[regB.name].makeRef()))
+            if (regB.constValue and len(regB.constValue) < regB.numRegs)  or (regB.delay and len(regB.delay) < regB.numRegs):
+                curRegBType = resourceType[regB.name].makeRef()
+            else:
+                curRegBType = resourceType[regB.name]
+            attribute = cxx_writer.writer_code.Attribute(regB.name, curRegBType, 'pro')
+            baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(regB.name, curRegBType))
             initElements.append(regB.name + '(' + regB.name + ')')
             baseInitElement += regB.name + ', '
             instructionElements.append(attribute)
@@ -1037,14 +1041,13 @@ def getCPPClasses(self, processor, model, trace, combinedTrace, namespace):
             baseInitElement += alias.name + ', '
             instructionElements.append(attribute)
         for aliasB in processor.aliasRegBanks:
-            attribute = cxx_writer.writer_code.Attribute(aliasB.name, resourceType[aliasB.name].makePointer().makeRef(), 'pro')
-            baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(aliasB.name, resourceType[aliasB.name].makePointer().makeRef()))
+            attribute = cxx_writer.writer_code.Attribute(aliasB.name, resourceType[aliasB.name].makePointer(), 'pro')
+            baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(aliasB.name, resourceType[aliasB.name].makePointer()))
             initElements.append(aliasB.name + '(' + aliasB.name + ')')
             baseInitElement += aliasB.name + ', '
             instructionElements.append(attribute)
     else:
         pipeRegisterType = cxx_writer.writer_code.Type('PipelineRegister', 'registers.hpp')
-        vectorPipeRegType = cxx_writer.writer_code.TemplateType('std::vector', [pipeRegisterType], ['vector'])
         for reg in processor.regs:
             attribute = cxx_writer.writer_code.Attribute(reg.name + '_pipe', pipeRegisterType.makeRef(), 'pu')
             baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(reg.name + '_pipe', pipeRegisterType.makeRef()))
@@ -1052,8 +1055,8 @@ def getCPPClasses(self, processor, model, trace, combinedTrace, namespace):
             baseInitElement += reg.name + '_pipe, '
             instructionElements.append(attribute)
         for regB in processor.regBanks:
-            attribute = cxx_writer.writer_code.Attribute(regB.name + '_pipe', vectorPipeRegType.makeRef(), 'pu')
-            baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(regB.name + '_pipe', vectorPipeRegType.makeRef()))
+            attribute = cxx_writer.writer_code.Attribute(regB.name + '_pipe', pipeRegisterType.makePointer(), 'pu')
+            baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(regB.name + '_pipe', pipeRegisterType.makePointer()))
             initElements.append(regB.name + '_pipe(' + regB.name + '_pipe)')
             baseInitElement += regB.name + '_pipe, '
             instructionElements.append(attribute)
@@ -1065,8 +1068,12 @@ def getCPPClasses(self, processor, model, trace, combinedTrace, namespace):
                 baseInitElement += reg.name + '_' + pipeStage.name + ', '
                 instructionElements.append(attribute)
             for regB in processor.regBanks:
-                attribute = cxx_writer.writer_code.Attribute(regB.name + '_' + pipeStage.name, resourceType[regB.name].makeRef(), 'pu')
-                baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(regB.name + '_' + pipeStage.name, resourceType[regB.name].makeRef()))
+                if (regB.constValue and len(regB.constValue) < regB.numRegs):
+                    curRegBType = resourceType[regB.name].makeRef()
+                else:
+                    curRegBType = resourceType[regB.name]
+                attribute = cxx_writer.writer_code.Attribute(regB.name + '_' + pipeStage.name, curRegBType, 'pu')
+                baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(regB.name + '_' + pipeStage.name, curRegBType))
                 initElements.append(regB.name + '_' + pipeStage.name + '(' + regB.name + '_' + pipeStage.name + ')')
                 baseInitElement += regB.name + '_' + pipeStage.name + ', '
                 instructionElements.append(attribute)
@@ -1077,8 +1084,8 @@ def getCPPClasses(self, processor, model, trace, combinedTrace, namespace):
                 baseInitElement += alias.name + '_' + pipeStage.name + ', '
                 instructionElements.append(attribute)
             for aliasB in processor.aliasRegBanks:
-                attribute = cxx_writer.writer_code.Attribute(aliasB.name + '_' + pipeStage.name, resourceType[aliasB.name].makePointer().makeRef(), 'pu')
-                baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(aliasB.name + '_' + pipeStage.name, resourceType[aliasB.name].makePointer().makeRef()))
+                attribute = cxx_writer.writer_code.Attribute(aliasB.name + '_' + pipeStage.name, resourceType[aliasB.name].makePointer(), 'pu')
+                baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(aliasB.name + '_' + pipeStage.name, resourceType[aliasB.name].makePointer()))
                 initElements.append(aliasB.name + '_' + pipeStage.name + '(' + aliasB.name + '_' + pipeStage.name + ')')
                 baseInitElement += aliasB.name + '_' + pipeStage.name + ', '
                 instructionElements.append(attribute)

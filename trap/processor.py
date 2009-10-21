@@ -347,7 +347,7 @@ class Processor:
         self.fetchReg = None
         self.memory = None
         self.tlmPorts = {}
-        self.regOrder = {}
+        #self.regOrder = {}
         self.memAlias = []
         self.systemc = systemc
         self.instructionCache = instructionCache
@@ -552,15 +552,15 @@ class Processor:
                 return True
         return False
 
-    def setWBOrder(self, regName, order):
-        for i in order:
-            if not i in [curPipe.name for curPipe in self.pipes]:
-                raise Exception('Pipeline stage ' + i + ' specified for write back of register ' + regName + ' not present in the pipeline')
-        order = list(order)
-        for curPipe in self.pipes:
-            if not curPipe.name in order:
-                order.append(curPipe.name)
-        self.regOrder[regName] = order
+    #def setWBOrder(self, regName, order):
+        #for i in order:
+            #if not i in [curPipe.name for curPipe in self.pipes]:
+                #raise Exception('Pipeline stage ' + i + ' specified for write back of register ' + regName + ' not present in the pipeline')
+        #order = list(order)
+        #for curPipe in self.pipes:
+            #if not curPipe.name in order:
+                #order.append(curPipe.name)
+        #self.regOrder[regName] = order
 
     def checkPipeStages(self):
         for instrName, instr in self.isa.instructions.items():

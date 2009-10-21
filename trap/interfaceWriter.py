@@ -73,8 +73,12 @@ def getCPPIf(self, model, namespace):
         initElements.append(reg.name + '(' + reg.name + ')')
         ifClassElements.append(attribute)
     for regB in self.regBanks:
-        attribute = cxx_writer.writer_code.Attribute(regB.name, resourceType[regB.name].makeRef(), 'pri')
-        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(regB.name, resourceType[regB.name].makeRef()))
+        if (regB.constValue and len(regB.constValue) < regB.numRegs)  or ((regB.delay and len(regB.delay) < regB.numRegs) and not model.startswith('acc')):
+            curRegBType = resourceType[regB.name].makeRef()
+        else:
+            curRegBType = resourceType[regB.name]
+        attribute = cxx_writer.writer_code.Attribute(regB.name, curRegBType, 'pri')
+        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(regB.name, curRegBType))
         initElements.append(regB.name + '(' + regB.name + ')')
         ifClassElements.append(attribute)
     for alias in self.aliasRegs:
@@ -83,8 +87,8 @@ def getCPPIf(self, model, namespace):
         initElements.append(alias.name + '(' + alias.name + ')')
         ifClassElements.append(attribute)
     for aliasB in self.aliasRegBanks:
-        attribute = cxx_writer.writer_code.Attribute(aliasB.name, resourceType[aliasB.name].makePointer().makeRef(), 'pri')
-        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(aliasB.name, resourceType[aliasB.name].makePointer().makeRef()))
+        attribute = cxx_writer.writer_code.Attribute(aliasB.name, resourceType[aliasB.name].makePointer(), 'pri')
+        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(aliasB.name, resourceType[aliasB.name].makePointer()))
         initElements.append(aliasB.name + '(' + aliasB.name + ')')
         ifClassElements.append(attribute)
 

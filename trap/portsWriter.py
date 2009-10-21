@@ -158,10 +158,20 @@ def getCPPExternalPorts(self, model, namespace):
                     SC_REPORT_ERROR("TLM-2", "Error in reading memory data through DMI: address out of bounds");
                 }
                 memcpy(&datum, this->dmi_data.get_dmi_ptr() - this->dmi_data.get_start_address() + address, sizeof(datum));
-                this->quantKeeper.inc(this->dmi_data.get_read_latency());
+            """
+        if not model.startswith('acc'):
+            readCode += 'this->quantKeeper.inc(this->dmi_data.get_read_latency());'
+        else:
+            readCode += 'wait(this->dmi_data.get_read_latency());'
+        readCode += """
             }
             else{
-                sc_time delay = this->quantKeeper.get_local_time();
+            """
+        if not model.startswith('acc'):
+            readCode += 'sc_time delay = this->quantKeeper.get_local_time();'
+        else:
+            readCode += 'sc_time delay = SC_ZERO_TIME;'
+        readCode += """
                 tlm::tlm_generic_payload trans;
                 trans.set_address(address);
                 trans.set_read();
@@ -181,9 +191,11 @@ def getCPPExternalPorts(self, model, namespace):
                     this->dmi_ptr_valid = this->initSocket->get_direct_mem_ptr(trans, this->dmi_data);
                 }
                 //Now lets keep track of time
-                this->quantKeeper.set(delay);
-            }
             """
+        if not model.startswith('acc'):
+            readCode += 'this->quantKeeper.set(delay);\n}\n'
+        else:
+            readCode += 'wait(delay);\n}\n'
     else:
         readCode = """ datum = 0;
         tlm::tlm_generic_payload trans;
@@ -249,10 +261,20 @@ def getCPPExternalPorts(self, model, namespace):
                     SC_REPORT_ERROR("TLM-2", "Error in writing memory data through DMI: address out of bounds");
                 }
                 memcpy(this->dmi_data.get_dmi_ptr() - this->dmi_data.get_start_address() + address, &datum, sizeof(datum));
-                this->quantKeeper.inc(this->dmi_data.get_write_latency());
+            """
+        if not model.startswith('acc'):
+            writeCode += 'this->quantKeeper.inc(this->dmi_data.get_write_latency());'
+        else:
+            writeCode += 'wait(this->dmi_data.get_write_latency());'
+        writeCode += """
             }
             else{
-                sc_time delay = this->quantKeeper.get_local_time();
+            """
+        if not model.startswith('acc'):
+            writeCode += 'sc_time delay = this->quantKeeper.get_local_time();'
+        else:
+            writeCode += 'sc_time delay = SC_ZERO_TIME;'
+        writeCode += """
                 tlm::tlm_generic_payload trans;
                 trans.set_address(address);
                 trans.set_write();
@@ -272,9 +294,11 @@ def getCPPExternalPorts(self, model, namespace):
                     this->dmi_ptr_valid = this->initSocket->get_direct_mem_ptr(trans, this->dmi_data);
                 }
                 //Now lets keep track of time
-                this->quantKeeper.set(delay);
-            }
-        """
+            """
+        if not model.startswith('acc'):
+            writeCode += 'this->quantKeeper.set(delay);\n}\n'
+        else:
+            writeCode += 'wait(delay);\n}\n'
     else:
         writeCode += """tlm::tlm_generic_payload trans;
         trans.set_address(address);
@@ -391,11 +415,12 @@ def getCPPExternalPorts(self, model, namespace):
     tlmPortElements.append(initSockAttr)
     constructorCode = 'this->debugger = NULL;\n'
     if model.endswith('LT'):
-        quantumKeeperType = cxx_writer.writer_code.Type('tlm_utils::tlm_quantumkeeper', 'tlm_utils/tlm_quantumkeeper.h')
-        quantumKeeperAttribute = cxx_writer.writer_code.Attribute('quantKeeper', quantumKeeperType.makeRef(), 'pri')
-        tlmPortElements.append(quantumKeeperAttribute)
-        tlmPortInit.append('quantKeeper(quantKeeper)')
-        constructorParams.append(cxx_writer.writer_code.Parameter('quantKeeper', quantumKeeperType.makeRef()))
+        if not model.startswith('acc'):
+            quantumKeeperType = cxx_writer.writer_code.Type('tlm_utils::tlm_quantumkeeper', 'tlm_utils/tlm_quantumkeeper.h')
+            quantumKeeperAttribute = cxx_writer.writer_code.Attribute('quantKeeper', quantumKeeperType.makeRef(), 'pri')
+            tlmPortElements.append(quantumKeeperAttribute)
+            tlmPortInit.append('quantKeeper(quantKeeper)')
+            constructorParams.append(cxx_writer.writer_code.Parameter('quantKeeper', quantumKeeperType.makeRef()))
         dmi_ptr_validAttribute = cxx_writer.writer_code.Attribute('dmi_ptr_valid', cxx_writer.writer_code.boolType, 'pri')
         tlmPortElements.append(dmi_ptr_validAttribute)
         dmi_dataAttribute = cxx_writer.writer_code.Attribute('dmi_data', tlm_dmiType, 'pri')
