@@ -55,16 +55,14 @@ def getToUnlockRegs(self, processor, pipeStage, getAll, delayedUnlock):
     # Else, I have to return only the registers for this particular stage,
     # so that only the stage register is unlocked
 
-    checkHazardStage = processor.pipes[-1].name
-
     # Now I have to insert the code to fill in the queue of registers to unlock
-    if not getAll:
-        if self.specialOutRegs.has_key(pipeStage.name):
-            for regToUnlock in self.specialOutRegs[pipeStage.name]:
-                regsToUnlock.append(regToUnlock)
-    else:
+    if getAll or pipeStage.wb:
         for regToUnlockList in self.specialOutRegs.values():
             for regToUnlock in regToUnlockList:
+                regsToUnlock.append(regToUnlock)
+    else:
+        if self.specialOutRegs.has_key(pipeStage.name):
+            for regToUnlock in self.specialOutRegs[pipeStage.name]:
                 regsToUnlock.append(regToUnlock)
     if getAll or pipeStage.wb:
         # Here I have to unlock all the registers for which a special unlock stage
@@ -85,18 +83,30 @@ def getToUnlockRegs(self, processor, pipeStage, getAll, delayedUnlock):
             parenthesis = realName.find('[')
             if parenthesis > 0:
                 realName = realName[:parenthesis]
-            if parenthesis > 0:
-                realRegName = realName + '_' + checkHazardStage + regToUnlock[parenthesis:]
+            if (getAll or pipeStage.wb) and realName in regsNames:
+                if parenthesis > 0:
+                    realRegName = realName + '_pipe' + regToUnlock[parenthesis:]
+                else:
+                    realRegName = regToUnlock + '_pipe'
             else:
-                realRegName = regToUnlock + '_' + checkHazardStage
+                if parenthesis > 0:
+                    realRegName = realName + '_' + pipeStage.name + regToUnlock[parenthesis:]
+                else:
+                    realRegName = regToUnlock + '_' + pipeStage.name
             if delayedUnlock and self.delayedWb.has_key(regToUnlock):
                 if not realName in regsNames:
-                    code += 'unlockQueue[' + str(self.delayedWb[regToUnlock]) + '].push_back(' + realRegName + '.getReg());\n'
+                    if getAll or pipeStage.wb:
+                        code += 'unlockQueue[' + str(self.delayedWb[regToUnlock]) + '].push_back(' + realRegName + '.getPipeReg());\n'
+                    else:
+                        code += 'unlockQueue[' + str(self.delayedWb[regToUnlock]) + '].push_back(' + realRegName + '.getReg());\n'
                 else:
                     code += 'unlockQueue[' + str(self.delayedWb[regToUnlock]) + '].push_back(&' + realRegName + ');\n'
             else:
                 if not realName in regsNames:
-                    code += 'unlockQueue[0].push_back(' + realRegName + '.getReg());\n'
+                    if getAll or pipeStage.wb:
+                        code += 'unlockQueue[0].push_back(' + realRegName + '.getPipeReg());\n'
+                    else:
+                        code += 'unlockQueue[0].push_back(' + realRegName + '.getReg());\n'
                 else:
                     code += 'unlockQueue[0].push_back(&' + realRegName + ');\n'
     return code
@@ -413,6 +423,7 @@ def getCPPInstr(self, model, processor, trace, combinedTrace, namespace):
         classElements.append(printBusyRegsDecl)
 
         if hasCheckHazard:
+            regsNames = [i.name for i in processor.regBanks + processor.regs]
             # checkHazard: I have to build such a method for each pipeline stage
             for pipeStage in pipeline:
                 regsToCheck = []
@@ -424,18 +435,25 @@ def getCPPInstr(self, model, processor, trace, combinedTrace, namespace):
                     for name, correspondence in self.bitCorrespondence.items():
                         if 'in' in self.bitDirection[name]:
                             regsToCheck.append(name)
-                if self.specialInRegs.has_key(pipeStage.name):
-                    for specialRegName in self.specialInRegs[pipeStage.name]:
-                        regsToCheck.append(specialRegName)
+                    regsToCheckTemp = regsToCheck
+                    regsToCheck = []
+                    for regToCheck in regsToCheckTemp:
+                        if not regToCheck in self.notLockRegs:
+                            parenthesis = regToCheck.find('[')
+                            if parenthesis > 0:
+                                regsToCheck.append(regToCheck[:parenthesis] + '_' + pipeline[-1].name + regToCheck[parenthesis:])
+                            else:
+                                regsToCheck.append(regToCheck + '_' + pipeline[-1].name)
+                    for pipeName, regList in self.specialInRegs.items():
+                        for regToCheck in regList:
+                            parenthesis = regToCheck.find('[')
+                            if parenthesis > 0:
+                                regsToCheck.append(regToCheck[:parenthesis] + '_' + pipeName + regToCheck[parenthesis:])
+                            else:
+                                regsToCheck.append(regToCheck + '_' + pipeName)
 
                 for regToCheck in regsToCheck:
-                    if not regToCheck in self.notLockRegs:
-                        parenthesis = regToCheck.find('[')
-                        if parenthesis > 0:
-                            realRegName = regToCheck[:parenthesis] + '_' + checkHazardStage + regToCheck[parenthesis:]
-                        else:
-                            realRegName = regToCheck + '_' + checkHazardStage
-                        checkHazardCode += 'regLocked = this->' + realRegName + '.isLocked() || regLocked;\n'
+                    checkHazardCode += 'regLocked = this->' + regToCheck + '.isLocked() || regLocked;\n'
                 checkHazardCode += 'return !regLocked;\n'
                 checkHazardBody = cxx_writer.writer_code.Code(checkHazardCode)
                 checkHazardDecl = cxx_writer.writer_code.Method('checkHazard_' + pipeStage.name, checkHazardBody, cxx_writer.writer_code.boolType, 'pu')
@@ -460,9 +478,15 @@ def getCPPInstr(self, model, processor, trace, combinedTrace, namespace):
                         if not regToLock in self.notLockRegs:
                             parenthesis = regToLock.find('[')
                             if parenthesis > 0:
-                                realRegName = regToLock[:parenthesis] + '_' + checkHazardStage + regToLock[parenthesis:]
+                                if regToLock[:parenthesis] in regsNames:
+                                    realRegName = regToLock[:parenthesis] + '_pipe' + regToLock[parenthesis:]
+                                else:
+                                    realRegName = regToLock[:parenthesis] + '_' + pipeStage.name + regToLock[parenthesis:]
                             else:
-                                realRegName = regToLock + '_' + checkHazardStage
+                                if regToLock in regsNames:
+                                    realRegName = regToLock + '_pipe'
+                                else:
+                                    realRegName = regToLock + '_' + pipeStage.name
                             lockCode += 'this->' + realRegName + '.lock();\n'
                 lockBody = cxx_writer.writer_code.Code(lockCode)
                 lockDecl = cxx_writer.writer_code.Method('lockRegs_' + pipeStage.name, lockBody, cxx_writer.writer_code.voidType, 'pu')

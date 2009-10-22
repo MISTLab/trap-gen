@@ -795,8 +795,6 @@ class Processor:
                     hazardStageName = i.name
                 elif i.endHazard:
                     wbStageName = i.name
-                if hazardStageName == 'default':
-                    beforeCheck.append(i.name)
             newOutRegs = {}
             for stage, regs in instruction.specialOutRegs.items():
                 if stage == 'default':
@@ -811,8 +809,6 @@ class Processor:
                     stage = hazardStageName
                 if not stage in pipeStageName:
                     raise Exception('Stage ' + stage + ' specified for special register of instruction ' + name + ' does not exists')
-                if not stage in beforeCheck:
-                    stage = hazardStageName
                 newInRegs[stage] = regs
             instruction.specialInRegs = newInRegs
 

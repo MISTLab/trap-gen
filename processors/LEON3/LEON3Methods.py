@@ -47,10 +47,53 @@ import cxx_writer
 # instructions, but which can be called by the instruction body
 # *******
 
-def updateAliasCode():
-    code = """#ifndef ACC_MODEL
+from LEONDefs import *
+
+def updateAliasCode_abi():
+    return """
+    //ABI model: we simply immediately update the alias
     for(int i = 8; i < 32; i++){
-        REGS[i].updateAlias(WINREGS[(newCwp*16 + i - 8) % (16*NUM_REG_WIN)]);
+        REGS[i].updateAlias(WINREGS[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
+    }
+    """
+
+def updateAliasCode_execute():
+    code = """#ifndef ACC_MODEL
+    //Functional model: we simply immediately update the alias
+    for(int i = 8; i < 32; i++){
+        REGS[i].updateAlias(WINREGS[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
+    }
+    #else
+    //Cycle accurate model: we have to update the alias using the pipeline register
+    //We update the aliases for this stage and for all the preceding ones (we are in the
+    //execute stage and we need to update fetch, decode, and register read and execute)
+    for(int i = 8; i < 32; i++){
+        REGS_fetch[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
+        REGS_decode[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
+        REGS_regs[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
+        REGS_execute[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
+    }
+    #endif
+    """
+    return code
+
+def updateAliasCode_exception():
+    code = """#ifndef ACC_MODEL
+    //Functional model: we simply immediately update the alias
+    for(int i = 8; i < 32; i++){
+        REGS[i].updateAlias(WINREGS[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
+    }
+    #else
+    //Cycle accurate model: we have to update the alias using the pipeline register
+    //We update the aliases for this stage and for all the preceding ones (we are in the
+    //execute stage and we need to update fetch, decode, and register read and execute)
+    for(int i = 8; i < 32; i++){
+        REGS_fetch[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
+        REGS_decode[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
+        REGS_regs[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
+        REGS_execute[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
+        REGS_memory[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
+        REGS_exception[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
     }
     #endif
     """
@@ -64,9 +107,9 @@ newCwp = ((unsigned int)(PSR[key_CWP] + 1)) % NUM_REG_WIN;
 if(((0x01 << (newCwp)) & WIM) != 0){
     return false;
 }
-PSRbp = (PSR & 0xFFFFFFE0) | newCwp;
+PSR = (PSR & 0xFFFFFFE0) | newCwp;
 """
-IncrementRegWindow_code += updateAliasCode()
+IncrementRegWindow_code += updateAliasCode_execute()
 IncrementRegWindow_code += 'return true;'
 opCode = cxx_writer.writer_code.Code(IncrementRegWindow_code)
 IncrementRegWindow_method = trap.HelperMethod('IncrementRegWindow', opCode, 'execute')
@@ -80,9 +123,9 @@ newCwp = ((unsigned int)(PSR[key_CWP] - 1)) % NUM_REG_WIN;
 if(((0x01 << (newCwp)) & WIM) != 0){
     return false;
 }
-PSRbp = (PSR & 0xFFFFFFE0) | newCwp;
+PSR = (PSR & 0xFFFFFFE0) | newCwp;
 """
-DecrementRegWindow_code += updateAliasCode()
+DecrementRegWindow_code += updateAliasCode_execute()
 DecrementRegWindow_code += 'return true;'
 opCode = cxx_writer.writer_code.Code(DecrementRegWindow_code)
 DecrementRegWindow_method = trap.HelperMethod('DecrementRegWindow', opCode, 'execute')
@@ -117,11 +160,10 @@ else{
     curPSR &= 0xffffffdf;
     unsigned int newCwp = ((unsigned int)(PSR[key_CWP] - 1)) % NUM_REG_WIN;
 """
-raiseExcCode += updateAliasCode()
+raiseExcCode += updateAliasCode_exception()
 raiseExcCode +=  """
     curPSR = (curPSR & 0xffffffe0) + newCwp;
     PSR = curPSR;
-    PSRbp = curPSR;
     #ifdef ACC_MODEL
     REGS[17] = PC;
     REGS[18] = NPC;
@@ -289,77 +331,22 @@ WB_plain.addUserInstructionElement('rd')
 # Write back of the result of most operations, expecially ALUs;
 # such operations also modify the PSR
 opCode = cxx_writer.writer_code.Code("""
-rd = result;
-PSR = (PSR & 0xff0fffff) | (PSRbp & 0x00f00000);
-""")
-WB_icc = trap.HelperOperation('WB_icc', opCode)
-WB_icc.addInstuctionVar(('result', 'BIT<32>'))
-WB_icc.addUserInstructionElement('rd')
-
-# Write back of the result of most operations, expecially ALUs;
-# such operations also modify the PSR
-opCode = cxx_writer.writer_code.Code("""
 if(!temp_V){
     rd = result;
-    PSR = (PSR & 0xff0fffff) | (PSRbp & 0x00f00000);
 }
 """)
-WB_icctv = trap.HelperOperation('WB_icctv', opCode)
-WB_icctv.addInstuctionVar(('result', 'BIT<32>'))
-WB_icctv.addInstuctionVar(('temp_V', 'BIT<1>'))
-WB_icctv.addUserInstructionElement('rd')
-
-# Write back of the result of mutiplication operations
-# which modify the ICC conditions codes and the Y register
-opCode = cxx_writer.writer_code.Code("""
-rd = result;
-PSR = (PSR & 0xff0fffff) | (PSRbp & 0x00f00000);
-Y = Ybp;
-""")
-WB_yicc = trap.HelperOperation('WB_yicc', opCode)
-WB_yicc.addInstuctionVar(('result', 'BIT<32>'))
-WB_yicc.addUserInstructionElement('rd')
-
-# Write back of the result of MAC operations
-# which modify the ICC conditions codes, the Y register, and ASR[18]
-opCode = cxx_writer.writer_code.Code("""
-rd = result;
-PSR = (PSR & 0xff0fffff) | (PSRbp & 0x00f00000);
-Y = Ybp;
-ASR[18] = ASR18bp;
-""")
-WB_yiccasr = trap.HelperOperation('WB_yiccasr', opCode)
-WB_yiccasr.addInstuctionVar(('result', 'BIT<32>'))
-WB_yiccasr.addUserInstructionElement('rd')
-
-# Write back of the result of MAC operations
-# which modify the Y register, and ASR[18]
-opCode = cxx_writer.writer_code.Code("""
-rd = result;
-Y = Ybp;
-ASR[18] = ASR18bp;
-""")
-WB_yasr = trap.HelperOperation('WB_yasr', opCode)
-WB_yasr.addInstuctionVar(('result', 'BIT<32>'))
-WB_yasr.addUserInstructionElement('rd')
-
-# Write back of the normal of mutiplication operations
-# which modify the Y register
-opCode = cxx_writer.writer_code.Code("""
-rd = result;
-Y = Ybp;
-""")
-WB_y = trap.HelperOperation('WB_y', opCode)
-WB_y.addInstuctionVar(('result', 'BIT<32>'))
-WB_y.addUserInstructionElement('rd')
+WB_tv = trap.HelperOperation('WB_tv', opCode)
+WB_tv.addInstuctionVar(('result', 'BIT<32>'))
+WB_tv.addInstuctionVar(('temp_V', 'BIT<1>'))
+WB_tv.addUserInstructionElement('rd')
 
 # Modification of the Integer Condition Codes of the Processor Status Register
 # after an logical operation or after the multiply operation
 opCode = cxx_writer.writer_code.Code("""
-PSRbp[key_ICC_n] = ((result & 0x80000000) >> 31);
-PSRbp[key_ICC_z] = (result == 0);
-PSRbp[key_ICC_v] = 0;
-PSRbp[key_ICC_c] = 0;
+PSR[key_ICC_n] = ((result & 0x80000000) >> 31);
+PSR[key_ICC_z] = (result == 0);
+PSR[key_ICC_v] = 0;
+PSR[key_ICC_c] = 0;
 """)
 ICC_writeLogic = trap.HelperOperation('ICC_writeLogic', opCode)
 ICC_writeLogic.addInstuctionVar(('result', 'BIT<32>'))
@@ -367,10 +354,10 @@ ICC_writeLogic.addInstuctionVar(('result', 'BIT<32>'))
 # Modification of the Integer Condition Codes of the Processor Status Register
 # after an addition operation
 opCode = cxx_writer.writer_code.Code("""
-PSRbp[key_ICC_n] = ((result & 0x80000000) >> 31);
-PSRbp[key_ICC_z] = (result == 0);
-PSRbp[key_ICC_v] = ((unsigned int)((rs1_op & rs2_op & (~result)) | ((~rs1_op) & (~rs2_op) & result))) >> 31;
-PSRbp[key_ICC_c] = ((unsigned int)((rs1_op & rs2_op) | ((rs1_op | rs2_op) & (~result)))) >> 31;
+PSR[key_ICC_n] = ((result & 0x80000000) >> 31);
+PSR[key_ICC_z] = (result == 0);
+PSR[key_ICC_v] = ((unsigned int)((rs1_op & rs2_op & (~result)) | ((~rs1_op) & (~rs2_op) & result))) >> 31;
+PSR[key_ICC_c] = ((unsigned int)((rs1_op & rs2_op) | ((rs1_op | rs2_op) & (~result)))) >> 31;
 """)
 ICC_writeAdd = trap.HelperOperation('ICC_writeAdd', opCode)
 ICC_writeAdd.addInstuctionVar(('result', 'BIT<32>'))
@@ -380,10 +367,10 @@ ICC_writeAdd.addInstuctionVar(('rs2_op', 'BIT<32>'))
 # Modification of the Integer Condition Codes of the Processor Status Register
 # after a tagged addition operation
 opCode = cxx_writer.writer_code.Code("""
-PSRbp[key_ICC_n] = ((result & 0x80000000) >> 31);
-PSRbp[key_ICC_z] = (result == 0);
-PSRbp[key_ICC_v] = temp_V;
-PSRbp[key_ICC_c] = ((unsigned int)((rs1_op & rs2_op) | ((rs1_op | rs2_op) & (~result)))) >> 31;
+PSR[key_ICC_n] = ((result & 0x80000000) >> 31);
+PSR[key_ICC_z] = (result == 0);
+PSR[key_ICC_v] = temp_V;
+PSR[key_ICC_c] = ((unsigned int)((rs1_op & rs2_op) | ((rs1_op | rs2_op) & (~result)))) >> 31;
 """)
 ICC_writeTAdd = trap.HelperOperation('ICC_writeTAdd', opCode)
 ICC_writeTAdd.addInstuctionVar(('result', 'BIT<32>'))
@@ -394,10 +381,10 @@ ICC_writeTAdd.addInstuctionVar(('rs2_op', 'BIT<32>'))
 # Modification of the Integer Condition Codes of the Processor Status Register
 # after a division operation
 opCode = cxx_writer.writer_code.Code("""
-PSRbp[key_ICC_n] = ((result & 0x80000000) >> 31);
-PSRbp[key_ICC_z] = (result == 0);
-PSRbp[key_ICC_v] = temp_V;
-PSRbp[key_ICC_c] = 0;
+PSR[key_ICC_n] = ((result & 0x80000000) >> 31);
+PSR[key_ICC_z] = (result == 0);
+PSR[key_ICC_v] = temp_V;
+PSR[key_ICC_c] = 0;
 """)
 ICC_writeDiv = trap.HelperOperation('ICC_writeDiv', opCode)
 ICC_writeDiv.addInstuctionVar(('result', 'BIT<32>'))
@@ -409,10 +396,10 @@ ICC_writeDiv.addInstuctionVar(('rs2_op', 'BIT<32>'))
 # after a tagged addition operation
 opCode = cxx_writer.writer_code.Code("""
 if(!temp_V){
-    PSRbp[key_ICC_n] = ((result & 0x80000000) >> 31);
-    PSRbp[key_ICC_z] = (result == 0);
-    PSRbp[key_ICC_v] = 0;
-    PSRbp[key_ICC_c] = ((unsigned int)((rs1_op & rs2_op) | ((rs1_op | rs2_op) & (~result)))) >> 31;
+    PSR[key_ICC_n] = ((result & 0x80000000) >> 31);
+    PSR[key_ICC_z] = (result == 0);
+    PSR[key_ICC_v] = 0;
+    PSR[key_ICC_c] = ((unsigned int)((rs1_op & rs2_op) | ((rs1_op | rs2_op) & (~result)))) >> 31;
 }
 """)
 ICC_writeTVAdd = trap.HelperOperation('ICC_writeTVAdd', opCode)
@@ -424,10 +411,10 @@ ICC_writeTVAdd.addInstuctionVar(('rs2_op', 'BIT<32>'))
 # Modification of the Integer Condition Codes of the Processor Status Register
 # after a subtraction operation
 opCode = cxx_writer.writer_code.Code("""
-PSRbp[key_ICC_n] = ((result & 0x80000000) >> 31);
-PSRbp[key_ICC_z] = (result == 0);
-PSRbp[key_ICC_v] = ((unsigned int)((rs1_op & (~rs2_op) & (~result)) | ((~rs1_op) & rs2_op & result))) >> 31;
-PSRbp[key_ICC_c] = ((unsigned int)(((~rs1_op) & rs2_op) | (((~rs1_op) | rs2_op) & result))) >> 31;
+PSR[key_ICC_n] = ((result & 0x80000000) >> 31);
+PSR[key_ICC_z] = (result == 0);
+PSR[key_ICC_v] = ((unsigned int)((rs1_op & (~rs2_op) & (~result)) | ((~rs1_op) & rs2_op & result))) >> 31;
+PSR[key_ICC_c] = ((unsigned int)(((~rs1_op) & rs2_op) | (((~rs1_op) | rs2_op) & result))) >> 31;
 """)
 ICC_writeSub = trap.HelperOperation('ICC_writeSub', opCode)
 ICC_writeSub.addInstuctionVar(('result', 'BIT<32>'))
@@ -437,10 +424,10 @@ ICC_writeSub.addInstuctionVar(('rs2_op', 'BIT<32>'))
 # Modification of the Integer Condition Codes of the Processor Status Register
 # after a tagged subtraction operation
 opCode = cxx_writer.writer_code.Code("""
-PSRbp[key_ICC_n] = ((result & 0x80000000) >> 31);
-PSRbp[key_ICC_z] = (result == 0);
-PSRbp[key_ICC_v] = temp_V;
-PSRbp[key_ICC_c] = ((unsigned int)(((~rs1_op) & rs2_op) | (((~rs1_op) | rs2_op) & result))) >> 31;
+PSR[key_ICC_n] = ((result & 0x80000000) >> 31);
+PSR[key_ICC_z] = (result == 0);
+PSR[key_ICC_v] = temp_V;
+PSR[key_ICC_c] = ((unsigned int)(((~rs1_op) & rs2_op) | (((~rs1_op) | rs2_op) & result))) >> 31;
 """)
 ICC_writeTSub = trap.HelperOperation('ICC_writeTSub', opCode)
 ICC_writeTSub.addInstuctionVar(('result', 'BIT<32>'))
@@ -452,10 +439,10 @@ ICC_writeTSub.addInstuctionVar(('rs2_op', 'BIT<32>'))
 # after a tagged subtraction operation
 opCode = cxx_writer.writer_code.Code("""
 if(!temp_V){
-    PSRbp[key_ICC_n] = ((result & 0x80000000) >> 31);
-    PSRbp[key_ICC_z] = (result == 0);
-    PSRbp[key_ICC_v] = temp_V;
-    PSRbp[key_ICC_c] = ((unsigned int)(((~rs1_op) & rs2_op) | (((~rs1_op) | rs2_op) & result))) >> 31;
+    PSR[key_ICC_n] = ((result & 0x80000000) >> 31);
+    PSR[key_ICC_z] = (result == 0);
+    PSR[key_ICC_v] = temp_V;
+    PSR[key_ICC_c] = ((unsigned int)(((~rs1_op) & rs2_op) | (((~rs1_op) | rs2_op) & result))) >> 31;
 }
 """)
 ICC_writeTVSub = trap.HelperOperation('ICC_writeTVSub', opCode)

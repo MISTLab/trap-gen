@@ -53,6 +53,7 @@ def getCPPIf(self, model, namespace):
 
     wordType = self.bitSizes[1]
     includes = wordType.getIncludes()
+    pipeRegisterType = cxx_writer.writer_code.Type('PipelineRegister', 'registers.hpp')
 
     ifClassElements = []
     initElements = []
@@ -68,15 +69,25 @@ def getCPPIf(self, model, namespace):
         baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(memName, memIfType.makeRef()))
         initElements.append(memName + '(' + memName + ')')
     for reg in self.regs:
-        attribute = cxx_writer.writer_code.Attribute(reg.name, resourceType[reg.name].makeRef(), 'pri')
-        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(reg.name, resourceType[reg.name].makeRef()))
+        if model.startswith('acc'):
+            curRegBType = pipeRegisterType
+        else:
+            curRegBType = resourceType[reg.name]
+        attribute = cxx_writer.writer_code.Attribute(reg.name, curRegBType.makeRef(), 'pri')
+        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(reg.name, curRegBType.makeRef()))
         initElements.append(reg.name + '(' + reg.name + ')')
         ifClassElements.append(attribute)
     for regB in self.regBanks:
         if (regB.constValue and len(regB.constValue) < regB.numRegs)  or ((regB.delay and len(regB.delay) < regB.numRegs) and not model.startswith('acc')):
-            curRegBType = resourceType[regB.name].makeRef()
+            if model.startswith('acc'):
+                curRegBType = pipeRegisterType.makePointer()
+            else:
+                curRegBType = resourceType[regB.name].makeRef()
         else:
-            curRegBType = resourceType[regB.name]
+            if model.startswith('acc'):
+                curRegBType = pipeRegisterType.makePointer()
+            else:
+                curRegBType = resourceType[regB.name]
         attribute = cxx_writer.writer_code.Attribute(regB.name, curRegBType, 'pri')
         baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(regB.name, curRegBType))
         initElements.append(regB.name + '(' + regB.name + ')')

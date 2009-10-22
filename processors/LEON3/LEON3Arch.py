@@ -55,6 +55,11 @@ import cxx_writer
 # so we use the import trick
 import LEON3Isa
 import LEON3Tests
+from LEONDefs import *
+# Code used to move to a new register window
+from LEON3Methods import updateAliasCode_execute
+from LEON3Methods import updateAliasCode_exception
+from LEON3Methods import updateAliasCode_abi
 
 # Lets now start building the processor
 processor = trap.Processor('LEON3', version = '0.1.0', systemc = True, instructionCache = True, cacheLimit = 256)
@@ -64,26 +69,12 @@ processor.setISA(LEON3Isa.isa) # lets set the instruction set
 
 # Ok, now we move to the description of more complicated processor
 # resources
-# Number of register windows, between 2 and 32, default is 8 for LEON3
-numRegWindows = 8
-# pipelined multiplication unit
-pipelinedMult = False
-LEON3Isa.pipelinedMult = pipelinedMult
-
-# Code used to move to a new register window
-updateWinCode = """
-#ifndef ACC_MODEL
-for(int i = 8; i < 32; i++){
-    REGS[i].updateAlias(WINREGS[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
-}
-#endif
-"""
 
 # Here I add a constant to the instruction set so that it can be used from the code implementing
 # the various instructions
 # Number of defined register windows
 LEON3Isa.isa.addConstant(cxx_writer.writer_code.uintType, 'NUM_REG_WIN', numRegWindows)
-# Specifies whether the
+# Specifies whether the multiplier unit is pipelined or not
 if pipelinedMult:
     LEON3Isa.isa.addConstant(cxx_writer.writer_code.boolType, 'PIPELINED_MULT', 'true')
 else:
@@ -150,16 +141,16 @@ processor.addRegBank(asrRegs)
 # to the register file.
 # PSR forwarding is done for ICC code towards BRANCH and
 # ALU instruction which need it.
-psrBypassReg = trap.Register('PSRbp', 32, psrBitMask)
-processor.addRegister(psrBypassReg)
-# The forwarding for the Y register is performed for
-# all ALU operations which use Y.
-yBypassReg = trap.Register('Ybp', 32)
-processor.addRegister(yBypassReg)
-# The forwarding for the ASR[18] register is performed for
-# the MAC operation which use the ASR register
-ASR18BypassReg = trap.Register('ASR18bp', 32)
-processor.addRegister(ASR18BypassReg)
+#####psrBypassReg = trap.Register('PSRbp', 32, psrBitMask)
+#####processor.addRegister(psrBypassReg)
+###### The forwarding for the Y register is performed for
+###### all ALU operations which use Y.
+#####yBypassReg = trap.Register('Ybp', 32)
+#####processor.addRegister(yBypassReg)
+###### The forwarding for the ASR[18] register is performed for
+###### the MAC operation which use the ASR register
+#####ASR18BypassReg = trap.Register('ASR18bp', 32)
+#####processor.addRegister(ASR18BypassReg)
 
 # Now I set the alias: they can (and will) be used by the instructions
 # to access the registers more easily. Note that, in general, it is
@@ -180,7 +171,7 @@ processor.addAliasReg(PCR)
 LEON3Isa.isa.addTraceRegister(pcReg)
 LEON3Isa.isa.addTraceRegister(npcReg)
 LEON3Isa.isa.addTraceRegister(psrReg)
-LEON3Isa.isa.addTraceRegister(psrBypassReg)
+#LEON3Isa.isa.addTraceRegister(psrBypassReg)
 LEON3Isa.isa.addTraceRegister(regs)
 LEON3Isa.isa.addTraceRegister(tbrReg)
 LEON3Isa.isa.addTraceRegister(wimReg)
@@ -237,9 +228,8 @@ irqPort.setOperation("""//Basically, what I have to do when
 //acknowledge the IRQ on the irqAck port.
 // First of all I have to move to a new register window
 unsigned int newCwp = ((unsigned int)(PSR[key_CWP] - 1)) % NUM_REG_WIN;
-PSRbp = (PSR & 0xFFFFFFE0) | newCwp;
-PSR.immediateWrite(PSRbp);
-""" + updateWinCode + """
+PSR.immediateWrite((PSR & 0xFFFFFFE0) | newCwp);
+""" + updateAliasCode_exception() + """
 // Now I set the TBR
 TBR[key_TT] = 0x10 + IRQ;
 // I have to jump to the address contained in the TBR register
@@ -291,16 +281,14 @@ abi.addVarRegsCorrespondence({'REGS[0-31]': (0, 31), 'Y': 64, 'PSR': 65, 'WIM': 
 # systemcalls ?????
 pre_code = """
 unsigned int newCwp = ((unsigned int)(PSR[key_CWP] - 1)) % """ + str(numRegWindows) + """;
-PSRbp = (PSR & 0xFFFFFFE0) | newCwp;
-PSR.immediateWrite(PSRbp);
+PSR.immediateWrite((PSR & 0xFFFFFFE0) | newCwp);
 """
-pre_code += updateWinCode
+pre_code += updateAliasCode_abi()
 post_code = """
 unsigned int newCwp = ((unsigned int)(PSR[key_CWP] + 1)) % """ + str(numRegWindows) + """;
-PSRbp = (PSR & 0xFFFFFFE0) | newCwp;
-PSR.immediateWrite(PSRbp);
+PSR.immediateWrite((PSR & 0xFFFFFFE0) | newCwp);
 """
-post_code += updateWinCode
+post_code += updateAliasCode_abi()
 abi.processorID('(ASR[17] & 0xF0000000) >> 28')
 abi.setECallPreCode(pre_code)
 abi.setECallPostCode(post_code)

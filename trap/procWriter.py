@@ -368,47 +368,59 @@ def procInitCode(self, model):
     # registers, aliases, etc.
     initString = ''
     for elem in self.regBanks + self.aliasRegBanks:
-        curId = 0
+        # First of all I check that the initialization is the default one: in case it is,
+        # I can write more compact code
+        writeCompact = True
         for defValue in elem.defValues:
-            try:
-                if curId in elem.constValue.keys():
-                    curId += 1
-                    continue
-            except AttributeError:
-                pass
-            if defValue != None:
+            if defValue != 0:
+                writeCompact = False
+                break
+        if writeCompact:
+            initString += 'for(int i = 0; i < ' + str(elem.numRegs) + '; i++){\n'
+            initString += elem.name + '[i] = 0;\n'
+            initString += '}\n'
+        else:
+            curId = 0
+            for defValue in elem.defValues:
                 try:
-                    if not type(defValue) == type(''):
-                        enumerate(defValue)
-                        # ok, the element is iterable, so it is an initialization
-                        # with a constant and an offset
-                        initString += elem.name + '[' + str(curId) + ']'
-                        if model.startswith('acc'):
-                            initString += ' = '
-                        else:
-                            initString += '.immediateWrite('
-                        initString += str(defValue[0]) + ' + ' + str(defValue[1])
-                        if model.startswith('acc'):
-                            initString += ';\n'
-                        else:
-                            initString += ');\n'
+                    if curId in elem.constValue.keys():
+                        curId += 1
                         continue
-                except TypeError:
+                except AttributeError:
                     pass
-                initString += elem.name + '[' + str(curId) + ']'
-                if model.startswith('acc'):
-                    initString += ' = '
-                else:
-                    initString += '.immediateWrite('
-                try:
-                    initString += hex(defValue)
-                except TypeError:
-                    initString += str(defValue)
-                if model.startswith('acc'):
-                    initString += ';\n'
-                else:
-                    initString += ');\n'
-            curId += 1
+                if defValue != None:
+                    try:
+                        if not type(defValue) == type(''):
+                            enumerate(defValue)
+                            # ok, the element is iterable, so it is an initialization
+                            # with a constant and an offset
+                            initString += elem.name + '[' + str(curId) + ']'
+                            if model.startswith('acc'):
+                                initString += ' = '
+                            else:
+                                initString += '.immediateWrite('
+                            initString += str(defValue[0]) + ' + ' + str(defValue[1])
+                            if model.startswith('acc'):
+                                initString += ';\n'
+                            else:
+                                initString += ');\n'
+                            continue
+                    except TypeError:
+                        pass
+                    initString += elem.name + '[' + str(curId) + ']'
+                    if model.startswith('acc'):
+                        initString += ' = '
+                    else:
+                        initString += '.immediateWrite('
+                    try:
+                        initString += hex(defValue)
+                    except TypeError:
+                        initString += str(defValue)
+                    if model.startswith('acc'):
+                        initString += ';\n'
+                    else:
+                        initString += ');\n'
+                curId += 1
     for elem in self.regs + self.aliasRegs:
         try:
             if elem.constValue != None:
@@ -488,12 +500,18 @@ def createRegsAttributes(self, model, processorElements, initElements, bodyAlias
                 processorElements.append(attribute)
                 bodyInits += 'this->' + reg.name + '_pipe.setRegister(&' + reg.name + '_' + pipeStage.name + ', ' + str(pipeCount) + ');\n'
                 pipeCount += 1
-            attribute = cxx_writer.writer_code.Attribute(reg.name + '_pipe', pipeRegisterType, 'pu')
+            if reg.wbStageOrder:
+                # The atribute is of a special type since write back has to be performed in
+                # a special order
+                customPipeRegisterType = cxx_writer.writer_code.Type('PipelineRegister_' + str(reg.wbStageOrder)[1:-1].replace(', ', '_').replace('\'', ''), 'registers.hpp')
+                attribute = cxx_writer.writer_code.Attribute(reg.name + '_pipe', customPipeRegisterType, 'pu')
+            else:
+                attribute = cxx_writer.writer_code.Attribute(reg.name + '_pipe', pipeRegisterType, 'pu')
             processorElements.append(attribute)
         if self.abi:
             abiIfInit += 'this->' + reg.name
             if model.startswith('acc'):
-                abiIfInit += '_' + checkToolPipeStage.name
+                abiIfInit += '_pipe'
             abiIfInit += ', '
     bodyInits += '// Initialization of the register banks\n'
     for regB in self.regBanks:
@@ -542,7 +560,7 @@ def createRegsAttributes(self, model, processorElements, initElements, bodyAlias
         if self.abi:
             abiIfInit += 'this->' + regB.name
             if model.startswith('acc'):
-                abiIfInit += '_' + checkToolPipeStage.name
+                abiIfInit += '_pipe'
             abiIfInit += ', '
     bodyInits += '// Initialization of the aliases (plain and banks)\n'
     for alias in self.aliasRegs:
@@ -618,18 +636,19 @@ def createRegsAttributes(self, model, processorElements, initElements, bodyAlias
         if self.abi:
             abiIfInit += 'this->' + alias.name
             if model.startswith('acc'):
-                abiIfInit += '_' + checkToolPipeStage.name
+                abiIfInit += '_' + self.pipes[-1].name
             abiIfInit += ', '
     for aliasB in self.aliasRegBanks:
         bodyAliasInit[aliasB.name] = ''
         if model.startswith('acc'):
+            bodyAliasInit[aliasB.name] += 'for(int i = 0; i < ' + str(aliasB.numRegs) + '; i++){\n'
             curStageId = 0
             for pipeStage in self.pipes:
                 attribute = cxx_writer.writer_code.Attribute(aliasB.name + '_' + pipeStage.name + '[' + str(aliasB.numRegs) + ']', resourceType[aliasB.name], 'pu')
                 processorElements.append(attribute)
-                bodyAliasInit[aliasB.name] += 'for(int i = 0; i < ' + str(aliasB.numRegs) + '; i++){\n'
-                bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '_' + pipeStage.name + '[i].setPipeId(' + str(curStageId) + ');\n}\n'
+                bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '_' + pipeStage.name + '[i].setPipeId(' + str(curStageId) + ');\n'
                 curStageId += 1
+            bodyAliasInit[aliasB.name] += '}\n'
         else:
             attribute = cxx_writer.writer_code.Attribute(aliasB.name + '[' + str(aliasB.numRegs) + ']', resourceType[aliasB.name], 'pu')
             processorElements.append(attribute)
@@ -638,15 +657,16 @@ def createRegsAttributes(self, model, processorElements, initElements, bodyAlias
             index = extractRegInterval(aliasB.initAlias)
             curIndex = index[0]
             if model.startswith('acc'):
+                bodyAliasInit[aliasB.name] += 'for(int  i = 0; i < ' + str(aliasB.numRegs) + 'i++){\n'
                 for pipeStage in self.pipes:
                     offsetStr = ''
                     if index[0] != 0:
                         offsetStr = ' + ' + str(index[0])
-                    bodyAliasInit[aliasB.name] += 'for(int  i = 0; i < ' + str(aliasB.numRegs) + 'i++){\n'
                     if aliasB.initAlias[:aliasB.initAlias.find('[')] in regsNames:
                         bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '_' + pipeStage.name + '[i].updateAlias(this->' + aliasB.initAlias[:aliasB.initAlias.find('[')] + '_pipe[i' + offsetStr + ']);\n}\n'
                     else:
-                        bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '_' + pipeStage.name + '[i].updateAlias(this->' + aliasB.initAlias[:aliasB.initAlias.find('[')] + '_' + pipeStage.name + '[i' + offsetStr + ']);\n}\n'
+                        bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '_' + pipeStage.name + '[i].updateAlias(this->' + aliasB.initAlias[:aliasB.initAlias.find('[')] + '_' + pipeStage.name + '[i' + offsetStr + ']);\n'
+                bodyAliasInit[aliasB.name] += '}\n'
             else:
                 for i in range(0, aliasB.numRegs):
                     bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '[' + str(i) + '].updateAlias(this->' + aliasB.initAlias[:aliasB.initAlias.find('[')] + '[' + str(curIndex) + ']'
@@ -656,30 +676,30 @@ def createRegsAttributes(self, model, processorElements, initElements, bodyAlias
                     curIndex += 1
         else:
             if model.startswith('acc'):
-                for pipeStage in self.pipes:
-                    curIndex = 0
-                    for curAlias in aliasB.initAlias:
-                        index = extractRegInterval(curAlias)
-                        if index:
-                            offsetStr = ''
-                            if index[0] != 0:
-                                offsetStr = ' + ' + str(index[0])
-                            indexStr = ''
-                            if curIndex != 0:
-                                indexStr = ' + ' + str(curIndex)
-                            bodyAliasInit[aliasB.name] += 'for(int i = 0; i < ' + str(index[1] + 1 - index[0]) + '; i++){\n'
+                curIndex = 0
+                for curAlias in aliasB.initAlias:
+                    index = extractRegInterval(curAlias)
+                    if index:
+                        offsetStr = ''
+                        if index[0] != 0:
+                            offsetStr = ' + ' + str(index[0])
+                        indexStr = ''
+                        if curIndex != 0:
+                            indexStr = ' + ' + str(curIndex)
+                        bodyAliasInit[aliasB.name] += 'for(int i = 0; i < ' + str(index[1] + 1 - index[0]) + '; i++){\n'
+                        for pipeStage in self.pipes:
                             if curAlias[:curAlias.find('[')] in regsNames:
                                 bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '_' + pipeStage.name + '[i' + indexStr + '].updateAlias(this->' + curAlias[:curAlias.find('[')] + '_pipe[i' + offsetStr + ']);\n'
                             else:
                                 bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '_' + pipeStage.name + '[i' + indexStr + '].updateAlias(this->' + curAlias[:curAlias.find('[')] + '_' + pipeStage.name +'[i' + offsetStr + ']);\n'
-                            bodyAliasInit[aliasB.name] += '}\n'
-                            curIndex += index[1] + 1 - index[0]
+                        bodyAliasInit[aliasB.name] += '}\n'
+                        curIndex += index[1] + 1 - index[0]
+                    else:
+                        if curAlias in regsNames:
+                            bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '_' + pipeStage.name + '[' + str(curIndex) + '].updateAlias(this->' + curAlias + '_pipe);\n'
                         else:
-                            if curAlias in regsNames:
-                                bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '_' + pipeStage.name + '[' + str(curIndex) + '].updateAlias(this->' + curAlias + '_pipe);\n'
-                            else:
-                                bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '_' + pipeStage.name + '[' + str(curIndex) + '].updateAlias(this->' + curAlias + '_' + pipeStage.name + ');\n'
-                            curIndex += 1
+                            bodyAliasInit[aliasB.name] += 'this->' + aliasB.name + '_' + pipeStage.name + '[' + str(curIndex) + '].updateAlias(this->' + curAlias + '_' + pipeStage.name + ');\n'
+                        curIndex += 1
             else:
                 curIndex = 0
                 for curAlias in aliasB.initAlias:
@@ -700,7 +720,7 @@ def createRegsAttributes(self, model, processorElements, initElements, bodyAlias
         if self.abi:
             abiIfInit += 'this->' + aliasB.name
             if model.startswith('acc'):
-                abiIfInit += '_' + checkToolPipeStage.name
+                abiIfInit += '_' + self.pipes[-1].name
             abiIfInit += ', '
 
     # Finally I eliminate the last comma from the ABI initialization

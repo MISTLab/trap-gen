@@ -221,12 +221,14 @@ def getCPPMemoryIf(self, model, namespace):
         # Here I have a local memory with debugging enabled.
         dumpCode1 = 'MemAccessType dumpInfo;\n'
         if not self.systemc and not model.startswith('acc')  and not model.endswith('AT'):
-            dumpCode += 'dumpInfo.simulationTime = curCycle;'
+            dumpCode += 'dumpInfo.simulationTime = curCycle;\n'
         else:
-            dumpCode += 'dumpInfo.simulationTime = sc_time_stamp().to_double();'
-        dumpCode += """
-dumpInfo.programCounter = this->""" + self.memory[3] + """;
-for(int i = 0; i < """
+            dumpCode += 'dumpInfo.simulationTime = sc_time_stamp().to_double();\n'
+        if self.memory[3]:
+            dumpCode += 'dumpInfo.programCounter = this->' + self.memory[3] + ';\n'
+        else:
+            dumpCode += 'dumpInfo.programCounter = 0;\n'
+        dumpCode += 'for(int i = 0; i < '
         dumpCode2 = """; i++){
     dumpInfo.address = address + i;
     dumpInfo.val = (char)((datum & (0xFF << i*8)) >> i*8);
@@ -285,9 +287,10 @@ for(int i = 0; i < """
         dumpFileAttribute = cxx_writer.writer_code.Attribute('dumpFile', cxx_writer.writer_code.ofstreamType, 'pri')
         memoryElements.append(dumpFileAttribute)
         memoryElements += aliasAttrs
-        memoryElements.append(cxx_writer.writer_code.Attribute(self.memory[3], resourceType[self.memory[3]].makeRef(), 'pri'))
-        pcRegParam = [cxx_writer.writer_code.Parameter(self.memory[3], resourceType[self.memory[3]].makeRef())]
-        pcRegInit = [self.memory[3] + '(' + self.memory[3] + ')']
+        if self.memory[3]:
+            memoryElements.append(cxx_writer.writer_code.Attribute(self.memory[3], resourceType[self.memory[3]].makeRef(), 'pri'))
+            pcRegParam = [cxx_writer.writer_code.Parameter(self.memory[3], resourceType[self.memory[3]].makeRef())]
+            pcRegInit = [self.memory[3] + '(' + self.memory[3] + ')']
         localMemDecl = cxx_writer.writer_code.ClassDeclaration('LocalMemory', memoryElements, [memoryIfDecl.getType()], namespaces = [namespace])
         constructorBody = cxx_writer.writer_code.Code("""this->memory = new char[size];
             this->debugger = NULL;
