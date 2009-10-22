@@ -798,6 +798,7 @@ ls_imm_Op.addUserInstructionElement('rn')
 ls_imm_Op.addUserInstructionElement('immediate')
 # Now I define the behavior for the Load/Store with register offset/index
 opCode = cxx_writer.writer_code.Code("""
+address = 0;
 if ((p == 1) && (w == 0)) {
     // offset
     if(u == 1){
