@@ -907,6 +907,7 @@ ldr_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 0, 'rn': 0, 'rd': 1, 'i
 ldr_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 1, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'dataMem[0x18]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x18})
 ldr_imm_Instr.addTest({'cond': 0xe, 'p': 1, 'u': 0, 'w': 1, 'rn': 0, 'rd': 1, 'immediate': 0x8}, {'REGS[0]' : 0x10, 'dataMem[0x08]': 123456}, {'REGS[1]' : 123456, 'REGS[0]' : 0x08})
 isa.addInstruction(ldr_imm_Instr)
+
 ldr_off_Instr = trap.Instruction('LDR_off', True, frequency = 7)
 ldr_off_Instr.setMachineCode(ls_regOff, {'b': [0], 'l': [1]}, 'TODO')
 ldr_off_Instr.setCode(opCode, 'execute')
@@ -3142,6 +3143,7 @@ sub_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rotate': 0, 'imm
 sub_imm_Instr.addTest({'cond': 0xe, 's': 0, 'rn': 9, 'rd': 10, 'rotate': 1, 'immediate': 2}, {'CPSR' : 0x20000000, 'REGS[9]': 0xf0000000}, {'CPSR' : 0x20000000, 'REGS[10]': 0x70000000})
 #condition does not satisfied
 sub_imm_Instr.addTest({'cond': 0x0, 's': 1, 'rn': 9, 'rd': 10, 'rotate': 1, 'immediate': 0xfc}, {'CPSR' : 0x20000000, 'REGS[9]': 1}, {'CPSR' : 0x20000000})
+
 isa.addInstruction(sub_imm_Instr)
 
 # TEQ instruction family
