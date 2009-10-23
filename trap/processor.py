@@ -865,14 +865,14 @@ class Processor:
                 if not stage in stageNames:
                     raise Exception('Pipeline stage ' + stage + ' declared for interrupt ' + irq.name + ' does not exist')
 
-    def getCPPRegisters(self, model, namespace):
+    def getCPPRegisters(self, trace, combinedTrace, model, namespace):
         # This method creates all the classes necessary for declaring
         # the registers: in particular the register base class
         # and all the classes for the different bitwidths
-        return registerWriter.getCPPRegisters(self, model, namespace)
+        return registerWriter.getCPPRegisters(self, trace, combinedTrace, model, namespace)
 
-    def getCPPPipelineReg(self, namespace):
-        return registerWriter.getCPPPipelineReg(self, namespace)
+    def getCPPPipelineReg(self, trace, combinedTrace, namespace):
+        return registerWriter.getCPPPipelineReg(self, trace, combinedTrace, namespace)
 
     def getRegistersBitfields(self):
         return registerWriter.getRegistersBitfields(self)
@@ -1038,7 +1038,7 @@ class Processor:
                 implFileDec.addMember(i)
                 headFileDec.addMember(i)
             implFileDec.addInclude('decoder.hpp')
-            RegClasses = self.getCPPRegisters(model, namespace)
+            RegClasses = self.getCPPRegisters(trace, combinedTrace, model, namespace)
             AliasClass = self.getCPPAlias(model, namespace)
             ProcClass = self.getCPPProc(model, trace, combinedTrace, namespace)
             if self.abi:

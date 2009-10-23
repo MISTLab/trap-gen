@@ -99,6 +99,33 @@ def updateAliasCode_exception():
     """
     return code
 
+# Methods used (just by the cycle accurate processor) to check that a register window is valid
+# when a decrement or an increment are performed
+checkIncrementWin_code = """
+unsigned int newCwp = ((unsigned int)(PSR[key_CWP] + 1)) % NUM_REG_WIN;
+if(((0x01 << (newCwp)) & WIM) != 0){
+    return false;
+}
+else{
+    return true;
+}
+"""
+opCode = cxx_writer.writer_code.Code(checkIncrementWin_code)
+checkIncrementWin_method = trap.HelperMethod('checkIncrementWin', opCode, 'regs')
+checkIncrementWin_method.setSignature(cxx_writer.writer_code.boolType)
+checkDecrementWin_code = """
+unsigned int newCwp = ((unsigned int)(PSR[key_CWP] - 1)) % NUM_REG_WIN;
+if(((0x01 << (newCwp)) & WIM) != 0){
+    return false;
+}
+else{
+    return true;
+}
+"""
+opCode = cxx_writer.writer_code.Code(checkDecrementWin_code)
+checkDecrementWin_method = trap.HelperMethod('checkDecrementWin', opCode, 'regs')
+checkDecrementWin_method.setSignature(cxx_writer.writer_code.boolType)
+
 # Method used to move to the next register window; this simply consists in
 # the check that there is an empty valid window and in the update of
 # the window aliases
@@ -165,12 +192,10 @@ raiseExcCode +=  """
     curPSR = (curPSR & 0xffffffe0) + newCwp;
     PSR = curPSR;
     #ifdef ACC_MODEL
-    REGS[17] = PC;
-    REGS[18] = NPC;
-    #else
-    REGS[17] = PC - 12;
-    REGS[18] = NPC - 4;
+    PSR_execute = curPSR;
     #endif
+    REGS[17] = pcounter;
+    REGS[18] = npcounter;
     switch(exceptionId){
         case RESET:{
         }break;
@@ -306,7 +331,10 @@ raiseExcCode +=  """
 }
 """
 RaiseException_method = trap.HelperMethod('RaiseException', cxx_writer.writer_code.Code(raiseExcCode), 'exception')
-RaiseException_methodParams = [cxx_writer.writer_code.Parameter('exceptionId', cxx_writer.writer_code.uintType)]
+RaiseException_methodParams = []
+RaiseException_methodParams.append(cxx_writer.writer_code.Parameter('pcounter', cxx_writer.writer_code.uintType))
+RaiseException_methodParams.append(cxx_writer.writer_code.Parameter('npcounter', cxx_writer.writer_code.uintType))
+RaiseException_methodParams.append(cxx_writer.writer_code.Parameter('exceptionId', cxx_writer.writer_code.uintType))
 RaiseException_methodParams.append(cxx_writer.writer_code.Parameter('customTrapOffset', cxx_writer.writer_code.uintType, initValue = '0'))
 RaiseException_method.setSignature(cxx_writer.writer_code.voidType, RaiseException_methodParams)
 
@@ -381,16 +409,17 @@ ICC_writeTAdd.addInstuctionVar(('rs2_op', 'BIT<32>'))
 # Modification of the Integer Condition Codes of the Processor Status Register
 # after a division operation
 opCode = cxx_writer.writer_code.Code("""
-PSR[key_ICC_n] = ((result & 0x80000000) >> 31);
-PSR[key_ICC_z] = (result == 0);
-PSR[key_ICC_v] = temp_V;
-PSR[key_ICC_c] = 0;
+if(!exception){
+    PSR[key_ICC_n] = ((result & 0x80000000) >> 31);
+    PSR[key_ICC_z] = (result == 0);
+    PSR[key_ICC_v] = temp_V;
+    PSR[key_ICC_c] = 0;
+}
 """)
 ICC_writeDiv = trap.HelperOperation('ICC_writeDiv', opCode)
+ICC_writeDiv.addInstuctionVar(('exception', 'BIT<1>'))
 ICC_writeDiv.addInstuctionVar(('result', 'BIT<32>'))
 ICC_writeDiv.addInstuctionVar(('temp_V', 'BIT<1>'))
-ICC_writeDiv.addInstuctionVar(('rs1_op', 'BIT<32>'))
-ICC_writeDiv.addInstuctionVar(('rs2_op', 'BIT<32>'))
 
 # Modification of the Integer Condition Codes of the Processor Status Register
 # after a tagged addition operation

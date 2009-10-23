@@ -164,7 +164,11 @@ def getInstrIssueCodePipe(self, trace, combinedTrace, instrVarName, hasCheckHaza
         codeString += 'flushAnnulled = this->curInstruction->flushPipeline;\n'
     if hasCheckHazard and unlockHazard:
         codeString +=  instrVarName + '->getUnlock_' + pipeStage.name + '(BasePipeStage::unlockQueue);\n'
-    codeString += """this->curInstruction = this->NOPInstrInstance;
+    codeString += """
+            if(""" + instrVarName + """->toDestroy){
+                delete """ + instrVarName + """;
+            }
+            this->curInstruction = this->NOPInstrInstance;
             numCycles = 0;
         }
         """
@@ -257,13 +261,14 @@ def fetchWithCacheCode(self, fetchCode, trace, combinedTrace, issueCodeGenerator
     # I have found the instruction in the cache
     codeString += """
     if(cachedInstr != instrCacheEnd){
-        Instruction * &curInstrPtr = cachedInstr->second.instr;
+        Instruction * curInstrPtr = cachedInstr->second.instr;
         // I can call the instruction, I have found it
         if(curInstrPtr != NULL){
     """
     if pipeStage:
         codeString += 'if(curInstrPtr->inPipeline){\n'
         codeString += 'curInstrPtr = curInstrPtr->replicate();\n'
+        codeString += 'curInstrPtr->setParams(bitString);\n'
         codeString += 'curInstrPtr->toDestroy = true;\n'
         codeString += '}\n'
         codeString += 'curInstrPtr->inPipeline = true;\n'
@@ -281,12 +286,19 @@ def fetchWithCacheCode(self, fetchCode, trace, combinedTrace, issueCodeGenerator
         }
         else{
             // ... and then add the instruction to the cache
-            curInstrPtr = instr;
+            cachedInstr->second.instr = instr;
     """
     if pipeStage:
-        codeString += pipeStage.name.upper() + '_PipeStage::INSTRUCTIONS[instrId] = instr->replicate();\n}\n'
+        codeString += """if(instr->toDestroy){
+                instr->toDestroy = false;
+            }
+            else{
+            """
+        codeString += pipeStage.name.upper() + '_PipeStage::INSTRUCTIONS[instrId] = instr->replicate();\n'
+        codeString += '}\n'
     else:
-        codeString += 'Processor::INSTRUCTIONS[instrId] = instr->replicate();\n}\n'
+        codeString += 'Processor::INSTRUCTIONS[instrId] = instr->replicate();\n'
+    codeString += '}\n'
 
     # and now finally I have found nothing and I have to add everything
     codeString += """}
@@ -463,10 +475,12 @@ def procInitCode(self, model):
         for reg in self.regs:
             for pipeStage in self.pipes:
                 initString += reg.name + '_' + pipeStage.name + ' = ' + reg.name + ';\n'
+            initString += reg.name + '_pipe.hasToPropagate = false;\n'
         for regB in self.regBanks:
             initString += 'for(int i = 0; i < ' + str(regB.numRegs) + '; i++){\n'
             for pipeStage in self.pipes:
                 initString += regB.name + '_' + pipeStage.name + '[i] = ' + regB.name + '[i];\n'
+            initString += regB.name + '_pipe[i].hasToPropagate = false;\n'
             initString += '}\n'
     for irqPort in self.irqs:
         initString += 'this->' + irqPort.name + ' = -1;\n'

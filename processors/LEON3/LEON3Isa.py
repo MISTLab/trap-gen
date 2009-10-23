@@ -53,6 +53,8 @@ isa.addMethod(IncrementRegWindow_method)
 isa.addMethod(DecrementRegWindow_method)
 isa.addMethod(SignExtend_method)
 isa.addMethod(RaiseException_method)
+isa.addMethod(checkIncrementWin_method)
+isa.addMethod(checkDecrementWin_method)
 
 # Now I add some useful definitions to be used inside the instructions; they will be
 # inserted as defines in the hpp and file of the instructions
@@ -133,6 +135,10 @@ NPC = npc;
 # I can actually declare the processor instructions
 #----------------------------------------------------------------------------------------------------
 #____________________________________________________________________________________________________
+opCodeReadPC = cxx_writer.writer_code.Code("""
+pcounter = PC;
+npcounter = NPC;
+""")
 
 opCodeRegsImm = cxx_writer.writer_code.Code("""
 address = rs1 + SignExtend(simm13, 13);
@@ -153,7 +159,7 @@ ldsb_imm_Instr.setVarField('rd', ('REGS', 0), 'out')
 ldsb_imm_Instr.setCode(opCodeRegsImm, 'regs')
 ldsb_imm_Instr.setCode(opCodeMem, 'memory')
 ldsb_imm_Instr.setCode(opCodeWb, 'wb')
-ldsb_imm_Instr.addBehavior(IncrementPC, 'fetch')
+ldsb_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 ldsb_imm_Instr.addVariable(('address', 'BIT<32>'))
 ldsb_imm_Instr.addVariable(('readValue', 'BIT<32>'))
 isa.addInstruction(ldsb_imm_Instr)
@@ -163,27 +169,31 @@ ldsb_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
 ldsb_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 ldsb_reg_Instr.setCode(opCodeMem, 'memory')
 ldsb_reg_Instr.setCode(opCodeWb, 'wb')
-ldsb_reg_Instr.addBehavior(IncrementPC, 'fetch')
+ldsb_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 ldsb_reg_Instr.addVariable(('address', 'BIT<32>'))
 ldsb_reg_Instr.addVariable(('readValue', 'BIT<32>'))
 isa.addInstruction(ldsb_reg_Instr)
 opCodeExec = cxx_writer.writer_code.Code("""
 notAligned = (address & 0x00000001) != 0;
+#ifdef ACC_MODEL
 if(notAligned){
     flush();
 }
+#endif
 """)
 opCodeMem = cxx_writer.writer_code.Code("""
 if(!notAligned){
     readValue = SignExtend(dataMem.read_half(address), 16);
 }
+#ifdef ACC_MODEL
 else{
     flush();
 }
+#endif
 """)
 opCodeException = cxx_writer.writer_code.Code("""
 if(notAligned){
-    RaiseException(MEM_ADDR_NOT_ALIGNED);
+    RaiseException(pcounter, npcounter, MEM_ADDR_NOT_ALIGNED);
 }
 """)
 ldsh_imm_Instr = trap.Instruction('LDSH_imm', True, frequency = 1)
@@ -194,7 +204,10 @@ ldsh_imm_Instr.setCode(opCodeExec, 'execute')
 ldsh_imm_Instr.setCode(opCodeMem, 'memory')
 ldsh_imm_Instr.setCode(opCodeException, 'exception')
 ldsh_imm_Instr.setCode(opCodeWb, 'wb')
-ldsh_imm_Instr.addBehavior(IncrementPC, 'fetch')
+ldsh_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+ldsh_imm_Instr.setCode(opCodeReadPC, 'fetch')
+ldsh_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
+ldsh_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 ldsh_imm_Instr.addVariable(('address', 'BIT<32>'))
 ldsh_imm_Instr.addVariable(('readValue', 'BIT<32>'))
 ldsh_imm_Instr.addVariable(('notAligned', 'BIT<1>'))
@@ -207,7 +220,10 @@ ldsh_reg_Instr.setCode(opCodeExec, 'execute')
 ldsh_reg_Instr.setCode(opCodeMem, 'memory')
 ldsh_reg_Instr.setCode(opCodeException, 'exception')
 ldsh_reg_Instr.setCode(opCodeWb, 'wb')
-ldsh_reg_Instr.addBehavior(IncrementPC, 'fetch')
+ldsh_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+ldsh_reg_Instr.setCode(opCodeReadPC, 'fetch')
+ldsh_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+ldsh_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 ldsh_reg_Instr.addVariable(('address', 'BIT<32>'))
 ldsh_reg_Instr.addVariable(('readValue', 'BIT<32>'))
 ldsh_reg_Instr.addVariable(('notAligned', 'BIT<1>'))
@@ -221,7 +237,7 @@ ldub_imm_Instr.setVarField('rd', ('REGS', 0), 'out')
 ldub_imm_Instr.setCode(opCodeRegsImm, 'regs')
 ldub_imm_Instr.setCode(opCodeMem, 'memory')
 ldub_imm_Instr.setCode(opCodeWb, 'wb')
-ldub_imm_Instr.addBehavior(IncrementPC, 'fetch')
+ldub_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 ldub_imm_Instr.addVariable(('address', 'BIT<32>'))
 ldub_imm_Instr.addVariable(('readValue', 'BIT<32>'))
 isa.addInstruction(ldub_imm_Instr)
@@ -231,7 +247,7 @@ ldub_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
 ldub_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 ldub_reg_Instr.setCode(opCodeMem, 'memory')
 ldub_reg_Instr.setCode(opCodeWb, 'wb')
-ldub_reg_Instr.addBehavior(IncrementPC, 'fetch')
+ldub_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 ldub_reg_Instr.addVariable(('address', 'BIT<32>'))
 ldub_reg_Instr.addVariable(('readValue', 'BIT<32>'))
 isa.addInstruction(ldub_reg_Instr)
@@ -246,7 +262,10 @@ lduh_imm_Instr.setCode(opCodeExec, 'execute')
 lduh_imm_Instr.setCode(opCodeMem, 'memory')
 lduh_imm_Instr.setCode(opCodeException, 'exception')
 lduh_imm_Instr.setCode(opCodeWb, 'wb')
-lduh_imm_Instr.addBehavior(IncrementPC, 'fetch')
+lduh_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+lduh_imm_Instr.setCode(opCodeReadPC, 'fetch')
+lduh_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
+lduh_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 lduh_imm_Instr.addVariable(('address', 'BIT<32>'))
 lduh_imm_Instr.addVariable(('readValue', 'BIT<32>'))
 lduh_imm_Instr.addVariable(('notAligned', 'BIT<1>'))
@@ -259,7 +278,10 @@ lduh_reg_Instr.setCode(opCodeExec, 'execute')
 lduh_reg_Instr.setCode(opCodeMem, 'memory')
 lduh_reg_Instr.setCode(opCodeException, 'exception')
 lduh_reg_Instr.setCode(opCodeWb, 'wb')
-lduh_reg_Instr.addBehavior(IncrementPC, 'fetch')
+lduh_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+lduh_reg_Instr.setCode(opCodeReadPC, 'fetch')
+lduh_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+lduh_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 lduh_reg_Instr.addVariable(('address', 'BIT<32>'))
 lduh_reg_Instr.addVariable(('readValue', 'BIT<32>'))
 lduh_reg_Instr.addVariable(('notAligned', 'BIT<1>'))
@@ -269,9 +291,11 @@ readValue = dataMem.read_word(address);
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
 notAligned = (address & 0x00000003) != 0;
+#ifdef ACC_MODEL
 if(notAligned){
     flush();
 }
+#endif
 """)
 ld_imm_Instr = trap.Instruction('LD_imm', True, frequency = 15)
 ld_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 0, 0, 0, 0, 0]}, ('ld r', '%rs1', '+', '%simm13', ' r', '%rd'))
@@ -281,7 +305,10 @@ ld_imm_Instr.setCode(opCodeExec, 'execute')
 ld_imm_Instr.setCode(opCodeMem, 'memory')
 ld_imm_Instr.setCode(opCodeException, 'exception')
 ld_imm_Instr.setCode(opCodeWb, 'wb')
-ld_imm_Instr.addBehavior(IncrementPC, 'fetch')
+ld_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+ld_imm_Instr.setCode(opCodeReadPC, 'fetch')
+ld_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
+ld_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 ld_imm_Instr.addVariable(('address', 'BIT<32>'))
 ld_imm_Instr.addVariable(('readValue', 'BIT<32>'))
 ld_imm_Instr.addVariable(('notAligned', 'BIT<1>'))
@@ -294,7 +321,10 @@ ld_reg_Instr.setCode(opCodeExec, 'execute')
 ld_reg_Instr.setCode(opCodeMem, 'memory')
 ld_reg_Instr.setCode(opCodeException, 'exception')
 ld_reg_Instr.setCode(opCodeWb, 'wb')
-ld_reg_Instr.addBehavior(IncrementPC, 'fetch')
+ld_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+ld_reg_Instr.setCode(opCodeReadPC, 'fetch')
+ld_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+ld_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 ld_reg_Instr.addVariable(('address', 'BIT<32>'))
 ld_reg_Instr.addVariable(('readValue', 'BIT<32>'))
 ld_reg_Instr.addVariable(('notAligned', 'BIT<1>'))
@@ -306,16 +336,18 @@ REGS[rd_bit | 0x1].lock();
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
 notAligned = (address & 0x00000007) != 0;
+#ifdef ACC_MODEL
 if(notAligned){
-    #ifdef ACC_MODEL
     REGS[rd_bit | 0x1].unlock();
-    #endif
     flush();
 }
+#endif
 """)
 opCodeMem = cxx_writer.writer_code.Code("""
-readValue = dataMem.read_dword(address);
-stall(1);
+if(!notAligned){
+    readValue = dataMem.read_dword(address);
+    stall(1);
+}
 """)
 opCodeWb = cxx_writer.writer_code.Code("""
 if(rd_bit % 2 == 0){
@@ -342,7 +374,10 @@ ldd_imm_Instr.setCode(opCodeExec, 'execute')
 ldd_imm_Instr.setCode(opCodeMem, 'memory')
 ldd_imm_Instr.setCode(opCodeException, 'exception')
 ldd_imm_Instr.setCode(opCodeWb, 'wb')
-ldd_imm_Instr.addBehavior(IncrementPC, 'fetch')
+ldd_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+ldd_imm_Instr.setCode(opCodeReadPC, 'fetch')
+ldd_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
+ldd_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 ldd_imm_Instr.addVariable(('address', 'BIT<32>'))
 ldd_imm_Instr.addVariable(('readValue', 'BIT<64>'))
 ldd_imm_Instr.addVariable(('notAligned', 'BIT<1>'))
@@ -356,7 +391,10 @@ ldd_reg_Instr.setCode(opCodeExec, 'execute')
 ldd_reg_Instr.setCode(opCodeMem, 'memory')
 ldd_reg_Instr.setCode(opCodeException, 'exception')
 ldd_reg_Instr.setCode(opCodeWb, 'wb')
-ldd_reg_Instr.addBehavior(IncrementPC, 'fetch')
+ldd_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+ldd_reg_Instr.setCode(opCodeReadPC, 'fetch')
+ldd_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+ldd_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 ldd_reg_Instr.addVariable(('address', 'BIT<32>'))
 ldd_reg_Instr.addVariable(('readValue', 'BIT<64>'))
 ldd_reg_Instr.addVariable(('notAligned', 'BIT<1>'))
@@ -370,21 +408,27 @@ opCodeWb = cxx_writer.writer_code.Code("""
 rd = readValue;
 """)
 opCodeMem = cxx_writer.writer_code.Code("""
+#ifdef ACC_MODEL
 if(!supervisor){
     flush();
 }
 else{
+#endif
     readValue = SignExtend(dataMem.read_byte(address), 8);
+#ifdef ACC_MODEL
 }
+#endif
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
+#ifdef ACC_MODEL
 if(!supervisor){
     flush();
 }
+#endif
 """)
 opCodeException = cxx_writer.writer_code.Code("""
 if(!supervisor){
-    RaiseException(PRIVILEDGE_INSTR);
+    RaiseException(pcounter, npcounter, PRIVILEDGE_INSTR);
 }
 """)
 ldsba_reg_Instr = trap.Instruction('LDSBA_reg', True, frequency = 1)
@@ -395,31 +439,40 @@ ldsba_reg_Instr.setCode(opCodeExec, 'execute')
 ldsba_reg_Instr.setCode(opCodeMem, 'memory')
 ldsba_reg_Instr.setCode(opCodeException, 'exception')
 ldsba_reg_Instr.setCode(opCodeWb, 'wb')
-ldsba_reg_Instr.addBehavior(IncrementPC, 'fetch')
+ldsba_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+ldsba_reg_Instr.setCode(opCodeReadPC, 'fetch')
+ldsba_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+ldsba_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 ldsba_reg_Instr.addVariable(('address', 'BIT<32>'))
 ldsba_reg_Instr.addVariable(('readValue', 'BIT<32>'))
 ldsba_reg_Instr.addVariable(('supervisor', 'BIT<1>'))
 isa.addInstruction(ldsba_reg_Instr)
 opCodeMem = cxx_writer.writer_code.Code("""
+#ifdef ACC_MODEL
 if(notAligned || !supervisor){
     flush();
 }
 else{
+#endif
     readValue = SignExtend(dataMem.read_half(address), 16);
+#ifdef ACC_MODEL
 }
+#endif
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
 notAligned = (address & 0x00000001) != 0;
+#ifdef ACC_MODEL
 if(notAligned || !supervisor){
     flush();
 }
+#endif
 """)
 opCodeException = cxx_writer.writer_code.Code("""
 if(!supervisor){
-    RaiseException(PRIVILEDGE_INSTR);
+    RaiseException(pcounter, npcounter, PRIVILEDGE_INSTR);
 }
 if(notAligned){
-    RaiseException(MEM_ADDR_NOT_ALIGNED);
+    RaiseException(pcounter, npcounter, MEM_ADDR_NOT_ALIGNED);
 }
 """)
 ldsha_reg_Instr = trap.Instruction('LDSHA_reg', True, frequency = 1)
@@ -430,28 +483,37 @@ ldsha_reg_Instr.setCode(opCodeExec, 'execute')
 ldsha_reg_Instr.setCode(opCodeMem, 'memory')
 ldsha_reg_Instr.setCode(opCodeException, 'exception')
 ldsha_reg_Instr.setCode(opCodeWb, 'wb')
-ldsha_reg_Instr.addBehavior(IncrementPC, 'fetch')
+ldsha_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+ldsha_reg_Instr.setCode(opCodeReadPC, 'fetch')
+ldsha_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+ldsha_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 ldsha_reg_Instr.addVariable(('address', 'BIT<32>'))
 ldsha_reg_Instr.addVariable(('readValue', 'BIT<32>'))
 ldsha_reg_Instr.addVariable(('supervisor', 'BIT<1>'))
 ldsha_reg_Instr.addVariable(('notAligned', 'BIT<1>'))
 isa.addInstruction(ldsha_reg_Instr)
 opCodeMem = cxx_writer.writer_code.Code("""
+#ifdef ACC_MODEL
 if(!supervisor){
     flush();
 }
 else{
+#endif
     readValue = dataMem.read_byte(address);
+#ifdef ACC_MODEL
 }
+#endif
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
+#ifdef ACC_MODEL
 if(!supervisor){
     flush();
 }
+#endif
 """)
 opCodeException = cxx_writer.writer_code.Code("""
 if(!supervisor){
-    RaiseException(PRIVILEDGE_INSTR);
+    RaiseException(pcounter, npcounter, PRIVILEDGE_INSTR);
 }
 """)
 lduba_reg_Instr = trap.Instruction('LDUBA_reg', True, frequency = 1)
@@ -462,31 +524,40 @@ lduba_reg_Instr.setCode(opCodeExec, 'execute')
 lduba_reg_Instr.setCode(opCodeMem, 'memory')
 lduba_reg_Instr.setCode(opCodeException, 'exception')
 lduba_reg_Instr.setCode(opCodeWb, 'wb')
-lduba_reg_Instr.addBehavior(IncrementPC, 'fetch')
+lduba_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+lduba_reg_Instr.setCode(opCodeReadPC, 'fetch')
+lduba_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+lduba_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 lduba_reg_Instr.addVariable(('address', 'BIT<32>'))
 lduba_reg_Instr.addVariable(('readValue', 'BIT<32>'))
 lduba_reg_Instr.addVariable(('supervisor', 'BIT<1>'))
 isa.addInstruction(lduba_reg_Instr)
 opCodeMem = cxx_writer.writer_code.Code("""
+#ifdef ACC_MODEL
 if(notAligned || !supervisor){
     flush();
 }
 else{
+#endif
     readValue = dataMem.read_half(address);
+#ifdef ACC_MODEL
 }
+#endif
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
 notAligned = (address & 0x00000001) != 0;
+#ifdef ACC_MODEL
 if(notAligned || !supervisor){
     flush();
 }
+#endif
 """)
 opCodeException = cxx_writer.writer_code.Code("""
 if(!supervisor){
-    RaiseException(PRIVILEDGE_INSTR);
+    RaiseException(pcounter, npcounter, PRIVILEDGE_INSTR);
 }
 if(notAligned){
-    RaiseException(MEM_ADDR_NOT_ALIGNED);
+    RaiseException(pcounter, npcounter, MEM_ADDR_NOT_ALIGNED);
 }
 """)
 lduha_reg_Instr = trap.Instruction('LDUHA_reg', True, frequency = 1)
@@ -497,25 +568,34 @@ lduha_reg_Instr.setCode(opCodeExec, 'execute')
 lduha_reg_Instr.setCode(opCodeMem, 'memory')
 lduha_reg_Instr.setCode(opCodeException, 'exception')
 lduha_reg_Instr.setCode(opCodeWb, 'wb')
-lduha_reg_Instr.addBehavior(IncrementPC, 'fetch')
+lduha_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+lduha_reg_Instr.setCode(opCodeReadPC, 'fetch')
+lduha_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+lduha_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 lduha_reg_Instr.addVariable(('address', 'BIT<32>'))
 lduha_reg_Instr.addVariable(('readValue', 'BIT<32>'))
 lduha_reg_Instr.addVariable(('supervisor', 'BIT<1>'))
 lduha_reg_Instr.addVariable(('notAligned', 'BIT<1>'))
 isa.addInstruction(lduha_reg_Instr)
 opCodeMem = cxx_writer.writer_code.Code("""
+#ifdef ACC_MODEL
 if(notAligned || !supervisor){
     flush();
 }
 else{
+#endif
     readValue = dataMem.read_word(address);
+#ifdef ACC_MODEL
 }
+#endif
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
 notAligned = (address & 0x00000003) != 0;
+#ifdef ACC_MODEL
 if(notAligned || !supervisor){
     flush();
 }
+#endif
 """)
 lda_reg_Instr = trap.Instruction('LDA_reg', True, frequency = 1)
 lda_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 1, 0, 0, 0, 0]}, ('lda r', '%rs1', '+r', '%rs2', ' ', '%asi', ' r', '%rd'))
@@ -525,7 +605,10 @@ lda_reg_Instr.setCode(opCodeExec, 'execute')
 lda_reg_Instr.setCode(opCodeMem, 'memory')
 lda_reg_Instr.setCode(opCodeException, 'exception')
 lda_reg_Instr.setCode(opCodeWb, 'wb')
-lda_reg_Instr.addBehavior(IncrementPC, 'fetch')
+lda_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+lda_reg_Instr.setCode(opCodeReadPC, 'fetch')
+lda_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+lda_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 lda_reg_Instr.addVariable(('address', 'BIT<32>'))
 lda_reg_Instr.addVariable(('readValue', 'BIT<32>'))
 lda_reg_Instr.addVariable(('supervisor', 'BIT<1>'))
@@ -538,20 +621,24 @@ REGS[rd_bit | 0x1].lock();
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
 notAligned = (address & 0x00000007) != 0;
+#ifdef ACC_MODEL
 if(notAligned || !supervisor){
-    #ifdef ACC_MODEL
     REGS[rd_bit | 0x1].unlock();
-    #endif
     flush();
 }
+#endif
 """)
 opCodeMem = cxx_writer.writer_code.Code("""
+#ifdef ACC_MODEL
 if(notAligned || !supervisor){
     flush();
 }
 else{
+#endif
     readValue = dataMem.read_dword(address);
+#ifdef ACC_MODEL
 }
+#endif
 """)
 opCodeWb = cxx_writer.writer_code.Code("""
 if(rd_bit % 2 == 0){
@@ -578,7 +665,10 @@ ldda_reg_Instr.setCode(opCodeExec, 'execute')
 ldda_reg_Instr.setCode(opCodeMem, 'memory')
 ldda_reg_Instr.setCode(opCodeException, 'exception')
 ldda_reg_Instr.setCode(opCodeWb, 'wb')
-ldda_reg_Instr.addBehavior(IncrementPC, 'fetch')
+ldda_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+ldda_reg_Instr.setCode(opCodeReadPC, 'fetch')
+ldda_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+ldda_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 ldda_reg_Instr.addVariable(('address', 'BIT<32>'))
 ldda_reg_Instr.addVariable(('readValue', 'BIT<64>'))
 ldda_reg_Instr.addVariable(('supervisor', 'BIT<1>'))
@@ -603,7 +693,7 @@ stb_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 0, 0, 1, 0, 1]}, ('stb r',
 stb_imm_Instr.setVarField('rd', ('REGS', 0), 'in')
 stb_imm_Instr.setCode(opCodeRegsImm, 'regs')
 stb_imm_Instr.setCode(opCodeMem, 'memory')
-stb_imm_Instr.addBehavior(IncrementPC, 'fetch')
+stb_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 stb_imm_Instr.addVariable(('address', 'BIT<32>'))
 stb_imm_Instr.addVariable(('toWrite', 'BIT<8>'))
 isa.addInstruction(stb_imm_Instr)
@@ -612,7 +702,7 @@ stb_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 0, 0, 1, 0, 1]}, ('stb r',
 stb_reg_Instr.setVarField('rd', ('REGS', 0), 'in')
 stb_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 stb_reg_Instr.setCode(opCodeMem, 'memory')
-stb_reg_Instr.addBehavior(IncrementPC, 'fetch')
+stb_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 stb_reg_Instr.addVariable(('address', 'BIT<32>'))
 stb_reg_Instr.addVariable(('toWrite', 'BIT<8>'))
 isa.addInstruction(stb_reg_Instr)
@@ -635,13 +725,15 @@ stall(1);
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
 notAligned = (address & 0x00000001) != 0;
+#ifdef ACC_MODEL
 if(notAligned){
     flush();
 }
+#endif
 """)
 opCodeException = cxx_writer.writer_code.Code("""
 if(notAligned){
-    RaiseException(MEM_ADDR_NOT_ALIGNED);
+    RaiseException(pcounter, npcounter, MEM_ADDR_NOT_ALIGNED);
 }
 """)
 sth_imm_Instr = trap.Instruction('STH_imm', True, frequency = 6)
@@ -651,7 +743,10 @@ sth_imm_Instr.setCode(opCodeRegsImm, 'regs')
 sth_imm_Instr.setCode(opCodeMem, 'memory')
 sth_imm_Instr.setCode(opCodeExec, 'execute')
 sth_imm_Instr.setCode(opCodeException, 'exception')
-sth_imm_Instr.addBehavior(IncrementPC, 'fetch')
+sth_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+sth_imm_Instr.setCode(opCodeReadPC, 'fetch')
+sth_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
+sth_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 sth_imm_Instr.addVariable(('notAligned', 'BIT<1>'))
 sth_imm_Instr.addVariable(('address', 'BIT<32>'))
 sth_imm_Instr.addVariable(('toWrite', 'BIT<16>'))
@@ -663,7 +758,10 @@ sth_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 sth_reg_Instr.setCode(opCodeMem, 'memory')
 sth_reg_Instr.setCode(opCodeExec, 'execute')
 sth_reg_Instr.setCode(opCodeException, 'exception')
-sth_reg_Instr.addBehavior(IncrementPC, 'fetch')
+sth_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+sth_reg_Instr.setCode(opCodeReadPC, 'fetch')
+sth_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+sth_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 sth_reg_Instr.addVariable(('notAligned', 'BIT<1>'))
 sth_reg_Instr.addVariable(('address', 'BIT<32>'))
 sth_reg_Instr.addVariable(('toWrite', 'BIT<16>'))
@@ -687,9 +785,11 @@ stall(1);
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
 notAligned = (address & 0x00000003) != 0;
+#ifdef ACC_MODEL
 if(notAligned){
     flush();
 }
+#endif
 """)
 st_imm_Instr = trap.Instruction('ST_imm', True, frequency = 13)
 st_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 0, 0, 1, 0, 0]}, ('st r', '%rd', ' r', '%rs1', '+', '%simm13'))
@@ -698,7 +798,10 @@ st_imm_Instr.setCode(opCodeRegsImm, 'regs')
 st_imm_Instr.setCode(opCodeMem, 'memory')
 st_imm_Instr.setCode(opCodeExec, 'execute')
 st_imm_Instr.setCode(opCodeException, 'exception')
-st_imm_Instr.addBehavior(IncrementPC, 'fetch')
+st_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+st_imm_Instr.setCode(opCodeReadPC, 'fetch')
+st_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
+st_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 st_imm_Instr.addVariable(('notAligned', 'BIT<1>'))
 st_imm_Instr.addVariable(('address', 'BIT<32>'))
 st_imm_Instr.addVariable(('toWrite', 'BIT<32>'))
@@ -710,7 +813,10 @@ st_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 st_reg_Instr.setCode(opCodeMem, 'memory')
 st_reg_Instr.setCode(opCodeExec, 'execute')
 st_reg_Instr.setCode(opCodeException, 'exception')
-st_reg_Instr.addBehavior(IncrementPC, 'fetch')
+st_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+st_reg_Instr.setCode(opCodeReadPC, 'fetch')
+st_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+st_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 st_reg_Instr.addVariable(('notAligned', 'BIT<1>'))
 st_reg_Instr.addVariable(('address', 'BIT<32>'))
 st_reg_Instr.addVariable(('toWrite', 'BIT<32>'))
@@ -744,9 +850,11 @@ stall(2);
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
 notAligned = (address & 0x00000007) != 0;
+#ifdef ACC_MODEL
 if(notAligned){
     flush();
 }
+#endif
 """)
 std_imm_Instr = trap.Instruction('STD_imm', True, frequency = 6)
 std_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 0, 0, 1, 1, 1]}, ('std r', '%rd', ' r', '%rs1', '+', '%simm13'))
@@ -755,7 +863,10 @@ std_imm_Instr.setCode(opCodeRegsImm, 'regs')
 std_imm_Instr.setCode(opCodeMem, 'memory')
 std_imm_Instr.setCode(opCodeExec, 'execute')
 std_imm_Instr.setCode(opCodeException, 'exception')
-std_imm_Instr.addBehavior(IncrementPC, 'fetch')
+std_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+std_imm_Instr.setCode(opCodeReadPC, 'fetch')
+std_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
+std_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 std_imm_Instr.addVariable(('notAligned', 'BIT<1>'))
 std_imm_Instr.addVariable(('address', 'BIT<32>'))
 std_imm_Instr.addVariable(('toWrite', 'BIT<64>'))
@@ -767,7 +878,10 @@ std_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 std_reg_Instr.setCode(opCodeMem, 'memory')
 std_reg_Instr.setCode(opCodeExec, 'execute')
 std_reg_Instr.setCode(opCodeException, 'exception')
-std_reg_Instr.addBehavior(IncrementPC, 'fetch')
+std_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+std_reg_Instr.setCode(opCodeReadPC, 'fetch')
+std_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+std_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 std_reg_Instr.addVariable(('notAligned', 'BIT<1>'))
 std_reg_Instr.addVariable(('address', 'BIT<32>'))
 std_reg_Instr.addVariable(('toWrite', 'BIT<64>'))
@@ -787,13 +901,15 @@ else{
 stall(1);
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
+#ifdef ACC_MODEL
 if(!supervisor){
     flush();
 }
+#endif
 """)
 opCodeException = cxx_writer.writer_code.Code("""
 if(!supervisor){
-    RaiseException(PRIVILEDGE_INSTR);
+    RaiseException(pcounter, npcounter, PRIVILEDGE_INSTR);
 }
 """)
 stba_reg_Instr = trap.Instruction('STBA_reg', True, frequency = 1)
@@ -803,7 +919,10 @@ stba_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 stba_reg_Instr.setCode(opCodeMem, 'memory')
 stba_reg_Instr.setCode(opCodeExec, 'execute')
 stba_reg_Instr.setCode(opCodeException, 'exception')
-stba_reg_Instr.addBehavior(IncrementPC, 'fetch')
+stba_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+stba_reg_Instr.setCode(opCodeReadPC, 'fetch')
+stba_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+stba_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 stba_reg_Instr.addVariable(('supervisor', 'BIT<1>'))
 stba_reg_Instr.addVariable(('address', 'BIT<32>'))
 stba_reg_Instr.addVariable(('toWrite', 'BIT<8>'))
@@ -824,16 +943,18 @@ stall(1);
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
 notAligned = (address & 0x00000001) != 0;
+#ifdef ACC_MODEL
 if(!supervisor || notAligned){
     flush();
 }
+#endif
 """)
 opCodeException = cxx_writer.writer_code.Code("""
 if(!supervisor){
-    RaiseException(PRIVILEDGE_INSTR);
+    RaiseException(pcounter, npcounter, PRIVILEDGE_INSTR);
 }
 if(notAligned){
-    RaiseException(MEM_ADDR_NOT_ALIGNED);
+    RaiseException(pcounter, npcounter, MEM_ADDR_NOT_ALIGNED);
 }
 """)
 stha_reg_Instr = trap.Instruction('STHA_reg', True, frequency = 1)
@@ -843,7 +964,10 @@ stha_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 stha_reg_Instr.setCode(opCodeMem, 'memory')
 stha_reg_Instr.setCode(opCodeExec, 'execute')
 stha_reg_Instr.setCode(opCodeException, 'exception')
-stha_reg_Instr.addBehavior(IncrementPC, 'fetch')
+stha_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+stha_reg_Instr.setCode(opCodeReadPC, 'fetch')
+stha_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+stha_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 stha_reg_Instr.addVariable(('supervisor', 'BIT<1>'))
 stha_reg_Instr.addVariable(('notAligned', 'BIT<1>'))
 stha_reg_Instr.addVariable(('address', 'BIT<32>'))
@@ -865,9 +989,11 @@ stall(1);
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
 notAligned = (address & 0x00000003) != 0;
+#ifdef ACC_MODEL
 if(!supervisor || notAligned){
     flush();
 }
+#endif
 """)
 sta_reg_Instr = trap.Instruction('STA_reg', True, frequency = 1)
 sta_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 1, 0, 1, 0, 0]}, ('sta r', '%rd', ' r', '%rs1', '+r', '%rs2', ' ', '%asi'))
@@ -876,7 +1002,10 @@ sta_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 sta_reg_Instr.setCode(opCodeMem, 'memory')
 sta_reg_Instr.setCode(opCodeExec, 'execute')
 sta_reg_Instr.setCode(opCodeException, 'exception')
-sta_reg_Instr.addBehavior(IncrementPC, 'fetch')
+sta_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+sta_reg_Instr.setCode(opCodeReadPC, 'fetch')
+sta_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+sta_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 sta_reg_Instr.addVariable(('supervisor', 'BIT<1>'))
 sta_reg_Instr.addVariable(('notAligned', 'BIT<1>'))
 sta_reg_Instr.addVariable(('address', 'BIT<32>'))
@@ -903,9 +1032,11 @@ stall(1);
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
 notAligned = (address & 0x00000003) != 0;
+#ifdef ACC_MODEL
 if(!supervisor || notAligned){
     flush();
 }
+#endif
 """)
 stda_reg_Instr = trap.Instruction('STDA_reg', True, frequency = 1)
 stda_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 1, 0, 1, 1, 1]}, ('stda r', '%rd', ' r', '%rs1', '+r', '%rs2', ' ', '%asi'))
@@ -914,7 +1045,10 @@ stda_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 stda_reg_Instr.setCode(opCodeMem, 'memory')
 stda_reg_Instr.setCode(opCodeExec, 'execute')
 stda_reg_Instr.setCode(opCodeException, 'exception')
-stda_reg_Instr.addBehavior(IncrementPC, 'fetch')
+stda_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+stda_reg_Instr.setCode(opCodeReadPC, 'fetch')
+stda_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+stda_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 stda_reg_Instr.addVariable(('supervisor', 'BIT<1>'))
 stda_reg_Instr.addVariable(('notAligned', 'BIT<1>'))
 stda_reg_Instr.addVariable(('address', 'BIT<32>'))
@@ -942,7 +1076,7 @@ ldstub_imm_Instr.setVarField('rd', ('REGS', 0), 'out')
 ldstub_imm_Instr.setCode(opCodeRegsImm, 'regs')
 ldstub_imm_Instr.setCode(opCodeMem, 'memory')
 ldstub_imm_Instr.setCode(opCodeWb, 'wb')
-ldstub_imm_Instr.addBehavior(IncrementPC, 'fetch')
+ldstub_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 ldstub_imm_Instr.addVariable(('address', 'BIT<32>'))
 ldstub_imm_Instr.addVariable(('readValue', 'BIT<32>'))
 isa.addInstruction(ldstub_imm_Instr)
@@ -952,7 +1086,7 @@ ldstub_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
 ldstub_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 ldstub_reg_Instr.setCode(opCodeMem, 'memory')
 ldstub_reg_Instr.setCode(opCodeWb, 'wb')
-ldstub_reg_Instr.addBehavior(IncrementPC, 'fetch')
+ldstub_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 ldstub_reg_Instr.addVariable(('address', 'BIT<32>'))
 ldstub_reg_Instr.addVariable(('readValue', 'BIT<32>'))
 isa.addInstruction(ldstub_reg_Instr)
@@ -961,9 +1095,11 @@ address = rs1 + rs2;
 supervisor = PSR[key_S];
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
+#ifdef ACC_MODEL
 if(!supervisor){
     flush();
 }
+#endif
 """)
 opCodeMem = cxx_writer.writer_code.Code("""
 if(supervisor){
@@ -977,7 +1113,7 @@ stall(2);
 """)
 opCodeException = cxx_writer.writer_code.Code("""
 if(!supervisor){
-    RaiseException(PRIVILEDGE_INSTR);
+    RaiseException(pcounter, npcounter, PRIVILEDGE_INSTR);
 }
 """)
 ldstuba_reg_Instr = trap.Instruction('LDSTUBA_reg', True, frequency = 1)
@@ -988,7 +1124,10 @@ ldstuba_reg_Instr.setCode(opCodeMem, 'memory')
 ldstuba_reg_Instr.setCode(opCodeExec, 'execute')
 ldstuba_reg_Instr.setCode(opCodeException, 'exception')
 ldstuba_reg_Instr.setCode(opCodeWb, 'wb')
-ldstuba_reg_Instr.addBehavior(IncrementPC, 'fetch')
+ldstuba_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+ldstuba_reg_Instr.setCode(opCodeReadPC, 'fetch')
+ldstuba_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+ldstuba_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 ldstuba_reg_Instr.addVariable(('supervisor', 'BIT<1>'))
 ldstuba_reg_Instr.addVariable(('address', 'BIT<32>'))
 ldstuba_reg_Instr.addVariable(('readValue', 'BIT<32>'))
@@ -1005,9 +1144,11 @@ toWrite = rd;
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
 notAligned = (address & 0x00000003) != 0;
+#ifdef ACC_MODEL
 if(notAligned){
     flush();
 }
+#endif
 """)
 opCodeMem = cxx_writer.writer_code.Code("""
 if(notAligned){
@@ -1024,7 +1165,7 @@ rd = readValue;
 """)
 opCodeException = cxx_writer.writer_code.Code("""
 if(notAligned){
-    RaiseException(MEM_ADDR_NOT_ALIGNED);
+    RaiseException(pcounter, npcounter, MEM_ADDR_NOT_ALIGNED);
 }
 """)
 swap_imm_Instr = trap.Instruction('SWAP_imm', True, frequency = 1)
@@ -1035,7 +1176,10 @@ swap_imm_Instr.setCode(opCodeMem, 'memory')
 swap_imm_Instr.setCode(opCodeExec, 'exception')
 swap_imm_Instr.setCode(opCodeException, 'execute')
 swap_imm_Instr.setCode(opCodeWb, 'wb')
-swap_imm_Instr.addBehavior(IncrementPC, 'fetch')
+swap_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+swap_imm_Instr.setCode(opCodeReadPC, 'fetch')
+swap_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
+swap_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 swap_imm_Instr.addVariable(('notAligned', 'BIT<1>'))
 swap_imm_Instr.addVariable(('address', 'BIT<32>'))
 swap_imm_Instr.addVariable(('readValue', 'BIT<32>'))
@@ -1049,7 +1193,10 @@ swap_reg_Instr.setCode(opCodeMem, 'memory')
 swap_reg_Instr.setCode(opCodeExec, 'exception')
 swap_reg_Instr.setCode(opCodeException, 'execute')
 swap_reg_Instr.setCode(opCodeWb, 'wb')
-swap_reg_Instr.addBehavior(IncrementPC, 'fetch')
+swap_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+swap_reg_Instr.setCode(opCodeReadPC, 'fetch')
+swap_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+swap_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 swap_reg_Instr.addVariable(('notAligned', 'BIT<1>'))
 swap_reg_Instr.addVariable(('address', 'BIT<32>'))
 swap_reg_Instr.addVariable(('readValue', 'BIT<32>'))
@@ -1062,9 +1209,11 @@ supervisor = PSR[key_S];
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
 notAligned = (address & 0x00000003) != 0;
+#ifdef ACC_MODEL
 if(!supervisor || notAligned){
     flush();
 }
+#endif
 """)
 opCodeMem = cxx_writer.writer_code.Code("""
 if(!supervisor || notAligned){
@@ -1081,10 +1230,10 @@ rd = readValue;
 """)
 opCodeException = cxx_writer.writer_code.Code("""
 if(!supervisor){
-    RaiseException(PRIVILEDGE_INSTR);
+    RaiseException(pcounter, npcounter, PRIVILEDGE_INSTR);
 }
 if(notAligned){
-    RaiseException(MEM_ADDR_NOT_ALIGNED);
+    RaiseException(pcounter, npcounter, MEM_ADDR_NOT_ALIGNED);
 }
 """)
 swapa_reg_Instr = trap.Instruction('SWAPA_reg', True, frequency = 1)
@@ -1095,7 +1244,10 @@ swapa_reg_Instr.setCode(opCodeMem, 'memory')
 swapa_reg_Instr.setCode(opCodeExec, 'exception')
 swapa_reg_Instr.setCode(opCodeException, 'execute')
 swapa_reg_Instr.setCode(opCodeWb, 'wb')
-swapa_reg_Instr.addBehavior(IncrementPC, 'fetch')
+swapa_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+swapa_reg_Instr.setCode(opCodeReadPC, 'fetch')
+swapa_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+swapa_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 swapa_reg_Instr.addVariable(('supervisor', 'BIT<1>'))
 swapa_reg_Instr.addVariable(('notAligned', 'BIT<1>'))
 swapa_reg_Instr.addVariable(('address', 'BIT<32>'))
@@ -1111,7 +1263,7 @@ sethi_Instr = trap.Instruction('SETHI', True, frequency = 14)
 sethi_Instr.setMachineCode(b_sethi_format1, {'op2': [1, 0, 0]}, ('sethi ', '%imm22', ' r', '%rd'))
 sethi_Instr.setCode(opCodeExec, 'execute')
 sethi_Instr.addBehavior(WB_plain, 'wb')
-sethi_Instr.addBehavior(IncrementPC, 'fetch')
+sethi_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 sethi_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(sethi_Instr)
 
@@ -1131,7 +1283,7 @@ and_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 0, 0, 0, 1]}, ('and r',
 and_imm_Instr.setCode(opCodeExecImm, 'execute')
 and_imm_Instr.setCode(opCodeReadRegs1, 'regs')
 and_imm_Instr.addBehavior(WB_plain, 'wb')
-and_imm_Instr.addBehavior(IncrementPC, 'fetch')
+and_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 and_imm_Instr.addVariable(('result', 'BIT<32>'))
 and_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 isa.addInstruction(and_imm_Instr)
@@ -1143,7 +1295,7 @@ and_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 0, 0, 0, 1], 'asi' : [0
 and_reg_Instr.setCode(opCodeExecReg, 'execute')
 and_reg_Instr.setCode(opCodeReadRegs2, 'regs')
 and_reg_Instr.addBehavior(WB_plain, 'wb')
-and_reg_Instr.addBehavior(IncrementPC, 'fetch')
+and_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 and_reg_Instr.addVariable(('result', 'BIT<32>'))
 and_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 and_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
@@ -1153,7 +1305,7 @@ andcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 0, 0, 0, 1]}, ('andcc
 andcc_imm_Instr.setCode(opCodeExecImm, 'execute')
 andcc_imm_Instr.setCode(opCodeReadRegs1, 'regs')
 andcc_imm_Instr.addBehavior(WB_plain, 'wb')
-andcc_imm_Instr.addBehavior(IncrementPC, 'fetch')
+andcc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 andcc_imm_Instr.addBehavior(ICC_writeLogic, 'execute', False)
 andcc_imm_Instr.addVariable(('result', 'BIT<32>'))
 andcc_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -1164,7 +1316,7 @@ andcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 0, 0, 0, 1], 'asi' : 
 andcc_reg_Instr.setCode(opCodeExecReg, 'execute')
 andcc_reg_Instr.setCode(opCodeReadRegs2, 'regs')
 andcc_reg_Instr.addBehavior(WB_plain, 'wb')
-andcc_reg_Instr.addBehavior(IncrementPC, 'fetch')
+andcc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 andcc_reg_Instr.addBehavior(ICC_writeLogic, 'execute', False)
 andcc_reg_Instr.addVariable(('result', 'BIT<32>'))
 andcc_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -1179,7 +1331,7 @@ andn_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 0, 1, 0, 1]}, ('andn r
 andn_imm_Instr.setCode(opCodeExecImm, 'execute')
 andn_imm_Instr.setCode(opCodeReadRegs1, 'regs')
 andn_imm_Instr.addBehavior(WB_plain, 'wb')
-andn_imm_Instr.addBehavior(IncrementPC, 'fetch')
+andn_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 andn_imm_Instr.addVariable(('result', 'BIT<32>'))
 andn_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 isa.addInstruction(andn_imm_Instr)
@@ -1191,7 +1343,7 @@ andn_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 0, 1, 0, 1], 'asi' : [
 andn_reg_Instr.setCode(opCodeExecReg, 'execute')
 andn_reg_Instr.setCode(opCodeReadRegs2, 'regs')
 andn_reg_Instr.addBehavior(WB_plain, 'wb')
-andn_reg_Instr.addBehavior(IncrementPC, 'fetch')
+andn_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 andn_reg_Instr.addVariable(('result', 'BIT<32>'))
 andn_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 andn_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
@@ -1202,7 +1354,7 @@ andncc_imm_Instr.setCode(opCodeExecImm, 'execute')
 andncc_imm_Instr.setCode(opCodeReadRegs1, 'regs')
 andncc_imm_Instr.addBehavior(WB_plain, 'wb')
 andncc_imm_Instr.addBehavior(ICC_writeLogic, 'execute', False)
-andncc_imm_Instr.addBehavior(IncrementPC, 'fetch')
+andncc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 andncc_imm_Instr.addVariable(('result', 'BIT<32>'))
 andncc_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 andncc_imm_Instr.addSpecialRegister('PSR', 'out', 'execute')
@@ -1212,7 +1364,7 @@ andncc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 0, 1, 0, 1], 'asi' :
 andncc_reg_Instr.setCode(opCodeExecReg, 'execute')
 andncc_reg_Instr.setCode(opCodeReadRegs2, 'regs')
 andncc_reg_Instr.addBehavior(WB_plain, 'wb')
-andncc_reg_Instr.addBehavior(IncrementPC, 'fetch')
+andncc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 andncc_reg_Instr.addBehavior(ICC_writeLogic, 'execute', False)
 andncc_reg_Instr.addVariable(('result', 'BIT<32>'))
 andncc_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -1227,7 +1379,7 @@ or_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 0, 0, 1, 0]}, ('or r', '
 or_imm_Instr.setCode(opCodeExecImm, 'execute')
 or_imm_Instr.setCode(opCodeReadRegs1, 'regs')
 or_imm_Instr.addBehavior(WB_plain, 'wb')
-or_imm_Instr.addBehavior(IncrementPC, 'fetch')
+or_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 or_imm_Instr.addVariable(('result', 'BIT<32>'))
 or_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 isa.addInstruction(or_imm_Instr)
@@ -1239,7 +1391,7 @@ or_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 0, 0, 1, 0], 'asi' : [0,
 or_reg_Instr.setCode(opCodeExecReg, 'execute')
 or_reg_Instr.setCode(opCodeReadRegs2, 'regs')
 or_reg_Instr.addBehavior(WB_plain, 'wb')
-or_reg_Instr.addBehavior(IncrementPC, 'fetch')
+or_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 or_reg_Instr.addVariable(('result', 'BIT<32>'))
 or_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 or_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
@@ -1249,7 +1401,7 @@ orcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 0, 0, 1, 0]}, ('orcc r
 orcc_imm_Instr.setCode(opCodeExecImm, 'execute')
 orcc_imm_Instr.setCode(opCodeReadRegs1, 'regs')
 orcc_imm_Instr.addBehavior(WB_plain, 'wb')
-orcc_imm_Instr.addBehavior(IncrementPC, 'fetch')
+orcc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 orcc_imm_Instr.addBehavior(ICC_writeLogic, 'execute', False)
 orcc_imm_Instr.addVariable(('result', 'BIT<32>'))
 orcc_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -1260,7 +1412,7 @@ orcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 0, 0, 1, 0], 'asi' : [
 orcc_reg_Instr.setCode(opCodeExecReg, 'execute')
 orcc_reg_Instr.setCode(opCodeReadRegs2, 'regs')
 orcc_reg_Instr.addBehavior(WB_plain, 'wb')
-orcc_reg_Instr.addBehavior(IncrementPC, 'fetch')
+orcc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 orcc_reg_Instr.addBehavior(ICC_writeLogic, 'execute', False)
 orcc_reg_Instr.addVariable(('result', 'BIT<32>'))
 orcc_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -1275,7 +1427,7 @@ orn_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 0, 1, 1, 0]}, ('orn r',
 orn_imm_Instr.setCode(opCodeExecImm, 'execute')
 orn_imm_Instr.setCode(opCodeReadRegs1, 'regs')
 orn_imm_Instr.addBehavior(WB_plain, 'wb')
-orn_imm_Instr.addBehavior(IncrementPC, 'fetch')
+orn_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 orn_imm_Instr.addVariable(('result', 'BIT<32>'))
 orn_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 isa.addInstruction(orn_imm_Instr)
@@ -1287,7 +1439,7 @@ orn_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 0, 1, 1, 0], 'asi' : [0
 orn_reg_Instr.setCode(opCodeExecReg, 'execute')
 orn_reg_Instr.setCode(opCodeReadRegs2, 'regs')
 orn_reg_Instr.addBehavior(WB_plain, 'wb')
-orn_reg_Instr.addBehavior(IncrementPC, 'fetch')
+orn_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 orn_reg_Instr.addVariable(('result', 'BIT<32>'))
 orn_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 orn_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
@@ -1297,7 +1449,7 @@ orncc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 0, 1, 1, 0]}, ('orncc
 orncc_imm_Instr.setCode(opCodeExecImm, 'execute')
 orncc_imm_Instr.setCode(opCodeReadRegs1, 'regs')
 orncc_imm_Instr.addBehavior(WB_plain, 'wb')
-orncc_imm_Instr.addBehavior(IncrementPC, 'fetch')
+orncc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 orncc_imm_Instr.addBehavior(ICC_writeLogic, 'execute', False)
 orncc_imm_Instr.addVariable(('result', 'BIT<32>'))
 orncc_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -1307,7 +1459,7 @@ orncc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 0, 1, 1, 0], 'asi' : 
 orncc_reg_Instr.setCode(opCodeExecReg, 'execute')
 orncc_reg_Instr.setCode(opCodeReadRegs2, 'regs')
 orncc_reg_Instr.addBehavior(WB_plain, 'wb')
-orncc_reg_Instr.addBehavior(IncrementPC, 'fetch')
+orncc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 orncc_reg_Instr.addBehavior(ICC_writeLogic, 'execute', False)
 orncc_reg_Instr.addVariable(('result', 'BIT<32>'))
 orncc_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -1322,7 +1474,7 @@ xor_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 0, 0, 1, 1]}, ('xor r',
 xor_imm_Instr.setCode(opCodeExecImm, 'execute')
 xor_imm_Instr.setCode(opCodeReadRegs1, 'regs')
 xor_imm_Instr.addBehavior(WB_plain, 'wb')
-xor_imm_Instr.addBehavior(IncrementPC, 'fetch')
+xor_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 xor_imm_Instr.addVariable(('result', 'BIT<32>'))
 xor_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 isa.addInstruction(xor_imm_Instr)
@@ -1334,7 +1486,7 @@ xor_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 0, 0, 1, 1], 'asi' : [0
 xor_reg_Instr.setCode(opCodeExecReg, 'execute')
 xor_reg_Instr.setCode(opCodeReadRegs2, 'regs')
 xor_reg_Instr.addBehavior(WB_plain, 'wb')
-xor_reg_Instr.addBehavior(IncrementPC, 'fetch')
+xor_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 xor_reg_Instr.addVariable(('result', 'BIT<32>'))
 xor_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 xor_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
@@ -1344,7 +1496,7 @@ xorcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 0, 0, 1, 1]}, ('xorcc
 xorcc_imm_Instr.setCode(opCodeExecImm, 'execute')
 xorcc_imm_Instr.setCode(opCodeReadRegs1, 'regs')
 xorcc_imm_Instr.addBehavior(WB_plain, 'wb')
-xorcc_imm_Instr.addBehavior(IncrementPC, 'fetch')
+xorcc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 xorcc_imm_Instr.addBehavior(ICC_writeLogic, 'execute', False)
 xorcc_imm_Instr.addVariable(('result', 'BIT<32>'))
 xorcc_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -1355,7 +1507,7 @@ xorcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 0, 0, 1, 1], 'asi' : 
 xorcc_reg_Instr.setCode(opCodeExecReg, 'execute')
 xorcc_reg_Instr.setCode(opCodeReadRegs2, 'regs')
 xorcc_reg_Instr.addBehavior(WB_plain, 'wb')
-xorcc_reg_Instr.addBehavior(IncrementPC, 'fetch')
+xorcc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 xorcc_reg_Instr.addBehavior(ICC_writeLogic, 'execute', False)
 xorcc_reg_Instr.addVariable(('result', 'BIT<32>'))
 xorcc_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -1370,7 +1522,7 @@ xnor_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 0, 1, 1, 1]}, ('xnor r
 xnor_imm_Instr.setCode(opCodeExecImm, 'execute')
 xnor_imm_Instr.setCode(opCodeReadRegs1, 'regs')
 xnor_imm_Instr.addBehavior(WB_plain, 'wb')
-xnor_imm_Instr.addBehavior(IncrementPC, 'fetch')
+xnor_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 xnor_imm_Instr.addVariable(('result', 'BIT<32>'))
 xnor_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 isa.addInstruction(xnor_imm_Instr)
@@ -1382,7 +1534,7 @@ xnor_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 0, 1, 1, 1], 'asi' : [
 xnor_reg_Instr.setCode(opCodeExecReg, 'execute')
 xnor_reg_Instr.setCode(opCodeReadRegs2, 'regs')
 xnor_reg_Instr.addBehavior(WB_plain, 'wb')
-xnor_reg_Instr.addBehavior(IncrementPC, 'fetch')
+xnor_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 xnor_reg_Instr.addVariable(('result', 'BIT<32>'))
 xnor_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 xnor_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
@@ -1392,7 +1544,7 @@ xnorcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 0, 1, 1, 1]}, ('xnor
 xnorcc_imm_Instr.setCode(opCodeExecImm, 'execute')
 xnorcc_imm_Instr.setCode(opCodeReadRegs1, 'regs')
 xnorcc_imm_Instr.addBehavior(WB_plain, 'wb')
-xnorcc_imm_Instr.addBehavior(IncrementPC, 'fetch')
+xnorcc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 xnorcc_imm_Instr.addBehavior(ICC_writeLogic, 'execute', False)
 xnorcc_imm_Instr.addVariable(('result', 'BIT<32>'))
 xnorcc_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -1403,7 +1555,7 @@ xnorcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 0, 1, 1, 1], 'asi' :
 xnorcc_reg_Instr.setCode(opCodeExecReg, 'execute')
 xnorcc_reg_Instr.setCode(opCodeReadRegs2, 'regs')
 xnorcc_reg_Instr.addBehavior(WB_plain, 'wb')
-xnorcc_reg_Instr.addBehavior(IncrementPC, 'fetch')
+xnorcc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 xnorcc_reg_Instr.addBehavior(ICC_writeLogic, 'execute', False)
 xnorcc_reg_Instr.addVariable(('result', 'BIT<32>'))
 xnorcc_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -1427,7 +1579,7 @@ sll_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 0, 0, 1, 0, 1]}, ('sll r',
 sll_imm_Instr.setCode(opCodeExec, 'execute')
 sll_imm_Instr.setCode(opCodeRegsImm, 'regs')
 sll_imm_Instr.addBehavior(WB_plain, 'wb')
-sll_imm_Instr.addBehavior(IncrementPC, 'fetch')
+sll_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 sll_imm_Instr.addVariable(('result', 'BIT<32>'))
 sll_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 isa.addInstruction(sll_imm_Instr)
@@ -1439,7 +1591,7 @@ sll_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 0, 0, 1, 0, 1], 'asi' : [0
 sll_reg_Instr.setCode(opCodeExec, 'execute')
 sll_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 sll_reg_Instr.addBehavior(WB_plain, 'wb')
-sll_reg_Instr.addBehavior(IncrementPC, 'fetch')
+sll_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 sll_reg_Instr.addVariable(('result', 'BIT<32>'))
 sll_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 sll_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
@@ -1452,7 +1604,7 @@ srl_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 0, 0, 1, 1, 0]}, ('srl r',
 srl_imm_Instr.setCode(opCodeExec, 'execute')
 srl_imm_Instr.setCode(opCodeRegsImm, 'regs')
 srl_imm_Instr.addBehavior(WB_plain, 'wb')
-srl_imm_Instr.addBehavior(IncrementPC, 'fetch')
+srl_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 srl_imm_Instr.addVariable(('result', 'BIT<32>'))
 srl_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 isa.addInstruction(srl_imm_Instr)
@@ -1464,7 +1616,7 @@ srl_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 0, 0, 1, 1, 0], 'asi' : [0
 srl_reg_Instr.setCode(opCodeExec, 'execute')
 srl_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 srl_reg_Instr.addBehavior(WB_plain, 'wb')
-srl_reg_Instr.addBehavior(IncrementPC, 'fetch')
+srl_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 srl_reg_Instr.addVariable(('result', 'BIT<32>'))
 srl_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 srl_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
@@ -1477,7 +1629,7 @@ sra_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 0, 0, 1, 1, 1]}, ('sra r',
 sra_imm_Instr.setCode(opCodeExec, 'execute')
 sra_imm_Instr.setCode(opCodeRegsImm, 'regs')
 sra_imm_Instr.addBehavior(WB_plain, 'wb')
-sra_imm_Instr.addBehavior(IncrementPC, 'fetch')
+sra_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 sra_imm_Instr.addVariable(('result', 'BIT<32>'))
 sra_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 isa.addInstruction(sra_imm_Instr)
@@ -1489,7 +1641,7 @@ sra_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 0, 0, 1, 1, 1], 'asi' : [0
 sra_reg_Instr.setCode(opCodeExec, 'execute')
 sra_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 sra_reg_Instr.addBehavior(WB_plain, 'wb')
-sra_reg_Instr.addBehavior(IncrementPC, 'fetch')
+sra_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 sra_reg_Instr.addVariable(('result', 'BIT<32>'))
 sra_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 sra_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
@@ -1512,7 +1664,7 @@ add_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 0, 0, 0, 0]}, ('add r',
 add_imm_Instr.setCode(opCodeRegsImm, 'regs')
 add_imm_Instr.setCode(opCodeExec, 'execute')
 add_imm_Instr.addBehavior(WB_plain, 'wb')
-add_imm_Instr.addBehavior(IncrementPC, 'fetch')
+add_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 add_imm_Instr.addVariable(('result', 'BIT<32>'))
 add_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 add_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
@@ -1522,7 +1674,7 @@ add_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 0, 0, 0, 0], 'asi' : [0
 add_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 add_reg_Instr.setCode(opCodeExec, 'execute')
 add_reg_Instr.addBehavior(WB_plain, 'wb')
-add_reg_Instr.addBehavior(IncrementPC, 'fetch')
+add_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 add_reg_Instr.addVariable(('result', 'BIT<32>'))
 add_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 add_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
@@ -1532,7 +1684,7 @@ addcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 0, 0, 0, 0]}, ('addcc
 addcc_imm_Instr.setCode(opCodeRegsImm, 'regs')
 addcc_imm_Instr.setCode(opCodeExec, 'execute')
 addcc_imm_Instr.addBehavior(WB_plain, 'wb')
-addcc_imm_Instr.addBehavior(IncrementPC, 'fetch')
+addcc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 addcc_imm_Instr.addBehavior(ICC_writeAdd, 'execute', False)
 addcc_imm_Instr.addVariable(('result', 'BIT<32>'))
 addcc_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -1544,7 +1696,7 @@ addcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 0, 0, 0, 0], 'asi' : 
 addcc_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 addcc_reg_Instr.setCode(opCodeExec, 'execute')
 addcc_reg_Instr.addBehavior(WB_plain, 'wb')
-addcc_reg_Instr.addBehavior(IncrementPC, 'fetch')
+addcc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 addcc_reg_Instr.addBehavior(ICC_writeAdd, 'execute', False)
 addcc_reg_Instr.addVariable(('result', 'BIT<32>'))
 addcc_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -1565,7 +1717,7 @@ addx_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 1, 0, 0, 0]}, ('addx r
 addx_imm_Instr.setCode(opCodeRegsImm, 'regs')
 addx_imm_Instr.setCode(opCodeExec, 'execute')
 addx_imm_Instr.addBehavior(WB_plain, 'wb')
-addx_imm_Instr.addBehavior(IncrementPC, 'fetch')
+addx_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 addx_imm_Instr.addVariable(('result', 'BIT<32>'))
 addx_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 addx_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
@@ -1576,7 +1728,7 @@ addx_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 1, 0, 0, 0], 'asi' : [
 addx_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 addx_reg_Instr.setCode(opCodeExec, 'execute')
 addx_reg_Instr.addBehavior(WB_plain, 'wb')
-addx_reg_Instr.addBehavior(IncrementPC, 'fetch')
+addx_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 addx_reg_Instr.addVariable(('result', 'BIT<32>'))
 addx_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 addx_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
@@ -1587,7 +1739,7 @@ addxcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 1, 0, 0, 0]}, ('addx
 addxcc_imm_Instr.setCode(opCodeRegsImm, 'regs')
 addxcc_imm_Instr.setCode(opCodeExec, 'execute')
 addxcc_imm_Instr.addBehavior(WB_plain, 'wb')
-addxcc_imm_Instr.addBehavior(IncrementPC, 'fetch')
+addxcc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 addxcc_imm_Instr.addBehavior(ICC_writeAdd, 'execute', False)
 addxcc_imm_Instr.addVariable(('result', 'BIT<32>'))
 addxcc_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -1599,7 +1751,7 @@ addxcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 1, 0, 0, 0], 'asi' :
 addxcc_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 addxcc_reg_Instr.setCode(opCodeExec, 'execute')
 addxcc_reg_Instr.addBehavior(WB_plain, 'wb')
-addxcc_reg_Instr.addBehavior(IncrementPC, 'fetch')
+addxcc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 addxcc_reg_Instr.addBehavior(ICC_writeAdd, 'execute', False)
 addxcc_reg_Instr.addVariable(('result', 'BIT<32>'))
 addxcc_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -1618,7 +1770,7 @@ taddcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 0, 0, 0, 0, 0]}, ('tadd
 taddcc_imm_Instr.setCode(opCodeRegsImm, 'regs')
 taddcc_imm_Instr.setCode(opCodeExec, 'execute')
 taddcc_imm_Instr.addBehavior(WB_plain, 'wb')
-taddcc_imm_Instr.addBehavior(IncrementPC, 'fetch')
+taddcc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 taddcc_imm_Instr.addBehavior(ICC_writeTAdd, 'execute', False)
 taddcc_imm_Instr.addVariable(('result', 'BIT<32>'))
 taddcc_imm_Instr.addVariable(('temp_V', 'BIT<1>'))
@@ -1631,7 +1783,7 @@ taddcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 0, 0, 0, 0, 0], 'asi' :
 taddcc_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 taddcc_reg_Instr.setCode(opCodeExec, 'execute')
 taddcc_reg_Instr.addBehavior(WB_plain, 'wb')
-taddcc_reg_Instr.addBehavior(IncrementPC, 'fetch')
+taddcc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 taddcc_reg_Instr.addBehavior(ICC_writeTAdd, 'execute', False)
 taddcc_reg_Instr.addVariable(('result', 'BIT<32>'))
 taddcc_reg_Instr.addVariable(('temp_V', 'BIT<1>'))
@@ -1641,7 +1793,7 @@ taddcc_reg_Instr.addSpecialRegister('PSR', 'out', 'execute')
 isa.addInstruction(taddcc_reg_Instr)
 opCodeTrap = cxx_writer.writer_code.Code("""
 if(temp_V){
-    RaiseException(TAG_OVERFLOW);
+    RaiseException(pcounter, npcounter, TAG_OVERFLOW);
 }
 """)
 taddcctv_imm_Instr = trap.Instruction('TADDccTV_imm', True, frequency = 1)
@@ -1650,8 +1802,11 @@ taddcctv_imm_Instr.setCode(opCodeRegsImm, 'regs')
 taddcctv_imm_Instr.setCode(opCodeExec, 'execute')
 taddcctv_imm_Instr.setCode(opCodeTrap, 'exception')
 taddcctv_imm_Instr.addBehavior(WB_tv, 'wb')
-taddcctv_imm_Instr.addBehavior(IncrementPC, 'fetch')
+taddcctv_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 taddcctv_imm_Instr.addBehavior(ICC_writeTVAdd, 'execute', False)
+taddcctv_imm_Instr.setCode(opCodeReadPC, 'fetch')
+taddcctv_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
+taddcctv_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 taddcctv_imm_Instr.addVariable(('result', 'BIT<32>'))
 taddcctv_imm_Instr.addVariable(('temp_V', 'BIT<1>'))
 taddcctv_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -1664,8 +1819,11 @@ taddcctv_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 taddcctv_reg_Instr.setCode(opCodeExec, 'execute')
 taddcctv_reg_Instr.setCode(opCodeTrap, 'exception')
 taddcctv_reg_Instr.addBehavior(WB_tv, 'wb')
-taddcctv_reg_Instr.addBehavior(IncrementPC, 'fetch')
+taddcctv_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 taddcctv_reg_Instr.addBehavior(ICC_writeTVAdd, 'execute', False)
+taddcctv_reg_Instr.setCode(opCodeReadPC, 'fetch')
+taddcctv_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+taddcctv_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 taddcctv_reg_Instr.addVariable(('result', 'BIT<32>'))
 taddcctv_reg_Instr.addVariable(('temp_V', 'BIT<1>'))
 taddcctv_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -1690,7 +1848,7 @@ sub_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 0, 1, 0, 0]}, ('sub r',
 sub_imm_Instr.setCode(opCodeRegsImm, 'regs')
 sub_imm_Instr.setCode(opCodeExec, 'execute')
 sub_imm_Instr.addBehavior(WB_plain, 'wb')
-sub_imm_Instr.addBehavior(IncrementPC, 'fetch')
+sub_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 sub_imm_Instr.addVariable(('result', 'BIT<32>'))
 sub_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 sub_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
@@ -1700,7 +1858,7 @@ sub_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 0, 1, 0, 0], 'asi' : [0
 sub_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 sub_reg_Instr.setCode(opCodeExec, 'execute')
 sub_reg_Instr.addBehavior(WB_plain, 'wb')
-sub_reg_Instr.addBehavior(IncrementPC, 'fetch')
+sub_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 sub_reg_Instr.addVariable(('result', 'BIT<32>'))
 sub_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 sub_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
@@ -1710,7 +1868,7 @@ subcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 0, 1, 0, 0]}, ('subcc
 subcc_imm_Instr.setCode(opCodeRegsImm, 'regs')
 subcc_imm_Instr.setCode(opCodeExec, 'execute')
 subcc_imm_Instr.addBehavior(WB_plain, 'wb')
-subcc_imm_Instr.addBehavior(IncrementPC, 'fetch')
+subcc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 subcc_imm_Instr.addBehavior(ICC_writeSub, 'execute', False)
 subcc_imm_Instr.addVariable(('result', 'BIT<32>'))
 subcc_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -1722,7 +1880,7 @@ subcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 0, 1, 0, 0], 'asi' : 
 subcc_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 subcc_reg_Instr.setCode(opCodeExec, 'execute')
 subcc_reg_Instr.addBehavior(WB_plain, 'wb')
-subcc_reg_Instr.addBehavior(IncrementPC, 'fetch')
+subcc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 subcc_reg_Instr.addBehavior(ICC_writeSub, 'execute', False)
 subcc_reg_Instr.addVariable(('result', 'BIT<32>'))
 subcc_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -1741,7 +1899,7 @@ subx_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 1, 1, 0, 0]}, ('subx r
 subx_imm_Instr.setCode(opCodeRegsImm, 'regs')
 subx_imm_Instr.setCode(opCodeExec, 'execute')
 subx_imm_Instr.addBehavior(WB_plain, 'wb')
-subx_imm_Instr.addBehavior(IncrementPC, 'fetch')
+subx_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 subx_imm_Instr.addVariable(('result', 'BIT<32>'))
 subx_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 subx_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
@@ -1752,7 +1910,7 @@ subx_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 1, 1, 0, 0], 'asi' : [
 subx_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 subx_reg_Instr.setCode(opCodeExec, 'execute')
 subx_reg_Instr.addBehavior(WB_plain, 'wb')
-subx_reg_Instr.addBehavior(IncrementPC, 'fetch')
+subx_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 subx_reg_Instr.addVariable(('result', 'BIT<32>'))
 subx_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 subx_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
@@ -1763,7 +1921,7 @@ subxcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 1, 1, 0, 0]}, ('subx
 subxcc_imm_Instr.setCode(opCodeRegsImm, 'regs')
 subxcc_imm_Instr.setCode(opCodeExec, 'execute')
 subxcc_imm_Instr.addBehavior(WB_plain, 'wb')
-subxcc_imm_Instr.addBehavior(IncrementPC, 'fetch')
+subxcc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 subxcc_imm_Instr.addBehavior(ICC_writeSub, 'execute', False)
 subxcc_imm_Instr.addVariable(('result', 'BIT<32>'))
 subxcc_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -1775,7 +1933,7 @@ subxcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 1, 1, 0, 0], 'asi' :
 subxcc_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 subxcc_reg_Instr.setCode(opCodeExec, 'execute')
 subxcc_reg_Instr.addBehavior(WB_plain, 'wb')
-subxcc_reg_Instr.addBehavior(IncrementPC, 'fetch')
+subxcc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 subxcc_reg_Instr.addBehavior(ICC_writeSub, 'execute', False)
 subxcc_reg_Instr.addVariable(('result', 'BIT<32>'))
 subxcc_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -1794,7 +1952,7 @@ tsubcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 0, 0, 0, 0, 1]}, ('tsub
 tsubcc_imm_Instr.setCode(opCodeRegsImm, 'regs')
 tsubcc_imm_Instr.setCode(opCodeExec, 'execute')
 tsubcc_imm_Instr.addBehavior(WB_plain, 'wb')
-tsubcc_imm_Instr.addBehavior(IncrementPC, 'fetch')
+tsubcc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 tsubcc_imm_Instr.addBehavior(ICC_writeTSub, 'execute', False)
 tsubcc_imm_Instr.addVariable(('result', 'BIT<32>'))
 tsubcc_imm_Instr.addVariable(('temp_V', 'BIT<1>'))
@@ -1807,7 +1965,7 @@ tsubcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 0, 0, 0, 0, 1], 'asi' :
 tsubcc_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 tsubcc_reg_Instr.setCode(opCodeExec, 'execute')
 tsubcc_reg_Instr.addBehavior(WB_plain, 'wb')
-tsubcc_reg_Instr.addBehavior(IncrementPC, 'fetch')
+tsubcc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 tsubcc_reg_Instr.addBehavior(ICC_writeTSub, 'execute', False)
 tsubcc_reg_Instr.addVariable(('result', 'BIT<32>'))
 tsubcc_reg_Instr.addVariable(('temp_V', 'BIT<1>'))
@@ -1817,7 +1975,7 @@ tsubcc_reg_Instr.addSpecialRegister('PSR', 'out', 'execute')
 isa.addInstruction(tsubcc_reg_Instr)
 opCodeTrap = cxx_writer.writer_code.Code("""
 if(temp_V){
-    RaiseException(TAG_OVERFLOW);
+    RaiseException(pcounter, npcounter, TAG_OVERFLOW);
 }
 """)
 tsubcctv_imm_Instr = trap.Instruction('TSUBccTV_imm', True, frequency = 1)
@@ -1826,8 +1984,11 @@ tsubcctv_imm_Instr.setCode(opCodeRegsImm, 'regs')
 tsubcctv_imm_Instr.setCode(opCodeExec, 'execute')
 tsubcctv_imm_Instr.setCode(opCodeTrap, 'exception')
 tsubcctv_imm_Instr.addBehavior(WB_tv, 'wb')
-tsubcctv_imm_Instr.addBehavior(IncrementPC, 'fetch')
+tsubcctv_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 tsubcctv_imm_Instr.addBehavior(ICC_writeTVSub, 'execute', False)
+tsubcctv_imm_Instr.setCode(opCodeReadPC, 'fetch')
+tsubcctv_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
+tsubcctv_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 tsubcctv_imm_Instr.addVariable(('result', 'BIT<32>'))
 tsubcctv_imm_Instr.addVariable(('temp_V', 'BIT<1>'))
 tsubcctv_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -1840,8 +2001,11 @@ tsubcctv_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 tsubcctv_reg_Instr.setCode(opCodeExec, 'execute')
 tsubcctv_reg_Instr.setCode(opCodeTrap, 'exception')
 tsubcctv_reg_Instr.addBehavior(WB_tv, 'wb')
-tsubcctv_reg_Instr.addBehavior(IncrementPC, 'fetch')
+tsubcctv_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 tsubcctv_reg_Instr.addBehavior(ICC_writeTVSub, 'execute', False)
+tsubcctv_reg_Instr.setCode(opCodeReadPC, 'fetch')
+tsubcctv_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+tsubcctv_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 tsubcctv_reg_Instr.addVariable(('result', 'BIT<32>'))
 tsubcctv_reg_Instr.addVariable(('temp_V', 'BIT<1>'))
 tsubcctv_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -1884,7 +2048,7 @@ mulscc_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 0, 0, 1, 0, 0]}, ('muls
 mulscc_imm_Instr.setCode(opCodeRegsImm, 'regs')
 mulscc_imm_Instr.setCode(opCodeExec, 'execute')
 mulscc_imm_Instr.addBehavior(WB_plain, 'wb')
-mulscc_imm_Instr.addBehavior(IncrementPC, 'fetch')
+mulscc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 mulscc_imm_Instr.addBehavior(ICC_writeAdd, 'execute', False)
 mulscc_imm_Instr.addVariable(('result', 'BIT<32>'))
 mulscc_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -1897,7 +2061,7 @@ mulscc_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 0, 0, 1, 0, 0], 'asi' :
 mulscc_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 mulscc_reg_Instr.setCode(opCodeExec, 'execute')
 mulscc_reg_Instr.addBehavior(WB_plain, 'wb')
-mulscc_reg_Instr.addBehavior(IncrementPC, 'fetch')
+mulscc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 mulscc_reg_Instr.addBehavior(ICC_writeAdd, 'execute', False)
 mulscc_reg_Instr.addVariable(('result', 'BIT<32>'))
 mulscc_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -1932,7 +2096,7 @@ umul_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 1, 0, 1, 0]}, ('umul r
 umul_imm_Instr.setCode(opCodeRegsImm, 'regs')
 umul_imm_Instr.setCode(opCodeExecU, 'execute')
 umul_imm_Instr.addBehavior(WB_plain, 'wb')
-umul_imm_Instr.addBehavior(IncrementPC, 'fetch')
+umul_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 umul_imm_Instr.addVariable(('result', 'BIT<32>'))
 umul_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 umul_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
@@ -1947,7 +2111,7 @@ umul_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 1, 0, 1, 0], 'asi' : [
 umul_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 umul_reg_Instr.setCode(opCodeExecU, 'execute')
 umul_reg_Instr.addBehavior(WB_plain, 'wb')
-umul_reg_Instr.addBehavior(IncrementPC, 'fetch')
+umul_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 umul_reg_Instr.addVariable(('result', 'BIT<32>'))
 umul_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 umul_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
@@ -1962,7 +2126,7 @@ smul_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 1, 0, 1, 1]}, ('smul r
 smul_imm_Instr.setCode(opCodeRegsImm, 'regs')
 smul_imm_Instr.setCode(opCodeExecS, 'execute')
 smul_imm_Instr.addBehavior(WB_plain, 'wb')
-smul_imm_Instr.addBehavior(IncrementPC, 'fetch')
+smul_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 smul_imm_Instr.addVariable(('result', 'BIT<32>'))
 smul_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 smul_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
@@ -1977,7 +2141,7 @@ smul_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 1, 0, 1, 1], 'asi' : [
 smul_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 smul_reg_Instr.setCode(opCodeExecS, 'execute')
 smul_reg_Instr.addBehavior(WB_plain, 'wb')
-smul_reg_Instr.addBehavior(IncrementPC, 'fetch')
+smul_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 smul_reg_Instr.addVariable(('result', 'BIT<32>'))
 smul_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 smul_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
@@ -1992,7 +2156,7 @@ umulcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 1, 0, 1, 0]}, ('umul
 umulcc_imm_Instr.setCode(opCodeRegsImm, 'regs')
 umulcc_imm_Instr.setCode(opCodeExecU, 'execute')
 umulcc_imm_Instr.addBehavior(WB_plain, 'wb')
-umulcc_imm_Instr.addBehavior(IncrementPC, 'fetch')
+umulcc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 umulcc_imm_Instr.addBehavior(ICC_writeLogic, 'execute', False)
 umulcc_imm_Instr.addVariable(('result', 'BIT<32>'))
 umulcc_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -2009,7 +2173,7 @@ umulcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 1, 0, 1, 0], 'asi' :
 umulcc_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 umulcc_reg_Instr.setCode(opCodeExecU, 'execute')
 umulcc_reg_Instr.addBehavior(WB_plain, 'wb')
-umulcc_reg_Instr.addBehavior(IncrementPC, 'fetch')
+umulcc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 umulcc_reg_Instr.addBehavior(ICC_writeLogic, 'execute', False)
 umulcc_reg_Instr.addVariable(('result', 'BIT<32>'))
 umulcc_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -2026,7 +2190,7 @@ smulcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 1, 0, 1, 1]}, ('smul
 smulcc_imm_Instr.setCode(opCodeRegsImm, 'regs')
 smulcc_imm_Instr.setCode(opCodeExecS, 'execute')
 smulcc_imm_Instr.addBehavior(WB_plain, 'wb')
-smulcc_imm_Instr.addBehavior(IncrementPC, 'fetch')
+smulcc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 smulcc_imm_Instr.addBehavior(ICC_writeLogic, 'execute', False)
 smulcc_imm_Instr.addVariable(('result', 'BIT<32>'))
 smulcc_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -2043,7 +2207,7 @@ smulcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 1, 0, 1, 1], 'asi' :
 smulcc_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 smulcc_reg_Instr.setCode(opCodeExecS, 'execute')
 smulcc_reg_Instr.addBehavior(WB_plain, 'wb')
-smulcc_reg_Instr.addBehavior(IncrementPC, 'fetch')
+smulcc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 smulcc_reg_Instr.addBehavior(ICC_writeLogic, 'execute', False)
 smulcc_reg_Instr.addVariable(('result', 'BIT<32>'))
 smulcc_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -2094,7 +2258,7 @@ umac_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 1, 1, 0]}, ('umac r
 umac_imm_Instr.setCode(opCodeRegsImm, 'regs')
 umac_imm_Instr.setCode(opCodeExecU, 'execute')
 umac_imm_Instr.addBehavior(WB_plain, 'wb')
-umac_imm_Instr.addBehavior(IncrementPC, 'fetch')
+umac_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 umac_imm_Instr.addVariable(('result', 'BIT<32>'))
 umac_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 umac_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
@@ -2106,7 +2270,7 @@ umac_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 1, 1, 0], 'asi' : [
 umac_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 umac_reg_Instr.setCode(opCodeExecU, 'execute')
 umac_reg_Instr.addBehavior(WB_plain, 'wb')
-umac_reg_Instr.addBehavior(IncrementPC, 'fetch')
+umac_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 umac_reg_Instr.addVariable(('result', 'BIT<32>'))
 umac_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 umac_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
@@ -2118,7 +2282,7 @@ smac_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 1, 1, 1]}, ('smac r
 smac_imm_Instr.setCode(opCodeRegsImm, 'regs')
 smac_imm_Instr.setCode(opCodeExecS, 'execute')
 smac_imm_Instr.addBehavior(WB_plain, 'wb')
-smac_imm_Instr.addBehavior(IncrementPC, 'fetch')
+smac_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 smac_imm_Instr.addVariable(('result', 'BIT<32>'))
 smac_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 smac_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
@@ -2130,7 +2294,7 @@ smac_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 1, 1, 1], 'asi' : [
 smac_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 smac_reg_Instr.setCode(opCodeExecS, 'execute')
 smac_reg_Instr.addBehavior(WB_plain, 'wb')
-smac_reg_Instr.addBehavior(IncrementPC, 'fetch')
+smac_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 smac_reg_Instr.addVariable(('result', 'BIT<32>'))
 smac_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 smac_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
@@ -2190,7 +2354,7 @@ stall(2);
 """)
 opCodeTrap = cxx_writer.writer_code.Code("""
 if(exception){
-    RaiseException(DIV_ZERO);
+    RaiseException(pcounter, npcounter, DIV_ZERO);
 }
 """)
 udiv_imm_Instr = trap.Instruction('UDIV_imm', True, frequency = 2)
@@ -2198,8 +2362,11 @@ udiv_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 1, 1, 1, 0]}, ('udiv',
 udiv_imm_Instr.setCode(opCodeRegsImm, 'regs')
 udiv_imm_Instr.setCode(opCodeExecU, 'execute')
 udiv_imm_Instr.setCode(opCodeTrap, 'exception')
-udiv_imm_Instr.addBehavior(IncrementPC, 'fetch')
+udiv_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 udiv_imm_Instr.addBehavior(WB_plain, 'wb')
+udiv_imm_Instr.setCode(opCodeReadPC, 'fetch')
+udiv_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
+udiv_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 udiv_imm_Instr.addVariable(('exception', 'BIT<1>'))
 udiv_imm_Instr.addVariable(('temp_V', 'BIT<1>'))
 udiv_imm_Instr.addVariable(('result', 'BIT<32>'))
@@ -2213,8 +2380,11 @@ udiv_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 1, 1, 1, 0], 'asi' : [
 udiv_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 udiv_reg_Instr.setCode(opCodeExecU, 'execute')
 udiv_reg_Instr.setCode(opCodeTrap, 'exception')
-udiv_reg_Instr.addBehavior(IncrementPC, 'fetch')
+udiv_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 udiv_reg_Instr.addBehavior(WB_plain, 'wb')
+udiv_reg_Instr.setCode(opCodeReadPC, 'fetch')
+udiv_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+udiv_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 udiv_reg_Instr.addVariable(('exception', 'BIT<1>'))
 udiv_reg_Instr.addVariable(('temp_V', 'BIT<1>'))
 udiv_reg_Instr.addVariable(('result', 'BIT<32>'))
@@ -2228,8 +2398,11 @@ sdiv_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 1, 1, 1, 1]}, ('sdiv',
 sdiv_imm_Instr.setCode(opCodeRegsImm, 'regs')
 sdiv_imm_Instr.setCode(opCodeExecS, 'execute')
 sdiv_imm_Instr.setCode(opCodeTrap, 'exception')
-sdiv_imm_Instr.addBehavior(IncrementPC, 'fetch')
+sdiv_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 sdiv_imm_Instr.addBehavior(WB_plain, 'wb')
+sdiv_imm_Instr.setCode(opCodeReadPC, 'fetch')
+sdiv_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
+sdiv_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 sdiv_imm_Instr.addVariable(('exception', 'BIT<1>'))
 sdiv_imm_Instr.addVariable(('temp_V', 'BIT<1>'))
 sdiv_imm_Instr.addVariable(('result', 'BIT<32>'))
@@ -2243,8 +2416,11 @@ sdiv_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 1, 1, 1, 1], 'asi' : [
 sdiv_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 sdiv_reg_Instr.setCode(opCodeExecS, 'execute')
 sdiv_reg_Instr.setCode(opCodeTrap, 'exception')
-sdiv_reg_Instr.addBehavior(IncrementPC, 'fetch')
+sdiv_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 sdiv_reg_Instr.addBehavior(WB_plain, 'wb')
+sdiv_reg_Instr.setCode(opCodeReadPC, 'fetch')
+sdiv_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+sdiv_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 sdiv_reg_Instr.addVariable(('exception', 'BIT<1>'))
 sdiv_reg_Instr.addVariable(('temp_V', 'BIT<1>'))
 sdiv_reg_Instr.addVariable(('result', 'BIT<32>'))
@@ -2259,8 +2435,11 @@ udivcc_imm_Instr.setCode(opCodeRegsImm, 'regs')
 udivcc_imm_Instr.setCode(opCodeExecU, 'execute')
 udivcc_imm_Instr.setCode(opCodeTrap, 'exception')
 udivcc_imm_Instr.addBehavior(ICC_writeDiv, 'execute', False)
-udivcc_imm_Instr.addBehavior(IncrementPC, 'fetch')
+udivcc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 udivcc_imm_Instr.addBehavior(WB_plain, 'wb')
+udivcc_imm_Instr.setCode(opCodeReadPC, 'fetch')
+udivcc_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
+udivcc_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 udivcc_imm_Instr.addVariable(('exception', 'BIT<1>'))
 udivcc_imm_Instr.addVariable(('temp_V', 'BIT<1>'))
 udivcc_imm_Instr.addVariable(('result', 'BIT<32>'))
@@ -2276,8 +2455,11 @@ udivcc_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 udivcc_reg_Instr.setCode(opCodeExecU, 'execute')
 udivcc_reg_Instr.setCode(opCodeTrap, 'exception')
 udivcc_reg_Instr.addBehavior(ICC_writeDiv, 'execute', False)
-udivcc_reg_Instr.addBehavior(IncrementPC, 'fetch')
+udivcc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 udivcc_reg_Instr.addBehavior(WB_plain, 'wb')
+udivcc_reg_Instr.setCode(opCodeReadPC, 'fetch')
+udivcc_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+udivcc_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 udivcc_reg_Instr.addVariable(('exception', 'BIT<1>'))
 udivcc_reg_Instr.addVariable(('temp_V', 'BIT<1>'))
 udivcc_reg_Instr.addVariable(('result', 'BIT<32>'))
@@ -2293,8 +2475,11 @@ sdivcc_imm_Instr.setCode(opCodeRegsImm, 'regs')
 sdivcc_imm_Instr.setCode(opCodeExecS, 'execute')
 sdivcc_imm_Instr.setCode(opCodeTrap, 'exception')
 sdivcc_imm_Instr.addBehavior(ICC_writeDiv, 'execute', False)
-sdivcc_imm_Instr.addBehavior(IncrementPC, 'fetch')
+sdivcc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 sdivcc_imm_Instr.addBehavior(WB_plain, 'wb')
+sdivcc_imm_Instr.setCode(opCodeReadPC, 'fetch')
+sdivcc_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
+sdivcc_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 sdivcc_imm_Instr.addVariable(('exception', 'BIT<1>'))
 sdivcc_imm_Instr.addVariable(('temp_V', 'BIT<1>'))
 sdivcc_imm_Instr.addVariable(('result', 'BIT<32>'))
@@ -2310,8 +2495,11 @@ sdivcc_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 sdivcc_reg_Instr.setCode(opCodeExecS, 'execute')
 sdivcc_reg_Instr.setCode(opCodeTrap, 'exception')
 sdivcc_reg_Instr.addBehavior(ICC_writeDiv, 'execute', False)
-sdivcc_reg_Instr.addBehavior(IncrementPC, 'fetch')
+sdivcc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 sdivcc_reg_Instr.addBehavior(WB_plain, 'wb')
+sdivcc_reg_Instr.setCode(opCodeReadPC, 'fetch')
+sdivcc_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+sdivcc_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 sdivcc_reg_Instr.addVariable(('exception', 'BIT<1>'))
 sdivcc_reg_Instr.addVariable(('temp_V', 'BIT<1>'))
 sdivcc_reg_Instr.addVariable(('result', 'BIT<32>'))
@@ -2326,18 +2514,42 @@ isa.addInstruction(sdivcc_reg_Instr)
 opCodeRegsImm = cxx_writer.writer_code.Code("""
 rs1_op = rs1;
 rs2_op = SignExtend(simm13, 13);
+#ifdef ACC_MODEL
+okNewWin = checkDecrementWin();
+if(!okNewWin){
+    flush();
+}
+#endif
 """)
 opCodeRegsRegs = cxx_writer.writer_code.Code("""
 rs1_op = rs1;
 rs2_op = rs2;
+#ifdef ACC_MODEL
+okNewWin = checkDecrementWin();
+if(!okNewWin){
+    flush();
+}
+#endif
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
 result = rs1_op + rs2_op;
 okNewWin = DecrementRegWindow();
+#ifdef ACC_MODEL
+if(!okNewWin){
+    flush();
+}
+#endif
+""")
+opCodeMem = cxx_writer.writer_code.Code("""
+#ifdef ACC_MODEL
+if(!okNewWin){
+    flush();
+}
+#endif
 """)
 opCodeTrap = cxx_writer.writer_code.Code("""
 if(!okNewWin){
-    RaiseException(WINDOW_OVERFLOW);
+    RaiseException(pcounter, npcounter, WINDOW_OVERFLOW);
 }
 """)
 opCodeWb = cxx_writer.writer_code.Code("""
@@ -2349,9 +2561,13 @@ save_imm_Instr = trap.Instruction('SAVE_imm', True, frequency = 6)
 save_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 1, 0, 0]}, ('save', ' r', '%rs1', ' ', '%simm13', ' r', '%rd'))
 save_imm_Instr.setCode(opCodeRegsImm, 'regs')
 save_imm_Instr.setCode(opCodeExec, 'execute')
+save_imm_Instr.setCode(opCodeMem, 'memory')
 save_imm_Instr.setCode(opCodeTrap, 'exception')
 save_imm_Instr.setCode(opCodeWb, 'wb')
-save_imm_Instr.addBehavior(IncrementPC, 'fetch')
+save_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+save_imm_Instr.setCode(opCodeReadPC, 'fetch')
+save_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
+save_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 save_imm_Instr.addVariable(('okNewWin', 'BIT<1>'))
 save_imm_Instr.addVariable(('result', 'BIT<32>'))
 save_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -2365,7 +2581,10 @@ save_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 save_reg_Instr.setCode(opCodeExec, 'execute')
 save_reg_Instr.setCode(opCodeTrap, 'exception')
 save_reg_Instr.setCode(opCodeWb, 'wb')
-save_reg_Instr.addBehavior(IncrementPC, 'fetch')
+save_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+save_reg_Instr.setCode(opCodeReadPC, 'fetch')
+save_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+save_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 save_reg_Instr.addVariable(('okNewWin', 'BIT<1>'))
 save_reg_Instr.addVariable(('result', 'BIT<32>'))
 save_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -2373,13 +2592,33 @@ save_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
 save_reg_Instr.addVariable(('newCwp', 'BIT<32>'))
 save_reg_Instr.removeLockRegRegister('rd')
 isa.addInstruction(save_reg_Instr)
+opCodeRegsImm = cxx_writer.writer_code.Code("""
+rs1_op = rs1;
+rs2_op = SignExtend(simm13, 13);
+#ifdef ACC_MODEL
+okNewWin = checkIncrementWin();
+if(!okNewWin){
+    flush();
+}
+#endif
+""")
+opCodeRegsRegs = cxx_writer.writer_code.Code("""
+rs1_op = rs1;
+rs2_op = rs2;
+#ifdef ACC_MODEL
+okNewWin = checkIncrementWin();
+if(!okNewWin){
+    flush();
+}
+#endif
+""")
 opCodeExec = cxx_writer.writer_code.Code("""
 result = rs1_op + rs2_op;
 okNewWin = IncrementRegWindow();
 """)
 opCodeTrap = cxx_writer.writer_code.Code("""
 if(!okNewWin){
-    RaiseException(WINDOW_UNDERFLOW);
+    RaiseException(pcounter, npcounter, WINDOW_UNDERFLOW);
 }
 """)
 restore_imm_Instr = trap.Instruction('RESTORE_imm', True, frequency = 2)
@@ -2388,7 +2627,10 @@ restore_imm_Instr.setCode(opCodeRegsImm, 'regs')
 restore_imm_Instr.setCode(opCodeExec, 'execute')
 restore_imm_Instr.setCode(opCodeTrap, 'exception')
 restore_imm_Instr.setCode(opCodeWb, 'wb')
-restore_imm_Instr.addBehavior(IncrementPC, 'fetch')
+restore_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+restore_imm_Instr.setCode(opCodeReadPC, 'fetch')
+restore_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
+restore_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 restore_imm_Instr.addVariable(('okNewWin', 'BIT<1>'))
 restore_imm_Instr.addVariable(('result', 'BIT<32>'))
 restore_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -2402,7 +2644,10 @@ restore_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 restore_reg_Instr.setCode(opCodeExec, 'execute')
 restore_reg_Instr.setCode(opCodeTrap, 'exception')
 restore_reg_Instr.setCode(opCodeWb, 'wb')
-restore_reg_Instr.addBehavior(IncrementPC, 'fetch')
+restore_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+restore_reg_Instr.setCode(opCodeReadPC, 'fetch')
+restore_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+restore_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 restore_reg_Instr.addVariable(('okNewWin', 'BIT<1>'))
 restore_reg_Instr.addVariable(('result', 'BIT<32>'))
 restore_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
@@ -2416,21 +2661,21 @@ opCode = cxx_writer.writer_code.Code("""
 switch(cond){
     case 0x8:{
         // Branch Always
-        unsigned int targetPc = PC + 4*(SignExtend(disp22, 22));
+        unsigned int targetPc = pcounter + 4*(SignExtend(disp22, 22));
         #ifdef ACC_MODEL
-        PC = targetPc - 4;
-        NPC = targetPc;
+        PC = targetPc;
+        NPC = targetPc + 4;
         if(a == 1){
             flush();
         }
         #else
         if(a == 1){
-            PC = targetPc - 4;
-            NPC = targetPc;
+            PC = targetPc;
+            NPC = targetPc + 4;
         }
         else{
-            PC = NPC;
-            NPC = targetPc - 4;
+            PC = npcounter;
+            NPC = targetPc;
         }
         #endif
     break;}
@@ -2442,12 +2687,12 @@ switch(cond){
         }
         #else
         if(a == 1){
-            PC = NPC + 4;
-            NPC += 8;
+            PC = npcounter + 4;
+            NPC = npcounter + 8;
         }
         else{
-            PC = NPC;
-            NPC += 4;
+            PC = npcounter;
+            NPC = npcounter + 4;
         }
         #endif
     break;}
@@ -2479,13 +2724,13 @@ switch(cond){
                     ((cond == 0xf) && !icc_v) ||
                     ((cond == 0x7) && icc_v);
         if(exec){
-            unsigned int targetPc = PC + 4*(SignExtend(disp22, 22));
+            unsigned int targetPc = pcounter + 4*(SignExtend(disp22, 22));
             #ifdef ACC_MODEL
-            PC = targetPc - 4;
-            NPC = targetPc;
+            PC = targetPc;
+            NPC = targetPc + 4;
             #else
-            PC = NPC;
-            NPC = targetPc - 4;
+            PC = npcounter;
+            NPC = targetPc;
             #endif
         }
         else{
@@ -2493,14 +2738,14 @@ switch(cond){
                 #ifdef ACC_MODEL
                 flush();
                 #else
-                PC = NPC + 4;
-                NPC += 8;
+                PC = npcounter + 4;
+                NPC = npcounter + 8;
                 #endif
             }
             #ifndef ACC_MODEL
             else{
-                PC = NPC;
-                NPC += 4;
+                PC = npcounter;
+                NPC = npcounter + 4;
             }
             #endif
         }
@@ -2515,31 +2760,35 @@ int('1011', 2) : 'ge', int('0011', 2) : 'l', int('1100', 2) : 'gu', int('0100', 
 int('01010', 2) : 'cs', int('1110', 2) : 'pos', int('0110', 2) : 'neg', int('1111', 2) : 'vc', int('0111', 2) : 'vs',}),
 ('%a', {1: ',a'}), ' ', '%disp22'))
 branch_Instr.setCode(opCode, 'decode')
-branch_Instr.addBehavior(IncrementPC, 'fetch', functionalModel = False)
+branch_Instr.addBehavior(IncrementPC, 'fetch', pre = False, functionalModel = False)
+branch_Instr.setCode(opCodeReadPC, 'fetch')
+branch_Instr.addVariable(('pcounter', 'BIT<32>'))
+branch_Instr.addVariable(('npcounter', 'BIT<32>'))
 branch_Instr.addSpecialRegister('PSR', 'in', 'execute')
 isa.addInstruction(branch_Instr)
 
 # Call and Link
 opCodeWb = cxx_writer.writer_code.Code("""
-REGS[15] = oldPC;
+REGS[15] = pcounter;
 """)
 opCode = cxx_writer.writer_code.Code("""
-unsigned int curPC = PC;
-unsigned int target = curPC + (disp30 << 2);
-oldPC = curPC - 4;
+unsigned int target = pcounter + (disp30 << 2);
 #ifdef ACC_MODEL
-PC = target - 4;
-NPC = target;
+PC = target;
+NPC = target + 4;
 #else
-PC = NPC;
-NPC = target - 4;
+PC = npcounter;
+NPC = target;
 #endif
 """)
 call_Instr = trap.Instruction('CALL', True, frequency = 8)
 call_Instr.setMachineCode(call_format, {}, ('call ', '%disp30'))
 call_Instr.setCode(opCode, 'decode')
 call_Instr.setCode(opCodeWb, 'wb')
-call_Instr.addBehavior(IncrementPC, 'fetch', functionalModel = False)
+call_Instr.addBehavior(IncrementPC, 'fetch', pre = False, functionalModel = False)
+call_Instr.setCode(opCodeReadPC, 'fetch')
+call_Instr.addVariable(('pcounter', 'BIT<32>'))
+call_Instr.addVariable(('npcounter', 'BIT<32>'))
 call_Instr.addSpecialRegister('REGS[15]', 'out')
 call_Instr.addVariable(('oldPC', 'BIT<32>'))
 isa.addInstruction(call_Instr)
@@ -2547,46 +2796,32 @@ isa.addInstruction(call_Instr)
 # Jump and Link
 opCodeWb = cxx_writer.writer_code.Code("""
 if(!trapNotAligned){
-    rd = oldPC;
+    rd = pcounter;
 }
 """)
+actualJumpCode = """if((jumpAddr & 0x00000003) != 0){
+    trapNotAligned = true;
+}
+else{
+    trapNotAligned = false;
+    #ifdef ACC_MODEL
+    PC = jumpAddr;
+    NPC = jumpAddr + 4;
+    #else
+    PC = npcounter;
+    NPC = jumpAddr;
+    #endif
+}
+"""
 opCodeRegsImm = cxx_writer.writer_code.Code("""
 unsigned int jumpAddr = rs1 + SignExtend(simm13, 13);
-if((jumpAddr & 0x00000003) != 0){
-    trapNotAligned = true;
-}
-else{
-    trapNotAligned = false;
-    oldPC = PC - 4;
-    #ifdef ACC_MODEL
-    PC = jumpAddr;
-    NPC = jumpAddr + 4;
-    #else
-    PC = NPC;
-    NPC = jumpAddr;
-    #endif
-}
-""")
+""" + actualJumpCode)
 opCodeRegsRegs = cxx_writer.writer_code.Code("""
 unsigned int jumpAddr = rs1 + rs2;
-if((jumpAddr & 0x00000003) != 0){
-    trapNotAligned = true;
-}
-else{
-    trapNotAligned = false;
-    oldPC = PC - 4;
-    #ifdef ACC_MODEL
-    PC = jumpAddr;
-    NPC = jumpAddr + 4;
-    #else
-    PC = NPC;
-    NPC = jumpAddr;
-    #endif
-}
-""")
+""" + actualJumpCode)
 opCodeTrap = cxx_writer.writer_code.Code("""
 if(trapNotAligned){
-    RaiseException(MEM_ADDR_NOT_ALIGNED);
+    RaiseException(pcounter, npcounter, MEM_ADDR_NOT_ALIGNED);
 }
 """)
 opCodeExec = cxx_writer.writer_code.Code("""
@@ -2598,7 +2833,10 @@ jump_imm_Instr.setCode(opCodeRegsImm, 'decode')
 jump_imm_Instr.setCode(opCodeTrap, 'exception')
 jump_imm_Instr.setCode(opCodeWb, 'wb')
 jump_imm_Instr.setCode(opCodeExec, 'execute')
-jump_imm_Instr.addBehavior(IncrementPC, 'fetch', functionalModel = False)
+jump_imm_Instr.setCode(opCodeReadPC, 'fetch')
+jump_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
+jump_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
+jump_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False, functionalModel = False)
 jump_imm_Instr.addVariable(cxx_writer.writer_code.Variable('trapNotAligned', cxx_writer.writer_code.boolType))
 jump_imm_Instr.addVariable(('oldPC', 'BIT<32>'))
 isa.addInstruction(jump_imm_Instr)
@@ -2608,7 +2846,10 @@ jump_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 jump_reg_Instr.setCode(opCodeTrap, 'exception')
 jump_reg_Instr.setCode(opCodeExec, 'execute')
 jump_reg_Instr.setCode(opCodeWb, 'wb')
-jump_reg_Instr.addBehavior(IncrementPC, 'fetch', functionalModel = False)
+jump_reg_Instr.setCode(opCodeReadPC, 'fetch')
+jump_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+jump_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
+jump_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False, functionalModel = False)
 jump_reg_Instr.addVariable(cxx_writer.writer_code.Variable('trapNotAligned', cxx_writer.writer_code.boolType))
 jump_reg_Instr.addVariable(('oldPC', 'BIT<32>'))
 isa.addInstruction(jump_reg_Instr)
@@ -2637,10 +2878,10 @@ stall(2);
 TrapCode = """
 if(exceptionEnabled){
     if(supervisor){
-        RaiseException(ILLEGAL_INSTR);
+        RaiseException(pcounter, npcounter, ILLEGAL_INSTR);
     }
     else{
-        RaiseException(PRIVILEDGE_INSTR);
+        RaiseException(pcounter, npcounter, PRIVILEDGE_INSTR);
     }
 }
 else if(!supervisor || ((0x01 << (newCwp)) & WIM) != 0 || (targetAddr & 0x00000003) != 0){
@@ -2651,7 +2892,7 @@ TrapCode += updateAliasCode_exception()
 opCodeTrap = cxx_writer.writer_code.Code(TrapCode)
 opCodeWb = cxx_writer.writer_code.Code("""
 PSR.immediateWrite((PSR & 0xFFFFFF40) | (newCwp | 0x20 | (PSR[key_PS] << 7)));
-PC = NPC;
+PC = npcounter;
 NPC = targetAddr;
 """)
 rett_imm_Instr = trap.Instruction('RETT_imm', True, frequency = 2)
@@ -2660,13 +2901,16 @@ rett_imm_Instr.setCode(opCodeRegsImm, 'regs')
 rett_imm_Instr.setCode(opCodeExec, 'execute')
 rett_imm_Instr.setCode(opCodeTrap, 'exception')
 rett_imm_Instr.setCode(opCodeWb, 'wb')
+rett_imm_Instr.setCode(opCodeReadPC, 'fetch')
+rett_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
+rett_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 rett_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 rett_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
 rett_imm_Instr.addVariable(('targetAddr', 'BIT<32>'))
 rett_imm_Instr.addVariable(('newCwp', 'BIT<32>'))
 rett_imm_Instr.addVariable(cxx_writer.writer_code.Variable('exceptionEnabled', cxx_writer.writer_code.boolType))
 rett_imm_Instr.addVariable(cxx_writer.writer_code.Variable('supervisor', cxx_writer.writer_code.boolType))
-rett_imm_Instr.addBehavior(IncrementPC, 'fetch')
+rett_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 isa.addInstruction(rett_imm_Instr)
 rett_reg_Instr = trap.Instruction('RETT_reg', True, frequency = 2)
 rett_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 0, 0, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('rett r', '%rs1', '+r', '%rs2'))
@@ -2674,74 +2918,69 @@ rett_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 rett_reg_Instr.setCode(opCodeExec, 'execute')
 rett_reg_Instr.setCode(opCodeTrap, 'exception')
 rett_reg_Instr.setCode(opCodeWb, 'wb')
+rett_reg_Instr.setCode(opCodeReadPC, 'fetch')
+rett_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+rett_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 rett_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 rett_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
 rett_reg_Instr.addVariable(('targetAddr', 'BIT<32>'))
 rett_reg_Instr.addVariable(('newCwp', 'BIT<32>'))
 rett_reg_Instr.addVariable(cxx_writer.writer_code.Variable('exceptionEnabled', cxx_writer.writer_code.boolType))
 rett_reg_Instr.addVariable(cxx_writer.writer_code.Variable('supervisor', cxx_writer.writer_code.boolType))
-rett_reg_Instr.addBehavior(IncrementPC, 'fetch')
+rett_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 isa.addInstruction(rett_reg_Instr)
 
 # Trap on Integer Condition Code; note this instruction also receives the forwarding
 # of the PSR, the same as the branch instruction
 opCode = cxx_writer.writer_code.Code("""
-// All the other non-special situations
 #ifndef ACC_MODEL
-raiseException = (cond == 0x8) ||
-            ((cond == 0x9) && PSR[key_ICC_z] == 0) ||
-            ((cond == 0x1) && PSR[key_ICC_z] != 0) ||
-            ((cond == 0xa) && (PSR[key_ICC_z] == 0) && (PSR[key_ICC_n] == PSR[key_ICC_v])) ||
-            ((cond == 0x2) && ((PSR[key_ICC_z] != 0) || (PSR[key_ICC_n] != PSR[key_ICC_v]))) ||
-            ((cond == 0xb) && PSR[key_ICC_n] == PSR[key_ICC_v]) ||
-            ((cond == 0x3) && PSR[key_ICC_n] != PSR[key_ICC_v]) ||
-            ((cond == 0xc) && (PSR[key_ICC_c] + PSR[key_ICC_z]) == 0) ||
-            ((cond == 0x4) && (PSR[key_ICC_c] + PSR[key_ICC_z]) > 0) ||
-            ((cond == 0xd) && PSR[key_ICC_c] == 0) ||
-            ((cond == 0x5) && PSR[key_ICC_c] != 0) ||
-            ((cond == 0xe) && PSR[key_ICC_n] == 0) ||
-            ((cond == 0x6) && PSR[key_ICC_n] != 0) ||
-            ((cond == 0xf) && PSR[key_ICC_v] == 0) ||
-            ((cond == 0x7) && PSR[key_ICC_v] != 0);
+bool icc_z = PSR[key_ICC_z];
+bool icc_n = PSR[key_ICC_n];
+bool icc_v = PSR[key_ICC_v];
+bool icc_c = PSR[key_ICC_c];
 #else
-raiseException = (cond == 0x8) ||
-            ((cond == 0x9) && PSR_execute[key_ICC_z] == 0) ||
-            ((cond == 0x1) && PSR_execute[key_ICC_z] != 0) ||
-            ((cond == 0xa) && (PSR_execute[key_ICC_z] == 0) && (PSR_execute[key_ICC_n] == PSR_execute[key_ICC_v])) ||
-            ((cond == 0x2) && ((PSR_execute[key_ICC_z] != 0) || (PSR_execute[key_ICC_n] != PSR_execute[key_ICC_v]))) ||
-            ((cond == 0xb) && PSR_execute[key_ICC_n] == PSR_execute[key_ICC_v]) ||
-            ((cond == 0x3) && PSR_execute[key_ICC_n] != PSR_execute[key_ICC_v]) ||
-            ((cond == 0xc) && (PSR_execute[key_ICC_c] + PSR_execute[key_ICC_z]) == 0) ||
-            ((cond == 0x4) && (PSR_execute[key_ICC_c] + PSR_execute[key_ICC_z]) > 0) ||
-            ((cond == 0xd) && PSR_execute[key_ICC_c] == 0) ||
-            ((cond == 0x5) && PSR_execute[key_ICC_c] != 0) ||
-            ((cond == 0xe) && PSR_execute[key_ICC_n] == 0) ||
-            ((cond == 0x6) && PSR_execute[key_ICC_n] != 0) ||
-            ((cond == 0xf) && PSR_execute[key_ICC_v] == 0) ||
-            ((cond == 0x7) && PSR_execute[key_ICC_v] != 0);
+bool icc_z = PSR_execute[key_ICC_z];
+bool icc_n = PSR_execute[key_ICC_n];
+bool icc_v = PSR_execute[key_ICC_v];
+bool icc_c = PSR_execute[key_ICC_c];
 #endif
+raiseException = (cond == 0x8) ||
+            ((cond == 0x9) && !icc_z) ||
+            ((cond == 0x1) && icc_z) ||
+            ((cond == 0xa) && !icc_z && (icc_n == icc_v)) ||
+            ((cond == 0x2) && (icc_z || (icc_n != icc_v))) ||
+            ((cond == 0xb) && (icc_n == icc_v)) ||
+            ((cond == 0x3) && (icc_n != icc_v)) ||
+            ((cond == 0xc) && !icc_c && !icc_z) ||
+            ((cond == 0x4) && (icc_c || icc_z)) ||
+            ((cond == 0xd) && !icc_c) ||
+            ((cond == 0x5) && icc_c) ||
+            ((cond == 0xe) && !icc_n) ||
+            ((cond == 0x6) && icc_n) ||
+            ((cond == 0xf) && !icc_v) ||
+            ((cond == 0x7) && icc_v);
 """)
 opCodeTrapImm = cxx_writer.writer_code.Code("""
 if(raiseException){
     stall(4);
-    RaiseException(TRAP_INSTRUCTION, (rs1 + SignExtend(imm7, 7)) & 0x0000007F);
+    RaiseException(pcounter, npcounter, TRAP_INSTRUCTION, (rs1 + SignExtend(imm7, 7)) & 0x0000007F);
 }
 #ifndef ACC_MODEL
 else{
-    PC = NPC;
-    NPC += 4;
+    PC = npcounter;
+    NPC = npcounter + 4;
 }
 #endif
 """)
 opCodeTrapReg = cxx_writer.writer_code.Code("""
 if(raiseException){
     stall(4);
-    RaiseException(TRAP_INSTRUCTION, (rs1 + rs2) & 0x0000007F);
+    RaiseException(pcounter, npcounter, TRAP_INSTRUCTION, (rs1 + rs2) & 0x0000007F);
 }
 #ifndef ACC_MODEL
 else{
-    PC = NPC;
-    NPC += 4;
+    PC = npcounter;
+    NPC = npcounter + 4;
 }
 #endif
 """)
@@ -2754,7 +2993,10 @@ int('01010', 2) : 'cs', int('1110', 2) : 'pos', int('0110', 2) : 'neg', int('111
 ' r', '%rs1', '+', '%imm7'))
 trap_imm_Instr.setCode(opCode, 'decode')
 trap_imm_Instr.setCode(opCodeTrapImm, 'exception')
-trap_imm_Instr.addBehavior(IncrementPC, 'fetch', functionalModel = False)
+trap_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False, functionalModel = False)
+trap_imm_Instr.setCode(opCodeReadPC, 'fetch')
+trap_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
+trap_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 trap_imm_Instr.addSpecialRegister('PSR', 'in', 'execute')
 trap_imm_Instr.addVariable(cxx_writer.writer_code.Variable('raiseException', cxx_writer.writer_code.boolType))
 isa.addInstruction(trap_imm_Instr)
@@ -2767,7 +3009,10 @@ int('01010', 2) : 'cs', int('1110', 2) : 'pos', int('0110', 2) : 'neg', int('111
 ' r', '%rs1', '+r', '%rs2'))
 trap_reg_Instr.setCode(opCode, 'decode')
 trap_reg_Instr.setCode(opCodeTrapReg, 'exception')
-trap_reg_Instr.addBehavior(IncrementPC, 'fetch', functionalModel = False)
+trap_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False, functionalModel = False)
+trap_reg_Instr.setCode(opCodeReadPC, 'fetch')
+trap_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+trap_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 trap_reg_Instr.addSpecialRegister('PSR', 'in', 'execute')
 trap_reg_Instr.addVariable(cxx_writer.writer_code.Variable('raiseException', cxx_writer.writer_code.boolType))
 isa.addInstruction(trap_reg_Instr)
@@ -2784,7 +3029,7 @@ readY_Instr.setMachineCode(read_special_format, {'op3': [1, 0, 1, 0, 0, 0], 'asr
 ('rd ', 'y', ' r', '%rd'), subInstr = True)
 readY_Instr.setCode(opCodeRegs, 'regs')
 readY_Instr.setCode(opCodeWb, 'wb')
-readY_Instr.addBehavior(IncrementPC, 'fetch')
+readY_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 readY_Instr.addVariable(('y_temp', 'BIT<32>'))
 isa.addInstruction(readY_Instr)
 opCodeRegs = cxx_writer.writer_code.Code("""
@@ -2797,16 +3042,20 @@ readASR_Instr = trap.Instruction('READasr', True, frequency = 1)
 readASR_Instr.setMachineCode(read_special_format, {'op3': [1, 0, 1, 0, 0, 0]}, ('rd asr ', '%asr', ' r', '%rd'))
 readASR_Instr.setCode(opCodeRegs, 'regs')
 readASR_Instr.setCode(opCodeWb, 'wb')
-readASR_Instr.addBehavior(IncrementPC, 'fetch')
+readASR_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 readASR_Instr.addVariable(('asr_temp', 'BIT<32>'))
 isa.addInstruction(readASR_Instr)
 opCodeRegs = cxx_writer.writer_code.Code("""
+#ifdef ACC_MODEL
+psr_temp = PSR_execute;
+#else
 psr_temp = PSR;
+#endif
 supervisor = (psr_temp & 0x00000080) != 0;
 """)
 opCodeTrap = cxx_writer.writer_code.Code("""
 if(!supervisor){
-    RaiseException(PRIVILEDGE_INSTR);
+    RaiseException(pcounter, npcounter, PRIVILEDGE_INSTR);
 }
 """)
 opCodeWb = cxx_writer.writer_code.Code("""
@@ -2817,7 +3066,10 @@ readPsr_Instr.setMachineCode(read_special_format, {'op3': [1, 0, 1, 0, 0, 1]}, (
 readPsr_Instr.setCode(opCodeRegs, 'regs')
 readPsr_Instr.setCode(opCodeTrap, 'exception')
 readPsr_Instr.setCode(opCodeWb, 'wb')
-readPsr_Instr.addBehavior(IncrementPC, 'fetch')
+readPsr_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+readPsr_Instr.setCode(opCodeReadPC, 'fetch')
+readPsr_Instr.addVariable(('pcounter', 'BIT<32>'))
+readPsr_Instr.addVariable(('npcounter', 'BIT<32>'))
 readPsr_Instr.addVariable(cxx_writer.writer_code.Variable('supervisor', cxx_writer.writer_code.boolType))
 readPsr_Instr.addVariable(('psr_temp', 'BIT<32>'))
 isa.addInstruction(readPsr_Instr)
@@ -2827,7 +3079,7 @@ supervisor = PSR[key_S];
 """)
 opCodeTrap = cxx_writer.writer_code.Code("""
 if(!supervisor){
-    RaiseException(PRIVILEDGE_INSTR);
+    RaiseException(pcounter, npcounter, PRIVILEDGE_INSTR);
 }
 """)
 opCodeWb = cxx_writer.writer_code.Code("""
@@ -2838,7 +3090,10 @@ readWim_Instr.setMachineCode(read_special_format, {'op3': [1, 0, 1, 0, 1, 0]}, (
 readWim_Instr.setCode(opCodeRegs, 'regs')
 readWim_Instr.setCode(opCodeTrap, 'exception')
 readWim_Instr.setCode(opCodeWb, 'wb')
-readWim_Instr.addBehavior(IncrementPC, 'fetch')
+readWim_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+readWim_Instr.setCode(opCodeReadPC, 'fetch')
+readWim_Instr.addVariable(('pcounter', 'BIT<32>'))
+readWim_Instr.addVariable(('npcounter', 'BIT<32>'))
 readWim_Instr.addVariable(cxx_writer.writer_code.Variable('supervisor', cxx_writer.writer_code.boolType))
 readWim_Instr.addVariable(('wim_temp', 'BIT<32>'))
 isa.addInstruction(readWim_Instr)
@@ -2848,7 +3103,7 @@ supervisor = PSR[key_S];
 """)
 opCodeTrap = cxx_writer.writer_code.Code("""
 if(!supervisor){
-    RaiseException(PRIVILEDGE_INSTR);
+    RaiseException(pcounter, npcounter, PRIVILEDGE_INSTR);
 }
 """)
 opCodeWb = cxx_writer.writer_code.Code("""
@@ -2859,7 +3114,10 @@ readTbr_Instr.setMachineCode(read_special_format, {'op3': [1, 0, 1, 0, 1, 1]}, (
 readTbr_Instr.setCode(opCodeRegs, 'regs')
 readTbr_Instr.setCode(opCodeTrap, 'exception')
 readTbr_Instr.setCode(opCodeWb, 'wb')
-readTbr_Instr.addBehavior(IncrementPC, 'fetch')
+readTbr_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+readTbr_Instr.setCode(opCodeReadPC, 'fetch')
+readTbr_Instr.addVariable(('pcounter', 'BIT<32>'))
+readTbr_Instr.addVariable(('npcounter', 'BIT<32>'))
 readTbr_Instr.addVariable(cxx_writer.writer_code.Variable('supervisor', cxx_writer.writer_code.boolType))
 readTbr_Instr.addVariable(('tbr_temp', 'BIT<32>'))
 isa.addInstruction(readTbr_Instr)
@@ -2878,7 +3136,7 @@ writeY_reg_Instr = trap.Instruction('WRITEY_reg', True, frequency = 1)
 writeY_reg_Instr.setMachineCode(write_special_format1, {'op3': [1, 1, 0, 0, 0, 0], 'rd': [0, 0, 0, 0, 0]}, ('wr r', '%rs1', ' r', '%rs2', ' y'), subInstr = True)
 writeY_reg_Instr.setCode(opCodeXorR, 'regs')
 writeY_reg_Instr.setCode(opCodeExec, 'execute')
-writeY_reg_Instr.addBehavior(IncrementPC, 'fetch')
+writeY_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 writeY_reg_Instr.addSpecialRegister('Y', 'out', 'execute')
 writeY_reg_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(writeY_reg_Instr)
@@ -2886,7 +3144,7 @@ writeY_imm_Instr = trap.Instruction('WRITEY_imm', True, frequency = 2)
 writeY_imm_Instr.setMachineCode(write_special_format2, {'op3': [1, 1, 0, 0, 0, 0], 'rd': [0, 0, 0, 0, 0]}, ('wr r', '%rs1', ' ', '%simm13', ' y'), subInstr = True)
 writeY_imm_Instr.setCode(opCodeXorI, 'regs')
 writeY_imm_Instr.setCode(opCodeExec, 'execute')
-writeY_imm_Instr.addBehavior(IncrementPC, 'fetch')
+writeY_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 writeY_imm_Instr.addSpecialRegister('Y', 'out', 'execute')
 writeY_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(writeY_imm_Instr)
@@ -2898,7 +3156,7 @@ writeASR_reg_Instr.setMachineCode(write_special_format1, {'op3': [1, 1, 0, 0, 0,
 writeASR_reg_Instr.setCode(opCodeXorR, 'regs')
 writeASR_reg_Instr.setCode(opCodeExec, 'execute')
 writeASR_reg_Instr.setCode(opCodeWb, 'wb')
-writeASR_reg_Instr.addBehavior(IncrementPC, 'fetch')
+writeASR_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 writeASR_reg_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(writeASR_reg_Instr)
 writeASR_imm_Instr = trap.Instruction('WRITEasr_imm', True, frequency = 1)
@@ -2906,7 +3164,7 @@ writeASR_imm_Instr.setMachineCode(write_special_format2, {'op3': [1, 1, 0, 0, 0,
 writeASR_imm_Instr.setCode(opCodeXorI, 'regs')
 writeASR_imm_Instr.setCode(opCodeExec, 'execute')
 writeASR_imm_Instr.setCode(opCodeWb, 'wb')
-writeASR_imm_Instr.addBehavior(IncrementPC, 'fetch')
+writeASR_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 writeASR_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(writeASR_imm_Instr)
 
@@ -2933,10 +3191,10 @@ if(!(supervisorException || illegalCWP)){
 """)
 opCodeTrap = cxx_writer.writer_code.Code("""
 if(supervisorException){
-    RaiseException(PRIVILEDGE_INSTR);
+    RaiseException(pcounter, npcounter, PRIVILEDGE_INSTR);
 }
 if(illegalCWP){
-    RaiseException(ILLEGAL_INSTR);
+    RaiseException(pcounter, npcounter, ILLEGAL_INSTR);
 }
 """)
 writePsr_reg_Instr = trap.Instruction('WRITEpsr_reg', True, frequency = 2)
@@ -2944,7 +3202,10 @@ writePsr_reg_Instr.setMachineCode(write_special_format1, {'op3': [1, 1, 0, 0, 0,
 writePsr_reg_Instr.setCode(opCodeXorR, 'regs')
 writePsr_reg_Instr.setCode(opCodeExec, 'execute')
 writePsr_reg_Instr.setCode(opCodeTrap, 'exception')
-writePsr_reg_Instr.addBehavior(IncrementPC, 'fetch')
+writePsr_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+writePsr_reg_Instr.setCode(opCodeReadPC, 'fetch')
+writePsr_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+writePsr_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 writePsr_reg_Instr.addSpecialRegister('PSR', 'out', 'execute')
 writePsr_reg_Instr.addVariable(cxx_writer.writer_code.Variable('supervisorException', cxx_writer.writer_code.boolType))
 writePsr_reg_Instr.addVariable(cxx_writer.writer_code.Variable('illegalCWP', cxx_writer.writer_code.boolType))
@@ -2955,7 +3216,10 @@ writePsr_imm_Instr.setMachineCode(write_special_format2, {'op3': [1, 1, 0, 0, 0,
 writePsr_imm_Instr.setCode(opCodeXorI, 'regs')
 writePsr_imm_Instr.setCode(opCodeExec, 'execute')
 writePsr_imm_Instr.setCode(opCodeTrap, 'exception')
-writePsr_imm_Instr.addBehavior(IncrementPC, 'fetch')
+writePsr_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+writePsr_imm_Instr.setCode(opCodeReadPC, 'fetch')
+writePsr_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
+writePsr_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 writePsr_imm_Instr.addSpecialRegister('PSR', 'out', 'execute')
 writePsr_imm_Instr.addVariable(cxx_writer.writer_code.Variable('supervisorException', cxx_writer.writer_code.boolType))
 writePsr_imm_Instr.addVariable(cxx_writer.writer_code.Variable('illegalCWP', cxx_writer.writer_code.boolType))
@@ -2976,7 +3240,7 @@ if(!raiseException){
 """)
 opCodeTrap = cxx_writer.writer_code.Code("""
 if(raiseException){
-    RaiseException(PRIVILEDGE_INSTR);
+    RaiseException(pcounter, npcounter, PRIVILEDGE_INSTR);
 }
 """)
 writeWim_reg_Instr = trap.Instruction('WRITEwim_reg', True, frequency = 1)
@@ -2984,7 +3248,10 @@ writeWim_reg_Instr.setMachineCode(write_special_format1, {'op3': [1, 1, 0, 0, 1,
 writeWim_reg_Instr.setCode(opCodeXorR, 'regs')
 writeWim_reg_Instr.setCode(opCodeTrap, 'exception')
 writeWim_reg_Instr.setCode(opCodeWb, 'wb')
-writeWim_reg_Instr.addBehavior(IncrementPC, 'fetch')
+writeWim_reg_Instr.setCode(opCodeReadPC, 'fetch')
+writeWim_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+writeWim_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
+writeWim_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 writeWim_reg_Instr.addVariable(cxx_writer.writer_code.Variable('raiseException', cxx_writer.writer_code.boolType))
 writeWim_reg_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(writeWim_reg_Instr)
@@ -2993,7 +3260,10 @@ writeWim_imm_Instr.setMachineCode(write_special_format2, {'op3': [1, 1, 0, 0, 1,
 writeWim_imm_Instr.setCode(opCodeXorI, 'regs')
 writeWim_imm_Instr.setCode(opCodeTrap, 'exception')
 writeWim_imm_Instr.setCode(opCodeWb, 'wb')
-writeWim_imm_Instr.addBehavior(IncrementPC, 'fetch')
+writeWim_imm_Instr.setCode(opCodeReadPC, 'fetch')
+writeWim_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
+writeWim_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
+writeWim_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 writeWim_imm_Instr.addVariable(cxx_writer.writer_code.Variable('raiseException', cxx_writer.writer_code.boolType))
 writeWim_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(writeWim_imm_Instr)
@@ -3007,7 +3277,10 @@ writeTbr_reg_Instr.setMachineCode(write_special_format1, {'op3': [1, 1, 0, 0, 1,
 writeTbr_reg_Instr.setCode(opCodeXorR, 'regs')
 writeTbr_reg_Instr.setCode(opCodeTrap, 'exception')
 writeTbr_reg_Instr.setCode(opCodeWb, 'wb')
-writeTbr_reg_Instr.addBehavior(IncrementPC, 'fetch')
+writeTbr_reg_Instr.setCode(opCodeReadPC, 'fetch')
+writeTbr_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
+writeTbr_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
+writeTbr_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 writeTbr_reg_Instr.addVariable(cxx_writer.writer_code.Variable('raiseException', cxx_writer.writer_code.boolType))
 writeTbr_reg_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(writeTbr_reg_Instr)
@@ -3015,8 +3288,11 @@ writeTbr_imm_Instr = trap.Instruction('WRITEtbr_imm', True, frequency = 1)
 writeTbr_imm_Instr.setMachineCode(write_special_format2, {'op3': [1, 1, 0, 0, 1, 1]}, ('wr r', '%rs1', ' ', '%simm13', ' tbr'))
 writeTbr_imm_Instr.setCode(opCodeXorI, 'regs')
 writeTbr_imm_Instr.setCode(opCodeTrap, 'exception')
+writeTbr_imm_Instr.setCode(opCodeReadPC, 'fetch')
+writeTbr_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
+writeTbr_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 writeTbr_imm_Instr.setCode(opCodeWb, 'wb')
-writeTbr_imm_Instr.addBehavior(IncrementPC, 'fetch')
+writeTbr_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 writeTbr_imm_Instr.addVariable(cxx_writer.writer_code.Variable('raiseException', cxx_writer.writer_code.boolType))
 writeTbr_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(writeTbr_imm_Instr)
@@ -3027,17 +3303,20 @@ opCode = cxx_writer.writer_code.Code("""
 stbar_Instr = trap.Instruction('STBAR', True, frequency = 1)
 stbar_Instr.setMachineCode(stbar_format, {}, ('stbar'), subInstr = True)
 stbar_Instr.setCode(opCode, 'execute')
-stbar_Instr.addBehavior(IncrementPC, 'fetch')
+stbar_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 isa.addInstruction(stbar_Instr)
 
 # Unimplemented Instruction
 opCode = cxx_writer.writer_code.Code("""
-RaiseException(ILLEGAL_INSTR);
+RaiseException(pcounter, npcounter, ILLEGAL_INSTR);
 """)
 unimpl_Instr = trap.Instruction('UNIMP', True, frequency = 1)
 unimpl_Instr.setMachineCode(b_sethi_format1, {'op2' : [0, 0, 0]}, ('unimp ', '%imm22'))
 unimpl_Instr.setCode(opCode, 'exception')
-unimpl_Instr.addBehavior(IncrementPC, 'fetch')
+unimpl_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+unimpl_Instr.setCode(opCodeReadPC, 'fetch')
+unimpl_Instr.addVariable(('pcounter', 'BIT<32>'))
+unimpl_Instr.addVariable(('npcounter', 'BIT<32>'))
 unimpl_Instr.removeLockRegRegister('rd')
 isa.addInstruction(unimpl_Instr)
 
@@ -3047,12 +3326,12 @@ opCode = cxx_writer.writer_code.Code("""
 flush_reg_Instr = trap.Instruction('FLUSH_reg', True, frequency = 1)
 flush_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 0, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('flush r', '%rs1', '+r', '%rs2'))
 flush_reg_Instr.setCode(opCode, 'execute')
-flush_reg_Instr.addBehavior(IncrementPC, 'fetch')
+flush_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 flush_reg_Instr.removeLockRegRegister('rd')
 isa.addInstruction(flush_reg_Instr)
 flush_imm_Instr = trap.Instruction('FLUSH_imm', True, frequency = 1)
 flush_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 0, 1, 1]}, ('flush r', '%rs1', '+', '%simm13'))
 flush_imm_Instr.setCode(opCode, 'execute')
-flush_imm_Instr.addBehavior(IncrementPC, 'fetch')
+flush_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 flush_imm_Instr.removeLockRegRegister('rd')
 isa.addInstruction(flush_imm_Instr)

@@ -36,7 +36,7 @@
 
 import cxx_writer
 
-from procWriter import getInstrIssueCodePipe, getInterruptCode, computeFetchCode, computeCurrentPC, fetchWithCacheCode
+from procWriter import getInstrIssueCodePipe, getInterruptCode, computeFetchCode, computeCurrentPC, fetchWithCacheCode, standardInstrFetch
 
 from procWriter import hash_map_include
 
@@ -492,9 +492,21 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             # the other to update the alias
             codeString = '// Now we update the registers to propagate the values in the pipeline\n'
             for reg in self.regs:
+                ########
+                if trace and not combinedTrace:
+                    codeString += 'if(this->' + reg.name + '.hasToPropagate){\n'
+                    codeString += 'std::cerr << "Propagating register ' + reg.name + '" << std::endl;\n'
+                    codeString += '}\n'
+                ########
                 codeString += 'this->' + reg.name + '.propagate();\n'
             for regB in self.regBanks:
                 codeString += 'for(int i = 0; i < ' + str(regB.numRegs) + '; i++){\n'
+                ########
+                if trace and not combinedTrace:
+                    codeString += 'if(this->' + regB.name + '[i].hasToPropagate){\n'
+                    codeString += 'std::cerr << "Propagating register ' + regB.name + '[" << std::dec << i << "]" << std::endl;\n'
+                    codeString += '}\n'
+                ########
                 codeString += 'this->' + regB.name + '[i].propagate();\n'
                 codeString += '}\n'
             # Now lets procede to the update of the alias: for each stage alias I have to copy the reference

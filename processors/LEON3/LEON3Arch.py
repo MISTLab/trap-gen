@@ -102,7 +102,7 @@ for i in range(0, 32):
     wimBitMask['WIM_' + str(i)] = (i, i)
 wimReg = trap.Register('WIM', 32, wimBitMask)
 wimReg.setDefaultValue(0)
-wimReg.setDelay(3)
+#wimReg.setDelay(3)
 processor.addRegister(wimReg)
 # Trap Base Register
 tbrBitMask = {'TBA' : (12, 31), 'TT' : (4, 11)}
@@ -116,13 +116,12 @@ processor.addRegister(yReg)
 # Program Counter
 pcReg = trap.Register('PC', 32)
 pcReg.setDefaultValue('ENTRY_POINT')
-pcReg.setOffset(4)
-pcReg.setWbStageOrder(['decode', 'fetch'])
+pcReg.setWbStageOrder(['exception', 'decode', 'fetch'])
 processor.addRegister(pcReg)
 # Program Counter
 npcReg = trap.Register('NPC', 32)
 npcReg.setDefaultValue(('ENTRY_POINT', 4))
-npcReg.setWbStageOrder(['decode', 'fetch'])
+npcReg.setWbStageOrder(['exception', 'decode', 'fetch'])
 processor.addRegister(npcReg)
 # Ancillary State Registers
 # in the LEON3 processor some of them have a special meaning:
@@ -132,7 +131,7 @@ asrRegs = trap.RegisterBank('ASR', 32, 32)
 # here I set the default value for the processor configuration register
 # (see page 24 of LEON3 preliminary datasheed)
 asrRegs.setDefaultValue(0x00000300 + numRegWindows, 17)
-asrRegs.setGlobalDelay(3)
+#asrRegs.setGlobalDelay(3)
 processor.addRegBank(asrRegs)
 
 # Now I declare some fake registers for the exclusive use
@@ -168,10 +167,9 @@ processor.addAliasReg(PCR)
 
 # Now I add the registers which I want to see printed in the instruction trace
 # COMMENT FOR COMPARISON
-LEON3Isa.isa.addTraceRegister(pcReg)
-LEON3Isa.isa.addTraceRegister(npcReg)
+#LEON3Isa.isa.addTraceRegister(pcReg)
+#LEON3Isa.isa.addTraceRegister(npcReg)
 LEON3Isa.isa.addTraceRegister(psrReg)
-#LEON3Isa.isa.addTraceRegister(psrBypassReg)
 LEON3Isa.isa.addTraceRegister(regs)
 LEON3Isa.isa.addTraceRegister(tbrReg)
 LEON3Isa.isa.addTraceRegister(wimReg)
@@ -203,7 +201,7 @@ LEON3Isa.isa.addTraceRegister(wimReg)
 # functional model there is an offset between the PC and the actual
 # fetch address (all of this is to take into account the fact that we do
 # not have the pipeline)
-processor.setFetchRegister('PC', -4)
+processor.setFetchRegister('PC')
 
 # Lets now add details about the processor interconnection (i.e. memory ports,
 # interrupt ports, pins, etc.)
@@ -227,7 +225,7 @@ irqPort.setOperation("""//Basically, what I have to do when
 //(valid interrupt level). The we simply raise an exception and
 //acknowledge the IRQ on the irqAck port.
 // First of all I have to move to a new register window
-unsigned int newCwp = ((unsigned int)(PSR[key_CWP] - 1)) % NUM_REG_WIN;
+unsigned int newCwp = ((unsigned int)(PSR[key_CWP] - 1)) % """ + str(numRegWindows) + """;
 PSR.immediateWrite((PSR & 0xFFFFFFE0) | newCwp);
 """ + updateAliasCode_exception() + """
 // Now I set the TBR
@@ -292,7 +290,6 @@ post_code += updateAliasCode_abi()
 abi.processorID('(ASR[17] & 0xF0000000) >> 28')
 abi.setECallPreCode(pre_code)
 abi.setECallPostCode(post_code)
-abi.setOffset('PC', -4)
 abi.returnCall([('PC', 'LR', 8), ('NPC', 'LR', 12)])
 abi.addMemory('dataMem')
 abi.setCallInstr([LEON3Isa.call_Instr, None, (LEON3Isa.save_imm_Instr, LEON3Isa.save_reg_Instr)])
@@ -307,6 +304,6 @@ processor.setABI(abi)
 #processor.write(folder = 'processor', models = ['funcAT'], trace = False)
 #processor.write(folder = 'processor', models = ['funcAT'])
 #processor.write(folder = 'processor', models = ['funcAT', 'funcLT'], tests = False)
-#processor.write(folder = 'processor', models = ['accAT'], trace = True)
-processor.write(folder = 'processor', models = ['accLT', 'funcLT'], trace = True)
-#processor.write(folder = 'processor', models = ['accLT', 'funcLT'], trace = True, combinedTrace = True)
+#processor.write(folder = 'processor', models = ['accLT'], trace = True)
+#processor.write(folder = 'processor', models = ['accLT', 'funcLT'], trace = True)
+processor.write(folder = 'processor', models = ['accLT', 'funcLT'], trace = True, combinedTrace = True)

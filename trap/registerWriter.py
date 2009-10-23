@@ -405,7 +405,7 @@ def getCPPRegBankClass(self, model, regType, namespace):
     # the register bank
     return getCPPRegClass(self, model, regType, namespace)
 
-def getCPPPipelineReg(self, namespace):
+def getCPPPipelineReg(self, trace, combinedTrace, namespace):
     # This method returns the pipeline registers, which is a special registers
     # containing both the value of the registres itself and all the pipeline
     # latches.
@@ -504,20 +504,33 @@ def getCPPPipelineReg(self, namespace):
     firstStages = 0
     for pipeStage in self.pipes:
         regReadUpdate += 'if(this->reg_all->timeStamp > this->reg_stage[' + str(firstStages) + ']->timeStamp){\n'
+        ######
+        if trace and not combinedTrace:
+            regReadUpdate += 'std::cerr << "Propagating stage all into stage ' + str(firstStages) + '" << std::endl;\n'
+        ######
         regReadUpdate += 'hasChanges = true;\n'
         regReadUpdate += 'this->reg_stage[' + str(firstStages) + ']->timeStamp = this->reg_all->timeStamp;\n'
         regReadUpdate += 'this->reg_stage[' + str(firstStages) + ']->forceValue(*(this->reg_all));\n}\n'
-        firstStages += 1
         if pipeStage.checkHazard:
             break
+        else:
+            firstStages += 1
     propagateCode = 'bool hasChanges = false;\n'
     propagateCode += 'if(!this->hasToPropagate){\nreturn;\n}\n'
     propagateCode += 'if(this->reg_stage[' + str(len(self.pipes) - 1) + ']->timeStamp > this->reg_all->timeStamp){\n'
+    ######
+    if trace and not combinedTrace:
+        propagateCode += 'std::cerr << "Propagating stage ' + str(len(self.pipes) - 1) + ' into reg_all" << std::endl;\n'
+    ######
     propagateCode += 'hasChanges = true;\n'
     propagateCode += 'this->reg_all->timeStamp = this->reg_stage[' + str(len(self.pipes) - 1) + ']->timeStamp;\n'
     propagateCode += 'this->reg_all->forceValue(*(this->reg_stage[' + str(len(self.pipes) - 1) + ']));\n}\n'
     propagateCode += 'for(int i = ' + str(len(self.pipes) - 2) + '; i >= ' + str(firstStages) + '; i--){\n'
     propagateCode += 'if(this->reg_stage[i]->timeStamp > this->reg_stage[i + 1]->timeStamp){\n'
+    ######
+    if trace and not combinedTrace:
+        propagateCode += 'std::cerr << "Propagating stage " << std::dec << i << " into stage " << std::dec << i + 1 << std::endl;\n'
+    ######
     propagateCode += 'hasChanges = true;\n'
     propagateCode += 'this->reg_stage[i + 1]->timeStamp = this->reg_stage[i]->timeStamp;\n'
     propagateCode += 'this->reg_stage[i + 1]->forceValue(*(this->reg_stage[i]));\n}\n'
@@ -624,6 +637,10 @@ def getCPPPipelineReg(self, namespace):
             if pipeStage != order[0]:
                 propagateCode += 'else '
             propagateCode += 'if(this->reg_stage[' + str(pipeNumbers[pipeStage]) + ']->timeStamp > this->reg_all->timeStamp){\n'
+            ######
+            if trace and not combinedTrace:
+                propagateCode += 'std::cerr << "Propagating stage ' + str(pipeNumbers[pipeStage]) + ' into all stages" << std::endl;\n'
+            ######
             propagateCode += 'hasChanges = true;\n'
             propagateCode += 'this->reg_all->forceValue(*(this->reg_stage[' + str(pipeNumbers[pipeStage]) + ']));\n'
             propagateCode += 'this->reg_all->timeStamp = this->reg_stage[' + str(pipeNumbers[pipeStage]) + ']->timeStamp;\n'
@@ -646,7 +663,7 @@ def getCPPPipelineReg(self, namespace):
 
     return pipelineRegClasses
 
-def getCPPRegisters(self, model, namespace):
+def getCPPRegisters(self, trace, combinedTrace, model, namespace):
     # This method creates all the classes necessary for declaring
     # the registers: in particular the register base class
     # and all the classes for the different bitwidths; in order to
@@ -923,7 +940,7 @@ def getCPPRegisters(self, model, namespace):
 
     # Now I have to add the classes for the pipeline registers for the cycle accurate processor
     if model.startswith('acc'):
-        classes += self.getCPPPipelineReg(namespace)
+        classes += self.getCPPPipelineReg(trace, combinedTrace, namespace)
 
     return classes
 
