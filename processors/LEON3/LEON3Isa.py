@@ -2574,11 +2574,13 @@ save_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 save_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
 save_imm_Instr.addVariable(('newCwp', 'BIT<32>'))
 save_imm_Instr.removeLockRegRegister('rd')
+save_imm_Instr.addSpecialRegister('PSR', 'inout')
 isa.addInstruction(save_imm_Instr)
 save_reg_Instr = trap.Instruction('SAVE_reg', True, frequency = 2)
 save_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 1, 0, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('save', ' r', '%rs1', ' r', '%rs2', ' r', '%rd'))
 save_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 save_reg_Instr.setCode(opCodeExec, 'execute')
+save_reg_Instr.setCode(opCodeMem, 'memory')
 save_reg_Instr.setCode(opCodeTrap, 'exception')
 save_reg_Instr.setCode(opCodeWb, 'wb')
 save_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -2591,6 +2593,7 @@ save_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 save_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
 save_reg_Instr.addVariable(('newCwp', 'BIT<32>'))
 save_reg_Instr.removeLockRegRegister('rd')
+save_reg_Instr.addSpecialRegister('PSR', 'inout')
 isa.addInstruction(save_reg_Instr)
 opCodeRegsImm = cxx_writer.writer_code.Code("""
 rs1_op = rs1;
@@ -2615,6 +2618,11 @@ if(!okNewWin){
 opCodeExec = cxx_writer.writer_code.Code("""
 result = rs1_op + rs2_op;
 okNewWin = IncrementRegWindow();
+#ifdef ACC_MODEL
+if(!okNewWin){
+    flush();
+}
+#endif
 """)
 opCodeTrap = cxx_writer.writer_code.Code("""
 if(!okNewWin){
@@ -2625,6 +2633,7 @@ restore_imm_Instr = trap.Instruction('RESTORE_imm', True, frequency = 2)
 restore_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 1, 0, 1]}, ('restore', ' r', '%rs1', ' ', '%simm13', ' r', '%rd'))
 restore_imm_Instr.setCode(opCodeRegsImm, 'regs')
 restore_imm_Instr.setCode(opCodeExec, 'execute')
+restore_imm_Instr.setCode(opCodeMem, 'memory')
 restore_imm_Instr.setCode(opCodeTrap, 'exception')
 restore_imm_Instr.setCode(opCodeWb, 'wb')
 restore_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -2637,11 +2646,13 @@ restore_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 restore_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
 restore_imm_Instr.addVariable(('newCwp', 'BIT<32>'))
 restore_imm_Instr.removeLockRegRegister('rd')
+restore_imm_Instr.addSpecialRegister('PSR', 'inout')
 isa.addInstruction(restore_imm_Instr)
 restore_reg_Instr = trap.Instruction('RESTORE_reg', True, frequency = 6)
 restore_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 1, 0, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('restore', ' r', '%rs1', ' r', '%rs2', ' r', '%rd'))
 restore_reg_Instr.setCode(opCodeRegsRegs, 'regs')
 restore_reg_Instr.setCode(opCodeExec, 'execute')
+restore_reg_Instr.setCode(opCodeMem, 'memory')
 restore_reg_Instr.setCode(opCodeTrap, 'exception')
 restore_reg_Instr.setCode(opCodeWb, 'wb')
 restore_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -2654,6 +2665,7 @@ restore_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 restore_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
 restore_reg_Instr.addVariable(('newCwp', 'BIT<32>'))
 restore_reg_Instr.removeLockRegRegister('rd')
+restore_reg_Instr.addSpecialRegister('PSR', 'inout')
 isa.addInstruction(restore_reg_Instr)
 
 # Branch on Integer Condition Codes
@@ -2856,22 +2868,31 @@ isa.addInstruction(jump_reg_Instr)
 # N.B. In the reg read stage it writes the values of the SU and ET PSR
 # fields??????? TODO: check the stages where the operations are performed:
 # is everything performed in the decode stage?
-opCodeRegsImm = cxx_writer.writer_code.Code("""
-rs1_op = rs1;
-rs2_op = SignExtend(simm13, 13);
+opCodeAll = """newCwp = ((unsigned int)(PSR[key_CWP] + 1)) % NUM_REG_WIN;
 exceptionEnabled = PSR[key_ET];
 supervisor = PSR[key_S];
-""")
-opCodeRegsRegs = cxx_writer.writer_code.Code("""
-rs1_op = rs1;
-rs2_op = rs2;
-exceptionEnabled = PSR[key_ET];
-supervisor = PSR[key_S];
-""")
+invalidWin = ((0x01 << (newCwp)) & WIM) != 0;
+notAligned = (targetAddr & 0x00000003) != 0;
+if(!exceptionEnabled && supervisor && !invalidWin && !notAligned){
+    #ifdef ACC_MODEL
+    PC = targetAddr;
+    NPC = targetAddr + 4;
+    #else
+    PC = npcounter;
+    NPC = targetAddr;
+    #endif
+}
+"""
+opCodeImm = cxx_writer.writer_code.Code('targetAddr = rs1 + SignExtend(simm13, 13);\n' + opCodeAll)
+opCodeRegs = cxx_writer.writer_code.Code('targetAddr = rs1 + rs2;\n' + opCodeAll)
 opCodeExec = cxx_writer.writer_code.Code("""
-targetAddr = rs1_op + rs2_op;
-newCwp = ((unsigned int)(PSR[key_CWP] + 1)) % NUM_REG_WIN;
-stall(2);
+if(exceptionEnabled || !supervisor || invalidWin || notAligned){
+    flush();
+}
+else{
+    PSR.immediateWrite((PSR & 0xFFFFFF40) | (newCwp | 0x20 | (PSR[key_PS] << 7)));
+    stall(2);
+}
 """)
 TrapCode = """
 if(exceptionEnabled){
@@ -2882,23 +2903,27 @@ if(exceptionEnabled){
         RaiseException(pcounter, npcounter, PRIVILEDGE_INSTR);
     }
 }
-else if(!supervisor || ((0x01 << (newCwp)) & WIM) != 0 || (targetAddr & 0x00000003) != 0){
+else if(!supervisor || invalidWin || notAligned){
     THROW_EXCEPTION("Invalid processor mode during execution of the RETT instruction - supervisor: " << supervisor << " newCwp: " << std::hex << std::showbase << newCwp << " targetAddr: " << std::hex << std::showbase << targetAddr);
 }
 """
-TrapCode += updateAliasCode_exception()
+TrapCode += 'else{\n' + updateAliasCode_exception() + '\n}'
 opCodeTrap = cxx_writer.writer_code.Code(TrapCode)
-opCodeWb = cxx_writer.writer_code.Code("""
-PSR.immediateWrite((PSR & 0xFFFFFF40) | (newCwp | 0x20 | (PSR[key_PS] << 7)));
-PC = npcounter;
-NPC = targetAddr;
+opCodeFlush = cxx_writer.writer_code.Code("""
+#ifdef ACC_MODEL
+if(exceptionEnabled || !supervisor || invalidWin || notAligned){
+    flush();
+}
+#endif
 """)
 rett_imm_Instr = trap.Instruction('RETT_imm', True, frequency = 2)
 rett_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 0, 0, 1]}, ('rett r', '%rs1', '+', '%simm13'))
-rett_imm_Instr.setCode(opCodeRegsImm, 'regs')
+rett_imm_Instr.setCode(opCodeImm, 'decode')
+rett_imm_Instr.setCode(opCodeFlush, 'regs')
 rett_imm_Instr.setCode(opCodeExec, 'execute')
+rett_imm_Instr.setCode(opCodeFlush, 'memory')
 rett_imm_Instr.setCode(opCodeTrap, 'exception')
-rett_imm_Instr.setCode(opCodeWb, 'wb')
+rett_imm_Instr.setCode(opCodeFlush, 'wb')
 rett_imm_Instr.setCode(opCodeReadPC, 'fetch')
 rett_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
 rett_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
@@ -2907,15 +2932,20 @@ rett_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
 rett_imm_Instr.addVariable(('targetAddr', 'BIT<32>'))
 rett_imm_Instr.addVariable(('newCwp', 'BIT<32>'))
 rett_imm_Instr.addVariable(cxx_writer.writer_code.Variable('exceptionEnabled', cxx_writer.writer_code.boolType))
+rett_imm_Instr.addVariable(cxx_writer.writer_code.Variable('invalidWin', cxx_writer.writer_code.boolType))
+rett_imm_Instr.addVariable(cxx_writer.writer_code.Variable('notAligned', cxx_writer.writer_code.boolType))
 rett_imm_Instr.addVariable(cxx_writer.writer_code.Variable('supervisor', cxx_writer.writer_code.boolType))
 rett_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+rett_imm_Instr.addSpecialRegister('PSR', 'inout')
 isa.addInstruction(rett_imm_Instr)
 rett_reg_Instr = trap.Instruction('RETT_reg', True, frequency = 2)
 rett_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 0, 0, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('rett r', '%rs1', '+r', '%rs2'))
-rett_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+rett_reg_Instr.setCode(opCodeRegs, 'decode')
+rett_reg_Instr.setCode(opCodeFlush, 'regs')
 rett_reg_Instr.setCode(opCodeExec, 'execute')
+rett_reg_Instr.setCode(opCodeFlush, 'memory')
 rett_reg_Instr.setCode(opCodeTrap, 'exception')
-rett_reg_Instr.setCode(opCodeWb, 'wb')
+rett_reg_Instr.setCode(opCodeFlush, 'wb')
 rett_reg_Instr.setCode(opCodeReadPC, 'fetch')
 rett_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
 rett_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
@@ -2924,8 +2954,11 @@ rett_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
 rett_reg_Instr.addVariable(('targetAddr', 'BIT<32>'))
 rett_reg_Instr.addVariable(('newCwp', 'BIT<32>'))
 rett_reg_Instr.addVariable(cxx_writer.writer_code.Variable('exceptionEnabled', cxx_writer.writer_code.boolType))
+rett_reg_Instr.addVariable(cxx_writer.writer_code.Variable('invalidWin', cxx_writer.writer_code.boolType))
+rett_reg_Instr.addVariable(cxx_writer.writer_code.Variable('notAligned', cxx_writer.writer_code.boolType))
 rett_reg_Instr.addVariable(cxx_writer.writer_code.Variable('supervisor', cxx_writer.writer_code.boolType))
 rett_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+rett_reg_Instr.addSpecialRegister('PSR', 'inout')
 isa.addInstruction(rett_reg_Instr)
 
 # Trap on Integer Condition Code; note this instruction also receives the forwarding

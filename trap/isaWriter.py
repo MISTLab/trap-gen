@@ -150,6 +150,7 @@ def getCppMethod(self, model, processor):
         # now I have to take all the resources and create a define which
         # renames such resources so that their usage can be transparent
         # to the developer
+        defineCode += '\n'
         for reg in processor.regs + processor.regBanks + processor.aliasRegs + processor.aliasRegBanks:
             defineCode += '#define ' + reg.name + ' ' + reg.name + '_' + self.stage + '\n'
         defineCode += '\n'
@@ -344,6 +345,7 @@ def getCPPInstr(self, model, processor, trace, combinedTrace, namespace):
                 # now I have to take all the resources and create a define which
                 # renames such resources so that their usage can be transparent
                 # to the developer
+                behaviorCode += '\n'
                 for reg in processor.regs + processor.regBanks + processor.aliasRegs + processor.aliasRegBanks:
                     behaviorCode += '#define ' + reg.name + ' ' + reg.name + '_' + pipeStage.name + '\n'
                 for instrFieldName in self.machineCode.bitCorrespondence.keys() + self.bitCorrespondence.keys():
@@ -354,6 +356,7 @@ def getCPPInstr(self, model, processor, trace, combinedTrace, namespace):
 
         if model.startswith('acc'):
             if userDefineBehavior:
+                behaviorCode += '\n'
                 for reg in processor.regs + processor.regBanks + processor.aliasRegs + processor.aliasRegBanks:
                     behaviorCode += '#undef ' + reg.name + '\n'
                 for instrFieldName in self.machineCode.bitCorrespondence.keys() + self.bitCorrespondence.keys():
