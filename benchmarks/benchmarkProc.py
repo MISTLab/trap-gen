@@ -18,6 +18,9 @@ if __name__ == "__main__":
         benchSpeed[benchmark] = []
         for i in range(0, int(sys.argv[2])):
             result = os.popen(sys.argv[1] + ' -a ' + benchmark).readlines()
+            if not 'Program exited with value 0\n' in result:
+                print('Benchmark ' + benchmark + ' failed since it has wrong exit value')
+                break
             for res in result:
                 if 'Execution Speed' in res:
                     speed = float(res.split()[2])
