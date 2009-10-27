@@ -219,16 +219,16 @@ def getCPPMemoryIf(self, model, namespace):
         classes.append(localMemDecl)
     else:
         # Here I have a local memory with debugging enabled.
-        dumpCode1 = 'MemAccessType dumpInfo;\n'
+        dumpCode1 = '\n\nMemAccessType dumpInfo;\n'
         if not self.systemc and not model.startswith('acc')  and not model.endswith('AT'):
-            dumpCode += 'dumpInfo.simulationTime = curCycle;\n'
+            dumpCode1 += 'dumpInfo.simulationTime = curCycle;\n'
         else:
-            dumpCode += 'dumpInfo.simulationTime = sc_time_stamp().to_double();\n'
+            dumpCode1 += 'dumpInfo.simulationTime = sc_time_stamp().to_double();\n'
         if self.memory[3]:
-            dumpCode += 'dumpInfo.programCounter = this->' + self.memory[3] + ';\n'
+            dumpCode1 += 'dumpInfo.programCounter = this->' + self.memory[3] + ';\n'
         else:
-            dumpCode += 'dumpInfo.programCounter = 0;\n'
-        dumpCode += 'for(int i = 0; i < '
+            dumpCode1 += 'dumpInfo.programCounter = 0;\n'
+        dumpCode1 += 'for(int i = 0; i < '
         dumpCode2 = """; i++){
     dumpInfo.address = address + i;
     dumpInfo.val = (char)((datum & (0xFF << i*8)) >> i*8);
@@ -245,8 +245,9 @@ def getCPPMemoryIf(self, model, namespace):
             else:
                 readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + '\n' + str(methodTypes[methName]) + ' datum = *(' + str(methodTypes[methName].makePointer()) + ')(this->memory + (unsigned long)address);\n' + endianessCode[methName] + '\nreturn datum;')
                 if methName == 'read_word':
-                    methodsAttrs[methName],append('inline')
+                    methodsAttrs[methName].append('inline')
             readBody.addInclude('trap_utils.hpp')
+            readBody.addInclude('memAccessType.hpp')
             methodsCode[methName] = readBody
         for methName in writeMethodNames + writeMethodNames_dbg:
             methodsAttrs[methName] = []

@@ -118,7 +118,7 @@ int main(int argc, char *argv[]){
                 std::cerr << desc << std::endl;
                 return -1;
             }
-            std::map<unsigned int, MemAccessType> modification = analyzer.getFirstModAfter(vm["address"].as<std::string>(), width);
+            std::map<unsigned int, MemAccessType> modification = analyzer.getLastMod(vm["address"].as<std::string>(), width);
             std::map<unsigned int, MemAccessType>::iterator modIter, modEnd;
             for(modIter = modification.begin(), modEnd = modification.end(); modIter != modEnd; modIter++){
                 std::cout << "Address " << std::hex << std::showbase << modIter->second.address << " - Value " << std::hex << std::showbase << modIter->second.val << " - PC " << std::hex << std::showbase << modIter->second.programCounter << " - Time " << std::dec << modIter->second.simulationTime << std::endl;
