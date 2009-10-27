@@ -2511,36 +2511,21 @@ sdivcc_reg_Instr.setWbDelay('rd', 33)
 isa.addInstruction(sdivcc_reg_Instr)
 
 # Save and Restore
-opCodeRegsImm = cxx_writer.writer_code.Code("""
-rs1_op = rs1;
-rs2_op = SignExtend(simm13, 13);
-#ifdef ACC_MODEL
-okNewWin = checkDecrementWin();
-if(!okNewWin){
-    flush();
-}
-#endif
-""")
-opCodeRegsRegs = cxx_writer.writer_code.Code("""
-rs1_op = rs1;
-rs2_op = rs2;
-#ifdef ACC_MODEL
-okNewWin = checkDecrementWin();
-if(!okNewWin){
-    flush();
-}
-#endif
-""")
-opCodeExec = cxx_writer.writer_code.Code("""
-result = rs1_op + rs2_op;
+opCodeDec = """
 okNewWin = DecrementRegWindow();
 #ifdef ACC_MODEL
 if(!okNewWin){
     flush();
 }
+else{
+    rd.lock();
+}
 #endif
-""")
-opCodeMem = cxx_writer.writer_code.Code("""
+"""
+opCodeDecRegs = cxx_writer.writer_code.Code('result = rs1 + rs2;\n' + opCodeDec)
+opCodeDecImm = cxx_writer.writer_code.Code('result = rs1 + SignExtend(simm13, 13);\n' + opCodeDec)
+
+opCodeFlush = cxx_writer.writer_code.Code("""
 #ifdef ACC_MODEL
 if(!okNewWin){
     flush();
@@ -2555,13 +2540,17 @@ if(!okNewWin){
 opCodeWb = cxx_writer.writer_code.Code("""
 if(okNewWin){
     rd = result;
+    #ifdef ACC_MODEL
+    unlockQueue[0].push_back(rd.getPipeReg());
+    #endif
 }
 """)
 save_imm_Instr = trap.Instruction('SAVE_imm', True, frequency = 6)
 save_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 1, 0, 0]}, ('save', ' r', '%rs1', ' ', '%simm13', ' r', '%rd'))
-save_imm_Instr.setCode(opCodeRegsImm, 'regs')
-save_imm_Instr.setCode(opCodeExec, 'execute')
-save_imm_Instr.setCode(opCodeMem, 'memory')
+save_imm_Instr.setCode(opCodeDecImm, 'decode')
+save_imm_Instr.setCode(opCodeFlush, 'regs')
+save_imm_Instr.setCode(opCodeFlush, 'execute')
+save_imm_Instr.setCode(opCodeFlush, 'memory')
 save_imm_Instr.setCode(opCodeTrap, 'exception')
 save_imm_Instr.setCode(opCodeWb, 'wb')
 save_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -2578,9 +2567,10 @@ save_imm_Instr.addSpecialRegister('PSR', 'inout')
 isa.addInstruction(save_imm_Instr)
 save_reg_Instr = trap.Instruction('SAVE_reg', True, frequency = 2)
 save_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 1, 0, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('save', ' r', '%rs1', ' r', '%rs2', ' r', '%rd'))
-save_reg_Instr.setCode(opCodeRegsRegs, 'regs')
-save_reg_Instr.setCode(opCodeExec, 'execute')
-save_reg_Instr.setCode(opCodeMem, 'memory')
+save_reg_Instr.setCode(opCodeDecRegs, 'decode')
+save_reg_Instr.setCode(opCodeFlush, 'regs')
+save_reg_Instr.setCode(opCodeFlush, 'execute')
+save_reg_Instr.setCode(opCodeFlush, 'memory')
 save_reg_Instr.setCode(opCodeTrap, 'exception')
 save_reg_Instr.setCode(opCodeWb, 'wb')
 save_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -2595,45 +2585,32 @@ save_reg_Instr.addVariable(('newCwp', 'BIT<32>'))
 save_reg_Instr.removeLockRegRegister('rd')
 save_reg_Instr.addSpecialRegister('PSR', 'inout')
 isa.addInstruction(save_reg_Instr)
-opCodeRegsImm = cxx_writer.writer_code.Code("""
-rs1_op = rs1;
-rs2_op = SignExtend(simm13, 13);
-#ifdef ACC_MODEL
-okNewWin = checkIncrementWin();
-if(!okNewWin){
-    flush();
-}
-#endif
-""")
-opCodeRegsRegs = cxx_writer.writer_code.Code("""
-rs1_op = rs1;
-rs2_op = rs2;
-#ifdef ACC_MODEL
-okNewWin = checkIncrementWin();
-if(!okNewWin){
-    flush();
-}
-#endif
-""")
-opCodeExec = cxx_writer.writer_code.Code("""
-result = rs1_op + rs2_op;
+
+opCodeDec = """
 okNewWin = IncrementRegWindow();
 #ifdef ACC_MODEL
 if(!okNewWin){
     flush();
 }
+else{
+    rd.lock();
+}
 #endif
-""")
+"""
+opCodeDecRegs = cxx_writer.writer_code.Code('result = rs1 + rs2;\n' + opCodeDec)
+opCodeDecImm = cxx_writer.writer_code.Code('result = rs1 + SignExtend(simm13, 13);\n' + opCodeDec)
+
 opCodeTrap = cxx_writer.writer_code.Code("""
 if(!okNewWin){
-    RaiseException(pcounter, npcounter, WINDOW_UNDERFLOW);
+    RaiseException(pcounter, npcounter, WINDOW_OVERFLOW);
 }
 """)
 restore_imm_Instr = trap.Instruction('RESTORE_imm', True, frequency = 2)
 restore_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 1, 0, 1]}, ('restore', ' r', '%rs1', ' ', '%simm13', ' r', '%rd'))
-restore_imm_Instr.setCode(opCodeRegsImm, 'regs')
-restore_imm_Instr.setCode(opCodeExec, 'execute')
-restore_imm_Instr.setCode(opCodeMem, 'memory')
+restore_imm_Instr.setCode(opCodeDecImm, 'decode')
+restore_imm_Instr.setCode(opCodeFlush, 'regs')
+restore_imm_Instr.setCode(opCodeFlush, 'execute')
+restore_imm_Instr.setCode(opCodeFlush, 'memory')
 restore_imm_Instr.setCode(opCodeTrap, 'exception')
 restore_imm_Instr.setCode(opCodeWb, 'wb')
 restore_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -2650,9 +2627,10 @@ restore_imm_Instr.addSpecialRegister('PSR', 'inout')
 isa.addInstruction(restore_imm_Instr)
 restore_reg_Instr = trap.Instruction('RESTORE_reg', True, frequency = 6)
 restore_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 1, 0, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('restore', ' r', '%rs1', ' r', '%rs2', ' r', '%rd'))
-restore_reg_Instr.setCode(opCodeRegsRegs, 'regs')
-restore_reg_Instr.setCode(opCodeExec, 'execute')
-restore_reg_Instr.setCode(opCodeMem, 'memory')
+restore_reg_Instr.setCode(opCodeDecRegs, 'decode')
+restore_reg_Instr.setCode(opCodeFlush, 'regs')
+restore_reg_Instr.setCode(opCodeFlush, 'execute')
+restore_reg_Instr.setCode(opCodeFlush, 'memory')
 restore_reg_Instr.setCode(opCodeTrap, 'exception')
 restore_reg_Instr.setCode(opCodeWb, 'wb')
 restore_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)

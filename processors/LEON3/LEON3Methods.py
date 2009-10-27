@@ -111,7 +111,7 @@ else{
 }
 """
 opCode = cxx_writer.writer_code.Code(checkIncrementWin_code)
-checkIncrementWin_method = trap.HelperMethod('checkIncrementWin', opCode, 'regs')
+checkIncrementWin_method = trap.HelperMethod('checkIncrementWin', opCode, 'decode')
 checkIncrementWin_method.setSignature(cxx_writer.writer_code.boolType)
 checkDecrementWin_code = """
 unsigned int newCwp = ((unsigned int)(PSR[key_CWP] - 1)) % NUM_REG_WIN;
