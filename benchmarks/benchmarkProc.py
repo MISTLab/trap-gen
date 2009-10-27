@@ -48,6 +48,7 @@ if __name__ == "__main__":
     fileCsvWriter.writerow(['std', str(numpy.std(runTime))])
     fileHandle.close()
 
+    print ('Executed ' + str(len(sys.argv[3:])) + ' benchmarks with ' + sys.argv[2] + ' runs per benchmark')
     print ('Average Execution Speed: ' + str(numpy.average(runTime)) + ' MIPS')
     print ('Standard Deviation: ' + str(numpy.std(runTime)) + ' MIPS')
     print ('Fastst benchmark: ' + fastBench + ' ( ' + str(maxSpeed) + ' MIPS )')

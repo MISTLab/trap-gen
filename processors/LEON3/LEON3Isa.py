@@ -2602,7 +2602,7 @@ opCodeDecImm = cxx_writer.writer_code.Code('result = rs1 + SignExtend(simm13, 13
 
 opCodeTrap = cxx_writer.writer_code.Code("""
 if(!okNewWin){
-    RaiseException(pcounter, npcounter, WINDOW_OVERFLOW);
+    RaiseException(pcounter, npcounter, WINDOW_UNDERFLOW);
 }
 """)
 restore_imm_Instr = trap.Instruction('RESTORE_imm', True, frequency = 2)
