@@ -148,8 +148,7 @@ def getInstrIssueCodePipe(self, trace, combinedTrace, instrVarName, hasCheckHaza
         codeString += """#ifndef DISABLE_TOOLS
                     }
                     else{
-            """ + instrVarName + """ = this->NOPInstrInstance;
-            """ + instrVarName + """->flushPipeline = true;
+            this->curInstruction = this->NOPInstrInstance;
         """
         if trace:
             codeString += """std::cerr << "Not executed Instruction because Tools anulled it" << std::endl << std::endl;
