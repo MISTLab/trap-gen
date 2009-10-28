@@ -14,4 +14,4 @@ def build(bld):
     obj.name = 'syscall'
     obj.target = 'syscall'
     obj.install_path = None
-    bld.install_files('${PREFIX}/include', 'osEmulatorCA.hpp osEmulator.hpp syscCallB.hpp')
+    bld.install_files('${PREFIX}/include', 'osEmulator.hpp syscCallB.hpp')

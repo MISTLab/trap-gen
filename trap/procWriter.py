@@ -127,7 +127,7 @@ def getInstrIssueCodePipe(self, trace, combinedTrace, instrVarName, hasCheckHaza
             break
     codeString = ''
     codeString += 'try{\n'
-    if pipeStage.checkTools:
+    if pipeStage == self.pipes[0]:
         codeString += """#ifndef DISABLE_TOOLS
             if(!(this->toolManager.newIssue(""" + instrVarName + """->fetchPC, """ + instrVarName + """))){
             #endif
@@ -144,7 +144,7 @@ def getInstrIssueCodePipe(self, trace, combinedTrace, instrVarName, hasCheckHaza
             codeString += instrVarName + '->printTrace();\n'
             if combinedTrace:
                 codeString += '}\n'
-    if pipeStage.checkTools:
+    if pipeStage == self.pipes[0]:
         codeString += """#ifndef DISABLE_TOOLS
                     }
                     else{
@@ -367,7 +367,7 @@ def createPipeStage(self, processorElements, initElements):
             curPipeInit = ['instrEndEvent'] + curPipeInit
             for irq in self.irqs:
                 curPipeInit = ['this->' + irq.name] + curPipeInit
-        if pipeStage.checkTools:
+        if pipeStage == self.pipes[0]:
             curPipeInit = ['toolManager'] + curPipeInit
         initElements.append('\n' + pipeStage.name + '_stage(' + ', '.join(curPipeInit)  + ')')
         prevStage = pipeStage.name + '_stage'
@@ -498,7 +498,7 @@ def createRegsAttributes(self, model, processorElements, initElements, bodyAlias
     regsNames = [i.name for i in self.regBanks + self.regs]
     checkToolPipeStage = self.pipes[-1]
     for pipeStage in self.pipes:
-        if pipeStage.checkTools:
+        if pipeStage == self.pipes[0]:
             checkToolPipeStage = pipeStage
             break
     from processor import extractRegInterval
@@ -1320,11 +1320,6 @@ def getMainCode(self, model, namespace):
         instrMemName = 'procInst.' + self.memory[0]
         instrDissassName = instrMemName
 
-    execOffset = 0
-    for pipeStage in self.pipes:
-        if pipeStage.checkTools:
-            break
-        execOffset += 1
     code += """
     //And with the loading of the executable code
     boost::filesystem::path applicationPath = boost::filesystem::system_complete(boost::filesystem::path(vm["application"].as<std::string>(), boost::filesystem::native));
@@ -1362,7 +1357,7 @@ def getMainCode(self, model, namespace):
         #if model.startswith('acc'):
             #code += 'OSEmulatorCA< ' + str(wordType) + ', -' + str(execOffset*self.wordSize) + ' > osEmu(*(procInst.abiIf), Processor::NOPInstrInstance, ' + str(self.abi.emulOffset) + ');\n'
         #else:
-        code += 'OSEmulator< ' + str(wordType) + ', 0 > osEmu(*(procInst.abiIf), ' + str(self.abi.emulOffset) + ');\n'
+        code += 'OSEmulator< ' + str(wordType) + '> osEmu(*(procInst.abiIf));\n'
         code += """GDBStub< """ + str(wordType) + """ > gdbStub(*(procInst.abiIf));
         Profiler< """ + str(wordType) + """ > profiler(*(procInst.abiIf), vm["application"].as<std::string>());
 
@@ -1404,7 +1399,8 @@ def getMainCode(self, model, namespace):
                 // Now I have to split the current environment
                 std::size_t equalPos = curEnv.find('=');
                 if(equalPos == std::string::npos){
-                    std::cerr << "Error in the command line environmental options: = not found in option " << curEnv << std::endl;
+                    std::cerr << "Error in the command line environmental options: " << \\
+                        "'=' not found in option " << curEnv << std::endl;
                     return -1;
                 }
                 OSEmulatorBase::set_environ(curEnv.substr(0, equalPos), curEnv.substr(equalPos + 1));
@@ -1428,14 +1424,16 @@ def getMainCode(self, model, namespace):
                 // Now I have to split the current environment
                 std::size_t equalPos = curEnv.find('=');
                 if(equalPos == std::string::npos){
-                    std::cerr << "Error in the command line sysconf options: = not found in option " << curEnv << std::endl;
+                    std::cerr << "Error in the command line sysconf options: " << \\
+                        "'=' not found in option " << curEnv << std::endl;
                     return -1;
                 }
                 try{
                     OSEmulatorBase::set_sysconf(curEnv.substr(0, equalPos), boost::lexical_cast<int>(curEnv.substr(equalPos + 1)));
                 }
                 catch(...){
-                    std::cerr << "Error in the command line sysconf options: error in option " << curEnv << std::endl;
+                    std::cerr << "Error in the command line sysconf options: " << \\
+                        "error in option " << curEnv << std::endl;
                     return -1;
                 }
             }

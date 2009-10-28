@@ -918,13 +918,7 @@ def getCPPClasses(self, processor, model, trace, combinedTrace, namespace):
         instructionElements.append(toDestroyAttr)
 
     if trace:
-        #if not combinedTrace:
         traceStage = processor.pipes[-1]
-        #else:
-            #for pipeStage in processor.pipes:
-                #if pipeStage.checkTools:
-                    #traceStage = pipeStage
-                    #break
 
         # I have to print the value of all the registers in the processor
         printTraceCode = ''

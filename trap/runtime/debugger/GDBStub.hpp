@@ -178,6 +178,12 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
             this->setStopped(BREAK_stop);
         }
     }
+    ///If true, the system is in the step mode and, as such, execution
+    ///needs to be stopped
+    inline bool goingToBreak(const issueWidth &address) const throw(){
+        return this->breakEnabled && this->breakManager.hasBreakpoint(address);
+    }
+
     ///Checks if execution must be stopped because of a step command
     inline void checkStep() throw(){
         if(this->step == 1){
@@ -193,6 +199,11 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
                 this->setStopped(STEP_stop);
             }
         }
+    }
+    ///If true, the system is in the step mode and, as such, execution
+    ///needs to be stopped
+    inline bool goingToStep() const throw(){
+        return this->step == 2;
     }
 
     ///Starts the thread which will manage the connection with the
@@ -932,6 +943,12 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
                 ;
         }
         return false;
+    }
+
+    ///The debugger needs the pipeline to be empty only in case it is going to be stopped
+    ///because, for exmple, we hitted a breakpoint or we are in step mode
+    bool emptyPipeline(const issueWidth &curPC) const throw(){
+        return !this->firstRun && (this->goingToStep() || this->goingToBreak(curPC));
     }
 
     ///Method called whenever a particular address is written into memory

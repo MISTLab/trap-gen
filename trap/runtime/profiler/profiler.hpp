@@ -267,6 +267,13 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
         return false;
     }
 
+    ///Since the profiler does not perform any modification to the registers and it does
+    ///not use any registers but the current program counter, it does not need the
+    ///pipeline to be emptys
+    bool emptyPipeline(const issueWidth &curPC) const throw(){
+        return false;
+    }
+
     void addIgnoredFunction(std::string &toIgnore){
         this->ignored.insert(toIgnore);
     }

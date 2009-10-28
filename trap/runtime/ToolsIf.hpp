@@ -71,6 +71,9 @@ template<class issueWidth> class ToolsIf{
     ///the return value specifies whether the processor should skip
     ///the issue of the current instruction
     virtual bool newIssue(const issueWidth &curPC, const InstructionBase *curInstr) throw() = 0;
+    ///Returns true if the pipeline has to be empty before being able to
+    ///call the current tool, false otherwise
+    virtual bool emptyPipeline(const issueWidth &curPC) const throw() = 0;
     virtual ~ToolsIf(){}
 };
 
@@ -109,6 +112,15 @@ template<class issueWidth> class ToolsManager{
             skipInstruction |= this->activeTools[i]->newIssue(curPC, curInstr);
         }
         return skipInstruction;
+    }
+    ///Returns true if the pipeline has to be empty before being able to
+    ///call the current tool, false otherwise
+    inline bool emptyPipeline(const issueWidth &curPC) const throw(){
+        bool needToEmpty = false;
+        for(int i = 0; i < this->activeToolsNum; i++){
+            needToEmpty |= this->activeTools[i]->emptyPipeline(curPC);
+        }
+        return needToEmpty;
     }
 };
 

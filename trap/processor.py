@@ -1273,11 +1273,7 @@ class PipeStage:
         self.checkHazard = False
         self.name = name
         self.checkUnknown = False
-        self.checkTools = False
         self.endHazard = False
-
-    def setCheckTools(self):
-        self.checkTools = True
 
     def setWriteBack(self):
         self.wb = True
@@ -1460,7 +1456,6 @@ class ABI:
         # Specifies the memories which can be accessed; if more than one memory is specified,
         # we have to associate the address range to each of them
         self.memories = {}
-        self.emulOffset = 0
         # C++ Code which has to be executed during emulation of system calls in order to
         # correctly enter a and return from a system call
         self.preCallCode = None
@@ -1492,9 +1487,6 @@ class ABI:
 
     def setECallPostCode(self, code):
         self.postCallCode = code
-
-    def setEmulatorOffset(self, offset):
-        self.emulOffset = offset
 
     def addVarRegsCorrespondence(self, correspondence):
         for key, value in correspondence.items():

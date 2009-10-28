@@ -214,7 +214,8 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
         constructorInit = []
         constructorParams = [pipeNameParam] + constructorParamsBase
 
-        codeString = """this->curInstruction = this->NOPInstrInstance;
+        codeString = """unsigned int numNOPS = 0;
+        this->curInstruction = this->NOPInstrInstance;
         this->nextInstruction = this->NOPInstrInstance;
         """
         if pipeStage == self.pipes[0]:
@@ -226,13 +227,11 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             # Here is the code to notify start of the instruction execution
             codeString += 'this->instrExecuting = true;\n'
 
-            codeString += """unsigned int numCycles = 0;
-            // HERE WAIT FOR BEGIN OF ALL STAGES
-            """
+            codeString += 'unsigned int numCycles = 0;\n'
             if hasCheckHazard and not checkHazardsMet and not pipeStage.checkHazard:
                 codeString += 'if(!this->chStalled){\n'
 
-            codeString += 'this->waitPipeBegin();\n'
+            codeString += '\n// HERE WAIT FOR BEGIN OF ALL STAGES\nthis->waitPipeBegin();\n'
 
             # Here is the code to deal with interrupts; note one problem: if an interrupt is raised, we need to
             # deal with it in the correct stage, i.e. we need to create a special instruction reaching the correct
@@ -243,6 +242,29 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             # computes the address from which the next instruction shall be fetched
             fetchAddress = computeCurrentPC(self, model)
             codeString += str(self.bitSizes[1]) + ' curPC = ' + fetchAddress + ';\n'
+
+            # Now lets start with the code necessary to check the tools, to see if they need
+            # the pipeline to be empty before being able to procede with execution
+            codeString += """
+                #ifndef DISABLE_TOOLS
+                // code necessary to check the tools, to see if they need
+                // the pipeline to be empty before being able to procede with execution
+                if(this->toolManager.emptyPipeline(curPC)){
+                    numNOPS++;
+                }
+                if(numNOPS > 0 && numNOPS < """ + str(len(self.pipes)) + """){
+                    this->curInstruction = this->NOPInstrInstance;
+                """
+            if trace and not combinedTrace:
+                codeString += 'std::cerr << \"PC: \" << std::hex << std::showbase << curPC << " propagatin NOP because tools need it" << std::endl;\n'
+            codeString += """}
+                else{
+                    numNOPS = 0;
+                #endif
+                    //Ok, either the pipeline is empty or there is not tool which needs the pipeline
+                    //to be empty: I can procede with the execution
+            """
+
             # We need to fetch the instruction ... only if the cache is not used or if
             # the index of the cache is the current instruction
             if not (self.instructionCache and self.fastFetch):
@@ -261,7 +283,11 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             # with this cycle.
             if self.irqs:
                 codeString += '}\n'
-            codeString += """wait((numCycles + 1)*this->latency);
+
+            codeString += """#ifndef DISABLE_TOOLS
+            }
+            #endif
+            wait((numCycles + 1)*this->latency);
             // HERE WAIT FOR END OF ALL STAGES
             this->waitPipeEnd();
 
@@ -385,14 +411,6 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             this->waitPipeEnd();
 
             """
-
-            # In case we are working in the trace compatibility mode, here I have to print
-            # the instruction trace
-            #if combinedTrace:
-                #if pipeStage.checkTools:
-                    #codeString += 'if(' + instrVarName + ' != this->NOPInstrInstance){\n'
-                    #codeString += 'this->curInstruction->printTrace();\n'
-                    #codeString += '}\n'
 
             if pipeStage != self.pipes[-1]:
                 # Now I have to check if the current stage is stalled and, in case, propagate
@@ -625,15 +643,12 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
                 cacheAttribute = cxx_writer.writer_code.Attribute('instrCache', template_mapType, 'pri')
                 curPipeElements.append(cacheAttribute)
 
-        if pipeStage.checkTools:
+            # The fetch stage also contains the tools manager
             ToolsManagerType = cxx_writer.writer_code.TemplateType('ToolsManager', [self.bitSizes[1]], 'ToolsIf.hpp')
             toolManagerAttribute = cxx_writer.writer_code.Attribute('toolManager', ToolsManagerType.makeRef(), 'pri')
             curPipeElements.append(toolManagerAttribute)
             constructorParams = [cxx_writer.writer_code.Parameter('toolManager', ToolsManagerType.makeRef())] + constructorParams
             constructorInit.append('toolManager(toolManager)')
-            instructionsAttribute = cxx_writer.writer_code.Attribute('INSTRUCTIONS', IntructionTypePtr.makePointer().makeRef(), 'pri')
-            constructorInit.append('INSTRUCTIONS(INSTRUCTIONS)')
-            curPipeElements.append(instructionsAttribute)
 
         constructorInit = ['sc_module(pipeName)', 'BasePipeStage(' + baseConstructorInit[:-2] + ')'] + constructorInit
         curPipeDecl = cxx_writer.writer_code.SCModule(pipeStage.name.upper() + '_PipeStage', curPipeElements, [pipeType], namespaces = [namespace])

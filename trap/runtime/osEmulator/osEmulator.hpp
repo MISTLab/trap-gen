@@ -86,9 +86,8 @@
 
 namespace trap{
 
-template<class issueWidth, int stageOffset> class OSEmulator : public ToolsIf<issueWidth>, OSEmulatorBase{
+template<class issueWidth> class OSEmulator : public ToolsIf<issueWidth>, OSEmulatorBase{
   private:
-    int routineOffset;
     template_map<issueWidth, SyscallCB<issueWidth>* > syscCallbacks;
     ABIIf<issueWidth> &processorInstance;
     typename template_map<issueWidth, SyscallCB<issueWidth>* >::const_iterator syscCallbacksEnd;
@@ -105,7 +104,7 @@ template<class issueWidth, int stageOffset> class OSEmulator : public ToolsIf<is
     bool register_syscall(std::string funName, SyscallCB<issueWidth> &callBack){
         BFDFrontend &bfdFE = BFDFrontend::getInstance();
         bool valid = false;
-        unsigned int symAddr = bfdFE.getSymAddr(funName, valid) + this->routineOffset;
+        unsigned int symAddr = bfdFE.getSymAddr(funName, valid);
         if(!valid){
             return false;
         }
@@ -150,7 +149,7 @@ template<class issueWidth, int stageOffset> class OSEmulator : public ToolsIf<is
     }
 
   public:
-    OSEmulator(ABIIf<issueWidth> &processorInstance, int routineOffset = 0) : processorInstance(processorInstance), routineOffset(routineOffset){
+    OSEmulator(ABIIf<issueWidth> &processorInstance) : processorInstance(processorInstance){
         this->syscCallbacksEnd = this->syscCallbacks.end();
     }
     std::set<std::string> getRegisteredFunctions(){
@@ -480,13 +479,24 @@ template<class issueWidth, int stageOffset> class OSEmulator : public ToolsIf<is
         if(!this->register_syscall("main", *mainCallBack))
             THROW_EXCEPTION("Fatal Error, unable to find main function in current application");
     }
+    ///Method called at every instruction issue, it returns true in case the instruction
+    ///has to be skipped, false otherwise
     bool newIssue(const issueWidth &curPC, const InstructionBase *curInstr) throw(){
         //I have to go over all the registered system calls and check if there is one
         //that matches the current program counter. In case I simply call the corresponding
         //callback.
-        typename template_map<issueWidth, SyscallCB<issueWidth>* >::const_iterator foundSysc = this->syscCallbacks.find(curPC + stageOffset);
+        typename template_map<issueWidth, SyscallCB<issueWidth>* >::const_iterator foundSysc = this->syscCallbacks.find(curPC);
         if(foundSysc != this->syscCallbacksEnd){
             return (*(foundSysc->second))();
+        }
+        return false;
+    }
+    ///Method called to know if the instruction at the current address has to be skipped:
+    ///if true the instruction has to be skipped, otherwise the instruction can
+    ///be executed
+    bool emptyPipeline(const issueWidth &curPC) const throw(){
+        if(this->syscCallbacks.find(curPC) != this->syscCallbacksEnd){
+            return true;
         }
         return false;
     }
