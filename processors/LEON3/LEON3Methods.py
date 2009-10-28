@@ -57,7 +57,7 @@ def updateAliasCode_abi():
     }
     """
 
-def updateAliasCode_execute():
+def updateAliasCode_decode():
     code = """#ifndef ACC_MODEL
     //Functional model: we simply immediately update the alias
     for(int i = 8; i < 32; i++){
@@ -66,12 +66,10 @@ def updateAliasCode_execute():
     #else
     //Cycle accurate model: we have to update the alias using the pipeline register
     //We update the aliases for this stage and for all the preceding ones (we are in the
-    //execute stage and we need to update fetch, decode, and register read and execute)
+    //decode stage and we need to update fetch, and decode)
     for(int i = 8; i < 32; i++){
         REGS_fetch[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
         REGS_decode[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
-        REGS_regs[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
-        REGS_execute[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
     }
     #endif
     """
@@ -136,10 +134,10 @@ if(((0x01 << (newCwp)) & WIM) != 0){
 }
 PSR = (PSR & 0xFFFFFFE0) | newCwp;
 """
-IncrementRegWindow_code += updateAliasCode_execute()
+IncrementRegWindow_code += updateAliasCode_decode()
 IncrementRegWindow_code += 'return true;'
 opCode = cxx_writer.writer_code.Code(IncrementRegWindow_code)
-IncrementRegWindow_method = trap.HelperMethod('IncrementRegWindow', opCode, 'execute')
+IncrementRegWindow_method = trap.HelperMethod('IncrementRegWindow', opCode, 'decode')
 IncrementRegWindow_method.setSignature(cxx_writer.writer_code.boolType)
 IncrementRegWindow_method.addVariable(('newCwp', 'BIT<32>'))
 # Method used to move to the previous register window; this simply consists in
@@ -152,10 +150,10 @@ if(((0x01 << (newCwp)) & WIM) != 0){
 }
 PSR = (PSR & 0xFFFFFFE0) | newCwp;
 """
-DecrementRegWindow_code += updateAliasCode_execute()
+DecrementRegWindow_code += updateAliasCode_decode()
 DecrementRegWindow_code += 'return true;'
 opCode = cxx_writer.writer_code.Code(DecrementRegWindow_code)
-DecrementRegWindow_method = trap.HelperMethod('DecrementRegWindow', opCode, 'execute')
+DecrementRegWindow_method = trap.HelperMethod('DecrementRegWindow', opCode, 'decode')
 DecrementRegWindow_method.setSignature(cxx_writer.writer_code.boolType)
 DecrementRegWindow_method.addVariable(('newCwp', 'BIT<32>'))
 

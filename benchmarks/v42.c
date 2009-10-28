@@ -724,7 +724,7 @@ char    *argv[];
     unsigned char   *s, *t, *e;
     int i = 0;
 
-    for(i = 0; i < 3; i++){
+    for(i = 0; i < 5; i++){
         gP=gE=0;
         codedone = baddr = eaddr = escape = compress = 0;
         eout = outbuf;

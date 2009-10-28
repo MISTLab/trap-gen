@@ -57,7 +57,6 @@ import LEON3Isa
 import LEON3Tests
 from LEONDefs import *
 # Code used to move to a new register window
-from LEON3Methods import updateAliasCode_execute
 from LEON3Methods import updateAliasCode_exception
 from LEON3Methods import updateAliasCode_abi
 
@@ -304,5 +303,5 @@ processor.setABI(abi)
 #processor.write(folder = 'processor', models = ['funcAT'])
 #processor.write(folder = 'processor', models = ['funcAT', 'funcLT'], tests = False)
 #processor.write(folder = 'processor', models = ['accLT'], trace = True)
-processor.write(folder = 'processor', models = ['accLT', 'funcLT'], trace = True)
-#processor.write(folder = 'processor', models = ['accLT', 'funcLT'], trace = True, combinedTrace = True)
+#processor.write(folder = 'processor', models = ['accLT', 'funcLT'], trace = True)
+processor.write(folder = 'processor', models = ['accLT', 'funcLT'], trace = True, combinedTrace = True)

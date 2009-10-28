@@ -1259,9 +1259,9 @@ def getCPPPipelineAlias(self, namespace):
     getRegMethod = cxx_writer.writer_code.Method('getReg', getRegBody, registerType.makePointer(), 'pu', inline = True, noException = True)
     aliasElements.append(getRegMethod)
     newPipelineRegParam = cxx_writer.writer_code.Parameter('newPipelineReg', pipeRegisterType.makePointer())
-    setPipeRegBody = cxx_writer.writer_code.Code('this->pipelineReg = newPipelineReg;')
-    setPipeRegMethod = cxx_writer.writer_code.Method('setPipeReg', setPipeRegBody, cxx_writer.writer_code.voidType, 'pu', [newPipelineRegParam], inline = True, noException = True)
-    aliasElements.append(setPipeRegMethod)
+    #setPipeRegBody = cxx_writer.writer_code.Code('this->pipelineReg = newPipelineReg;')
+    #setPipeRegMethod = cxx_writer.writer_code.Method('setPipeReg', setPipeRegBody, cxx_writer.writer_code.voidType, 'pu', [newPipelineRegParam], inline = True, noException = True)
+    #aliasElements.append(setPipeRegMethod)
     lockBody = cxx_writer.writer_code.Code('this->pipelineReg->lock();')
     lockMethod = cxx_writer.writer_code.Method('lock', lockBody, cxx_writer.writer_code.voidType, 'pu', inline = True, noException = True)
     aliasElements.append(lockMethod)
@@ -1346,7 +1346,7 @@ def getCPPPipelineAlias(self, namespace):
     # Constructor: takes as input the initial alias
     constructorBody = cxx_writer.writer_code.Code('initAlias->referredAliases.insert(this);\nthis->referringAliases = initAlias;')
     constructorParams = [cxx_writer.writer_code.Parameter('initAlias', aliasType.makePointer())]
-    constructorParams.append(cxx_writer.writer_code.Parameter('pipeId', cxx_writer.writer_code.uintType, initValue = '-1'))
+    constructorParams.append(cxx_writer.writer_code.Parameter('pipeId', cxx_writer.writer_code.intType, initValue = '-1'))
     publicAliasConstrInit = ['pipelineReg(initAlias->pipelineReg), pipeId(pipeId)']
     publicAliasConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, publicAliasConstrInit)
     destructorBody = cxx_writer.writer_code.Code("""std::set<Alias *>::iterator referredIter, referredEnd;

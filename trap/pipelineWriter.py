@@ -256,7 +256,7 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
                     this->curInstruction = this->NOPInstrInstance;
                 """
             if trace and not combinedTrace:
-                codeString += 'std::cerr << \"PC: \" << std::hex << std::showbase << curPC << " propagatin NOP because tools need it" << std::endl;\n'
+                codeString += 'std::cerr << \"PC: \" << std::hex << std::showbase << curPC << " propagating NOP because tools need it" << std::endl;\n'
             codeString += """}
                 else{
                     numNOPS = 0;
@@ -281,13 +281,14 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
 
             # Finally we have completed waiting for the other cycles in order to be able to go on
             # with this cycle.
+            codeString += """this->numInstructions++;
+                #ifndef DISABLE_TOOLS
+                }
+                #endif
+            """
             if self.irqs:
                 codeString += '}\n'
-
-            codeString += """#ifndef DISABLE_TOOLS
-            }
-            #endif
-            wait((numCycles + 1)*this->latency);
+            codeString += """wait((numCycles + 1)*this->latency);
             // HERE WAIT FOR END OF ALL STAGES
             this->waitPipeEnd();
 
@@ -301,7 +302,6 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
                 this->nextInstruction = this->NOPInstrInstance;
                 this->hasToFlush = false;
             }
-            this->numInstructions++;
             """
             if hasCheckHazard and not checkHazardsMet:
                 codeString += 'if(!this->chStalled){\n'
@@ -534,10 +534,10 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             codeString += '//TODO: IT IS MORE EFFICIENT SINCE THEY ARE SELDOM USED\n'
             for i in reversed(range(0, len(self.pipes) -1)):
                 for alias in self.aliasRegs:
-                    codeString += 'this->' + alias.name + '_' + self.pipes[i + 1].name + '.setPipeReg(this->' + alias.name + '_' + self.pipes[i].name + '.getPipeReg());\n'
+                    codeString += 'this->' + alias.name + '_' + self.pipes[i + 1].name + '.updateAlias(*(this->' + alias.name + '_' + self.pipes[i].name + '.getPipeReg()));\n'
                 for aliasB in self.aliasRegBanks:
                     codeString += 'for(int i = 0; i < ' + str(aliasB.numRegs) + '; i++){\n'
-                    codeString += 'this->' + aliasB.name + '_' + self.pipes[i + 1].name + '[i].setPipeReg(this->' + aliasB.name + '_' + self.pipes[i].name + '[i].getPipeReg());\n'
+                    codeString += 'this->' + aliasB.name + '_' + self.pipes[i + 1].name + '[i].updateAlias(*(this->' + aliasB.name + '_' + self.pipes[i].name + '[i].getPipeReg()));\n'
                     codeString += '}\n'
             # Now I have to produce the code for unlocking the registers in the unlockQueue
             codeString += """

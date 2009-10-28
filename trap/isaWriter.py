@@ -521,11 +521,16 @@ def getCPPInstr(self, model, processor, trace, combinedTrace, namespace):
     # or aliases); they other remaining undefined parts of the instruction are normal integer variables.
     # Note, anyway, that I add the integer variable also for the parts of the instructions specified in
     # bitCorrespondence.
+    if model.startswith('acc'):
+        bitCorrInit = ''
     setParamsCode = ''
     for name, correspondence in self.machineCode.bitCorrespondence.items() + self.bitCorrespondence.items():
         if model.startswith('acc'):
+            curPipeId = 0
             for pipeStage in pipeline:
                 classElements.append(cxx_writer.writer_code.Attribute(name + '_' + pipeStage.name, aliasType, 'pri'))
+                bitCorrInit += 'this->' + name + '_' + pipeStage.name + '.setPipeId(' + str(curPipeId) + ');\n'
+                curPipeId += 1
         else:
             classElements.append(cxx_writer.writer_code.Attribute(name, aliasType, 'pri'))
         classElements.append(cxx_writer.writer_code.Attribute(name + '_bit', cxx_writer.writer_code.uintType, 'pri'))
@@ -664,7 +669,11 @@ def getCPPInstr(self, model, processor, trace, combinedTrace, namespace):
 
     # Now I have to declare the constructor
     from procWriter import baseInstrInitElement
-    publicConstr = cxx_writer.writer_code.Constructor(emptyBody, 'pu', baseInstrConstrParams, constrInitList)
+    if model.startswith('acc'):
+        publicConstrBody = cxx_writer.writer_code.Code(bitCorrInit)
+    else:
+        publicConstrBody = emptyBody
+    publicConstr = cxx_writer.writer_code.Constructor(publicConstrBody, 'pu', baseInstrConstrParams, constrInitList)
     instructionDecl = cxx_writer.writer_code.ClassDeclaration(self.name, classElements, superclasses = baseClasses, namespaces = [namespace])
     instructionDecl.addConstructor(publicConstr)
     publicDestr = cxx_writer.writer_code.Destructor(emptyBody, 'pu', True)
