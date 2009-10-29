@@ -47,25 +47,25 @@ readline.set_completer(completer.complete)
 readline.parse_and_bind("tab: complete")
 readline.set_completer_delims('\t\n`!@#$%^&*)=+[{]}\\|;:,<>?')
 
-binutils = (raw_input('Please specify the binutils archive: ')).replace('\n', '')
+binutils = (raw_input('Please specify the binutils archive: ')).replace('\n', '').strip()
 while not os.path.exists(binutils):
     print 'path --> ' + binutils + ' <-- not existing, please specify an existing one'
-    binutils = (raw_input('Please specify the binutils archive: ')).replace('\n', '')
+    binutils = (raw_input('Please specify the binutils archive: ')).replace('\n', '').strip()
 
-gcc = (raw_input('Please specify the gcc archive: ')).replace('\n', '')
+gcc = (raw_input('Please specify the gcc archive: ')).replace('\n', '').strip()
 while not os.path.exists(gcc):
     print 'path --> ' + gcc + ' <-- not existing, please specify an existing one'
-    gcc = (raw_input('Please specify the gcc archive: ')).replace('\n', '')
+    gcc = (raw_input('Please specify the gcc archive: ')).replace('\n', '').strip()
 
-newlib = (raw_input('Please specify the newlib archive: ')).replace('\n', '')
+newlib = (raw_input('Please specify the newlib archive: ')).replace('\n', '').strip()
 while not os.path.exists(newlib):
     print 'path --> ' + newlib + ' <-- not existing, please specify an existing one'
-    newlib = (raw_input('Please specify the newlib archive: ')).replace('\n', '')
+    newlib = (raw_input('Please specify the newlib archive: ')).replace('\n', '').strip()
 
-insight = (raw_input('Please specify the insight archive (ENTER for none): ')).replace('\n', '')
-gdb = (raw_input('Please specify the gdb archive (ENTER for none): ')).replace('\n', '')
+insight = (raw_input('Please specify the insight archive (ENTER for none): ')).replace('\n', '').strip()
+gdb = (raw_input('Please specify the gdb archive (ENTER for none): ')).replace('\n', '').strip()
 
-prefix = (raw_input('Please specify the toolchain installation folder (must be accessible by the user): ')).replace('\n', '')
+prefix = (raw_input('Please specify the toolchain installation folder (must be accessible by the user): ')).replace('\n', '').strip()
 targetArch = (raw_input('Please specify the toolchain target architecture (e.g. arm-elf): ')).replace('\n', '')
 addFlags = (raw_input('Specify additional compilation flags (ENTER for none): ')).replace('\n', '')
 newlibPatch = (raw_input('Are you going to patch newlib?[N,y]: ')).replace('\n', '')

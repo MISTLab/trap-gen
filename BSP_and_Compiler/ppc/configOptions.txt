@@ -1,0 +1,1 @@
+In addition to the default options of the crossCreate.py script, the following options were used for the creation of the cross-compiler:

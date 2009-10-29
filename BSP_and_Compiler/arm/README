@@ -1,15 +1,29 @@
 The BSP added to the cross-compiler in order to be used for the OS-emulation mechanisms of ReSP is composed of:
 
--- osemu-crt0.S: contains the start routine of the program (the entry point); it is a modified version of file newlib/libgloss/arm/crt0.S. The modification were made in order to eliminate the stack initialization, which is performed by our hardware thread manager component.
--- libcStub.c: contains the stubs for the missing library routines (just placeholders for compilation purposes, the functionality is imlpemented in hardware through OS emulation)
--- vectors.S: contains the exception handler vectors (jumps to the interrupt handler routines); these instruction will be put at address 0
--- osemu.ld: linker script, exactly the same of the output of "ld --verbose" (the original linker script), only modified in order to put the start address at 0 and in order to link the exception vectors.  Note that the symbol _stack is put at 5MB, since we suppose that we have 5 MB of RAM; in case your system is different, change it.
--- osemu.specs: puts everything together, when specifying -specs=osemu.specs on the compiler command line, this file is read in order to identify the start file (osemu-crt0.S), the linker script (osemu.ld) ...
+-- osemu-crt0.S: contains the start routine of the program (the entry point); it is a modified version of file
+newlib/libgloss/arm/crt0.S. The modification were made in order to eliminate the stack initialization,
+which is performed by our hardware thread manager component.
+-- libcStub.c: contains the stubs for the missing library routines (just placeholders for compilation purposes,
+the functionality is imlpemented in hardware through OS emulation)
+-- vectors.S: contains the exception handler vectors (jumps to the interrupt handler routines);
+these instruction will be put at address 0
+-- osemu.ld: linker script, exactly the same of the output of "arm-elf-ld --verbose" (the original
+linker script), only modified in order to put the start address at 0 and in order to link the exception
+vectors.  Note that the symbol _stack is put at 5MB, since we suppose that we have 5 MB of RAM; in
+case your system is different, change it.
+-- osemu.specs: puts everything together, when specifying -specs=osemu.specs on the compiler command
+line, this file is read in order to identify the start file (osemu-crt0.S), the linker script (osemu.ld) ...
 
-All these files (well, for vectors.S, libcStub.c, and osemu-crt0.S we consider the object file and not the source file) are copied inside arm-elf/lib. In order to use them simple specify -specs=osemu.specs as an additional parameter to gcc when performing the compilation.
+All these files (well, for vectors.S, libcStub.c, and osemu-crt0.S we consider the object file and not
+the source file) are copied inside arm-elf/lib. In order to use them simple specify -specs=osemu.specs
+as an additional parameter to gcc when performing the compilation.
 
-Finally file configure.host is the configuration file for the newlib library; with respect to file newlib/newib/configure.host the change is that none of the ARM_RDP_MONITOR or ARM_RDI_MONITOR are used. You have to modify this file before compiling newlib during the creation of the cross-compiler.
+Finally file configure.host is the configuration file for the newlib library; with respect to file
+newlib/newib/configure.host the change is that none of the ARM_RDP_MONITOR or ARM_RDI_MONITOR are used.
+You have to modify this file before compiling newlib during the creation of the cross-compiler.
 
-File configOptions.txt contains the additional configuration option that were given to the crossCreate.py script in order to create the cross-compiler
+File configOptions.txt contains the additional configuration option that were given to the
+crossCreate.py script in order to create the cross-compiler
 
-It should in theory be possible to use the files in this folder with any recent version of the binutils, gcc and newlib. Anyway they have been tested with: binutils-2.19.tar.bz2 gcc-4.3.3.tar.bz2 gdb-6.8.tar.bz2 newlib-1.17.0.tar.gz
+It should in theory be possible to use the files in this folder with any recent version of the binutils,
+gcc and newlib. Anyway they have been tested with: binutils-2.19.tar.bz2 gcc-4.3.3.tar.bz2 gdb-6.8.tar.bz2 newlib-1.17.0.tar.gz
