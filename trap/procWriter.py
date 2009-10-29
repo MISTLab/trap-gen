@@ -191,8 +191,6 @@ def getCPPRegClass(self, model, regType, namespace):
             readNewValueCode = 'return this->value + ' + str(self.offset) + ';\n'
         else:
             readNewValueCode = 'return this->value;\n'
-        for i in range(0, self.delay):
-            immediateWriteCode += 'this->updateSlot[' + str(i) + '] = false;\n'
     readNewValueBody = cxx_writer.writer_code.Code(readNewValueCode)
     readNewValueMethod = cxx_writer.writer_code.Method('readNewValue', readNewValueBody, regMaxType, 'pu', noException = True)
     registerElements.append(readNewValueMethod)
