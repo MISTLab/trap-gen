@@ -57,9 +57,28 @@ def getToUnlockRegs(self, processor, pipeStage, getAll, delayedUnlock):
 
     # Now I have to insert the code to fill in the queue of registers to unlock
     if getAll or pipeStage.wb:
-        for regToUnlockList in self.specialOutRegs.values():
+        # I have to save what are the special stages for each registers;
+        # then I have to unlock all the stages but the ones specified
+        # in this list
+        regToStages = {}
+        for toUnlockStage, regToUnlockList in self.specialOutRegs.items():
             for regToUnlock in regToUnlockList:
                 regsToUnlock.append(regToUnlock)
+                if regToStages.has_key(regToUnlock):
+                    regToStages[regToUnlock].append(toUnlockStage)
+                else:
+                    regToStages[regToUnlock] = [toUnlockStage]
+        # Now I compute the preceding stages:
+        precedingStages = []
+        remainingStages = []
+        foundCur = False
+        for curPipe in processor.pipes:
+            if curPipe.name == pipeStage.name:
+                foundCur = True
+            if foundCur:
+                remainingStages.append(curPipe.name)
+            else:
+                precedingStages.append(curPipe.name)
     else:
         if self.specialOutRegs.has_key(pipeStage.name):
             for regToUnlock in self.specialOutRegs[pipeStage.name]:
@@ -79,36 +98,123 @@ def getToUnlockRegs(self, processor, pipeStage, getAll, delayedUnlock):
     regsNames = [i.name for i in processor.regBanks + processor.regs]
     for regToUnlock in regsToUnlock:
         if not regToUnlock in self.notLockRegs:
-            realName = regToUnlock
-            parenthesis = realName.find('[')
-            if parenthesis > 0:
-                realName = realName[:parenthesis]
-            if (getAll or pipeStage.wb) and realName in regsNames:
-                if parenthesis > 0:
-                    realRegName = realName + '_pipe' + regToUnlock[parenthesis:]
+            # Now I have to determine in detail what is/are the stages which have to be unlocked:
+            # in case we are not in getAll or pipeStage.wb there are no problems, the current stage
+            # has to be unlocked; otherwise, for non-special registers, we have to unlock all the stages
+            # (i.e. we unlock the general register), while for special registers, we have to unlock
+            # all the stages but the preceding ones already unlocked
+            if getAll or pipeStage.wb:
+                # Here I have to unlock all the normal registers and, for the special ones,
+                # all the stages but the preceding ones already unlocked
+                if not regToStages.has_key(regToUnlock):
+                    # No special register
+                    realName = regToUnlock
+                    parenthesis = realName.find('[')
+                    if parenthesis > 0:
+                        realName = realName[:parenthesis]
+                    if realName in regsNames:
+                        if parenthesis > 0:
+                            realRegName = realName + '_pipe' + regToUnlock[parenthesis:]
+                        else:
+                            realRegName = regToUnlock + '_pipe'
+                    else:
+                        if parenthesis > 0:
+                            realRegName = realName + '_' + pipeStage.name + regToUnlock[parenthesis:]
+                        else:
+                            realRegName = regToUnlock + '_' + pipeStage.name
+                    # finally now we can produce the code to perform the unlock operation
+                    if delayedUnlock and self.delayedWb.has_key(regToUnlock):
+                        if not realName in regsNames:
+                            code += 'unlockQueue[' + str(self.delayedWb[regToUnlock]) + '].push_back(' + realRegName + '.getPipeReg());\n'
+                        else:
+                            code += 'unlockQueue[' + str(self.delayedWb[regToUnlock]) + '].push_back(&' + realRegName + ');\n'
+                    else:
+                        if not realName in regsNames:
+                            code += 'unlockQueue[0].push_back(' + realRegName + '.getPipeReg());\n'
+                        else:
+                            code += 'unlockQueue[0].push_back(&' + realRegName + ');\n'
                 else:
-                    realRegName = regToUnlock + '_pipe'
+                    # Here we have a special register: lets determine all the stages which
+                    # need to be unlocked:
+                    toUnlockStages = []
+                    for stageToUnlock in precedingStages:
+                        if not stageToUnlock in regToStages[regToUnlock]:
+                            toUnlockStages.append(stageToUnlock)
+                    toUnlockStages += remainingStages
+                    realName = regToUnlock
+                    parenthesis = realName.find('[')
+                    if parenthesis > 0:
+                        realName = realName[:parenthesis]
+
+                    # now I procede to create the code to unlock all the necessary pipeline stages
+                    for toUnlockStage in toUnlockStages:
+                        if realName in regsNames:
+                            if parenthesis > 0:
+                                realRegName = realName + '_' + toUnlockStage + regToUnlock[parenthesis:]
+                            else:
+                                realRegName = regToUnlock + '_' + toUnlockStage
+                        else:
+                            if parenthesis > 0:
+                                realRegName = realName + '_' + toUnlockStage + regToUnlock[parenthesis:]
+                            else:
+                                realRegName = regToUnlock + '_' + toUnlockStage
+                        # finally now we can produce the code to perform the unlock operation
+                        if delayedUnlock and self.delayedWb.has_key(regToUnlock):
+                            if not realName in regsNames:
+                                code += 'unlockQueue[' + str(self.delayedWb[regToUnlock]) + '].push_back(' + realRegName + '.getReg());\n'
+                            else:
+                                code += 'unlockQueue[' + str(self.delayedWb[regToUnlock]) + '].push_back(&' + realRegName + ');\n'
+                        else:
+                            if not realName in regsNames:
+                                code += 'unlockQueue[0].push_back(' + realRegName + '.getReg());\n'
+                            else:
+                                code += 'unlockQueue[0].push_back(&' + realRegName + ');\n'
+
+                    # and finally we unlock the all stage
+                    if realName in regsNames:
+                        if parenthesis > 0:
+                            realRegName = realName + '_pipe' + regToUnlock[parenthesis:]
+                        else:
+                            realRegName = regToUnlock + '_pipe'
+                    else:
+                        if parenthesis > 0:
+                            realRegName = realName + '_' + pipeStage.name + regToUnlock[parenthesis:]
+                        else:
+                            realRegName = regToUnlock + '_' + pipeStage.name
+                    # finally now we can produce the code to perform the unlock operation
+                    if delayedUnlock and self.delayedWb.has_key(regToUnlock):
+                        if not realName in regsNames:
+                            code += 'unlockQueue[' + str(self.delayedWb[regToUnlock]) + '].push_back(' + realRegName + '.getPipeReg()->getRegister());\n'
+                        else:
+                            code += 'unlockQueue[' + str(self.delayedWb[regToUnlock]) + '].push_back(' + realRegName + '.getRegister());\n'
+                    else:
+                        if not realName in regsNames:
+                            code += 'unlockQueue[0].push_back(' + realRegName + '.getPipeReg()->getRegister());\n'
+                        else:
+                            code += 'unlockQueue[0].push_back(' + realRegName + '.getRegister());\n'
             else:
+                # here all the registers to unlock are the special registers:
+                # this means that I simply have to unlock the registers corresponding
+                # to the current stage
+                realName = regToUnlock
+                parenthesis = realName.find('[')
                 if parenthesis > 0:
+                    realName = realName[:parenthesis]
                     realRegName = realName + '_' + pipeStage.name + regToUnlock[parenthesis:]
                 else:
                     realRegName = regToUnlock + '_' + pipeStage.name
-            if delayedUnlock and self.delayedWb.has_key(regToUnlock):
-                if not realName in regsNames:
-                    if getAll or pipeStage.wb:
-                        code += 'unlockQueue[' + str(self.delayedWb[regToUnlock]) + '].push_back(' + realRegName + '.getPipeReg());\n'
-                    else:
+                # finally now we can produce the code to perform the unlock operation
+                if delayedUnlock and self.delayedWb.has_key(regToUnlock):
+                    if not realName in regsNames:
                         code += 'unlockQueue[' + str(self.delayedWb[regToUnlock]) + '].push_back(' + realRegName + '.getReg());\n'
-                else:
-                    code += 'unlockQueue[' + str(self.delayedWb[regToUnlock]) + '].push_back(&' + realRegName + ');\n'
-            else:
-                if not realName in regsNames:
-                    if getAll or pipeStage.wb:
-                        code += 'unlockQueue[0].push_back(' + realRegName + '.getPipeReg());\n'
                     else:
-                        code += 'unlockQueue[0].push_back(' + realRegName + '.getReg());\n'
+                        code += 'unlockQueue[' + str(self.delayedWb[regToUnlock]) + '].push_back(&' + realRegName + ');\n'
                 else:
-                    code += 'unlockQueue[0].push_back(&' + realRegName + ');\n'
+                    if not realName in regsNames:
+                        code += 'unlockQueue[0].push_back(' + realRegName + '.getReg());\n'
+                    else:
+                        code += 'unlockQueue[0].push_back(&' + realRegName + ');\n'
+
     return code
 
 def toBinStr(intNum, maxLen = -1):
@@ -444,9 +550,9 @@ def getCPPInstr(self, model, processor, trace, combinedTrace, namespace):
                         if not regToCheck in self.notLockRegs:
                             parenthesis = regToCheck.find('[')
                             if parenthesis > 0:
-                                regsToCheck.append(regToCheck[:parenthesis] + '_' + pipeline[-1].name + regToCheck[parenthesis:])
+                                regsToCheck.append(regToCheck[:parenthesis] + '_' + pipeStage.name + regToCheck[parenthesis:])
                             else:
-                                regsToCheck.append(regToCheck + '_' + pipeline[-1].name)
+                                regsToCheck.append(regToCheck + '_' + pipeStage.name)
                     for pipeName, regList in self.specialInRegs.items():
                         for regToCheck in regList:
                             parenthesis = regToCheck.find('[')
