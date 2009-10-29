@@ -126,30 +126,33 @@ void iwt97(double* x,int n) {
 
 int main() {
   double x[16];
-  int i;
+  int i, j;
 
-/*  // Makes a fancy cubic signal
-  for (i=0;i<16;i++) x[i]=5+i+0.4*i*i-0.02*i*i*i;
+  for(j = 0; j < 50; j++){
+    // Makes a fancy cubic signal
+    for (i=0;i<16;i++) x[i]=5+i+0.4*i*i-0.02*i*i*i;
 
-  // Prints original sigal x
-  printf("Original signal:\n");
-  for (i=0;i<16;i++) printf("x[%d]=%f\n",i,x[i]);
-  printf("\n");
-*/
-  // Do the forward 9/7 transform
-  fwt97(x,16);
+    // Prints original sigal x
+    /*printf("Original signal:\n");
+    for (i=0;i<16;i++) printf("x[%d]=%f\n",i,x[i]);
+    printf("\n");*/
 
-  // Prints the wavelet coefficients
-  printf("Wavelets coefficients:\n");
-  for (i=0;i<16;i++) printf("wc[%d]=%f\n",i,x[i]);
-  printf("\n");
+    // Do the forward 9/7 transform
+    fwt97(x,16);
 
-  // Do the inverse 9/7 transform
-  iwt97(x,16);
+    // Prints the wavelet coefficients
+    /*printf("Wavelets coefficients:\n");
+    for (i=0;i<16;i++) printf("wc[%d]=%f\n",i,x[i]);
+    printf("\n");*/
 
-  // Prints the reconstructed signal
-  printf("Reconstructed signal:\n");
-  for (i=0;i<16;i++) printf("xx[%d]=%f\n",i,x[i]);
+    // Do the inverse 9/7 transform
+    iwt97(x,16);
+
+    // Prints the reconstructed signal
+    /*printf("Reconstructed signal:\n");
+    for (i=0;i<16;i++) printf("xx[%d]=%f\n",i,x[i]);*/
+    fprintf(stderr, "done iteration %d\n", j);
+  }
   return 0;
 }
 

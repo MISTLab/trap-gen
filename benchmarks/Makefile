@@ -1,4 +1,4 @@
-TARGETS = AES crc engine fir2 hanoi pocsag tolstoy bcnt des fft lms queens blit dhry fib gamma matrix mib_off_strsearch quicksort mib_auto_basicmath whets heapsort jpeg mdrAll v42
+TARGETS = AES crc engine fir2 hanoi pocsag tolstoy bcnt des fft lms queens blit dhry fib gamma matrix mib_off_strsearch quicksort mib_auto_basicmath whets heapsort jpeg mdrAll v42 wavelt
 
 all: $(addsuffix .O0, $(TARGETS)) $(addsuffix .O1, $(TARGETS)) $(addsuffix .O2, $(TARGETS)) $(addsuffix .O3, $(TARGETS))
 
