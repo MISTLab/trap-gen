@@ -781,13 +781,21 @@ class decoderCreator:
         curClass = None
         different = False
         for instr in subtree.patterns:
+            foundPattern = False
             for instrId, instrVals in self.instrId.items():
                 if instrVals[0] == instr[0]:
+                    foundPattern = True
                     if curClass == None:
                         curClass = instrId
                     elif curClass != instrId:
                         different = True
                     break
+            if not foundPattern:
+                if curClass == None:
+                    curClass = -1
+                elif curClass != -1:
+                    different = True
+
             if different:
                 break
         if not different:
@@ -803,10 +811,14 @@ class decoderCreator:
         if not bestTable and not bestPattern:
             curInstrNames = []
             for instr in subtree.patterns:
+                found = False
                 for instrId, instrVals in self.instrId.items():
                     if instrVals[0] == instr[0]:
+                        found = True
                         curInstrNames.append(self.instrName[instrId])
                         break
+                if not found:
+                    curInstrNames.append('Invalid')
             raise Exception('Error, more than one instruction in the current decoder but no table or pattern decoder found --> ' + str(curInstrNames))
         if bestTable and not bestPattern:
             curInstrNames = []
