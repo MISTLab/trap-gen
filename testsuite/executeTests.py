@@ -31,7 +31,7 @@ if __name__ == "__main__":
             failedBenchs[test] = 'Exit Line Not Found'
             if os.path.exists('memoryDump.dmp'):
                 os.rename('memoryDump.dmp', test + '.dmp')
-    print '\nFailed ' + str(len(failedBenchs)) + ' tests'
+    print '\nFailed ' + str(len(failedBenchs)) + ' tests out of ' + str(len(sys.argv[2:]))
     sortedFailedBenchs = failedBenchs.keys()
     sortedFailedBenchs.sort()
     for test in sortedFailedBenchs:

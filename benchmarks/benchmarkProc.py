@@ -18,6 +18,9 @@ if __name__ == "__main__":
         benchSpeed[benchmark] = []
         for i in range(0, int(sys.argv[2])):
             result = os.popen(sys.argv[1] + ' -a ' + benchmark).readlines()
+            if not 'Program exited with value 0\n' in result:
+                print('Benchmark ' + benchmark + ' failed since it has wrong exit value')
+                break
             for res in result:
                 if 'Execution Speed' in res:
                     speed = float(res.split()[2])
@@ -48,6 +51,7 @@ if __name__ == "__main__":
     fileCsvWriter.writerow(['std', str(numpy.std(runTime))])
     fileHandle.close()
 
+    print ('Executed ' + str(len(sys.argv[3:])) + ' benchmarks with ' + sys.argv[2] + ' runs per benchmark')
     print ('Average Execution Speed: ' + str(numpy.average(runTime)) + ' MIPS')
     print ('Standard Deviation: ' + str(numpy.std(runTime)) + ' MIPS')
     print ('Fastst benchmark: ' + fastBench + ' ( ' + str(maxSpeed) + ' MIPS )')
