@@ -1233,8 +1233,9 @@ def getCPPClasses(self, processor, model, trace, combinedTrace, namespace):
         printBusyRegsDecl = cxx_writer.writer_code.Method('printBusyRegs', cxx_writer.writer_code.Code('return "";'), cxx_writer.writer_code.stringType, 'pu')
         invalidInstrElements.append(printBusyRegsDecl)
         if hasCheckHazard:
+            returnTrueBody = cxx_writer.writer_code.Code('return true;')
             for pipeStage in processor.pipes:
-                checkHazardDecl = cxx_writer.writer_code.Method('checkHazard_' + pipeStage.name, emptyBody, cxx_writer.writer_code.boolType, 'pu')
+                checkHazardDecl = cxx_writer.writer_code.Method('checkHazard_' + pipeStage.name, returnTrueBody, cxx_writer.writer_code.boolType, 'pu')
                 invalidInstrElements.append(checkHazardDecl)
                 lockDecl = cxx_writer.writer_code.Method('lockRegs_' + pipeStage.name, emptyBody, cxx_writer.writer_code.voidType, 'pu')
                 invalidInstrElements.append(lockDecl)
@@ -1305,8 +1306,9 @@ def getCPPClasses(self, processor, model, trace, combinedTrace, namespace):
         NOPInstructionElements.append(printBusyRegsDecl)
 
         if hasCheckHazard:
+            returnTrueBody = cxx_writer.writer_code.Code('return true;')
             for pipeStage in processor.pipes:
-                checkHazardDecl = cxx_writer.writer_code.Method('checkHazard_' + pipeStage.name, emptyBody, cxx_writer.writer_code.boolType, 'pu')
+                checkHazardDecl = cxx_writer.writer_code.Method('checkHazard_' + pipeStage.name, returnTrueBody, cxx_writer.writer_code.boolType, 'pu')
                 NOPInstructionElements.append(checkHazardDecl)
                 lockDecl = cxx_writer.writer_code.Method('lockRegs_' + pipeStage.name, emptyBody, cxx_writer.writer_code.voidType, 'pu')
                 NOPInstructionElements.append(lockDecl)
