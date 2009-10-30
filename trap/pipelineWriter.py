@@ -252,6 +252,9 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
                 if(this->toolManager.emptyPipeline(curPC)){
                     numNOPS++;
                 }
+                else{
+                    numNOPS = 0;
+                }
                 if(numNOPS > 0 && numNOPS < """ + str(len(self.pipes)) + """){
                     this->curInstruction = this->NOPInstrInstance;
                 """
@@ -542,14 +545,14 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
                     codeString += 'if(this->' + alias.name + '_' + self.pipes[i + 1].name + '.getPipeReg() != this->' + alias.name + '_' + self.pipes[i].name + '.getPipeReg()){\n'
                     if trace and not combinedTrace:
                         codeString += 'std::cerr << "Updating alias ' + alias.name + '_' + self.pipes[i + 1].name + '" << std::endl;\n'
-                    codeString += 'this->' + alias.name + '_' + self.pipes[i + 1].name + '.updateAlias(*(this->' + alias.name + '_' + self.pipes[i].name + '.getPipeReg()));\n'
+                    codeString += 'this->' + alias.name + '_' + self.pipes[i + 1].name + '.propagateAlias(*(this->' + alias.name + '_' + self.pipes[i].name + '.getPipeReg()));\n'
                     codeString += '}\n'
                 for aliasB in self.aliasRegBanks:
                     codeString += 'for(int i = 0; i < ' + str(aliasB.numRegs) + '; i++){\n'
                     codeString += 'if(this->' + aliasB.name + '_' + self.pipes[i + 1].name + '[i].getPipeReg() != this->' + aliasB.name + '_' + self.pipes[i].name + '[i].getPipeReg()){\n'
                     if trace and not combinedTrace:
                         codeString += 'std::cerr << "Updating alias ' + aliasB.name + '_' + self.pipes[i + 1].name + '[" << i << "]" << std::endl;\n'
-                    codeString += 'this->' + aliasB.name + '_' + self.pipes[i + 1].name + '[i].updateAlias(*(this->' + aliasB.name + '_' + self.pipes[i].name + '[i].getPipeReg()));\n'
+                    codeString += 'this->' + aliasB.name + '_' + self.pipes[i + 1].name + '[i].propagateAlias(*(this->' + aliasB.name + '_' + self.pipes[i].name + '[i].getPipeReg()));\n'
                     codeString += '}\n'
                     codeString += '}\n'
             # Now I have to produce the code for unlocking the registers in the unlockQueue

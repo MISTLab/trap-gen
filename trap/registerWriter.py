@@ -1402,6 +1402,20 @@ def getCPPPipelineAlias(self, namespace):
     updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam, inline = True, noException = True)
     aliasElements.append(updateDecl)
 
+    propagateCode = """if(this->referringAliases != NULL){
+        return;
+    }
+    this->pipelineReg = &newAlias;
+    std::set<Alias *>::iterator referredIter, referredEnd;
+    for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
+        (*referredIter)->newReferredAlias(&newAlias);
+    }
+    """
+    propagateBody = cxx_writer.writer_code.Code(propagateCode)
+    propagateParam = [cxx_writer.writer_code.Parameter('newAlias', pipeRegisterType.makeRef())]
+    propagateDecl = cxx_writer.writer_code.Method('propagateAlias', propagateBody, cxx_writer.writer_code.voidType, 'pu', propagateParam, inline = True, noException = True)
+    aliasElements.append(propagateDecl)
+
     directSetCode = """this->pipelineReg = newAlias.pipelineReg;
     this->pipeId = newAlias.pipeId;
     if(this->referringAliases != NULL){

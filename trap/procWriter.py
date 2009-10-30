@@ -578,9 +578,12 @@ def createRegsAttributes(self, model, processorElements, initElements, bodyAlias
     bodyInits += '// Initialization of the aliases (plain and banks)\n'
     for alias in self.aliasRegs:
         if model.startswith('acc'):
+            curPipeNum = 0
             for pipeStage in self.pipes:
                 attribute = cxx_writer.writer_code.Attribute(alias.name + '_' + pipeStage.name, resourceType[alias.name], 'pu')
                 processorElements.append(attribute)
+                bodyInits += alias.name + '_' + pipeStage.name + '.setPipeId(' + str(curPipeNum) + ');\n'
+                curPipeNum += 1
         else:
             attribute = cxx_writer.writer_code.Attribute(alias.name, resourceType[alias.name], 'pu')
             processorElements.append(attribute)
