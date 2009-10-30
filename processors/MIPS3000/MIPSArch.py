@@ -55,7 +55,7 @@ processor.setISA(MIPSIsa.isa) #lets set the instruction set
 
 # GENERAL PURPOSE REGISTERS FOR INTEGER OPERATIONS
 GPR = trap.RegisterBank('GPR', 32, 32)
-processor.addRegister(GPR)
+processor.addRegBank(GPR)
 
 
 
@@ -84,51 +84,51 @@ processor.addRegister(Compare)
 #CP0[12] 	Status
 StatusBits = {'CU':(28,31), 'RP':(27,27), 'R':(26,26), 'RE':(25,25), 'Z1':(23,24), 'BEV':(22,22), 'TS':(21,21), 'SR':(20,20), 'NMI':(19,19), 'Z2':(18,18), 'RES':(16,17), 'IM':(8,15), 'R':(5,7), 'UM':(4,4), 'R':(3,3), 'ERL':(2,2), 'EXL':(1,1), 'IE':(0,0)}
 Status = trap.Register('STATUS',32,StatusBits)
-Status.SetDefaultValue(0x00400004)
+Status.setDefaultValue(0x00400004)
 processor.addRegister(Status)
 #CP0[13] 	Cause
-CauseBits = {'BD':(31,31), 'Z1':(30,30), 'CE':(28,29), 'Z2':(24,27), 'IV':(23,23), 'WP':(22,22), 'Z3':(16,21), 'IPHI':(10,15), 'IPLO':(8,9), 'Z4':(7,7), 'EXCCODE':(2,6), 'Z5':(1,0)}
+CauseBits = {'BD':(31,31), 'Z1':(30,30), 'CE':(28,29), 'Z2':(24,27), 'IV':(23,23), 'WP':(22,22), 'Z3':(16,21), 'IPHW':(10,15), 'IPSW':(8,9), 'Z4':(7,7), 'EXCCODE':(2,6), 'Z5':(0,1)}
 Cause = trap.Register('CAUSE',32,CauseBits)
-Cause.SetDefaultValue(0)
+Cause.setDefaultValue(0x00000000)
 processor.addRegister(Cause)
 #CP0[14] 	EPC
 epc = trap.Register('EPC',32)
 processor.addRegister(epc)
 #CP0[15]    	PRId
 prIdBits = {'R':(24,31), 'CompanyID':(16,23), 'ProcessorID':(8,15), 'Revision':(0,7)}
-prId = trap.Register('PRID',32,StatusBits)
-prId.SetDefaultValue(0x00FF8301)
+prId = trap.Register('PRID',32,prIdBits)
+prId.setDefaultValue(0x00FF8301)
 processor.addRegister(prId)
 #CP0[16]    	Config
 Config0Bits = {'M':(31,31), 'K23':(28,30), 'KU':(25,27), 'ISP':(24,24), 'DSP':(23,23), 'Z1':(22,22), 'SB':(21,21), 'MDU':(20,20), 'R':(19,19), 'MM':(17,18), 'BM':(16,16), 'BE':(15,15), 'AT':(13,14), 'AR':(10,12), 'MT':(7,9), 'Z2':(3,6), 'K0':(0,2)}
 Config0 = trap.Register('CONFIG0',32,Config0Bits)
-Config0.SetDefaultValue(0xA5000002)
+Config0.setDefaultValue(0xA5000002)
 processor.addRegister(Config0)
 #CP0[16]    	Config1
 Config1Bits = {'M':(31,31), 'MMUSIZE':(25,30), 'IS':(22,24), 'IL':(19,21), 'IA':(16,18), 'DS':(13,15), 'DL':(10,12), 'DA':(7,9), 'Z1':(5,6), 'PC':(4,4), 'WR':(3,3), 'CA':(2,2), 'EP':(1,1), 'FP':(0,0)}
 Config1 = trap.Register('CONFIG1',32,Config1Bits)
-Config1.SetDefaultValue(0x0000000A)
+Config1.setDefaultValue(0x0000000A)
 processor.addRegister(Config1)
 #CP0[17]    	LLAddr
 LLAddrBits = {'Z1':(28,31), 'PADDR':(0,27)}
 LLAddr = trap.Register('LLADDR',32,LLAddrBits)
-LLAddr.SetDefaultValue(0)
+LLAddr.setDefaultValue(0)
 processor.addRegister(LLAddr)
 #CP0[18]    	WatchLo
 WatchLoBits = {'VADDR':(3,31), 'I':(2,2), 'R':(1,1), 'W':(0,0)}
 WatchLo = trap.Register('WATCHLO',32,WatchLoBits)
-WatchLo.SetDefaultValue(0)
+WatchLo.setDefaultValue(0)
 processor.addRegister(WatchLo)
 #CP0[19]    	WatchHi
 WatchHiBits = {'z1':(31,31), 'G':(30,30), 'z1':(24,29), 'ASID':(16,23), 'Z2':(12,15), 'MASK':(3,11), 'Z3':(0,2)}
 WatchHi = trap.Register('WATCHHI',32,WatchHiBits)
-WatchHi.SetDefaultValue(0)
+WatchHi.setDefaultValue(0)
 processor.addRegister(WatchHi)
 #CP0[20 - 22] 	Reserved  
 #CP0[23]    	Debug
-DebugBits = {'DBD':(31,31) 'DM':(30,30) 'NoDCR':(29,29) 'LSNM':(28,28) 'Doze':(27,27) 'Halt':(26,26) 'CountDM':(25,25) 'IBusEP':(24,24) 'MCheckP':(23,23) 'CacheEP':(22,22) 'DBusEP':(21,21) 'IEXI':(20,20) 'DDBSImpr':(19,19) 'DDBLImpr':(18,18)  'Ver':(15,17), 'DExcCode':(10,14) 'NoSST':(9,9) 'SSt':(8,8)   'R':(6,7)   'DINT':(5,5) 'DIB':(4,4) 'DDBS':(3,3) 'DDBL':(2,2) 'DBp':(1,1) 'DSS':(0,0)}
+DebugBits = {'DBD':(31,31), 'DM':(30,30), 'NoDCR':(29,29), 'LSNM':(28,28), 'Doze':(27,27), 'Halt':(26,26), 'CountDM':(25,25), 'IBusEP':(24,24), 'MCheckP':(23,23), 'CacheEP':(22,22), 'DBusEP':(21,21), 'IEXI':(20,20), 'DDBSImpr':(19,19), 'DDBLImpr':(18,18),  'Ver':(15,17), 'DExcCode':(10,14), 'NoSST':(9,9), 'SSt':(8,8),   'R':(6,7),   'DINT':(5,5), 'DIB':(4,4), 'DDBS':(3,3), 'DDBL':(2,2), 'DBp':(1,1), 'DSS':(0,0)}
 Debug = trap.Register('DEBUG',32,DebugBits)
-Debug.SetDefaultValue(0x0601000)
+Debug.setDefaultValue(0x0601000)
 processor.addRegister(Debug)
 #CP0[24]    	DEPC
 Depc = trap.Register('DEPC',32)
@@ -137,13 +137,13 @@ processor.addRegister(Depc)
 #CP0[26]    	ErrCtl
 ErrCtlBits = {'R':(30,31), 'WST':(29,29), 'SPR':(28,28), 'R':(0,27)}
 ErrCtl = trap.Register('ERRCTL',32,ErrCtlBits)
-ErrCtl.SetDefaultValue(0)
+ErrCtl.setDefaultValue(0)
 processor.addRegister(ErrCtl)
 #CP0[27]    	Reserved  
 #CP0[28]    	TagLo
 TagLoBits = {'PA':(10,31), 'R1':(8,9), 'VALID':(4,7), 'R2':(3,3), 'L':(2,2), 'LRF':(1,1), 'R3':(0,0)}
 TagLo = trap.Register('TAGLO',32,TagLoBits)
-TagLo.SetDefaultValue(0)
+TagLo.setDefaultValue(0)
 processor.addRegister(TagLo)
 #CP0[28]    	DataLo
 DataLo = trap.Register('DATALO',32)
@@ -161,7 +161,7 @@ processor.addAliasReg(Config)
 LowOrderCache = trap.AliasRegister('LOWORDERCACHE', 'TagLo', offset = 0)
 processor.addAliasReg(LowOrderCache)
 #LLbit
-LLbit = trap.Resgister('LLbit',1)
+LLbit = trap.Register('LLbit',1)
 processor.addRegister(LLbit)
 
 #
@@ -172,39 +172,39 @@ processor.addRegister(LLbit)
 # Debug Control Register - The PE has the same value as ProbEn of the EJTAG Control Register
 dcrBits = {'Res1':(30,31), 'ENM': (29,29), 'Res2':(18,28), 'DB': (17,17), 'IB': (16,16), 'Res1':(5,15), 'INTE': (4,4), 'NMIE': (3,3), 'NMIP': (2,2), 'SRE': (1,1), 'PE': (0,0)}
 dcr = trap.Register('DCR',32,dcrBits)
-dcr.SetDefaultValue(0x2003001B)
+dcr.setDefaultValue(0x2003001B)
 processor.addRegister(dcr)
 # Registers for Instruction Breakpoints
 ibsBits = {'RES':(31,31), 'ASIDSUP':(30,30), 'RES1':(28,29), 'BCN':(24,27), 'RES2':(4,23), 'BS':(0,3)}
 ibs = trap.Register('IBS',32, ibsBits)
-ibs.SetDefaultValue(0x04000000)
+ibs.setDefaultValue(0x04000000)
 processor.addRegister(ibs)
-iban = trap.Register('IBAN',1,32)
+iban = trap.Register('IBAN',32)
 processor.addRegister(iban)
-ibmn = trap.Register('IBMN',1,32)
+ibmn = trap.Register('IBMN',32)
 processor.addRegister(ibmn)
 ibcnBits = {'RES1':(24,31), 'ASIDUSE':(23,23), 'RES2':(3,22), 'TE':(2,2), 'RES3':(1,1), 'BE':(0,0)}
 ibcn = trap.Register('IBCN',32, ibcnBits)
-ibcn.SetDefaultValue(0)
+ibcn.setDefaultValue(0)
 processor.addRegister(ibcn)
 # Registers for Data Breakpoints Setup
 dbsBits ={'RES1':(31,31), 'ASIDSUP':(30,30), 'RES2':(28,29), 'BCN':(24,27), 'RES3':(2,23), 'BS':(0,1)}
 dbs = trap.Register('DBS',32, dbsBits)
-dbs.SetDefaultValue(0x08000000)
+dbs.setDefaultValue(0x08000000)
 processor.addRegister(dbs)
-dban = trap.Register('DBAN',1,32)
+dban = trap.Register('DBAN',32)
 processor.addRegister(dban)
-dbmn = trap.Register('DBMN',1,32)
+dbmn = trap.Register('DBMN',32)
 processor.addRegister(dbmn)
 dbcnBits = {'RE':(24,31), 'ASIDUSE':(23,23), 'RES1':(18,22), 'BAI':(14,17), 'NOSB':(13,13), 'NOLB':(12,12), 'RES2':(8,11), 'BLM':(4,7), 'RES3':(3,3), 'TE':(2,2), 'RES4':(1,1), 'BE':(0,0)}
 dbcn = trap.Register('DBCN',32, dbcnBits)
-dbcn.SetDefaultValue(0)
+dbcn.setDefaultValue(0)
 processor.addRegister(dbcn)
-dbvn = trap.Register('DBVN',1,32)
+dbvn = trap.Register('DBVN',32)
 processor.addRegister(dbvn)
 #EJTAG TAP Registers pag 163
 #EJTAG TAP Instruction Registers
-iReg = trap.Register('EJTAGIR',1,5)
+iReg = trap.Register('EJTAGIR',5)
 #EJTAG TAP Data Registers
 bpr = trap.Register('BYPASS',1)
 processor.addRegister(bpr)
@@ -215,16 +215,16 @@ processor.addRegister(idr)
 	#EJTAG Version 2.6
 impBits = {'EJTAGVersion': (29,31), 'RES1':(25,28), 'DINTsup': (24,24), 'ASIDsize': (21,23), 'RES2':(15,20), 'NoDMA' : (14,14), 'RES3':(0,13)}
 imp = trap.Register('IMP',32,impBits)
-imp.SetDefaultValue(0x41000000)
+imp.setDefaultValue(0x41000000)
 processor.addRegister(imp)
-ecrBits = {'Rocc':(31,31), 'Psz':(29,30), 'Doze':(22,22), 'Halt':(21,21) 'PerRst':(20,20) 'PRnW':(19,19) 'PrAcc':(18,18) 'PrRst':(16,16) 'ProbEn':(15,15) 'ProbTrap':(14,14) 'EjtagBrk':(12,12) 'DM':(3,3)}
+ecrBits = {'Rocc':(31,31), 'Psz':(29,30), 'Doze':(22,22), 'Halt':(21,21), 'PerRst':(20,20), 'PRnW':(19,19), 'PrAcc':(18,18), 'PrRst':(16,16), 'ProbEn':(15,15), 'ProbTrap':(14,14), 'EjtagBrk':(12,12), 'DM':(3,3)}
 ecr = trap.Register('ECR',32,ecrBits)
-ecr.SetDefaultValue(0x80009000)
+ecr.setDefaultValue(0x80009000)
 processor.addRegister(ecr)
 paa = trap.Register('PAA',32)
 pad = trap.Register('PAD',32) # p.169       so the value in the PAD register matches data on the internal bus.
 processor.addRegister(pad)
-fast = trap.Resgister('SprAcc',1)
+fast = trap.Register('SprAcc',1)
 processor.addRegister(fast)
 
 
@@ -247,10 +247,16 @@ processor.setMemory('dataMem', 2048000000)
 
 
 #Interrupts
-irq = trap.Interrupt('IRQ', priority = 0)
-processor.addIrq(irq)
-processor.setIRQOperation(MIPSIsa.IRQOperation)
-
+irq = trap.Interrupt('IRQ', 1, priority = 0)
+irq.setOperation("""//Basically, what I have to do when
+//an interrupt arrives is very simple: we check that interrupts
+//are enabled and that the the processor can take this interrupt
+//(valid interrupt level). The we simply raise an exception and
+//acknowledge the IRQ on the irqAck port.
+}
+""")
+irq.addTest({}, {})
+#processor.addIrq(irq)
 
 
 # The ABI is necessary to emulate system calls, personalize the GDB stub and,

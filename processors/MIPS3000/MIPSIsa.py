@@ -51,23 +51,44 @@ isa = trap.ISA()
 # called from the instructions
 isa.addMethod(SignExtend_method)
 isa.addMethod(RaiseException_method)
-isa.addMethod(SimpleBranch)
-isa.addMethod(LikelyBranch)
-isa.addMethod(RaiseException_method)
+isa.addMethod(SimpleBranch_method)
+isa.addMethod(LikelyBranch_method)
 
 # Now I add some useful definitions to be used inside the instructions; they will be
 # inserted as defines in the hpp and file of the instructions
 isa.addDefines("""
-#define INTEGER_OVERFLOW
-#define BUS_ERROR
-#define ADDRESS_ERROR
-#define RESERVED_INSTRUCTION
-#define BREAKPOINT
-#define COPROCESSOR_UNUSABLE
+
+#define RESET 1
+#define SOFT_RESET 2
+#define DSS 3			//Debug
+#define DINT 4			//Debug
+#define NMI 5			//Non Maskable Interruption
+#define MACHINE_CHECK 6
+#define INT 7			//Interrupt
+#define DEFERRED_WATCH 8
+#define DIB 9			//Debug
+#define WATCH_FETCH 10
+#define ADEL_FETCH 11
+#define IBE 12			//Instruction Fetch Bus Error
+#define DBP 13			//Debug
+#define SYS 14
+#define BP 15
+#define CPU 16
+#define RI 17
+#define OV 18			//Overflow
+#define TR 19
+#define DDBLad 20		//Degub
+#define DDBS 21			//Debug
+#define WATCH_DATA 22
+#define ADEL 23
+#define ADES 24
+#define DBE 25
+#define DDBL 26			//Debug
+
+
+
 #define SIGNAL_DEBUG_BREAKPOINT
 #define SIGNAL_DEBUG_MODE_BREAKPOINT
-#define SYSTEM_CALL
-#define TRAP
 """)
 
 
@@ -105,7 +126,7 @@ opCode = cxx_writer.writer_code.Code("""
 long long temp32 = (((rs | 0x8000) << 1) | rs) + (((rt | 0x8000) << 1) | rt) ;
 long temp31 = rs + rt;
 if (temp32 != temp31){
-	RaiseException(INTEGER_OVERFLOW);
+	RaiseException(OV);
 }esle{
 	rd = temp31;
 }
@@ -114,7 +135,6 @@ add_reg_Instr = trap.Instruction('ADD', True)
 add_reg_Instr.setMachineCode(register_format,{'opcode': [0,0,0,0,0,0],'function':[1,0,0,0,0,0]},('add r','%rd', ',',' r','%rs', ',',' r','%rt'))
 add_reg_Instr.setCode(opCode, 'execution')
 add_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-add_reg_Instr.addTest('TODO')
 isa.addInstruction(add_reg_Instr)
 
 
@@ -122,16 +142,15 @@ opCode = cxx_writer.writer_code.Code("""
 long long temp32 = (((rs | 0x8000) << 1) | rs) + ((( SignExtend(immediate)  | 0x8000) << 1) | SignExtend(immediate) );
 long temp31 = rs + rt;
 if (temp32 != temp31){
-	RaiseException(INTEGER_OVERFLOW);
+	RaiseException(OV);
 }esle{
 	rd = temp31;
 }
 """)
 addi_imm_Instr = trap.Instruction('ADDI', True)
-addi_imm_Instr.setMachineCode(imm_format,{'opcode': [0,0,1,0,0,0]},('addi r','%rt', ',',' r','%rs', ',',' r','%immediate'))
+addi_imm_Instr.setMachineCode(immediate_format,{'opcode': [0,0,1,0,0,0]},('addi r','%rt', ',',' r','%rs', ',',' r','%immediate'))
 addi_imm_Instr.setCode(opCode, 'execution')
 addi_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-addi_imm_Instr.addTest('TODO')
 isa.addInstruction(addi_imm_Instr)
 
 
@@ -139,10 +158,9 @@ opCode = cxx_writer.writer_code.Code("""
 rt = rs + SignExtend(immediate);
 """)
 addiu_imm_Instr = trap.Instruction('ADDIU', True)
-addiu_imm_Instr.setMachineCode(imm_format,{'opcode': [0,0,1,0,0,1]},('addiu r','%rt', ',',' r','%rs', ',',' r','%immediate'))
+addiu_imm_Instr.setMachineCode(immediate_format,{'opcode': [0,0,1,0,0,1]},('addiu r','%rt', ',',' r','%rs', ',',' r','%immediate'))
 addiu_imm_Instr.setCode(opCode, 'execution')
 addiu_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-addiu_imm_Instr.addTest('TODO')
 isa.addInstruction(addiu_imm_Instr)
 
 
@@ -153,7 +171,6 @@ addu_reg_Instr = trap.Instruction('ADDU', True)
 addu_reg_Instr.setMachineCode(register_format,{'opcode': [0,0,0,0,0,0],'function':[1,0,0,0,0,1]},('addu r','%rd', ',',' r','%rs', ',',' r','%rt'))
 addu_reg_Instr.setCode(opCode, 'execution')
 addu_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-addu_reg_Instr.addTest('TODO')
 isa.addInstruction(addu_reg_Instr)
 
 
@@ -169,7 +186,6 @@ and_reg_Instr = trap.Instruction('AND', True)
 and_reg_Instr.setMachineCode(register_format,{'opcode': [0,0,0,0,0,0],'function':[1,0,0,1,0,0]},('and r','%rd', ',',' r','%rs', ',',' r','%rt'))
 and_reg_Instr.setCode(opCode, 'execution')
 and_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-and_reg_Instr.addTest('TODO')
 isa.addInstruction(and_reg_Instr)
 
 
@@ -177,10 +193,9 @@ opCode = cxx_writer.writer_code.Code("""
 rt = rs & (0x0000 | immediate);
 """)
 andi_imm_Instr = trap.Instruction('ANDI', True)
-andi_imm_Instr.setMachineCode(imm_format,{'opcode': [0,0,1,1,0,0]},('andi r','%rt', ',',' r','%rs', ',',' r','%immediate'))
+andi_imm_Instr.setMachineCode(immediate_format,{'opcode': [0,0,1,1,0,0]},('andi r','%rt', ',',' r','%rs', ',',' r','%immediate'))
 andi_imm_Instr.setCode(opCode, 'execution')
 andi_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-andi_imm_Instr.addTest('TODO')
 isa.addInstruction(andi_imm_Instr)
 
 
@@ -192,36 +207,34 @@ isa.addInstruction(andi_imm_Instr)
 opCode = cxx_writer.writer_code.Code("""
 bool br = ( (rs == rt && op4 == 0) || (rs != rt && op4 == 0x1) );
 	if (op2 == 0){
-		SimpleBranch(br,(int)SignExtend(immediate));
+		PC = SimpleBranch(br,(int)SignExtend(immediate));
 	}else{
-		LikelyBranch(br,(int)SignExtend(immediate));
+		PC = LikelyBranch(br,(int)SignExtend(immediate));
 	}
 """)	#Specify correctly the jump instruction
 b2r_imm_Instr = trap.Instruction('BRANCH2REGISTERS', True)
-b2r_imm_Instr.setMachineCode(b_format1,{'op3': [010]},
-('b', ('%op4', {int('1',2):'ne', int('0',2):'eq'}), ('%op2', {int('1',2):'l'})
+b2r_imm_Instr.setMachineCode(b_format1,{'op3': [010]}, 
+('b', ('%op4', {int('1',2):'ne', int('0',2):'eq'}), ('%op2', {int('1',2):'l'}),
  ' r', '%rs', ',', ' r', '%rt', ',', ' r', '%immediate'))
 b2r_imm_Instr.setCode(opCode, 'execution')
-b2r_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-b2r_imm_Instr.addTest('TODO')
+#b2r_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(b2r_imm_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
 bool br = ( ((int)rs<=0 && op4 == 0) || ((int)rs>0 && op4 == 0x1) );
 	if (op2 == 0){
-		SimpleBranch(br,(int)SignExtend(immediate));
+		PC = SimpleBranch(br,(int)SignExtend(immediate));
 	}else{
-		LikelyBranch(br,(int)SignExtend(immediate));
+		PC = LikelyBranch(br,(int)SignExtend(immediate));
 	}
 """)
 bz_imm_Instr = trap.Instruction('BRANCHZ', True)
-bz_imm_Instr.setMachineCode(bz_format1,{'op3': [011]},
+bz_imm_Instr.setMachineCode(b_format1,{'op3': [011]},
 ('b', ('%op4', {int('1',2):'gtz', int('0',2):'lez'}), ('%op2', {int('1',2):'l'}),
  ' r', '%rs', ',', ' r', '%immediate'))
 bz_imm_Instr.setCode(opCode, 'execution')
-bz_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-bz_imm_Instr.addTest('TODO')
+#bz_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(bz_imm_Instr)
 
 
@@ -231,9 +244,9 @@ bool br = ( ((int)rs<0 && (rt3 == 0x0 || rt3 == 0x2)) || ((int)rs>=0 && (rt3 == 
 		GPR[31] = PC+8;
 	}
 	if (rt3 == 0x0 || rt3 == 0x1){
-		SimpleBranch(br,(int)SignExtend(immediate));
+		PC = SimpleBranch(br,(int)SignExtend(immediate));
 	}else{
-		LikelyBranch(br,(int)SignExtend(immediate));
+		PC = LikelyBranch(br,(int)SignExtend(immediate));
 	}
 """)
 breg_imm_Instr = trap.Instruction('BRANCHREGIMM', True)
@@ -243,8 +256,7 @@ breg_imm_Instr.setMachineCode(b_format2,{},
  ('%rt3', {int('10', 2):'l', int('11', 2):'l'}),
  ' r', '%rs', ',', ' r', '%immediate'))
 breg_imm_Instr.setCode(opCode, 'execution')
-breg_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-breg_imm_Instr.addTest('TODO')
+#breg_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(breg_imm_Instr)
 
 
@@ -254,14 +266,13 @@ isa.addInstruction(breg_imm_Instr)
 #
 
 opCode = cxx_writer.writer_code.Code("""
-	RaiseException(BREAKPOINT);
+	RaiseException(BP);
 """)
 break_reg_Instr = trap.Instruction('BREAK', True)
 break_reg_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[0, 0, 1, 1, 0, 1]},
 ('break'))
 break_reg_Instr.setCode(opCode, 'execution')
 break_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-break_reg_Instr.addTest('TODO')
 isa.addInstruction(break_reg_Instr)
 
 
@@ -288,34 +299,10 @@ for (int i = 0; i < 32; i++) {
 }
 """)
 clo_reg_Instr = trap.Instruction('CLO', True)
-clo_reg_Instr.setMachineCode(register_format,{'opcode': [0,1,1,1,0,0opCode = cxx_writer.writer_code.Code("""
-	rd = rs | rt;
-""")
-or_reg_Instr = trap.Instruction('OR', True)
-or_reg_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[1, 0, 0, 1, 0, 1]},
-('or', ' r', '%rd', ',', ' r', '%rs', ',', ' r', '%rt'))
-or_reg_Instr.setCode(opCode, 'execution')
-or_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-or_reg_Instr.addTest('TODO')
-isa.addInstruction(or_reg_Instr)
-
-
-opCode = cxx_writer.writer_code.Code("""
-	rs = immediate | rt;
-""")
-or_imm_Instr = trap.Instruction('ORI', True)
-or_imm_Instr.setMachineCode(immediate_format,{'opcode': [0, 0, 1, 1, 0, 1]},
-('ori', ' r', '%rt', ',', ' r', '%rs', ',', ' r', '%immediate'))
-or_imm_Instr.setCode(opCode, 'execution')
-or_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-or_imm_Instr.addTest('TODO')
-isa.addInstruction(or_imm_Instr)],'function':[1,0,0,0,0,1]},('clo r','%rd',' r','%rs'))
+clo_reg_Instr.setMachineCode(register_format,{'opcode': [0,1,1,1,0,0],'function':[1,0,0,0,0,1]},('clo r','%rd',' r','%rs'))
 clo_reg_Instr.setCode(opCode, 'execution')
 clo_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-clo_reg_Instr.addTest('TODO')
 isa.addInstruction(clo_reg_Instr)
-
-
 
 #
 #CLZ
@@ -332,7 +319,6 @@ clz_reg_Instr = trap.Instruction('CLZ', True)
 clz_reg_Instr.setMachineCode(register_format,{'opcode': [0,1,1,1,0,0],'function':[1,0,0,0,0,1]},('clz r','%rd', ',',' r','%rs'))
 clz_reg_Instr.setCode(opCode, 'execution')
 clz_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-clz_reg_Instr.addTest('TODO')
 isa.addInstruction(clz_reg_Instr)
 
 
@@ -355,7 +341,6 @@ div_reg_Instr = trap.Instruction('DIV', True)
 div_reg_Instr.setMachineCode(register_format,{'opcode': [0,0,0,0,0,0],'function':[0,1,1,0,1,0]},('div r','%rd', ',',' r','%rs'))
 div_reg_Instr.setCode(opCode, 'execution')
 div_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-div_reg_Instr.addTest('TODO')
 isa.addInstruction(div_reg_Instr)
 
 
@@ -367,7 +352,6 @@ divu_reg_Instr = trap.Instruction('DIVU', True)
 divu_reg_Instr.setMachineCode(register_format,{'opcode': [0,0,0,0,0,0],'function':[0,1,1,0,1,1]},('divu r','%rd', ',',' r','%rs'))
 divu_reg_Instr.setCode(opCode, 'execution')
 divu_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-divu_reg_Instr.addTest('TODO')
 isa.addInstruction(divu_reg_Instr)
 
 
@@ -392,7 +376,6 @@ j_jump_Instr = trap.Instruction('JUMP', True)
 j_jump_Instr.setMachineCode(jump_format,{},('j', ('%op2',{int('1',2):'al'}), ' r', '%target'))
 j_jump_Instr.setCode(opCode, 'execution')
 j_jump_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-j_jump_Instr.addTest('TODO')
 isa.addInstruction(j_jump_Instr)
 
 
@@ -409,7 +392,6 @@ jr_jump_Instr = trap.Instruction('JUMPR', True)
 jr_jump_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function': [0, 0, 1, 0, 0, 0]},('jr', ' r', '%rs'))
 jr_jump_Instr.setCode(opCode, 'execution')
 jr_jump_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-jr_jump_Instr.addTest('TODO')
 isa.addInstruction(jr_jump_Instr)
 
 
@@ -417,7 +399,6 @@ jlr_jump_Instr = trap.Instruction('JUMPLR', True)
 jlr_jump_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function': [0, 0, 1, 0, 0, 1]},('jalr', ' r', '%rs', ',', ' r', '%rd'))
 jlr_jump_Instr.setCode(opCode, 'execution')
 jlr_jump_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-jlr_jump_Instr.addTest('TODO')
 isa.addInstruction(jlr_jump_Instr)
 
 
@@ -430,7 +411,7 @@ opCode = cxx_writer.writer_code.Code("""	//ASK HOW DOES DATAMEM READS, ACCORDING
 long result;
 long address = SignExtend(immediate)+rs;
 if ( ((address%2) != 0 ) && op3 == 0x01)
-	RaiseException(ADDRESS_ERROR)
+	RaiseException(ADEL)
 if (op3 == 0)
 	result = dataMem.read_byte(address);
 if (op3 == 0b01)
@@ -489,7 +470,6 @@ load_imm_Instr.setMachineCode(s_format,{'op': [1, 0, 0], 'op2': [0]},
 load_imm_Instr.setCode(opCode, 'execution')
 load_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 							#Throw exceptions (Address error, for LH also bus error.)
-load_imm_Instr.addTest('TODO')
 isa.addInstruction(load_imm_Instr)
 
 
@@ -500,24 +480,22 @@ load2_imm_Instr.setMachineCode(s_format,{'op': [1, 0, 0], 'op2': [1]},
 load2_imm_Instr.setCode(opCode, 'execution')
 load2_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 							#Throw exceptions (Address error.)
-load2_imm_Instr.addTest('TODO')
 isa.addInstruction(load2_imm_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
 long address = SignExtend(immediate)+rs;
 if ((address%4) != 0)
-	RaiseException(ADDRESS_ERROR);
+	RaiseException(ADEL);
 rt = dataMem.read_word(address);
 LLbit = 0b1;
 """)
 loadl_imm_Instr = trap.Instruction('LL', True)
-loadl_imm_Instr.setMachineCode(imm_format,{'opcode': [1, 1, 0, 0, 0, 0]},
+loadl_imm_Instr.setMachineCode(immediate_format,{'opcode': [1, 1, 0, 0, 0, 0]},
 ('ll', ' r', '%rt', ',', ' r', '%immediate', '(', 'r', '%rs', ')'))
 loadl_imm_Instr.setCode(opCode, 'execution')
 loadl_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 							#Throw exceptions (Address error, Reserved Instruction.)
-loadl_imm_Instr.addTest('TODO')
 isa.addInstruction(loadl_imm_Instr)
 
 
@@ -525,13 +503,12 @@ opCode = cxx_writer.writer_code.Code("""
 rt = immediate << 16;
 """)
 lui_imm_Instr = trap.Instruction('LUI', True)
-lui_imm_Instr.setMachineCode(imm_format,{'opcode': [0, 0, 1, 1, 1, 1]},
+lui_imm_Instr.setMachineCode(immediate_format,{'opcode': [0, 0, 1, 1, 1, 1]},
 ('lui', ' r', '%rt', ',', ' r', '%immediate'))
 lui_imm_Instr.setCode(opCode, 'execution')
 lui_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 							#Throw exceptions (Address error, Reserved Instruction.)
-lui_imm_Instr.addTest('TODO')
-isa.addInstruction(loadl_imm_Instr)
+isa.addInstruction(lui_imm_Instr)
 
 
 
@@ -554,22 +531,20 @@ HI = temp>>32;
 madd_reg_Instr = trap.Instruction('MADD', True)
 madd_reg_Instr.setMachineCode(register_format,{'opcode': [0, 1, 1, 1, 0, 0], 'function':[0, 0, 0, 0, 0, 0]},
 ('madd', ' r', '%rs', ',', ' r', ' %rt'))
-madd_reg_Instr.setCode(opCodeCommon, 'execution')
+madd_reg_Instr.setCode(opCodeCommon1, 'execution1')
 madd_reg_Instr.setCode(opCode, 'execution')
 madd_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 madd_reg_Instr.addVariable(('result', 'BIT<64>'))
-madd_reg_Instr.addTest('TODO')
 isa.addInstruction(madd_reg_Instr)
 
 
 maddu_reg_Instr = trap.Instruction('MADDU', True)
 maddu_reg_Instr.setMachineCode(register_format,{'opcode': [0, 1, 1, 1, 0, 0], 'function':[0, 0, 0, 0, 0, 1]},
 ('maddu', ' r', '%rs', ',', ' r', ' %rt'))
-maddu_reg_Instr.setCode(opCodeCommon2, 'execution')
+maddu_reg_Instr.setCode(opCodeCommon2, 'execution1')
 maddu_reg_Instr.setCode(opCode, 'execution')
 maddu_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 maddu_reg_Instr.addVariable(('result', 'BIT<64>'))
-maddu_reg_Instr.addTest('TODO')
 isa.addInstruction(maddu_reg_Instr)
 
 
@@ -582,22 +557,20 @@ HI = temp>>32;
 msub_reg_Instr = trap.Instruction('MSUB', True)
 msub_reg_Instr.setMachineCode(register_format,{'opcode': [0, 1, 1, 1, 0, 0], 'function':[0, 0, 0, 1, 0, 0]},
 ('msub', ' r', '%rs', ',', ' r', ' %rt'))
-msub_reg_Instr.setCode(opCodeCommon1, 'execution')
+msub_reg_Instr.setCode(opCodeCommon1, 'execution1')
 msub_reg_Instr.setCode(opCode, 'execution')
 msub_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 msub_reg_Instr.addVariable(('result', 'BIT<64>'))
-msub_reg_Instr.addTest('TODO')
-isa.addInstruction(maddu_reg_Instr)
+isa.addInstruction(msub_reg_Instr)
 
 
 msubu_reg_Instr = trap.Instruction('MSUBU', True)
 msubu_reg_Instr.setMachineCode(register_format,{'opcode': [0, 1, 1, 1, 0, 0], 'function':[0, 0, 0, 1, 0, 1]},
 ('msubu', ' r', '%rs', ',', ' r', ' %rt'))
-msubu_reg_Instr.setCode(opCodeCommon2, 'execution')
+msubu_reg_Instr.setCode(opCodeCommon2, 'execution1')
 msubu_reg_Instr.setCode(opCode, 'execution')
 msubu_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 msubu_reg_Instr.addVariable(('result', 'BIT<64>'))
-msubu_reg_Instr.addTest('TODO')
 isa.addInstruction(msubu_reg_Instr)
 
 
@@ -607,26 +580,10 @@ rd = result;
 mul_reg_Instr = trap.Instruction('MUL', True)
 mul_reg_Instr.setMachineCode(register_format,{'opcode': [0, 1, 1, 1, 0, 0], 'function':[0, 0, 0, 0, 1, 0]},
 ('mul', ' r', '%rd', ',', ' r', '%rs', ',', ' r', ' %rt'))
-mul_reg_Instr.setCode(opCodeCommon1, 'execution')
+mul_reg_Instr.setCode(opCodeCommon1, 'execution1')
 mul_reg_Instr.setCode(opCode, 'execution')
 mul_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 mul_reg_Instr.addVariable(('result', 'BIT<64>'))
-mopCode = cxx_writer.writer_code.Code("""
-LO = result;
-HI = result>>32;
-""")
-mult_reg_Instr = trap.Instruction('MULT', True)
-mult_reg_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[0, 1, 1, 0, 0, 0]},
-('mult', ' r', '%rs', ',', ' r', ' %rt'))
-mult_reg_Instr.setCode(opCodeCommon1, 'execution')
-mult_reg_Instr.setCode(opCode, 'execution')
-mult_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-mult_reg_Instr.addVariable(('result', 'BIT<64>'))
-mult_reg_Instr.addTest('TODO')
-isa.addInstruction(mult_reg_Instr)ul_reg_Instr.addTest('TODO')
-isa.addInstruction(mul_reg_Instr)
-
-
 opCode = cxx_writer.writer_code.Code("""
 LO = result;
 HI = result>>32;
@@ -634,22 +591,22 @@ HI = result>>32;
 mult_reg_Instr = trap.Instruction('MULT', True)
 mult_reg_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[0, 1, 1, 0, 0, 0]},
 ('mult', ' r', '%rs', ',', ' r', ' %rt'))
-mult_reg_Instr.setCode(opCodeCommon1, 'execution')
+mult_reg_Instr.setCode(opCodeCommon1, 'execution1')
 mult_reg_Instr.setCode(opCode, 'execution')
 mult_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 mult_reg_Instr.addVariable(('result', 'BIT<64>'))
-mult_reg_Instr.addTest('TODO')
 isa.addInstruction(mult_reg_Instr)
+isa.addInstruction(mul_reg_Instr)
+
 
 
 multu_reg_Instr = trap.Instruction('MULTU', True)
 multu_reg_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[0, 1, 1, 0, 0, 1]},
 ('multu', ' r', '%rs', ',', ' r', ' %rt'))
-multu_reg_Instr.setCode(opCodeCommon2, 'execution')
+multu_reg_Instr.setCode(opCodeCommon2, 'execution1')
 multu_reg_Instr.setCode(opCode, 'execution')
 multu_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 multu_reg_Instr.addVariable(('result', 'BIT<64>'))
-multu_reg_Instr.addTest('TODO')
 isa.addInstruction(multu_reg_Instr)
 
 
@@ -666,7 +623,6 @@ mfhi_reg_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'fu
 ('mfhi', ' r', '%rd'))
 mfhi_reg_Instr.setCode(opCode, 'execution')
 mfhi_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-mfhi_reg_Instr.addTest('TODO')
 isa.addInstruction(mfhi_reg_Instr)
 
 
@@ -678,7 +634,6 @@ mflo_reg_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'fu
 ('mflo', ' r', '%rd'))
 mflo_reg_Instr.setCode(opCode, 'execution')
 mflo_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-mflo_reg_Instr.addTest('TODO')
 isa.addInstruction(mflo_reg_Instr)
 
 
@@ -690,10 +645,8 @@ mthi_reg_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'fu
 ('mthi', ' r', '%rs'))
 mthi_reg_Instr.setCode(opCode, 'execution')
 mthi_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-							#Restriction: A computed result written to the HI/LO pair by DIV, DIVU, MULT, or MULTU must be 	read by MFHI or MFLO
-before a new result can be written into either HI or LO.
+							#Restriction: A computed result written to the HI/LO pair by DIV, DIVU, MULT, or MULTU must be 	read by MFHI or MFLO before a new result can be written into either HI or LO.
 
-mthi_reg_Instr.addTest('TODO')
 isa.addInstruction(mthi_reg_Instr)
 
 
@@ -706,7 +659,6 @@ mtlo_reg_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'fu
 mtlo_reg_Instr.setCode(opCode, 'execution')
 mtlo_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 							#Restriction: A computed result written to the HI/LO pair by DIV, DIVU, MULT, or MULTU must be 	read by MFHI or MFLO
-mtlo_reg_Instr.addTest('TODO')
 isa.addInstruction(mtlo_reg_Instr)
 
 
@@ -721,7 +673,6 @@ movn_reg_Instr.setCode(opCode, 'execution')
 movn_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 							#Programming Notes: The non-zero value tested here is the condition true result from the SLT, SLTI, SLTU, and SLTIU comparison instructions.
 
-movn_reg_Instr.addTest('TODO')
 isa.addInstruction(movn_reg_Instr)
 
 
@@ -736,7 +687,6 @@ movz_reg_Instr.setCode(opCode, 'execution')
 movz_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 							#Programming Notes: The non-zero value tested here is the condition true result from the SLT, SLTI, SLTU, and SLTIU comparison instructions.
 
-movz_reg_Instr.addTest('TODO')
 isa.addInstruction(movz_reg_Instr)
 
 
@@ -756,7 +706,6 @@ nor_reg_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'fun
 ('nor', ' r', '%rd', ',', ' r', '%rs', ',', ' r', '%rt'))
 nor_reg_Instr.setCode(opCode, 'execution')
 nor_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-nor_reg_Instr.addTest('TODO')
 isa.addInstruction(nor_reg_Instr)
 
 
@@ -768,7 +717,6 @@ or_reg_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'func
 ('or', ' r', '%rd', ',', ' r', '%rs', ',', ' r', '%rt'))
 or_reg_Instr.setCode(opCode, 'execution')
 or_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-or_reg_Instr.addTest('TODO')
 isa.addInstruction(or_reg_Instr)
 
 
@@ -780,7 +728,6 @@ or_imm_Instr.setMachineCode(immediate_format,{'opcode': [0, 0, 1, 1, 0, 1]},
 ('ori', ' r', '%rt', ',', ' r', '%rs', ',', ' r', '%immediate'))
 or_imm_Instr.setCode(opCode, 'execution')
 or_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-or_imm_Instr.addTest('TODO')
 isa.addInstruction(or_imm_Instr)
 
 
@@ -805,14 +752,13 @@ sb_imm_Instr.setMachineCode(immediate_format,{'opcode': [1, 0, 1, 0, 0, 0]},
 sb_imm_Instr.setCode(opCode, 'execution')
 sb_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 							#Throw exceptions (Bus error, Address error.)
-sb_imm_Instr.addTest('TODO')
 isa.addInstruction(sb_imm_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
 long address = SignExtend(immediate) + rs;
 if ( (address%4) != 0 )
-	RaiseException(ADDRESS_ERROR);
+	RaiseException(ADES);
 if (LLbit)
 	dataMem.write_word(address, rt);
 rt = 0x0000 | LLbit;
@@ -824,14 +770,13 @@ sc_imm_Instr.setCode(opCode, 'execution')
 sc_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 							#Throw exceptions (Reserved Instruction.)
 							#Check restrictions on page 283
-sc_imm_Instr.addTest('TODO')
 isa.addInstruction(sc_imm_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
 long address = SignExtend(immediate) + rs;
 if ( (address%2) != 0 )
-	RaiseException(ADDRESS_ERROR);
+	RaiseException(ADES);
 dataMem.write_half(address, rt);
 """)
 sh_imm_Instr = trap.Instruction('SH', True)
@@ -839,14 +784,13 @@ sh_imm_Instr.setMachineCode(immediate_format,{'opcode': [1, 0, 1, 0, 0, 1]},
 ('sh', ' r', '%rt', ',', ' r', '%immediate', '(', 'r', '%rs', ')'))
 sh_imm_Instr.setCode(opCode, 'execution')
 sh_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-sh_imm_Instr.addTest('TODO')
 isa.addInstruction(sh_imm_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
 long address = SignExtend(immediate) + rs;
 if ( (address%4) != 0 )
-	RaiseException(ADDRESS_ERROR);
+	RaiseException(ADES);
 dataMem.write_word(address, rt);
 """)
 sw_imm_Instr = trap.Instruction('SW', True)
@@ -854,7 +798,6 @@ sw_imm_Instr.setMachineCode(immediate_format,{'opcode': [1, 0, 1, 0, 1, 1]},
 ('sw', ' r', '%rt', ',', ' r', '%immediate', '(', 'r', '%rs', ')'))
 sw_imm_Instr.setCode(opCode, 'execution')
 sw_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-sw_imm_Instr.addTest('TODO')
 isa.addInstruction(sw_imm_Instr)
 
 
@@ -895,7 +838,6 @@ swl_imm_Instr.setMachineCode(immediate_format,{'opcode': [1, 0, 1, 0, 1, 0]},
 swl_imm_Instr.setCode(opCode, 'execution')
 swl_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 							#Throw exceptions (Bus Error, Address Error.)
-swl_imm_Instr.addTest('TODO')
 isa.addInstruction(swl_imm_Instr)
 
 
@@ -936,7 +878,6 @@ swr_imm_Instr.setMachineCode(immediate_format,{'opcode': [1, 0, 1, 1, 1, 0]},
 swr_imm_Instr.setCode(opCode, 'execution')
 swr_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 							#Throw exceptions (Bus Error, Address Error.)
-swr_imm_Instr.addTest('TODO')
 isa.addInstruction(swr_imm_Instr)
 
 
@@ -954,10 +895,9 @@ if ( DM == 0 ) {
 """)
 sdbbp_reg_Instr = trap.Instruction('SDBBP', True)
 sdbbp_reg_Instr.setMachineCode(code_format,{'opcode': [0, 1, 1, 1, 0, 0], 'function':[1, 1, 1, 1, 1, 1]},
-'sdbbp', ' r', '%code'))
+('sdbbp', ' r', '%code'))
 sdbbp_reg_Instr.setCode(opCode, 'execution')
 sdbbp_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-sdbbp_reg_Instr.addTest('TODO')
 isa.addInstruction(sdbbp_reg_Instr)
 
 
@@ -974,7 +914,6 @@ sll_reg_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'fun
 ('sll', ' r', '%rd', ',', ' r', '%rt', ',', ' r', '%sa'))
 sll_reg_Instr.setCode(opCode, 'execution')
 sll_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-sll_reg_Instr.addTest('TODO')
 isa.addInstruction(sll_reg_Instr)
 
 
@@ -987,7 +926,6 @@ sllv_reg_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'fu
 ('sllv', ' r', '%rd', ',', ' r', '%rt', ',', ' r', '%rs'))
 sllv_reg_Instr.setCode(opCode, 'execution')
 sllv_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-sllv_reg_Instr.addTest('TODO')
 isa.addInstruction(sllv_reg_Instr)
 
 
@@ -1005,7 +943,6 @@ sra_reg_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'fun
 ('sra', ' r', '%rd', ',', ' r', '%rt', ',', ' r', '%sa'))
 sra_reg_Instr.setCode(opCode, 'execution')
 sra_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-sra_reg_Instr.addTest('TODO')
 isa.addInstruction(sra_reg_Instr)
 
 
@@ -1024,7 +961,6 @@ srav_reg_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'fu
 ('srav', ' r', '%rd', ',', ' r', '%rt', ',', ' r', '%rs'))
 srav_reg_Instr.setCode(opCode, 'execution')
 srav_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-srav_reg_Instr.addTest('TODO')
 isa.addInstruction(srav_reg_Instr)
 
 
@@ -1036,7 +972,6 @@ srl_reg_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'fun
 ('srl', ' r', '%rd', ',', ' r', '%rt', ',', ' r', '%sa'))
 srl_reg_Instr.setCode(opCode, 'execution')
 srl_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-srl_reg_Instr.addTest('TODO')
 isa.addInstruction(srl_reg_Instr)
 
 
@@ -1049,7 +984,6 @@ srlv_reg_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'fu
 ('srlv', ' r', '%rd', ',', ' r', '%rt', ',', ' r', '%rs'))
 srlv_reg_Instr.setCode(opCode, 'execution')
 srlv_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-srlv_reg_Instr.addTest('TODO')
 isa.addInstruction(srlv_reg_Instr)
 
 
@@ -1070,7 +1004,6 @@ slt_reg_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'fun
 ('slt', ' r', '%rd', ',', ' r', '%rs', ',', ' r', '%rt'))
 slt_reg_Instr.setCode(opCode, 'execution')
 slt_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-slt_reg_Instr.addTest('TODO')
 isa.addInstruction(slt_reg_Instr)
 
 
@@ -1086,7 +1019,6 @@ slti_imm_Instr.setMachineCode(immediate_format,{'opcode': [0, 0, 1, 0, 1, 0]},
 ('slti', ' r', '%rt', ',', ' r', '%rs', ',', ' r', '%immediate'))
 slti_imm_Instr.setCode(opCode, 'execution')
 slti_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-slti_imm_Instr.addTest('TODO')
 isa.addInstruction(slti_imm_Instr)
 
 
@@ -1102,7 +1034,6 @@ sltiu_imm_Instr.setMachineCode(immediate_format,{'opcode': [0, 0, 1, 0, 1, 1]},
 ('sltiu', ' r', '%rt', ',', ' r', '%rs', ',', ' r', '%immediate'))
 sltiu_imm_Instr.setCode(opCode, 'execution')
 sltiu_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-sltiu_imm_Instr.addTest('TODO')
 isa.addInstruction(sltiu_imm_Instr)
 
 
@@ -1118,7 +1049,6 @@ sltu_reg_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'fu
 ('sltu', ' r', '%rd', ',', ' r', '%rs', ',', ' r', '%rt'))
 sltu_reg_Instr.setCode(opCode, 'execution')
 sltu_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-sltu_reg_Instr.addTest('TODO')
 isa.addInstruction(sltu_reg_Instr)
 
 
@@ -1131,7 +1061,7 @@ opCode = cxx_writer.writer_code.Code("""
 long long temp32 = (((rs | 0x8000) << 1) | rs) - (((rt | 0x8000) << 1) | rt) ;
 long temp31 = rs - rt;
 if (temp32 != temp31){
-	RaiseException(INTEGER_OVERFLOW);
+	RaiseException(OV);
 }esle{
 	rd = temp31;
 }
@@ -1141,7 +1071,6 @@ sub_reg_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'fun
 ('sub', ' r', '%rd', ',', ' r', '%rs', ',', ' r', '%rt'))
 sub_reg_Instr.setCode(opCode, 'execution')
 sub_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-sub_reg_Instr.addTest('TODO')
 isa.addInstruction(sub_reg_Instr)
 
 
@@ -1153,7 +1082,6 @@ subu_reg_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'fu
 ('subu', ' r', '%rd', ',', ' r', '%rs', ',', ' r', '%rt'))
 subu_reg_Instr.setCode(opCode, 'execution')
 subu_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-subu_reg_Instr.addTest('TODO')
 isa.addInstruction(subu_reg_Instr)
 
 
@@ -1170,14 +1098,13 @@ isa.addInstruction(subu_reg_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
-RaiseException(SYSTEM_CALL);
+RaiseException(SYS);
 """)
 syscall_reg_Instr = trap.Instruction('SYSCALL', True)
 syscall_reg_Instr.setMachineCode(code_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[0, 0, 1, 1, 0, 0]},
-'syscall'))
+'syscall')
 syscall_reg_Instr.setCode(opCode, 'execution')
 syscall_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-syscall_reg_Instr.addTest('TODO')
 isa.addInstruction(syscall_reg_Instr)
 
 
@@ -1207,32 +1134,30 @@ cond = (opr1==opr2);
 """)
 opCodeCompare = cxx_writer.writer_code.Code("""
 if (cond)
-	RaiseException(TRAP);
+	RaiseException(TR);
 """)
 teq_reg_Instr = trap.Instruction('TEQ', True)
 teq_reg_Instr.setMachineCode(trap_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[1, 1, 0, 1, 0, 0]},
 ('teq', ' r', '%rs', ',', ' r', '%rt'))
-teq_reg_Instr.setCode(opCodeOperands, 'execution')
-teq_reg_Instr.setCode(opCodeCondition, 'execution')
+teq_reg_Instr.setCode(opCodeOperands, 'execution1')
+teq_reg_Instr.setCode(opCodeCondition, 'execution2')
 teq_reg_Instr.setCode(opCodeCompare, 'execution')
 teq_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 teq_reg_Instr.addVariable(('opr1', 'BIT<32>'))
 teq_reg_Instr.addVariable(('opr2', 'BIT<32>'))
 teq_reg_Instr.addVariable(('cond', 'BIT<1>'))
-teq_reg_Instr.addTest('TODO')
 isa.addInstruction(teq_reg_Instr)
 
-teqi_reg_Instr = trap.Instruction('TEQ', True)
-teqi_reg_Instr.setMachineCode(immediate_format,{'opcode': [0, 0, 0, 0, 0, 1], 'rt': [0, 1, 1, 0, 0]},
+teqi_reg_Instr = trap.Instruction('TEQI', True)
+teqi_reg_Instr.setMachineCode(immediate_trap_format,{'opcode': [0, 0, 0, 0, 0, 1], 'rt': [0, 1, 1, 0, 0]},
 ('teqi', ' r', '%rs', ',', ' r', '%immediate'))
-teqi_reg_Instr.setCode(opCodeOperandsI, 'execution')
-teqi_reg_Instr.setCode(opCodeCondition, 'execution')
+teqi_reg_Instr.setCode(opCodeOperandsI, 'execution1')
+teqi_reg_Instr.setCode(opCodeCondition, 'execution2')
 teqi_reg_Instr.setCode(opCodeCompare, 'execution')
 teqi_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 teqi_reg_Instr.addVariable(('opr1', 'BIT<32>'))
 teqi_reg_Instr.addVariable(('opr2', 'BIT<32>'))
 teqi_reg_Instr.addVariable(('cond', 'BIT<1>'))
-teqi_reg_Instr.addTest('TODO')
 isa.addInstruction(teqi_reg_Instr)
 
 
@@ -1242,53 +1167,49 @@ cond = (opr1>=opr2);
 tge_reg_Instr = trap.Instruction('TGE', True)
 tge_reg_Instr.setMachineCode(trap_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[1, 1, 0, 0, 0, 0]},
 ('tge', ' r', '%rs', ',', ' r', '%rt'))
-tge_reg_Instr.setCode(opCodeOperands, 'execution')
-tge_reg_Instr.setCode(opCodeCondition, 'execution')
+tge_reg_Instr.setCode(opCodeOperands, 'execution1')
+tge_reg_Instr.setCode(opCodeCondition, 'execution2')
 tge_reg_Instr.setCode(opCodeCompare, 'execution')
 tge_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 tge_reg_Instr.addVariable(('opr1', 'BIT<32>'))
 tge_reg_Instr.addVariable(('opr2', 'BIT<32>'))
 tge_reg_Instr.addVariable(('cond', 'BIT<1>'))
-tge_reg_Instr.addTest('TODO')
 isa.addInstruction(tge_reg_Instr)
 
 tgei_reg_Instr = trap.Instruction('TGEI', True)
-tgei_reg_Instr.setMachineCode(immediate_format,{'opcode': [0, 0, 0, 0, 0, 1], 'rt': [0, 1, 0, 0, 0]},
+tgei_reg_Instr.setMachineCode(immediate_trap_format,{'opcode': [0, 0, 0, 0, 0, 1], 'rt': [0, 1, 0, 0, 0]},
 ('tgei', ' r', '%rs', ',', ' r', '%immediate'))
-tgei_reg_Instr.setCode(opCodeOperandsI, 'execution')
-tgei_reg_Instr.setCode(opCodeCondition, 'execution')
+tgei_reg_Instr.setCode(opCodeOperandsI, 'execution1')
+tgei_reg_Instr.setCode(opCodeCondition, 'execution2')
 tgei_reg_Instr.setCode(opCodeCompare, 'execution')
 tgei_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 tgei_reg_Instr.addVariable(('opr1', 'BIT<32>'))
 tgei_reg_Instr.addVariable(('opr2', 'BIT<32>'))
 tgei_reg_Instr.addVariable(('cond', 'BIT<1>'))
-tgei_reg_Instr.addTest('TODO')
 isa.addInstruction(tgei_reg_Instr)
 
 tgeiu_reg_Instr = trap.Instruction('TGEIU', True)
-tgeiu_reg_Instr.setMachineCode(immediate_format,{'opcode': [0, 0, 0, 0, 0, 1], 'rt': [0, 1, 0, 0, 1]},
+tgeiu_reg_Instr.setMachineCode(immediate_trap_format,{'opcode': [0, 0, 0, 0, 0, 1], 'rt': [0, 1, 0, 0, 1]},
 ('tgeiu', ' r', '%rs', ',', ' r', '%immediate'))
-tgeiu_reg_Instr.setCode(opCodeOperandsIU, 'execution')
-tgeiu_reg_Instr.setCode(opCodeCondition, 'execution')
+tgeiu_reg_Instr.setCode(opCodeOperandsIU, 'execution1')
+tgeiu_reg_Instr.setCode(opCodeCondition, 'execution2')
 tgeiu_reg_Instr.setCode(opCodeCompare, 'execution')
 tgeiu_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 tgeiu_reg_Instr.addVariable(('opr1', 'BIT<32>'))
 tgeiu_reg_Instr.addVariable(('opr2', 'BIT<32>'))
 tgeiu_reg_Instr.addVariable(('cond', 'BIT<1>'))
-tgeiu_reg_Instr.addTest('TODO')
 isa.addInstruction(tgeiu_reg_Instr)
 
 tgeu_reg_Instr = trap.Instruction('TGEU', True)
 tgeu_reg_Instr.setMachineCode(trap_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[1, 1, 0, 0, 0, 1]},
 ('tgeu', ' r', '%rs', ',', ' r', '%rt'))
-tgeu_reg_Instr.setCode(opCodeOperandsU, 'execution')
-tgeu_reg_Instr.setCode(opCodeCondition, 'execution')
+tgeu_reg_Instr.setCode(opCodeOperandsU, 'execution1')
+tgeu_reg_Instr.setCode(opCodeCondition, 'execution2')
 tgeu_reg_Instr.setCode(opCodeCompare, 'execution')
 tgeu_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 tgeu_reg_Instr.addVariable(('opr1', 'BIT<32>'))
 tgeu_reg_Instr.addVariable(('opr2', 'BIT<32>'))
 tgeu_reg_Instr.addVariable(('cond', 'BIT<1>'))
-tgeu_reg_Instr.addTest('TODO')
 isa.addInstruction(tgeu_reg_Instr)
 
 opCodeCondition = cxx_writer.writer_code.Code("""
@@ -1297,53 +1218,49 @@ cond = (opr1<opr2);
 tlt_reg_Instr = trap.Instruction('TLT', True)
 tlt_reg_Instr.setMachineCode(trap_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[1, 1, 0, 0, 1, 0]},
 ('tlt', ' r', '%rs', ',', ' r', '%rt'))
-tlt_reg_Instr.setCode(opCodeOperands, 'execution')
-tlt_reg_Instr.setCode(opCodeCondition, 'execution')
+tlt_reg_Instr.setCode(opCodeOperands, 'execution1')
+tlt_reg_Instr.setCode(opCodeCondition, 'execution2')
 tlt_reg_Instr.setCode(opCodeCompare, 'execution')
 tlt_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 tlt_reg_Instr.addVariable(('opr1', 'BIT<32>'))
 tlt_reg_Instr.addVariable(('opr2', 'BIT<32>'))
 tlt_reg_Instr.addVariable(('cond', 'BIT<1>'))
-tlt_reg_Instr.addTest('TODO')
 isa.addInstruction(tlt_reg_Instr)
 
 tlti_reg_Instr = trap.Instruction('TLTI', True)
-tlti_reg_Instr.setMachineCode(immediate_format,{'opcode': [0, 0, 0, 0, 0, 1], 'rt': [0, 1, 0, 1, 0]},
+tlti_reg_Instr.setMachineCode(immediate_trap_format,{'opcode': [0, 0, 0, 0, 0, 1], 'rt': [0, 1, 0, 1, 0]},
 ('tlti', ' r', '%rs', ',', ' r', '%immediate'))
-tlti_reg_Instr.setCode(opCodeOperandsI, 'execution')
-tlti_reg_Instr.setCode(opCodeCondition, 'execution')
+tlti_reg_Instr.setCode(opCodeOperandsI, 'execution1')
+tlti_reg_Instr.setCode(opCodeCondition, 'execution2')
 tlti_reg_Instr.setCode(opCodeCompare, 'execution')
 tlti_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 tlti_reg_Instr.addVariable(('opr1', 'BIT<32>'))
 tlti_reg_Instr.addVariable(('opr2', 'BIT<32>'))
 tlti_reg_Instr.addVariable(('cond', 'BIT<1>'))
-tlti_reg_Instr.addTest('TODO')
 isa.addInstruction(tlti_reg_Instr)
 
 tltiu_reg_Instr = trap.Instruction('TLTIU', True)
-tltiu_reg_Instr.setMachineCode(immediate_format,{'opcode': [0, 0, 0, 0, 0, 1], 'rt': [0, 1, 0, 1, 1]},
+tltiu_reg_Instr.setMachineCode(immediate_trap_format,{'opcode': [0, 0, 0, 0, 0, 1], 'rt': [0, 1, 0, 1, 1]},
 ('tltiu', ' r', '%rs', ',', ' r', '%immediate'))
-tltiu_reg_Instr.setCode(opCodeOperandsIU, 'execution')
-tltiu_reg_Instr.setCode(opCodeCondition, 'execution')
+tltiu_reg_Instr.setCode(opCodeOperandsIU, 'execution1')
+tltiu_reg_Instr.setCode(opCodeCondition, 'execution2')
 tltiu_reg_Instr.setCode(opCodeCompare, 'execution')
 tltiu_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 tltiu_reg_Instr.addVariable(('opr1', 'BIT<32>'))
 tltiu_reg_Instr.addVariable(('opr2', 'BIT<32>'))
 tltiu_reg_Instr.addVariable(('cond', 'BIT<1>'))
-tltiu_reg_Instr.addTest('TODO')
 isa.addInstruction(tltiu_reg_Instr)
 
 tltu_reg_Instr = trap.Instruction('TLTU', True)
 tltu_reg_Instr.setMachineCode(trap_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[1, 1, 0, 0, 1, 1]},
 ('tltu', ' r', '%rs', ',', ' r', '%rt'))
-tltu_reg_Instr.setCode(opCodeOperandsU, 'execution')
-tltu_reg_Instr.setCode(opCodeCondition, 'execution')
+tltu_reg_Instr.setCode(opCodeOperandsU, 'execution1')
+tltu_reg_Instr.setCode(opCodeCondition, 'execution2')
 tltu_reg_Instr.setCode(opCodeCompare, 'execution')
 tltu_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 tltu_reg_Instr.addVariable(('opr1', 'BIT<32>'))
 tltu_reg_Instr.addVariable(('opr2', 'BIT<32>'))
 tltu_reg_Instr.addVariable(('cond', 'BIT<1>'))
-tltu_reg_Instr.addTest('TODO')
 isa.addInstruction(tltu_reg_Instr)
 
 opCodeCondition = cxx_writer.writer_code.Code("""
@@ -1352,27 +1269,25 @@ cond = (opr1!=opr2);
 tne_reg_Instr = trap.Instruction('TNE', True)
 tne_reg_Instr.setMachineCode(trap_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[1, 1, 0, 1, 1, 0]},
 ('tne', ' r', '%rs', ',', ' r', '%rt'))
-tne_reg_Instr.setCode(opCodeOperands, 'execution')
-tne_reg_Instr.setCode(opCodeCondition, 'execution')
+tne_reg_Instr.setCode(opCodeOperands, 'execution1')
+tne_reg_Instr.setCode(opCodeCondition, 'execution2')
 tne_reg_Instr.setCode(opCodeCompare, 'execution')
 tne_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 tne_reg_Instr.addVariable(('opr1', 'BIT<32>'))
 tne_reg_Instr.addVariable(('opr2', 'BIT<32>'))
 tne_reg_Instr.addVariable(('cond', 'BIT<1>'))
-tne_reg_Instr.addTest('TODO')
 isa.addInstruction(tne_reg_Instr)
 
 tnei_reg_Instr = trap.Instruction('TNEI', True)
-tnei_reg_Instr.setMachineCode(immediate_format,{'opcode': [0, 0, 0, 0, 0, 1], 'rt': [0, 1, 1, 1, 0]},
+tnei_reg_Instr.setMachineCode(immediate_trap_format,{'opcode': [0, 0, 0, 0, 0, 1], 'rt': [0, 1, 1, 1, 0]},
 ('tnei', ' r', '%rs', ',', ' r', '%immediate'))
-tnei_reg_Instr.setCode(opCodeOperandsI, 'execution')
-tnei_reg_Instr.setCode(opCodeCondition, 'execution')
+tnei_reg_Instr.setCode(opCodeOperandsI, 'execution1')
+tnei_reg_Instr.setCode(opCodeCondition, 'execution2')
 tnei_reg_Instr.setCode(opCodeCompare, 'execution')
 tnei_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 tnei_reg_Instr.addVariable(('opr1', 'BIT<32>'))
 tnei_reg_Instr.addVariable(('opr2', 'BIT<32>'))
 tnei_reg_Instr.addVariable(('cond', 'BIT<1>'))
-tnei_reg_Instr.addTest('TODO')
 isa.addInstruction(tnei_reg_Instr)
 
 
@@ -1389,7 +1304,6 @@ xor_reg_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'fun
 ('xor', ' r', '%rd', ',', ' r', '%rs', ',', ' r', '%rt'))
 xor_reg_Instr.setCode(opCode, 'execution')
 xor_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-xor_reg_Instr.addTest('TODO')
 isa.addInstruction(xor_reg_Instr)
 
 
@@ -1401,5 +1315,4 @@ xor_imm_Instr.setMachineCode(immediate_format,{'opcode': [0, 0, 1, 1, 1, 0]},
 ('xori', ' r', '%rt', ',', ' r', '%rs', ',', ' r', '%immediate'))
 xor_imm_Instr.setCode(opCode, 'execution')
 xor_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-xor_imm_Instr.addTest('TODO')
 isa.addInstruction(xor_imm_Instr)
