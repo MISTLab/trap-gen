@@ -1120,7 +1120,7 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
 
     ####################################################################
     # Cycle accurate model, lets proceed with the declaration of the
-    # pipeline stages
+    # pipeline stages, together with the code necessary for thei initialization
     ####################################################################
     if model.startswith('acc'):
         # I have to instantiate the pipeline and its stages ...
@@ -1135,7 +1135,7 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
     ########################################################################
     # Ok, here I have to create the code for the constructor: I have to
     # initialize the INSTRUCTIONS array, the local memory (if present)
-    # the TLM ports
+    # the TLM ports, the pipeline stages, etc.
     ########################################################################
     global baseInstrInitElement
     baseInstrInitElement = createInstrInitCode(self, model, trace)

@@ -563,6 +563,10 @@ def getCPPInstr(self, model, processor, trace, combinedTrace, namespace):
 
                 for regToCheck in regsToCheck:
                     checkHazardCode += 'regLocked = this->' + regToCheck + '.isLocked() || regLocked;\n'
+
+                if self.customCheckHazardOp.has_key(pipeStage.name):
+                    checkHazardCode += 'regLocked = ' + self.customCheckHazardOp[pipeStage.name] + ' || regLocked;\n'
+
                 checkHazardCode += 'return !regLocked;\n'
                 checkHazardBody = cxx_writer.writer_code.Code(checkHazardCode)
                 checkHazardDecl = cxx_writer.writer_code.Method('checkHazard_' + pipeStage.name, checkHazardBody, cxx_writer.writer_code.boolType, 'pu')

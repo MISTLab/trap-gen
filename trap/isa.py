@@ -349,6 +349,7 @@ class Instruction:
         # Here are the registers which should not be considered during lock and unlock
         # operations
         self.notLockRegs = []
+        self.customCheckHazardOp = {}
 
     def setMachineCode(self, machineCode, machineBits = {}, mnemonic = [], subInstr = False):
         # Sets the machine code for this instruction. Note that a machine
@@ -532,6 +533,10 @@ class Instruction:
         # it is responsibility of the developer to manually perform such checks
         # inside the instruction body (if needed)
         self.notLockRegs.append(regName)
+
+    def addCheckHazardCode(self, op, stage):
+        # Appends some code to the check hazard method for the specified stage
+        self.customCheckHazardOp[stage] = op
 
     def __repr__(self):
         return self.name + ' coding: ' + str(self.bitstring)
