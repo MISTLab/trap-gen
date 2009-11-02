@@ -821,24 +821,25 @@ st_reg_Instr.addVariable(('notAligned', 'BIT<1>'))
 st_reg_Instr.addVariable(('address', 'BIT<32>'))
 st_reg_Instr.addVariable(('toWrite', 'BIT<32>'))
 isa.addInstruction(st_reg_Instr)
-opCodeRegsImm = cxx_writer.writer_code.Code("""
-address = rs1 + SignExtend(simm13, 13);
+opCodeLock = cxx_writer.writer_code.Code("""
+#ifdef ACC_MODEL
 if(rd_bit % 2 == 0){
+    REGS[rd_bit + 1].lock();
+}
+else{
+    REGS[rd_bit - 1].lock();
+}
+#endif
+""")
+readReg = """if(rd_bit % 2 == 0){
     toWrite = rd | (((unsigned long long)REGS[rd_bit + 1]) << 32);
 }
 else{
     toWrite = REGS[rd_bit - 1] | (((unsigned long long)rd) << 32);
 }
-""")
-opCodeRegsRegs = cxx_writer.writer_code.Code("""
-address = rs1 + rs2;
-if(rd_bit % 2 == 0){
-    toWrite = rd | (((unsigned long long)REGS[rd_bit + 1]) << 32);
-}
-else{
-    toWrite = REGS[rd_bit - 1] | (((unsigned long long)rd) << 32);
-}
-""")
+"""
+opCodeRegsImm = cxx_writer.writer_code.Code('address = rs1 + SignExtend(simm13, 13);\n' + readReg)
+opCodeRegsRegs = cxx_writer.writer_code.Code('address = rs1 + rs2;\n' + readReg)
 opCodeMem = cxx_writer.writer_code.Code("""
 if(!notAligned){
     dataMem.write_dword(address, toWrite);
@@ -853,6 +854,16 @@ notAligned = (address & 0x00000007) != 0;
 #ifdef ACC_MODEL
 if(notAligned){
     flush();
+}
+#endif
+""")
+opCodeUnlock = cxx_writer.writer_code.Code("""
+#ifdef ACC_MODEL
+if(rd_bit % 2 == 0){
+    unlockQueue[0].push_back(REGS[rd_bit + 1].getPipeReg());
+}
+else{
+    unlockQueue[0].push_back(REGS[rd_bit - 1].getPipeReg());
 }
 #endif
 """)

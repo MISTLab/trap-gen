@@ -490,6 +490,13 @@ def getCPPPipelineReg(self, trace, combinedTrace, namespace):
     forceValueMethod = cxx_writer.writer_code.Method('forceValue', forceValueBody, cxx_writer.writer_code.voidType, 'pu', forceValueParam, noException = True)
     registerElements.append(forceValueMethod)
 
+    writeAllCode = '*(this->reg_all) = value;\n'
+    writeAllCode += 'for(int i = 0; i < ' + str(len(self.pipes)) + '; i++){\n'
+    writeAllCode += '*(this->reg_stage[i]) = value;\n}\n'
+    writeAllBody = cxx_writer.writer_code.Code(writeAllCode)
+    writeAllParam = [cxx_writer.writer_code.Parameter('value', regMaxType.makeRef().makeConst())]
+    writeAllMethod = cxx_writer.writer_code.Method('writeAll', writeAllBody, cxx_writer.writer_code.voidType, 'pu', writeAllParam, noException = True)
+    registerElements.append(writeAllMethod)
     immediateWriteBody = cxx_writer.writer_code.Code('this->reg_all->immediateWrite(value);')
     immediateWriteParam = [cxx_writer.writer_code.Parameter('value', regMaxType.makeRef().makeConst())]
     immediateWriteMethod = cxx_writer.writer_code.Method('immediateWrite', immediateWriteBody, cxx_writer.writer_code.voidType, 'pu', immediateWriteParam, noException = True)
@@ -1275,6 +1282,11 @@ def getCPPPipelineAlias(self, namespace):
     isLockedBody = cxx_writer.writer_code.Code('return this->pipelineReg->isLocked();')
     isLockedMethod = cxx_writer.writer_code.Method('isLocked', isLockedBody, cxx_writer.writer_code.boolType, 'pu', inline = True, noException = True)
     aliasElements.append(isLockedMethod)
+
+    writeAllBody = cxx_writer.writer_code.Code('this->pipelineReg->writeAll(value);')
+    writeAllParam = [cxx_writer.writer_code.Parameter('value', regMaxType.makeRef().makeConst())]
+    writeAllMethod = cxx_writer.writer_code.Method('writeAll', writeAllBody, cxx_writer.writer_code.voidType, 'pu', writeAllParam, noException = True)
+    aliasElements.append(writeAllMethod)
 
     #################### Lets declare the normal operators (implementation of the pure operators of the base class) ###########
     for i in unaryOps:

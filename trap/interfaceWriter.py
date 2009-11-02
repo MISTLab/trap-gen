@@ -43,7 +43,7 @@ def getCPPIf(self, model, namespace):
         return
 
     if model.startswith('acc'):
-        regWriteCode = ' = '
+        regWriteCode = '.writeAll'
         regReadCode = ''
     else:
         regWriteCode = '.immediateWrite'
