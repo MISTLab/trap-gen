@@ -1455,6 +1455,11 @@ def getMainCode(self, model, namespace):
                 procInst.toolManager.addTool(profiler);
             }
 
+    // Lets register the signal handlers for the CTRL^C key combination
+    (void) signal(SIGINT, stopSimFunction);
+    (void) signal(SIGTERM, stopSimFunction);
+    (void) signal(10, stopSimFunction);
+
     //Now we can start the execution
     boost::timer t;
     sc_start();
@@ -1506,6 +1511,12 @@ def getMainCode(self, model, namespace):
     mainCode.addInclude('string')
     mainCode.addInclude('vector')
     mainCode.addInclude('set')
+    mainCode.addInclude('signal.h')
     parameters = [cxx_writer.writer_code.Parameter('argc', cxx_writer.writer_code.intType), cxx_writer.writer_code.Parameter('argv', cxx_writer.writer_code.charPtrType.makePointer())]
-    function = cxx_writer.writer_code.Function('sc_main', mainCode, cxx_writer.writer_code.intType, parameters)
-    return function
+    mainFunction = cxx_writer.writer_code.Function('sc_main', mainCode, cxx_writer.writer_code.intType, parameters)
+
+    stopSimFunction = cxx_writer.writer_code.Code('std::cerr << std::endl << "Interrupted the simulation" << std::endl << std::endl;\nsc_stop();')
+    parameters = [cxx_writer.writer_code.Parameter('sig', cxx_writer.writer_code.intType)]
+    signalFunction = cxx_writer.writer_code.Function('stopSimFunction', stopSimFunction, cxx_writer.writer_code.voidType, parameters)
+
+    return [signalFunction, mainFunction]

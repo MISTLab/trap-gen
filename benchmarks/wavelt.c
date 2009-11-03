@@ -125,12 +125,15 @@ void iwt97(double* x,int n) {
 }
 
 int main() {
-  double x[16];
+  double x[16], y[16];
   int i, j;
 
   for(j = 0; j < 50; j++){
     // Makes a fancy cubic signal
-    for (i=0;i<16;i++) x[i]=5+i+0.4*i*i-0.02*i*i*i;
+    for (i=0;i<16;i++){
+        x[i]=5+i+0.4*i*i-0.02*i*i*i;
+        y[i] = x[i];
+    }
 
     // Prints original sigal x
     /*printf("Original signal:\n");
@@ -148,9 +151,13 @@ int main() {
     // Do the inverse 9/7 transform
     iwt97(x,16);
 
-    // Prints the reconstructed signal
-    /*printf("Reconstructed signal:\n");
-    for (i=0;i<16;i++) printf("xx[%d]=%f\n",i,x[i]);*/
+    // Checks the reconstructed signal
+    for (i=0;i<16;i++){
+        if(x[i] < y[i]*0.99 || x[i] > y[i]*1.01)
+            return -1;
+        //printf("xx[%d]=%f\n",i,x[i]);
+        //printf("yy[%d]=%f\n",i,y[i]);
+    }
     fprintf(stderr, "done iteration %d\n", j);
   }
   return 0;
