@@ -192,12 +192,15 @@ zprReg = trap.Register('ZPR', 32, zprBitMask)
 processor.addRegister(zprReg)
 
 
-FP = trap.AliasRegister('FP', 'GPR[30]')
-processor.addAliasReg(FP)SP = trap.AliasRegister('SP', 'GPR[29]')
-processor.addAliasReg(SP)
-PC = trap.AliasRegister('PC', 'GPR[28]')
-PC.setDefaultValue('ENTRY_POINT')
-processor.addAliasReg(PC)
+#FP = trap.AliasRegister('FP', 'GPR[30]')
+#processor.addAliasReg(FP)#SP = trap.AliasRegister('SP', 'GPR[29]')
+#processor.addAliasReg(SP)
+
+pcReg = trap.Register('PC', 32)
+pcReg.setDefaultValue('ENTRY_POINT')
+processor.addRegister(pcReg)
+
+
 
 processor.setMemory('dataMem', 10*1024*1024)
 
@@ -205,7 +208,7 @@ executeStage = trap.PipeStage('execute')
 processor.addPipeStage(executeStage)
 processor.setFetchRegister('PC', 0)
 
-abi = trap.ABI('GPR[23]', 'GPR[24-27]', 'PC', 'LR', 'SP', 'FP')
+abi = trap.ABI('GPR[23]', 'GPR[24-27]', 'PC')
 abi.setOffset('PC', 0)abi.addMemory('dataMem')
 processor.setABI(abi)
 processor.write(folder = 'processor', models = ['funcLT'])
