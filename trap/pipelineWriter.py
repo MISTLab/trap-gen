@@ -228,7 +228,7 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             codeString += 'this->instrExecuting = true;\n'
 
             codeString += 'unsigned int numCycles = 0;\n'
-            if hasCheckHazard and not checkHazardsMet and not pipeStage.checkHazard:
+            if hasCheckHazard:
                 codeString += 'if(!this->chStalled){\n'
 
             codeString += '\n// HERE WAIT FOR BEGIN OF ALL STAGES\nthis->waitPipeBegin();\n'
@@ -306,12 +306,8 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
                 this->hasToFlush = false;
             }
             """
-            if hasCheckHazard and not checkHazardsMet:
-                codeString += 'if(!this->chStalled){\n'
             codeString += 'this->succStage->nextInstruction = this->curInstruction;\n'
-            if hasCheckHazard and not checkHazardsMet:
-                codeString += '}\n'
-            if hasCheckHazard and not checkHazardsMet:
+            if hasCheckHazard:
                 codeString += """}
                 else{
                     //The current stage is not doing anything since one of the following stages
@@ -326,54 +322,68 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
                         this->nextInstruction = this->NOPInstrInstance;
                         this->hasToFlush = false;
                     }
-                    if(!this->chStalled){
-                        this->succStage->nextInstruction = this->curInstruction;
-                    }
                 }
             """
-            if trace and not combinedTrace:
-                codeString += 'std::cerr << \"---------------------------------------------------------------\" << std::endl << std::endl;\n'
             # Here is the code to notify start of the instruction execution
             codeString += """this->refreshRegisters();
                 this->instrExecuting = false;
                 this->instrEndEvent.notify();
-            }
             """
+            # Now I have to insert the code for checking the presence of hazards;
+            # in particular I have to see if the instruction to be executed next in
+            # the checkHazardsStage will lock
+            if hasCheckHazard:
+                codeString += 'Instruction * succToCheck = this->'
+                for pipeStageTemp in self.pipes:
+                    if pipeStageTemp.checkHazard:
+                        break
+                    else:
+                        codeString += 'succStage->'
+                codeString += 'nextInstruction;\n'
+                codeString += 'if(!succToCheck->checkHazard_' + pipeStageTemp.name + '()){\n'
+                codeTemp = 'this->'
+                for pipeStageTemp in self.pipes:
+                    codeString += codeTemp + 'chStalled = true;\n'
+                    codeTemp += 'succStage->'
+                    if pipeStageTemp.checkHazard:
+                        break
+                codeString += '}\nelse{\n'
+                codeTemp = 'this->'
+                for pipeStageTemp in self.pipes:
+                    codeString += codeTemp + 'chStalled = false;\n'
+                    codeTemp += 'succStage->'
+                    if pipeStageTemp.checkHazard:
+                        break
+                codeString += '}\n'
+            if trace and not combinedTrace:
+                codeString += 'std::cerr << \"---------------------------------------------------------------\" << std::endl << std::endl;\n'
+            codeString += '}\n'
         else:
             # This is a normal pipeline stage
 
             # First of all I have to wait for the completion of the other pipeline stages before being able
             # to go on.
+            if hasCheckHazard and not checkHazardsMet:
+                codeString += 'Instruction * nextStageInstruction;\n'
             codeString += """while(true){
             unsigned int numCycles = 0;
             bool flushAnnulled = false;
-            """
-            if hasCheckHazard and not checkHazardsMet and not pipeStage.checkHazard:
-                codeString += 'if(!this->chStalled){\n'
-            codeString += """
+
             // HERE WAIT FOR BEGIN OF ALL STAGES
             this->waitPipeBegin();
 
+            this->curInstruction = this->nextInstruction;
             """
-            codeString += 'this->curInstruction = this->nextInstruction;\n'
+
+            if hasCheckHazard and not checkHazardsMet:
+                codeString += 'if(!this->chStalled){\n'
 
             if trace and not combinedTrace:
                 codeString += 'std::cerr << \"Stage ' + pipeStage.name + ' instruction at PC = \" << std::hex << std::showbase << this->curInstruction->fetchPC << std::endl;\n'
 
             #if hasCheckHazard and pipeStage.name in checkHazadsStagesDecl:
             if hasCheckHazard and pipeStage.checkHazard:
-                codeString += """if(this->curInstruction->checkHazard_""" + pipeStage.name + """()){
-                this->curInstruction->lockRegs_""" + pipeStage.name + """();
-                if(stalled){
-                    //The stage was previously stalled: I also have to signal that we can proceed to the preceding stages
-                    BasePipeStage * toExamineStage = this->prevStage;
-                    while(toExamineStage != NULL){
-                        toExamineStage->chStalled = false;
-                        toExamineStage = toExamineStage->prevStage;
-                    }
-                    stalled = false;
-                }
-                """
+                codeString += 'this->curInstruction->lockRegs_' + pipeStage.name + '();\n'
 
             if trace and combinedTrace and pipeStage == self.pipes[-1]:
                 codeString += 'if(this->curInstruction != this->NOPInstrInstance){\n'
@@ -390,85 +400,25 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
                 this->prevStage->flush();
             }
             """
-            #if hasCheckHazard and pipeStage.name in checkHazadsStagesDecl:
-            if hasCheckHazard and pipeStage.checkHazard:
-                codeString += """}
-                else{
-                    //The current stage is stalled because registers needed by the instruction are busy
-                    stalled = true;
-                """
-            #if pipeStage != self.pipes[-1] and hasCheckHazard and pipeStage.name in checkHazadsStagesDecl:
-            if  pipeStage != self.pipes[-1] and hasCheckHazard and pipeStage.checkHazard:
-                codeString += """//I also have to inform the preceding stages that the we stage is stalled
-                    BasePipeStage * toExamineStage = this->prevStage;
-                    while(toExamineStage != NULL){
-                        toExamineStage->chStalled = true;
-                        toExamineStage = toExamineStage->prevStage;
-                    }
-                    wait(this->latency);
-                    """
-            #if trace and hasCheckHazard and pipeStage.name in checkHazadsStagesDecl and not combinedTrace:
-            if trace and hasCheckHazard and pipeStage.checkHazard and not combinedTrace:
-                codeString += """std::cerr << "Stage: """ + pipeStage.name + """ - Instruction " << this->curInstruction->getInstructionName() << " Mnemonic = " << this->curInstruction->getMnemonic() << " at PC = " << std::hex << std::showbase << this->curInstruction->fetchPC << " stalled on a data hazard" << std::endl;
-                std::cerr << "Stalled registers: " << this->curInstruction->printBusyRegs() << std::endl << std::endl;
-                """
-            #if pipeStage != self.pipes[-1] and hasCheckHazard and pipeStage.name in checkHazadsStagesDecl:
-            if pipeStage != self.pipes[-1] and pipeStage.checkHazard:
-                codeString +='}\n'
-            codeString += """// HERE WAIT FOR END OF ALL STAGES
-            this->waitPipeEnd();
 
-            """
+            if not hasCheckHazard or checkHazardsMet:
+                codeString += """// HERE WAIT FOR END OF ALL STAGES
+                this->waitPipeEnd();
+
+                """
 
             if pipeStage != self.pipes[-1]:
-                # Now I have to check if the current stage is stalled and, in case, propagate
-                # a NOP instruction to successive stages
-                if hasCheckHazard:
-                    if not checkHazardsMet:
-                        codeString += """if(!this->chStalled){
-                        """
-                    #if pipeStage.name in checkHazadsStagesDecl:
-                    if pipeStage.checkHazard:
-                        codeString += """if(this->stalled){
-                            this->succStage->nextInstruction = this->NOPInstrInstance;
-                            if(this->hasToFlush){
-                                // First of all I have to free any used resource in case there are any
-                                this->curInstruction = this->NOPInstrInstance;
-                                this->nextInstruction = this->NOPInstrInstance;
-                                this->hasToFlush = false;
-                            }
-                        }
-                        else{
-                        """
-                codeString += """// Now I have to propagate the instruction to the next cycle if
-                // the next stage has completed elaboration
-                if(this->hasToFlush){
-                    // First of all I have to free any used resource in case there are any
-                    this->curInstruction->getUnlock_""" + pipeStage.name + """(BasePipeStage::unlockQueue);
-                    this->curInstruction = this->NOPInstrInstance;
-                    this->nextInstruction = this->NOPInstrInstance;
-                    this->hasToFlush = false;
-                }
+                codeString += """if(this->hasToFlush){
+                        // First of all I have to free any used resource in case there are any
+                        this->curInstruction = this->NOPInstrInstance;
+                        this->nextInstruction = this->NOPInstrInstance;
+                        this->hasToFlush = false;
+                    }
                 """
-                codeString += """this->succStage->nextInstruction = this->curInstruction;
-                """
-                if hasCheckHazard:
-                    if pipeStage.checkHazard:
-                    #if pipeStage.name in checkHazadsStagesDecl:
-                        codeString += '}\n'
-                    if not checkHazardsMet:
-                        codeString += """}
-                        else{
-                            if(this->hasToFlush){
-                                // First of all I have to free any used resource in case there are any
-                                this->curInstruction->getUnlock_decode(BasePipeStage::unlockQueue);
-                                this->curInstruction = this->NOPInstrInstance;
-                                this->nextInstruction = this->NOPInstrInstance;
-                                this->hasToFlush = false;
-                            }
-                        }
-                        """
-            else:
+                if hasCheckHazard and not checkHazardsMet:
+                    codeString += 'nextStageInstruction = this->curInstruction;\n'
+
+            if pipeStage == self.pipes[-1]:
                 # Here I have to check if it is the case of destroying the instruction
                 codeString += 'if(this->curInstruction->toDestroy){\n'
                 codeString += 'delete this->curInstruction;\n'
@@ -476,21 +426,38 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
                 codeString += 'else{\n'
                 codeString += 'this->curInstruction->inPipeline = false;\n'
                 codeString += '}\n'
-            if hasCheckHazard and not checkHazardsMet and not pipeStage.checkHazard:
+            if hasCheckHazard and not checkHazardsMet:
                 codeString += """}
                 else{
                     //The current stage is not doing anything since one of the following stages
                     //is blocked to a data hazard.
-                    this->waitPipeBegin();
                     //Note that I need to return controll to the scheduler, otherwise
                     //I will be impossible to procede, this thread will always execute
                     wait(this->latency);
-                    this->waitPipeEnd();
-                    if(!this->chStalled){
-                        this->succStage->nextInstruction = this->curInstruction;
+                """
+                if trace and hasCheckHazard and pipeStage.checkHazard and not combinedTrace:
+                    codeString += """std::cerr << "Stage: """ + pipeStage.name + """ - Instruction " << this->curInstruction->getInstructionName() << " Mnemonic = " << this->curInstruction->getMnemonic() << " at PC = " << std::hex << std::showbase << this->curInstruction->fetchPC << " stalled on a data hazard" << std::endl;
+                    std::cerr << "Stalled registers: " << this->curInstruction->printBusyRegs() << std::endl << std::endl;
+                    """
+                codeString += """if(this->hasToFlush){
+                        // First of all I have to free any used resource in case there are any
+                        this->curInstruction = this->NOPInstrInstance;
+                        this->nextInstruction = this->NOPInstrInstance;
+                        this->hasToFlush = false;
                     }
+                    nextStageInstruction = this->NOPInstrInstance;
                 }
                 """
+            if hasCheckHazard and not checkHazardsMet:
+                codeString += """// HERE WAIT FOR END OF ALL STAGES
+                this->waitPipeEnd();
+
+                """
+            if pipeStage != self.pipes[-1]:
+                if checkHazardsMet:
+                    codeString += 'this->succStage->nextInstruction = this->curInstruction;\n'
+                else:
+                    codeString += 'this->succStage->nextInstruction = nextStageInstruction;\n'
             codeString += '}\n'
         if pipeStage.checkHazard:
             checkHazardsMet = True

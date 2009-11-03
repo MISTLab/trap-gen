@@ -318,8 +318,7 @@ def fetchWithCacheCode(self, fetchCode, trace, combinedTrace, issueCodeGenerator
 def createPipeStage(self, processorElements, initElements):
     # Creates the pipeleine stages and the code necessary to initialize them
     regsNames = [i.name for i in self.regBanks + self.regs]
-    prevStage = ''
-    for pipeStage in self.pipes:
+    for pipeStage in reversed(self.pipes):
         pipelineType = cxx_writer.writer_code.Type(pipeStage.name.upper() + '_PipeStage', 'pipeline.hpp')
         curStageAttr = cxx_writer.writer_code.Attribute(pipeStage.name + '_stage', pipelineType, 'pu')
         processorElements.append(curStageAttr)
@@ -330,8 +329,8 @@ def createPipeStage(self, processorElements, initElements):
                 curPipeInit.append('&' + otherPipeStage.name + '_stage')
             else:
                 curPipeInit.append('NULL')
-        if prevStage:
-            curPipeInit.append('&' + prevStage)
+        if self.pipes.index(pipeStage) - 1 >= 0:
+            curPipeInit.append('&' + self.pipes[self.pipes.index(pipeStage) - 1].name + '_stage')
         else:
             curPipeInit.append('NULL')
         if self.pipes.index(pipeStage) + 1 < len(self.pipes):
@@ -369,7 +368,6 @@ def createPipeStage(self, processorElements, initElements):
         if pipeStage == self.pipes[0]:
             curPipeInit = ['toolManager'] + curPipeInit
         initElements.append('\n' + pipeStage.name + '_stage(' + ', '.join(curPipeInit)  + ')')
-        prevStage = pipeStage.name + '_stage'
     NOPIntructionType = cxx_writer.writer_code.Type('NOPInstruction', 'instructions.hpp')
     NOPinstructionsAttribute = cxx_writer.writer_code.Attribute('NOPInstrInstance', NOPIntructionType.makePointer(), 'pu', True)
     processorElements.append(NOPinstructionsAttribute)
