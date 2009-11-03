@@ -135,11 +135,13 @@ NPC = npc;
 # I can actually declare the processor instructions
 #----------------------------------------------------------------------------------------------------
 #____________________________________________________________________________________________________
-ReadPCFetch = 'pcounter = PC;\n'
+ReadPCFetch = """pcounter = PC;
+#ifndef ACC_MODEL
+npcounter = NPC;
+#endif
+"""
 ReadNPCDecode = """#ifdef ACC_MODEL
 npcounter = PC;
-#else
-npcounter = NPC;
 #endif
 """
 
@@ -3077,6 +3079,7 @@ readY_Instr.setCode(opCodeRegs, 'regs')
 readY_Instr.setCode(opCodeWb, 'wb')
 readY_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 readY_Instr.addVariable(('y_temp', 'BIT<32>'))
+readY_Instr.addSpecialRegister('Y', 'in')
 isa.addInstruction(readY_Instr)
 opCodeRegs = cxx_writer.writer_code.Code("""
 asr_temp = ASR[asr];
