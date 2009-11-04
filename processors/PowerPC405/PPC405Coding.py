@@ -30,8 +30,9 @@
 #   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
 #   or see <http://www.gnu.org/licenses/>.
 #
-#   (c) Luca Fossati, fossati@elet.polimi.it
-#
+#   (a) Luca Fossati, fossati@elet.polimi.it
+#   (b) Redwanur Rahman, md.rahman@mail.polimi.it
+#   (c) Ashanka das, Ak.das@mail.polimi.it#
 ####################################################################################
 
 
@@ -70,10 +71,10 @@ oper_Dform_4 = trap.MachineCode([('primary_opcode', 6), ('rs', 5), ('ra', 5), ('
 oper_Dform_4.setVarField('ra', ('GPR', 0), 'out')
 oper_Dform_4.setVarField('rs', ('GPR', 0), 'in')
 oper_Dform_4.setVarField('ui', ('GPR', 0), 'in')
-oper_Dform_5 = trap.MachineCode([('primary_opcode', 6), ('bf', 3), ('reserved1', 1), ('l', 1), ('ra', 5), ('si',16)])
+oper_Dform_5 = trap.MachineCode([('primary_opcode', 6), ('bf', 3), ('reserved1', 1), ('l', 1), ('ra', 5), ('mi_si',16)])
 oper_Dform_5.setVarField('bf', ('GPR', 0), 'in')
 oper_Dform_5.setVarField('ra', ('GPR', 0), 'in')
-oper_Dform_5.setVarField('si', ('GPR', 0), 'in')
+oper_Dform_5.setVarField('mi_si', ('GPR', 0), 'in')
 oper_Dform_6 = trap.MachineCode([('primary_opcode', 6), ('bf', 3), ('reserved1', 1), ('l', 1), ('ra', 5), ('ui',16)])
 oper_Dform_6.setVarField('bf', ('GPR', 0), 'in')
 oper_Dform_6.setVarField('ra', ('GPR', 0), 'in')
@@ -100,14 +101,15 @@ oper_Xform_4 = trap.MachineCode([('primary_opcode', 6), ('rt', 5), ('ra', 5), ('
 oper_Xform_4.setVarField('rt', ('GPR', 0), 'out')
 oper_Xform_4.setVarField('ra', ('GPR', 0), 'in')
 #oper_Xform_4.setVarField('rb', ('GPR', 0), 'in')
-oper_Xform_5 = trap.MachineCode([('primary_opcode', 6), ('rt', 5), ('reserved1', 5), ('rb',5), ('xo',10), ('reserved2,1)])
+oper_Xform_5 = trap.MachineCode([('primary_opcode', 6), ('rt', 5), ('reserved1', 5), ('rb',5), ('xo',10), ('reserved2',1)])
 oper_Xform_5.setVarField('rt', ('GPR', 0), 'out')
 oper_Xform_5.setVarField('rb', ('GPR', 0), 'in')
+
 oper_Xform_6 = trap.MachineCode([('primary_opcode', 6), ('rt', 5), ('reserved1', 5), ('reserved2',5), ('xo',10), ('reserved3',1)])
 oper_Xform_6.setVarField('rt', ('GPR', 0), 'out')
 oper_Xform_7 = trap.MachineCode([('primary_opcode', 6), ('rs', 5), ('ra', 5), ('rb',5), ('xo',10), ('rc',1)])
-#oper_Xform_7.setVarField('rt', ('GPR', 0), 'out')
-oper_Xform_7.setVarField('ra', ('GPR', 0), 'in')
+oper_Xform_7.setVarField('ra', ('GPR', 0), 'out')
+oper_Xform_7.setVarField('rs', ('GPR', 0), 'in')
 oper_Xform_7.setVarField('rb', ('GPR', 0), 'in')
 oper_Xform_8 = trap.MachineCode([('primary_opcode', 6), ('rs', 5), ('ra', 5), ('rb',5), ('xo',10), ('1',1)])
 #oper_Xform_8.setVarField('rt', ('GPR', 0), 'out')
@@ -126,13 +128,12 @@ oper_Xform_11 = trap.MachineCode([('primary_opcode', 6), ('rs', 5), ('ra', 5), (
 oper_Xform_11.setVarField('ra', ('GPR', 0), 'in')
 #oper_Xform_11.setVarField('rb', ('GPR', 0), 'in')
 oper_Xform_12 = trap.MachineCode([('primary_opcode', 6), ('rs', 5), ('ra', 5), ('sh',5), ('xo',10), ('rc',1)])
-#oper_Xform_12.setVarField('rt', ('GPR', 0), 'out')
+oper_Xform_12.setVarField('rs', ('GPR', 0), 'in')
 oper_Xform_12.setVarField('ra', ('GPR', 0), 'in')
 #oper_Xform_12.setVarField('rb', ('GPR', 0), 'in')
 oper_Xform_13 = trap.MachineCode([('primary_opcode', 6), ('rs', 5), ('ra', 5), ('reserved1',5), ('xo',10), ('rc',1)])
-#oper_Xform_13.setVarField('rt', ('GPR', 0), 'out')
+oper_Xform_13.setVarField('rs', ('GPR', 0), 'in')
 oper_Xform_13.setVarField('ra', ('GPR', 0), 'in')
-#oper_Xform_13.setVarField('rb', ('GPR', 0), 'in')
 oper_Xform_14 = trap.MachineCode([('primary_opcode', 6), ('rs', 5), ('reserved1', 5), ('rb',5), ('xo',10), ('reserved2',1)])
 #oper_Xform_14.setVarField('rt', ('GPR', 0), 'out')
 #oper_Xform_14.setVarField('ra', ('GPR', 0), 'in')
@@ -228,6 +229,10 @@ oper_X0form_1.setVarField('rb', ('GPR', 0), 'in')
 oper_X0form_2 = trap.MachineCode([('primary_opcode', 6), ('rt', 5), ('ra', 5), ('reserved1',5), ('reserved2',1), ('xo',9), ('rc',1)])
 oper_X0form_2.setVarField('rt', ('GPR', 0), 'out')
 oper_X0form_2.setVarField('ra', ('GPR', 0), 'in')
+oper_X0form_3 = trap.MachineCode([('primary_opcode', 6), ('rt', 5), ('ra', 5), ('reserved1',5), ('oe',1), ('xo',9), ('rc',1)])
+oper_X0form_3.setVarField('rt', ('GPR', 0), 'out')
+oper_X0form_3.setVarField('ra', ('GPR', 0), 'in')
+
 
 #OPER with MForm
 oper_Mform_1 = trap.MachineCode([('primary_opcode', 6), ('rs', 5), ('ra', 5), ('rb',5), ('mb',5), ('me',5), ('rc',1)])
