@@ -58,40 +58,52 @@ def updateAliasCode_abi():
     """
 
 def updateAliasCode_decode():
+    import math
+    if math.modf(math.log(16*numRegWindows, 2))[0] == 0:
+        modCode = '& ' + hex(16*numRegWindows - 1)
+    else:
+        modCode = '% ' + str(16*numRegWindows)
+
     code = """#ifndef ACC_MODEL
     //Functional model: we simply immediately update the alias
     for(int i = 8; i < 32; i++){
-        REGS[i].updateAlias(WINREGS[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
+        REGS[i].updateAlias(WINREGS[(newCwp*16 + i - 8) """ + modCode + """]);
     }
     #else
     //Cycle accurate model: we have to update the alias using the pipeline register
     //We update the aliases for this stage and for all the preceding ones (we are in the
     //decode stage and we need to update fetch, and decode)
     for(int i = 8; i < 32; i++){
-        REGS_fetch[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
-        REGS_decode[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
+        REGS_fetch[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) """ + modCode + """]);
+        REGS_decode[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) """ + modCode + """]);
     }
     #endif
     """
     return code
 
 def updateAliasCode_exception():
+    import math
+    if math.modf(math.log(16*numRegWindows, 2))[0] == 0:
+        modCode = '& ' + hex(16*numRegWindows - 1)
+    else:
+        modCode = '% ' + str(16*numRegWindows)
+
     code = """#ifndef ACC_MODEL
     //Functional model: we simply immediately update the alias
     for(int i = 8; i < 32; i++){
-        REGS[i].updateAlias(WINREGS[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
+        REGS[i].updateAlias(WINREGS[(newCwp*16 + i - 8) """ + modCode + """]);
     }
     #else
     //Cycle accurate model: we have to update the alias using the pipeline register
     //We update the aliases for this stage and for all the preceding ones (we are in the
     //execute stage and we need to update fetch, decode, and register read and execute)
     for(int i = 8; i < 32; i++){
-        REGS_fetch[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
-        REGS_decode[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
-        REGS_regs[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
-        REGS_execute[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
-        REGS_memory[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
-        REGS_exception[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) % (""" + str(16*numRegWindows) + """)]);
+        REGS_fetch[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) """ + modCode + """]);
+        REGS_decode[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) """ + modCode + """]);
+        REGS_regs[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) """ + modCode + """]);
+        REGS_execute[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) """ + modCode + """]);
+        REGS_memory[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) """ + modCode + """]);
+        REGS_exception[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) """ + modCode + """]);
     }
     #endif
     """
@@ -109,7 +121,7 @@ else{
 }
 """
 opCode = cxx_writer.writer_code.Code(checkIncrementWin_code)
-checkIncrementWin_method = trap.HelperMethod('checkIncrementWin', opCode, 'decode')
+checkIncrementWin_method = trap.HelperMethod('checkIncrementWin', opCode, 'decode', exception = False, const = True)
 checkIncrementWin_method.setSignature(cxx_writer.writer_code.boolType)
 checkDecrementWin_code = """
 unsigned int newCwp = ((unsigned int)(PSR[key_CWP] - 1)) % NUM_REG_WIN;
@@ -121,7 +133,7 @@ else{
 }
 """
 opCode = cxx_writer.writer_code.Code(checkDecrementWin_code)
-checkDecrementWin_method = trap.HelperMethod('checkDecrementWin', opCode, 'regs')
+checkDecrementWin_method = trap.HelperMethod('checkDecrementWin', opCode, 'decode', exception = False, const = True)
 checkDecrementWin_method.setSignature(cxx_writer.writer_code.boolType)
 
 # Method used to move to the next register window; this simply consists in
@@ -137,7 +149,7 @@ PSR = (PSR & 0xFFFFFFE0) | newCwp;
 IncrementRegWindow_code += updateAliasCode_decode()
 IncrementRegWindow_code += 'return true;'
 opCode = cxx_writer.writer_code.Code(IncrementRegWindow_code)
-IncrementRegWindow_method = trap.HelperMethod('IncrementRegWindow', opCode, 'decode')
+IncrementRegWindow_method = trap.HelperMethod('IncrementRegWindow', opCode, 'decode', exception = False)
 IncrementRegWindow_method.setSignature(cxx_writer.writer_code.boolType)
 IncrementRegWindow_method.addVariable(('newCwp', 'BIT<32>'))
 # Method used to move to the previous register window; this simply consists in
@@ -153,7 +165,7 @@ PSR = (PSR & 0xFFFFFFE0) | newCwp;
 DecrementRegWindow_code += updateAliasCode_decode()
 DecrementRegWindow_code += 'return true;'
 opCode = cxx_writer.writer_code.Code(DecrementRegWindow_code)
-DecrementRegWindow_method = trap.HelperMethod('DecrementRegWindow', opCode, 'decode')
+DecrementRegWindow_method = trap.HelperMethod('DecrementRegWindow', opCode, 'decode', exception = False)
 DecrementRegWindow_method.setSignature(cxx_writer.writer_code.boolType)
 DecrementRegWindow_method.addVariable(('newCwp', 'BIT<32>'))
 
@@ -350,7 +362,7 @@ IncrementPC = trap.HelperOperation('IncrementPC', opCode, exception = False)
 opCode = cxx_writer.writer_code.Code("""
 rd = result;
 """)
-WB_plain = trap.HelperOperation('WB_plain', opCode)
+WB_plain = trap.HelperOperation('WB_plain', opCode, exception = False)
 WB_plain.addInstuctionVar(('result', 'BIT<32>'))
 WB_plain.addUserInstructionElement('rd')
 
@@ -361,7 +373,7 @@ if(!temp_V){
     rd = result;
 }
 """)
-WB_tv = trap.HelperOperation('WB_tv', opCode)
+WB_tv = trap.HelperOperation('WB_tv', opCode, exception = False)
 WB_tv.addInstuctionVar(('result', 'BIT<32>'))
 WB_tv.addInstuctionVar(('temp_V', 'BIT<1>'))
 WB_tv.addUserInstructionElement('rd')
@@ -374,7 +386,7 @@ PSR[key_ICC_z] = (result == 0);
 PSR[key_ICC_v] = 0;
 PSR[key_ICC_c] = 0;
 """)
-ICC_writeLogic = trap.HelperOperation('ICC_writeLogic', opCode)
+ICC_writeLogic = trap.HelperOperation('ICC_writeLogic', opCode, exception = False)
 ICC_writeLogic.addInstuctionVar(('result', 'BIT<32>'))
 
 # Modification of the Integer Condition Codes of the Processor Status Register
@@ -385,7 +397,7 @@ PSR[key_ICC_z] = (result == 0);
 PSR[key_ICC_v] = ((unsigned int)((rs1_op & rs2_op & (~result)) | ((~rs1_op) & (~rs2_op) & result))) >> 31;
 PSR[key_ICC_c] = ((unsigned int)((rs1_op & rs2_op) | ((rs1_op | rs2_op) & (~result)))) >> 31;
 """)
-ICC_writeAdd = trap.HelperOperation('ICC_writeAdd', opCode)
+ICC_writeAdd = trap.HelperOperation('ICC_writeAdd', opCode, exception = False)
 ICC_writeAdd.addInstuctionVar(('result', 'BIT<32>'))
 ICC_writeAdd.addInstuctionVar(('rs1_op', 'BIT<32>'))
 ICC_writeAdd.addInstuctionVar(('rs2_op', 'BIT<32>'))
@@ -398,7 +410,7 @@ PSR[key_ICC_z] = (result == 0);
 PSR[key_ICC_v] = temp_V;
 PSR[key_ICC_c] = ((unsigned int)((rs1_op & rs2_op) | ((rs1_op | rs2_op) & (~result)))) >> 31;
 """)
-ICC_writeTAdd = trap.HelperOperation('ICC_writeTAdd', opCode)
+ICC_writeTAdd = trap.HelperOperation('ICC_writeTAdd', opCode, exception = False)
 ICC_writeTAdd.addInstuctionVar(('result', 'BIT<32>'))
 ICC_writeTAdd.addInstuctionVar(('temp_V', 'BIT<1>'))
 ICC_writeTAdd.addInstuctionVar(('rs1_op', 'BIT<32>'))
@@ -414,7 +426,7 @@ if(!exception){
     PSR[key_ICC_c] = 0;
 }
 """)
-ICC_writeDiv = trap.HelperOperation('ICC_writeDiv', opCode)
+ICC_writeDiv = trap.HelperOperation('ICC_writeDiv', opCode, exception = False)
 ICC_writeDiv.addInstuctionVar(('exception', 'BIT<1>'))
 ICC_writeDiv.addInstuctionVar(('result', 'BIT<32>'))
 ICC_writeDiv.addInstuctionVar(('temp_V', 'BIT<1>'))
@@ -429,7 +441,7 @@ if(!temp_V){
     PSR[key_ICC_c] = ((unsigned int)((rs1_op & rs2_op) | ((rs1_op | rs2_op) & (~result)))) >> 31;
 }
 """)
-ICC_writeTVAdd = trap.HelperOperation('ICC_writeTVAdd', opCode)
+ICC_writeTVAdd = trap.HelperOperation('ICC_writeTVAdd', opCode, exception = False)
 ICC_writeTVAdd.addInstuctionVar(('result', 'BIT<32>'))
 ICC_writeTVAdd.addInstuctionVar(('temp_V', 'BIT<1>'))
 ICC_writeTVAdd.addInstuctionVar(('rs1_op', 'BIT<32>'))
@@ -443,7 +455,7 @@ PSR[key_ICC_z] = (result == 0);
 PSR[key_ICC_v] = ((unsigned int)((rs1_op & (~rs2_op) & (~result)) | ((~rs1_op) & rs2_op & result))) >> 31;
 PSR[key_ICC_c] = ((unsigned int)(((~rs1_op) & rs2_op) | (((~rs1_op) | rs2_op) & result))) >> 31;
 """)
-ICC_writeSub = trap.HelperOperation('ICC_writeSub', opCode)
+ICC_writeSub = trap.HelperOperation('ICC_writeSub', opCode, exception = False)
 ICC_writeSub.addInstuctionVar(('result', 'BIT<32>'))
 ICC_writeSub.addInstuctionVar(('rs1_op', 'BIT<32>'))
 ICC_writeSub.addInstuctionVar(('rs2_op', 'BIT<32>'))
@@ -456,7 +468,7 @@ PSR[key_ICC_z] = (result == 0);
 PSR[key_ICC_v] = temp_V;
 PSR[key_ICC_c] = ((unsigned int)(((~rs1_op) & rs2_op) | (((~rs1_op) | rs2_op) & result))) >> 31;
 """)
-ICC_writeTSub = trap.HelperOperation('ICC_writeTSub', opCode)
+ICC_writeTSub = trap.HelperOperation('ICC_writeTSub', opCode, exception = False)
 ICC_writeTSub.addInstuctionVar(('result', 'BIT<32>'))
 ICC_writeTSub.addInstuctionVar(('temp_V', 'BIT<1>'))
 ICC_writeTSub.addInstuctionVar(('rs1_op', 'BIT<32>'))
@@ -472,7 +484,7 @@ if(!temp_V){
     PSR[key_ICC_c] = ((unsigned int)(((~rs1_op) & rs2_op) | (((~rs1_op) | rs2_op) & result))) >> 31;
 }
 """)
-ICC_writeTVSub = trap.HelperOperation('ICC_writeTVSub', opCode)
+ICC_writeTVSub = trap.HelperOperation('ICC_writeTVSub', opCode, exception = False)
 ICC_writeTVSub.addInstuctionVar(('result', 'BIT<32>'))
 ICC_writeTVSub.addInstuctionVar(('temp_V', 'BIT<1>'))
 ICC_writeTVSub.addInstuctionVar(('rs1_op', 'BIT<32>'))
