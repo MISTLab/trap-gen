@@ -442,7 +442,7 @@ class Folder:
     # Check for boost libraries
     ########################################
     conf.check_tool('boost')
-    conf.check_boost(lib='thread regex date_time program_options filesystem unit_test_framework system', static='both', min_version='1.35.0', mandatory = 1, errmsg = 'Unable to find regex and/or thread boost libraries, please install them and specify their location with the --boost-includes and --boost-libs configuration options')
+    conf.check_boost(lib='thread regex date_time program_options filesystem unit_test_framework system', static='both', min_version='1.35.0', max_version='1.39.9', mandatory = 1, errmsg = 'Unable to find regex and/or thread boost libraries, please install them and specify their location with the --boost-includes and --boost-libs configuration options')
     if not Options.options.static_build:
         conf.env.append_unique('RPATH', conf.env['LIBPATH_BOOST_THREAD'])
 
