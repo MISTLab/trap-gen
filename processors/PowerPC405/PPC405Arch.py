@@ -30,7 +30,9 @@
 #   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
 #   or see <http://www.gnu.org/licenses/>.
 #
-#   (c) Luca Fossati, fossati@elet.polimi.it
+#   (a) Luca Fossati, fossati@elet.polimi.it
+#   (b) Redwanur Rahman, md.rahman@mail.polimi.it
+#   (c) Ashanka das, Ak.das@mail.polimi.it
 #
 ####################################################################################
 
@@ -208,9 +210,11 @@ executeStage = trap.PipeStage('execute')
 processor.addPipeStage(executeStage)
 processor.setFetchRegister('PC', 0)
 
-abi = trap.ABI('GPR[23]', 'GPR[24-27]', 'PC')
+abi = trap.ABI('GPR[3]', 'GPR[5-10]', 'PC')
 abi.setOffset('PC', 0)abi.addMemory('dataMem')
+#abi.addVarRegsCorrespondence({'GPR[0-31]': (0,31), 'PC': 32, 'MSR': 33, 'EAR': 34, 'ESR': 35, 'FSR': 36})
+#abi.returnCall([('PC', 'GPR[15]', 8)])
 processor.setABI(abi)
-processor.write(folder = 'processor', models = ['funcLT'])
-##processor.write(folder = 'processor', models = ['funcLT'], trace = True)
+processor.write(folder = 'PowerProcessor405', models = ['funcLT'])
+##processor.write(folder = 'PowerProcessor405', models = ['funcLT'], trace = True)
 
