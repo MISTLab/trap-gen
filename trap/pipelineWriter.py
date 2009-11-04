@@ -73,7 +73,7 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
     constructorCode += 'this->hasToFlush = false;\n'
     stageEndedEvent = cxx_writer.writer_code.Attribute('stageEndedEv', cxx_writer.writer_code.sc_eventType, 'pu')
     pipelineElements.append(stageEndedEvent)
-    stageBeginningEvent = cxx_writer.writer_code.Attribute('stageBeginningEv', cxx_writer.writer_code.sc_eventType, 'pro')
+    stageBeginningEvent = cxx_writer.writer_code.Attribute('stageBeginningEv', cxx_writer.writer_code.sc_eventType, 'pu')
     pipelineElements.append(stageBeginningEvent)
 
     NOPIntructionType = cxx_writer.writer_code.Type('NOPInstruction', 'instructions.hpp')
@@ -110,34 +110,6 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
     flushBody = cxx_writer.writer_code.Code(flushCode)
     flushDecl = cxx_writer.writer_code.Method('flush', flushBody, cxx_writer.writer_code.voidType, 'pu', noException = True)
     pipelineElements.append(flushDecl)
-
-    waitPipeBeginCode = """this->stageBeginning = true;
-    this->stageBeginningEv.notify();
-    """
-    for pipeStage in self.pipes:
-        waitPipeBeginCode += """if(this->stage_""" + pipeStage.name + """ != NULL && !this->stage_""" + pipeStage.name + """->stageBeginning){
-            wait(this->stage_""" + pipeStage.name + """->stageBeginningEv);
-        }
-        """
-    waitPipeBeginCode += 'this->stageEnded = false;'
-    returnType = cxx_writer.writer_code.voidType
-    waitPipeBeginBody = cxx_writer.writer_code.Code(waitPipeBeginCode)
-    waitPipeBeginDecl = cxx_writer.writer_code.Method('waitPipeBegin', waitPipeBeginBody, returnType, 'pu', noException = True)
-    pipelineElements.append(waitPipeBeginDecl)
-
-    waitPipeEndCode = """this->stageBeginning = false;
-    this->stageEnded = true;
-    this->stageEndedEv.notify();
-    """
-    for pipeStage in self.pipes:
-        waitPipeEndCode += """if(this->stage_""" + pipeStage.name + """ != NULL && !this->stage_""" + pipeStage.name + """->stageEnded){
-            wait(this->stage_""" + pipeStage.name + """->stageEndedEv);
-        }
-        """
-    returnType = cxx_writer.writer_code.voidType
-    waitPipeEndBody = cxx_writer.writer_code.Code(waitPipeEndCode)
-    waitPipeEndDecl = cxx_writer.writer_code.Method('waitPipeEnd', waitPipeEndBody, cxx_writer.writer_code.voidType, 'pu', noException = True)
-    pipelineElements.append(waitPipeEndDecl)
 
     for pipe in self.pipes:
         otherStageAttr = cxx_writer.writer_code.Attribute('stage_' + pipe.name, pipeType.makePointer(), 'pro')
@@ -467,6 +439,34 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
         curPipeElements.append(behaviorMethodDecl)
         constructorCode += 'SC_THREAD(behavior);\n'
 
+        waitPipeBeginCode = """this->stageBeginning = true;
+        this->stageBeginningEv.notify();
+        """
+        for pipeStageInner in self.pipes:
+            if pipeStageInner != pipeStage:
+                waitPipeBeginCode += """if(!this->stage_""" + pipeStageInner.name + """->stageBeginning){
+                    wait(this->stage_""" + pipeStageInner.name + """->stageBeginningEv);
+                }
+                """
+        waitPipeBeginCode += 'this->stageEnded = false;'
+        waitPipeBeginBody = cxx_writer.writer_code.Code(waitPipeBeginCode)
+        waitPipeBeginDecl = cxx_writer.writer_code.Method('waitPipeBegin', waitPipeBeginBody, cxx_writer.writer_code.voidType, 'pri', noException = True)
+        curPipeElements.append(waitPipeBeginDecl)
+
+        waitPipeEndCode = """this->stageBeginning = false;
+        this->stageEnded = true;
+        this->stageEndedEv.notify();
+        """
+        for pipeStageInner in self.pipes:
+            if pipeStageInner != pipeStage:
+                waitPipeEndCode += """if(!this->stage_""" + pipeStageInner.name + """->stageEnded){
+                    wait(this->stage_""" + pipeStageInner.name + """->stageEndedEv);
+                }
+                """
+        waitPipeEndBody = cxx_writer.writer_code.Code(waitPipeEndCode)
+        waitPipeEndDecl = cxx_writer.writer_code.Method('waitPipeEnd', waitPipeEndBody, cxx_writer.writer_code.voidType, 'pri', noException = True)
+        curPipeElements.append(waitPipeEndDecl)
+
         IntructionType = cxx_writer.writer_code.Type('Instruction', 'instructions.hpp')
         IntructionTypePtr = IntructionType.makePointer()
 
@@ -487,23 +487,22 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             # the other to update the alias
             codeString = '// Now we update the registers to propagate the values in the pipeline\n'
             for reg in self.regs:
+                codeString += 'if(this->' + reg.name + '.hasToPropagate){\n'
                 ########
                 if trace and not combinedTrace:
-                    codeString += 'if(this->' + reg.name + '.hasToPropagate){\n'
                     codeString += 'std::cerr << "Propagating register ' + reg.name + '" << std::endl;\n'
-                    codeString += '}\n'
                 ########
                 codeString += 'this->' + reg.name + '.propagate();\n'
+                codeString += '}\n'
             for regB in self.regBanks:
                 codeString += 'for(int i = 0; i < ' + str(regB.numRegs) + '; i++){\n'
+                codeString += 'if(this->' + regB.name + '[i].hasToPropagate){\n'
                 ########
                 if trace and not combinedTrace:
-                    codeString += 'if(this->' + regB.name + '[i].hasToPropagate){\n'
                     codeString += 'std::cerr << "Propagating register ' + regB.name + '[" << std::dec << i << "]" << std::endl;\n'
-                    codeString += '}\n'
                 ########
                 codeString += 'this->' + regB.name + '[i].propagate();\n'
-                codeString += '}\n'
+                codeString += '}\n}\n'
             # Now lets procede to the update of the alias: for each stage alias I have to copy the reference
             # of the general pipeline register from one stage to the other
             codeString += '\n//Here we update the aliases, so that what they point to is updated in the pipeline\n'
@@ -538,34 +537,34 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
                         (*regToUnlockIter)->unlock(unlockQueueIter->first);
                     }
                 }
+                unlockQueueIter->second.clear();
             }
-            BasePipeStage::unlockQueue.clear();
             """
             refreshRegistersBody = cxx_writer.writer_code.Code(codeString)
-            refreshRegistersDecl = cxx_writer.writer_code.Method('refreshRegisters', refreshRegistersBody, cxx_writer.writer_code.voidType, 'pu')
+            refreshRegistersDecl = cxx_writer.writer_code.Method('refreshRegisters', refreshRegistersBody, cxx_writer.writer_code.voidType, 'pri', noException = True)
             curPipeElements.append(refreshRegistersDecl)
             # Here I declare the references to the pipeline registers and to the alias
             pipeRegisterType = cxx_writer.writer_code.Type('PipelineRegister', 'registers.hpp')
             for reg in self.regs:
                 if self.fetchReg[0] != reg.name:
-                    attribute = cxx_writer.writer_code.Attribute(reg.name, pipeRegisterType.makeRef(), 'pu')
+                    attribute = cxx_writer.writer_code.Attribute(reg.name, pipeRegisterType.makeRef(), 'pri')
                     constructorParams = [cxx_writer.writer_code.Parameter(reg.name, pipeRegisterType.makeRef())] + constructorParams
                     constructorInit.append(reg.name + '(' + reg.name + ')')
                     curPipeElements.append(attribute)
             for regB in self.regBanks:
-                attribute = cxx_writer.writer_code.Attribute(regB.name, pipeRegisterType.makePointer(), 'pu')
+                attribute = cxx_writer.writer_code.Attribute(regB.name, pipeRegisterType.makePointer(), 'pri')
                 constructorParams = [cxx_writer.writer_code.Parameter(regB.name, pipeRegisterType.makePointer())] + constructorParams
                 constructorInit.append(regB.name + '(' + regB.name + ')')
                 curPipeElements.append(attribute)
             aliasType = cxx_writer.writer_code.Type('Alias', 'alias.hpp')
             for pipeStageInner in self.pipes:
                 for alias in self.aliasRegs:
-                    attribute = cxx_writer.writer_code.Attribute(alias.name + '_' + pipeStageInner.name, aliasType.makeRef(), 'pu')
+                    attribute = cxx_writer.writer_code.Attribute(alias.name + '_' + pipeStageInner.name, aliasType.makeRef(), 'pri')
                     constructorParams = [cxx_writer.writer_code.Parameter(alias.name + '_' + pipeStageInner.name, aliasType.makeRef())] + constructorParams
                     constructorInit.append(alias.name + '_' + pipeStageInner.name + '(' + alias.name + '_' + pipeStageInner.name + ')')
                     curPipeElements.append(attribute)
                 for aliasB in self.aliasRegBanks:
-                    attribute = cxx_writer.writer_code.Attribute(aliasB.name + '_' + pipeStageInner.name, aliasType.makePointer(), 'pu')
+                    attribute = cxx_writer.writer_code.Attribute(aliasB.name + '_' + pipeStageInner.name, aliasType.makePointer(), 'pri')
                     constructorParams = [cxx_writer.writer_code.Parameter(aliasB.name + '_' + pipeStageInner.name, aliasType.makePointer())] + constructorParams
                     constructorInit.append(aliasB.name + '_' + pipeStageInner.name + '(' + aliasB.name + '_' + pipeStageInner.name + ')')
                     curPipeElements.append(attribute)
@@ -596,7 +595,7 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             fetchRegType = resourceType[self.fetchReg[0]]
             if self.fetchReg[0] in regsNames:
                 fetchRegType = pipeRegisterType
-            fetchAttr = cxx_writer.writer_code.Attribute(self.fetchReg[0], fetchRegType.makeRef(), 'pu')
+            fetchAttr = cxx_writer.writer_code.Attribute(self.fetchReg[0], fetchRegType.makeRef(), 'pri')
             constructorParams = [cxx_writer.writer_code.Parameter(self.fetchReg[0], fetchRegType.makeRef())] + constructorParams
             constructorInit.append(self.fetchReg[0] + '(' + self.fetchReg[0] + ')')
             curPipeElements.append(fetchAttr)
@@ -616,7 +615,7 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             for irq in self.irqs:
                 from isa import resolveBitType
                 irqWidthType = resolveBitType('BIT<' + str(irq.portWidth) + '>')
-                IRQAttribute = cxx_writer.writer_code.Attribute(irq.name, irqWidthType.makeRef(), 'pu')
+                IRQAttribute = cxx_writer.writer_code.Attribute(irq.name, irqWidthType.makeRef(), 'pri')
                 constructorParams = [cxx_writer.writer_code.Parameter(irq.name, irqWidthType.makeRef())] + constructorParams
                 constructorInit.append(irq.name + '(' + irq.name + ')')
                 curPipeElements.append(IRQAttribute)

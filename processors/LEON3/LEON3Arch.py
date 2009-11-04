@@ -61,7 +61,7 @@ from LEON3Methods import updateAliasCode_exception
 from LEON3Methods import updateAliasCode_abi
 
 # Lets now start building the processor
-processor = trap.Processor('LEON3', version = '0.1.9', systemc = True, instructionCache = True, cacheLimit = 256)
+processor = trap.Processor('LEON3', version = '0.2.0', systemc = True, instructionCache = True, cacheLimit = 256)
 processor.setBigEndian() # big endian
 processor.setWordsize(4, 8) # 4 bytes per word, 8 bits per byte
 processor.setISA(LEON3Isa.isa) # lets set the instruction set

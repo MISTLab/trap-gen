@@ -523,7 +523,7 @@ def getCPPPipelineReg(self, trace, combinedTrace, namespace):
         else:
             firstStages += 1
     propagateCode = 'bool hasChanges = false;\n'
-    propagateCode += 'if(!this->hasToPropagate){\nreturn;\n}\n'
+    #propagateCode += 'if(!this->hasToPropagate){\nreturn;\n}\n'
     propagateCode += 'if(this->reg_stage[' + str(len(self.pipes) - 1) + ']->timeStamp > this->reg_all->timeStamp){\n'
     ######
     if trace and not combinedTrace:
@@ -639,7 +639,7 @@ def getCPPPipelineReg(self, trace, combinedTrace, namespace):
     for order in orders:
         registerElements = []
         propagateCode = 'bool hasChanges = false;\n'
-        propagateCode += 'if(!this->hasToPropagate){\nreturn;\n}\n'
+        #propagateCode += 'if(!this->hasToPropagate){\nreturn;\n}\n'
         for pipeStage in order:
             if pipeStage != order[0]:
                 propagateCode += 'else '

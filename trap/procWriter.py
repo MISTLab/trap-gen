@@ -892,7 +892,7 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         if self.instructionCache:
             codeString += fetchWithCacheCode(self, fetchCode, trace, combinedTrace, getInstrIssueCode)
         else:
-            codeString += standardInstrFetch(self, trace, combinedTrace, issueCodeGenerator)
+            codeString += standardInstrFetch(self, trace, combinedTrace, getInstrIssueCode)
 
         if self.irqs:
             codeString += '}\n'
