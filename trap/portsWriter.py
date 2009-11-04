@@ -806,8 +806,7 @@ def getIRQTests(self, trace, combinedTrace, namespace):
                         code += resource[:brackIndex] + '_target.readPIN(' + hex(int(resource[brackIndex + 1:-1], 16)) + ')'
                 else:
                     code += resource + '.readNewValue()'
-                global archWordType
-                code += ', (' + str(archWordType) + ')' + hex(value) + ');\n\n'
+                code += ', (' + str(self.bitSizes[1]) + ')' + hex(value) + ');\n\n'
             code += destrDecls
             curTest = cxx_writer.writer_code.Code(code)
             wariningDisableCode = '#ifdef _WIN32\n#pragma warning( disable : 4101 )\n#endif\n'
