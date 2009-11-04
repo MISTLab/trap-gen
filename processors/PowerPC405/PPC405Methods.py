@@ -30,8 +30,9 @@
 #   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
 #   or see <http://www.gnu.org/licenses/>.
 #
-#   (c) Luca Fossati, fossati@elet.polimi.it
-#
+#   (a) Luca Fossati, fossati@elet.polimi.it
+#   (b) Redwanur Rahman, md.rahman@mail.polimi.it
+#   (c) Ashanka das, Ak.das@mail.polimi.it
 ####################################################################################
 
 
