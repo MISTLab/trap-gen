@@ -209,7 +209,6 @@ processor.addTLMPort('dataMem')
 #processor.setMemory('dataMem', 10*1024*1024)
 #processor.setMemory('dataMem', 10*1024*1024, True, 'PC')
 
-# Now lets add the interrupt ports: TODO
 # It PSR[ET] == 0 I do not do anything; else
 # I check the interrupt level, if == 15 or > PSR[PIL] I service the interrupt,
 # The interrupt level is carried by the value at the interrupt port
@@ -238,7 +237,11 @@ irqAck.send_pin_req(IRQ, 0);
 irqPort.setCondition('PSR[key_ET] && (IRQ == 15 || IRQ > PSR[key_PIL])')
 # in the IRQ tests I specify first the status of the processor before the
 # interrupt, then the status I expect after the execution of the interrupt
-irqPort.addTest({'IRQ': 0x0, 'PSR' : 0x0, 'TBR': 0x0, 'PC': 0x0, 'NPC': 0x0}, {'PSR' : 0x0, 'TBR': 0x0, 'PC': 0x0, 'NPC': 0x0})
+irqPort.addTest({'IRQ': 0x1, 'PSR' : 0x00000f20, 'TBR': 0x0, 'PC': 0x0, 'NPC': 0x0}, {'PSR' : 0x00000f20, 'TBR': 0x0, 'PC': 0x0, 'NPC': 0x0})
+irqPort.addTest({'IRQ': 0x1, 'PSR' : 0x00000000, 'TBR': 0x0, 'PC': 0x0, 'NPC': 0x0}, {'PSR' : 0x00000000, 'TBR': 0x0, 'PC': 0x0, 'NPC': 0x0})
+irqPort.addTest({'IRQ': 0xa, 'PSR' : 0x00000800, 'TBR': 0x0, 'PC': 0x0, 'NPC': 0x0}, {'PSR' : 0x00000800, 'TBR': 0x0, 'PC': 0x0, 'NPC': 0x0})
+irqPort.addTest({'IRQ': 0xf, 'PSR' : 0x00000f20, 'TBR': 0x0, 'PC': 0x0, 'NPC': 0x0}, {'PSR' : 0x00000f27, 'TBR': 0x1f0, 'PC': 0x1f0, 'NPC': 0x1f4})
+irqPort.addTest({'IRQ': 0xa, 'PSR' : 0x00000827, 'TBR': 0x80000000, 'PC': 0x0, 'NPC': 0x0}, {'PSR' : 0x00000826, 'TBR': 0x800001a0, 'PC': 0x800001a0, 'NPC': 0x800001a4})
 processor.addIrq(irqPort)
 
 # I also need to add the external port which is used to acknowledge
@@ -304,6 +307,6 @@ processor.setABI(abi)
 #processor.write(folder = 'processor', models = ['funcAT'], trace = False)
 #processor.write(folder = 'processor', models = ['funcAT'])
 #processor.write(folder = 'processor', models = ['funcAT', 'funcLT'], tests = False)
-#processor.write(folder = 'processor', models = ['accLT'], trace = False)
-processor.write(folder = 'processor', models = ['accLT', 'funcLT'], trace = False)
+processor.write(folder = 'processor', models = ['accLT'], trace = False)
+#processor.write(folder = 'processor', models = ['accLT', 'funcLT'], trace = False)
 #processor.write(folder = 'processor', models = ['accLT', 'funcLT'], trace = True, combinedTrace = True)
