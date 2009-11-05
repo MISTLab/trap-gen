@@ -247,9 +247,9 @@ class Folder:
                         printOnFile('        ' + codeFile.name, wscriptFile)
                 printOnFile('    \"\"\"', wscriptFile)
                 if tests:
-                    printOnFile('    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM BOOST_THREAD SYSTEMC TLM TRAP BFD LIBERTY\'', wscriptFile)
+                    printOnFile('    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM BOOST_SYSTEM BOOST_THREAD SYSTEMC TLM TRAP BFD LIBERTY\'', wscriptFile)
                 else:
-                    printOnFile('    obj.uselib = \'BOOST BOOST_FILESYSTEM BOOST_THREAD SYSTEMC TLM TRAP\'', wscriptFile)
+                    printOnFile('    obj.uselib = \'BOOST BOOST_FILESYSTEM BOOST_SYSTEM BOOST_THREAD SYSTEMC TLM TRAP\'', wscriptFile)
 
                 if self.uselib_local:
                     printOnFile('    obj.add_objects = \'' + ' '.join(self.uselib_local) + '\'', wscriptFile)
@@ -268,7 +268,7 @@ class Folder:
                 if tests:
                     printOnFile('    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_THREAD BOOST_SYSTEM SYSTEMC TLM TRAP BFD LIBERTY\'', wscriptFile)
                 else:
-                    printOnFile('    obj.uselib = \'BOOST BOOST_PROGRAM_OPTIONS BOOST_THREAD BOOST_SYSTEM BOOST_FILESYSTEM SYSTEMC TLM TRAP BFD LIBERTY\'', wscriptFile)
+                    printOnFile('    obj.uselib = \'BOOST BOOST_PROGRAM_OPTIONS BOOST_THREAD BOOST_FILESYSTEM BOOST_SYSTEM SYSTEMC TLM TRAP BFD LIBERTY\'', wscriptFile)
                 printOnFile('    obj.add_objects = \'' + ' '.join(self.uselib_local + [os.path.split(self.path)[-1]]) + '\'', wscriptFile)
                 printOnFile('    obj.name = \'' + os.path.split(self.path)[-1] + '_main\'', wscriptFile)
                 printOnFile('    obj.target = \'' + os.path.split(self.path)[-1] + '\'\n', wscriptFile)
@@ -448,7 +448,7 @@ class Folder:
     # Check for boost libraries
     ########################################
     conf.check_tool('boost')
-    conf.check_boost(lib='thread regex date_time program_options filesystem unit_test_framework system', static='both', min_version='1.35.0', max_version='1.39.9', mandatory = 1, errmsg = 'Unable to find regex and/or thread boost libraries, please install them and specify their location with the --boost-includes and --boost-libs configuration options')
+    conf.check_boost(lib='thread regex date_time program_options filesystem unit_test_framework system', static='both', min_version='1.35.0', mandatory = 1, errmsg = 'Unable to find boost libraries boost of at least version 1.35, please install them and specify their location with the --boost-includes and --boost-libs configuration options')
     if not Options.options.static_build:
         conf.env.append_unique('RPATH', conf.env['LIBPATH_BOOST_THREAD'])
 
