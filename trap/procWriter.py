@@ -167,6 +167,7 @@ def getInstrIssueCodePipe(self, trace, combinedTrace, instrVarName, hasCheckHaza
         """
     if pipeStage != self.pipes[0]:
         codeString += 'flushAnnulled = this->curInstruction->flushPipeline;\n'
+        codeString += 'this->curInstruction->flushPipeline = false;\n'
     if hasCheckHazard and unlockHazard:
         codeString +=  instrVarName + '->getUnlock_' + pipeStage.name + '(BasePipeStage::unlockQueue);\n'
     codeString += """
