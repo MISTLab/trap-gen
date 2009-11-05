@@ -985,7 +985,7 @@ def getCPPAlias(self, namespace):
     aliasElements.append(readNewValueMethod)
 
     getRegBody = cxx_writer.writer_code.Code('return this->reg;')
-    getRegMethod = cxx_writer.writer_code.Method('getReg', getRegBody, registerType.makePointer(), 'pu', inline = True, noException = True)
+    getRegMethod = cxx_writer.writer_code.Method('getReg', getRegBody, registerType.makePointer(), 'pu', const = True, inline = True, noException = True)
     aliasElements.append(getRegMethod)
 
     #################### Lets declare the normal operators (implementation of the pure operators of the base class) ###########
@@ -1058,19 +1058,20 @@ def getCPPAlias(self, namespace):
     constructorInit = ['offset(0)', 'defaultOffset(0)']
     publicMainEmptyClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', [], constructorInit)
     # Constructor: takes as input the initial alias
-    constructorBody = cxx_writer.writer_code.Code('initAlias->referredAliases.insert(this);\nthis->referringAliases = initAlias;')
+    constructorBody = cxx_writer.writer_code.Code('initAlias->referredAliases.push_back(this);\nthis->referringAliases = initAlias;')
     constructorParams = [cxx_writer.writer_code.Parameter('initAlias', aliasType.makePointer())]
     publicAliasConstrInit = ['reg(initAlias->reg)']
     constructorParams.append(cxx_writer.writer_code.Parameter('offset', cxx_writer.writer_code.uintType, initValue = '0'))
     publicAliasConstrInit += ['offset(initAlias->offset + offset)', 'defaultOffset(offset)']
     publicAliasConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, publicAliasConstrInit)
-    destructorBody = cxx_writer.writer_code.Code("""std::set<Alias *>::iterator referredIter, referredEnd;
+    destructorBody = cxx_writer.writer_code.Code("""std::list<Alias *>::iterator referredIter, referredEnd;
         for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
-            if((*referredIter)->referringAliases == this)
+            if((*referredIter)->referringAliases == this){
                 (*referredIter)->referringAliases = NULL;
+            }
         }
         if(this->referringAliases != NULL){
-            this->referringAliases->referredAliases.erase(this);
+            this->referringAliases->referredAliases.remove(this);
         }
         this->referringAliases = NULL;""")
     publicAliasDestr = cxx_writer.writer_code.Constructor(destructorBody, 'pu')
@@ -1087,15 +1088,15 @@ def getCPPAlias(self, namespace):
     updateCode = """this->reg = newAlias.reg;
     this->offset = newAlias.offset + newOffset;
     this->defaultOffset = newOffset;
-    std::set<Alias *>::iterator referredIter, referredEnd;
+    std::list<Alias *>::iterator referredIter, referredEnd;
     for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
         (*referredIter)->newReferredAlias(newAlias.reg, newAlias.offset + newOffset);
     }
     if(this->referringAliases != NULL){
-        this->referringAliases->referredAliases.erase(this);
+        this->referringAliases->referredAliases.remove(this);
     }
     this->referringAliases = &newAlias;
-    newAlias.referredAliases.insert(this);
+    newAlias.referredAliases.push_back(this);
     """
     updateBody = cxx_writer.writer_code.Code(updateCode)
     updateParam = [cxx_writer.writer_code.Parameter('newAlias', aliasType.makeRef())]
@@ -1106,17 +1107,17 @@ def getCPPAlias(self, namespace):
     this->defaultOffset = 0;
     """
     updateCode += """this->reg = newAlias.reg;
-    std::set<Alias *>::iterator referredIter, referredEnd;
+    std::list<Alias *>::iterator referredIter, referredEnd;
     for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
     """
     updateCode += '(*referredIter)->newReferredAlias(newAlias.reg, newAlias.offset);'
     updateCode += """
     }
     if(this->referringAliases != NULL){
-        this->referringAliases->referredAliases.erase(this);
+        this->referringAliases->referredAliases.remove(this);
     }
     this->referringAliases = &newAlias;
-    newAlias.referredAliases.insert(this);
+    newAlias.referredAliases.push_back(this);
     """
     updateBody = cxx_writer.writer_code.Code(updateCode)
     updateParam = [cxx_writer.writer_code.Parameter('newAlias', aliasType.makeRef())]
@@ -1126,12 +1127,12 @@ def getCPPAlias(self, namespace):
     updateCode = """this->reg = &newAlias;
     this->offset = newOffset;
     this->defaultOffset = 0;
-    std::set<Alias *>::iterator referredIter, referredEnd;
+    std::list<Alias *>::iterator referredIter, referredEnd;
     for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
         (*referredIter)->newReferredAlias(&newAlias, newOffset);
     }
     if(this->referringAliases != NULL){
-        this->referringAliases->referredAliases.erase(this);
+        this->referringAliases->referredAliases.remove(this);
     }
     this->referringAliases = NULL;
     """
@@ -1145,12 +1146,12 @@ def getCPPAlias(self, namespace):
     this->defaultOffset = 0;
     """
     updateCode += """this->reg = &newAlias;
-    std::set<Alias *>::iterator referredIter, referredEnd;
+    std::list<Alias *>::iterator referredIter, referredEnd;
     for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
         (*referredIter)->newReferredAlias(&newAlias);
     }
     if(this->referringAliases != NULL){
-        this->referringAliases->referredAliases.erase(this);
+        this->referringAliases->referredAliases.remove(this);
     }
     this->referringAliases = NULL;
     """
@@ -1162,10 +1163,10 @@ def getCPPAlias(self, namespace):
     directSetCode = 'this->reg = newAlias.reg;\n'
     directSetCode += 'this->offset = newAlias.offset;\n'
     directSetCode += """if(this->referringAliases != NULL){
-        this->referringAliases->referredAliases.erase(this);
+        this->referringAliases->referredAliases.remove(this);
     }
     this->referringAliases = &newAlias;
-    newAlias.referredAliases.insert(this);
+    newAlias.referredAliases.push_back(this);
     """
     directSetBody = cxx_writer.writer_code.Code(directSetCode)
     directSetParam = [cxx_writer.writer_code.Parameter('newAlias', aliasType.makeRef())]
@@ -1174,7 +1175,7 @@ def getCPPAlias(self, namespace):
 
     directSetBody = cxx_writer.writer_code.Code("""this->reg = &newAlias;
     if(this->referringAliases != NULL){
-        this->referringAliases->referredAliases.erase(this);
+        this->referringAliases->referredAliases.remove(this);
     }
     this->referringAliases = NULL;""")
     directSetParam = [cxx_writer.writer_code.Parameter('newAlias', registerType.makeRef())]
@@ -1183,7 +1184,7 @@ def getCPPAlias(self, namespace):
 
     updateCode = """this->reg = newAlias;
     this->offset = newOffset + this->defaultOffset;
-    std::set<Alias *>::iterator referredIter, referredEnd;
+    std::list<Alias *>::iterator referredIter, referredEnd;
     for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
         (*referredIter)->newReferredAlias(newAlias, newOffset);
     }
@@ -1196,7 +1197,7 @@ def getCPPAlias(self, namespace):
 
     updateCode = 'this->offset = this->defaultOffset;\n'
     updateCode += """this->reg = newAlias;
-    std::set<Alias *>::iterator referredIter, referredEnd;
+    std::list<Alias *>::iterator referredIter, referredEnd;
     for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
         (*referredIter)->newReferredAlias(newAlias);
     }"""
@@ -1214,7 +1215,7 @@ def getCPPAlias(self, namespace):
     aliasElements.append(offsetAttribute)
 
     # Finally I declare the class and pass to it all the declared members: Standard Alias
-    aliasesAttribute = cxx_writer.writer_code.Attribute('referredAliases', cxx_writer.writer_code.TemplateType('std::set', [aliasType.makePointer()], 'set'), 'pri')
+    aliasesAttribute = cxx_writer.writer_code.Attribute('referredAliases', cxx_writer.writer_code.TemplateType('std::list', [aliasType.makePointer()], 'list'), 'pri')
     aliasElements.append(aliasesAttribute)
     aliasesAttribute = cxx_writer.writer_code.Attribute('referringAliases', aliasType.makePointer(), 'pri')
     aliasElements.append(aliasesAttribute)
@@ -1260,10 +1261,10 @@ def getCPPPipelineAlias(self, namespace):
     setpipeIdMethod = cxx_writer.writer_code.Method('setPipeId', setpipeIdBody, cxx_writer.writer_code.voidType, 'pu', [pipeIdParam])
     aliasElements.append(setpipeIdMethod)
     getPipeRegBody = cxx_writer.writer_code.Code('return this->pipelineReg;')
-    getPipeRegMethod = cxx_writer.writer_code.Method('getPipeReg', getPipeRegBody, pipeRegisterType.makePointer(), 'pu', inline = True, noException = True)
+    getPipeRegMethod = cxx_writer.writer_code.Method('getPipeReg', getPipeRegBody, pipeRegisterType.makePointer(), 'pu', const = True, inline = True, noException = True)
     aliasElements.append(getPipeRegMethod)
     getRegBody = cxx_writer.writer_code.Code('return this->pipelineReg->getRegister(this->pipeId);')
-    getRegMethod = cxx_writer.writer_code.Method('getReg', getRegBody, registerType.makePointer(), 'pu', inline = True, noException = True)
+    getRegMethod = cxx_writer.writer_code.Method('getReg', getRegBody, registerType.makePointer(), 'pu', const = True, inline = True, noException = True)
     aliasElements.append(getRegMethod)
     newPipelineRegParam = cxx_writer.writer_code.Parameter('newPipelineReg', pipeRegisterType.makePointer())
     #setPipeRegBody = cxx_writer.writer_code.Code('this->pipelineReg = newPipelineReg;')
@@ -1356,18 +1357,19 @@ def getCPPPipelineAlias(self, namespace):
     publicMainEmptyClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', [pipeIdParam], ['pipelineReg(NULL), pipeId(pipeId)'])
     publicMainEmpty2ClassConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', initList = ['pipelineReg(NULL), pipeId(-1)'])
     # Constructor: takes as input the initial alias
-    constructorBody = cxx_writer.writer_code.Code('initAlias->referredAliases.insert(this);\nthis->referringAliases = initAlias;')
+    constructorBody = cxx_writer.writer_code.Code('initAlias->referredAliases.push_back(this);\nthis->referringAliases = initAlias;')
     constructorParams = [cxx_writer.writer_code.Parameter('initAlias', aliasType.makePointer())]
     constructorParams.append(cxx_writer.writer_code.Parameter('pipeId', cxx_writer.writer_code.intType, initValue = '-1'))
     publicAliasConstrInit = ['pipelineReg(initAlias->pipelineReg), pipeId(pipeId)']
     publicAliasConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, publicAliasConstrInit)
-    destructorBody = cxx_writer.writer_code.Code("""std::set<Alias *>::iterator referredIter, referredEnd;
+    destructorBody = cxx_writer.writer_code.Code("""std::list<Alias *>::iterator referredIter, referredEnd;
         for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
-            if((*referredIter)->referringAliases == this)
+            if((*referredIter)->referringAliases == this){
                 (*referredIter)->referringAliases = NULL;
+            }
         }
         if(this->referringAliases != NULL){
-            this->referringAliases->referredAliases.erase(this);
+            this->referringAliases->referredAliases.remove(this);
         }
         this->referringAliases = NULL;""")
     publicAliasDestr = cxx_writer.writer_code.Constructor(destructorBody, 'pu')
@@ -1382,43 +1384,44 @@ def getCPPPipelineAlias(self, namespace):
 
     # Update method: updates the register pointed by this alias: Standard Alias
     updateCode = """this->pipelineReg = newAlias.pipelineReg;
-    std::set<Alias *>::iterator referredIter, referredEnd;
+    std::list<Alias *>::iterator referredIter, referredEnd;
     for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
     """
     updateCode += '(*referredIter)->newReferredAlias(newAlias.pipelineReg);'
     updateCode += """
     }
     if(this->referringAliases != NULL){
-        this->referringAliases->referredAliases.erase(this);
+        this->referringAliases->referredAliases.remove(this);
     }
     this->referringAliases = &newAlias;
-    newAlias.referredAliases.insert(this);
+    newAlias.referredAliases.push_back(this);
     """
     updateBody = cxx_writer.writer_code.Code(updateCode)
     updateParam = [cxx_writer.writer_code.Parameter('newAlias', aliasType.makeRef())]
-    updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam, inline = True, noException = True)
+    updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam, noException = True)
     aliasElements.append(updateDecl)
 
     updateCode = """this->pipelineReg = &newAlias;
-    std::set<Alias *>::iterator referredIter, referredEnd;
+    std::list<Alias *>::iterator referredIter, referredEnd;
     for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
         (*referredIter)->newReferredAlias(&newAlias);
     }
     if(this->referringAliases != NULL){
-        this->referringAliases->referredAliases.erase(this);
+        this->referringAliases->referredAliases.remove(this);
     }
     this->referringAliases = NULL;
     """
     updateBody = cxx_writer.writer_code.Code(updateCode)
     updateParam = [cxx_writer.writer_code.Parameter('newAlias', pipeRegisterType.makeRef())]
-    updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam, inline = True, noException = True)
+    # changed here
+    updateDecl = cxx_writer.writer_code.Method('updateAlias', updateBody, cxx_writer.writer_code.voidType, 'pu', updateParam, inline = False, noException = True)
     aliasElements.append(updateDecl)
 
     propagateCode = """if(this->referringAliases != NULL){
         return;
     }
     this->pipelineReg = &newAlias;
-    std::set<Alias *>::iterator referredIter, referredEnd;
+    std::list<Alias *>::iterator referredIter, referredEnd;
     for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
         (*referredIter)->newReferredAlias(&newAlias);
     }
@@ -1431,10 +1434,10 @@ def getCPPPipelineAlias(self, namespace):
     directSetCode = """this->pipelineReg = newAlias.pipelineReg;
     this->pipeId = newAlias.pipeId;
     if(this->referringAliases != NULL){
-        this->referringAliases->referredAliases.erase(this);
+        this->referringAliases->referredAliases.remove(this);
     }
     this->referringAliases = &newAlias;
-    newAlias.referredAliases.insert(this);
+    newAlias.referredAliases.push_back(this);
     """
     directSetBody = cxx_writer.writer_code.Code(directSetCode)
     directSetParam = [cxx_writer.writer_code.Parameter('newAlias', aliasType.makeRef())]
@@ -1443,7 +1446,7 @@ def getCPPPipelineAlias(self, namespace):
 
     directSetBody = cxx_writer.writer_code.Code("""this->pipelineReg = &newAlias;
     if(this->referringAliases != NULL){
-        this->referringAliases->referredAliases.erase(this);
+        this->referringAliases->referredAliases.remove(this);
     }
     this->referringAliases = NULL;""")
     directSetParam = [cxx_writer.writer_code.Parameter('newAlias', pipeRegisterType.makeRef())]
@@ -1451,7 +1454,7 @@ def getCPPPipelineAlias(self, namespace):
     aliasElements.append(directSetDecl)
 
     updateCode = """this->pipelineReg = newAlias;
-    std::set<Alias *>::iterator referredIter, referredEnd;
+    std::list<Alias *>::iterator referredIter, referredEnd;
     for(referredIter = this->referredAliases.begin(), referredEnd = this->referredAliases.end(); referredIter != referredEnd; referredIter++){
         (*referredIter)->newReferredAlias(newAlias);
     }"""
@@ -1466,7 +1469,7 @@ def getCPPPipelineAlias(self, namespace):
     aliasElements.append(pipelineIdAttribute)
 
     # Finally I declare the class and pass to it all the declared members: Standard Alias
-    aliasesAttribute = cxx_writer.writer_code.Attribute('referredAliases', cxx_writer.writer_code.TemplateType('std::set', [aliasType.makePointer()], 'set'), 'pri')
+    aliasesAttribute = cxx_writer.writer_code.Attribute('referredAliases', cxx_writer.writer_code.TemplateType('std::list', [aliasType.makePointer()], 'list'), 'pri')
     aliasElements.append(aliasesAttribute)
     aliasesAttribute = cxx_writer.writer_code.Attribute('referringAliases', aliasType.makePointer(), 'pri')
     aliasElements.append(aliasesAttribute)

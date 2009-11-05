@@ -52,11 +52,8 @@ extern "C" {
 
 #include "execLoader.hpp"
 
-#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/path.hpp>
-
 
 trap::ExecLoader::ExecLoader(std::string fileName, bool plainFile) : plainFile(plainFile){
     this->programData = NULL;

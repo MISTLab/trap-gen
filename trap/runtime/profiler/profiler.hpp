@@ -24,6 +24,7 @@
 #endif
 #endif
 
+#include <set>
 #include <string>
 #include <vector>
 #include <fstream>

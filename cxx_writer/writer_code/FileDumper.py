@@ -366,6 +366,12 @@ class Folder:
             conf.env.append_unique('CCFLAGS', '-g')
         if not '-g' in conf.env['CXXFLAGS']:
             conf.env.append_unique('CXXFLAGS', '-g')
+        if '-fomit-frame-pointer' in conf.env['CCFLAGS']:
+            conf.env['CCFLAGS'].remove('-fomit-frame-pointer')
+        if '-fomit-frame-pointer' in conf.env['CXXFLAGS']:
+            conf.env['CXXFLAGS'].remove('-fomit-frame-pointer')
+        conf.env.append_unique('CCFLAGS', '-pg')
+        conf.env.append_unique('CXXFLAGS', '-pg')
         conf.env.append_unique('LINKFLAGS', '-pg')
         conf.env.append_unique('STLINKFLAGS', '-pg')
     if Options.options.enable_vprof:

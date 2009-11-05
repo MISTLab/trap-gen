@@ -6,7 +6,7 @@
 #include <string>
 #include <map>
 
-#include <boost/filesystem/path.hpp>
+#include <boost/filesystem.hpp>
 
 namespace trap{
 

@@ -273,6 +273,12 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             // Now I have to propagate the instruction to the next cycle if
             // the next stage has completed elaboration
             if(this->hasToFlush){
+                if(this->curInstruction->toDestroy){
+                    delete this->curInstruction;
+                }
+                else{
+                    this->curInstruction->inPipeline = false;
+                }
                 this->curInstruction = this->NOPInstrInstance;
                 this->nextInstruction = this->NOPInstrInstance;
                 this->hasToFlush = false;
@@ -290,6 +296,12 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
                     wait(this->latency);
                     this->waitPipeEnd();
                     if(this->hasToFlush){
+                        if(this->curInstruction->toDestroy){
+                            delete this->curInstruction;
+                        }
+                        else{
+                            this->curInstruction->inPipeline = false;
+                        }
                         this->curInstruction = this->NOPInstrInstance;
                         this->nextInstruction = this->NOPInstrInstance;
                         this->hasToFlush = false;
@@ -381,6 +393,12 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
 
             if pipeStage != self.pipes[-1]:
                 codeString += """if(this->hasToFlush){
+                        if(this->curInstruction->toDestroy){
+                            delete this->curInstruction;
+                        }
+                        else{
+                            this->curInstruction->inPipeline = false;
+                        }
                         // First of all I have to free any used resource in case there are any
                         this->curInstruction = this->NOPInstrInstance;
                         this->nextInstruction = this->NOPInstrInstance;
@@ -412,6 +430,12 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
                     std::cerr << "Stalled registers: " << this->curInstruction->printBusyRegs() << std::endl << std::endl;
                     """
                 codeString += """if(this->hasToFlush){
+                        if(this->curInstruction->toDestroy){
+                            delete this->curInstruction;
+                        }
+                        else{
+                            this->curInstruction->inPipeline = false;
+                        }
                         // First of all I have to free any used resource in case there are any
                         this->curInstruction = this->NOPInstrInstance;
                         this->nextInstruction = this->NOPInstrInstance;

@@ -91,7 +91,7 @@ hash_map_include = """
 
 # Computes the code defining the execution of an instruction and
 # of the processor tools.
-def getInstrIssueCode(self, trace, combinedTrace, instrVarName, hasCheckHazard = False, pipeStage = None):
+def getInstrIssueCode(self, trace, combinedTrace, instrVarName, hasCheckHazard = False, pipeStage = None, checkDestroyCode = ''):
     codeString = """try{
             #ifndef DISABLE_TOOLS
             if(!(this->toolManager.newIssue(curPC, """ + instrVarName + """))){
@@ -118,7 +118,7 @@ def getInstrIssueCode(self, trace, combinedTrace, instrVarName, hasCheckHazard =
 
 # Computes the code defining the execution of an instruction and
 # of the processor tools.
-def getInstrIssueCodePipe(self, trace, combinedTrace, instrVarName, hasCheckHazard, pipeStage):
+def getInstrIssueCodePipe(self, trace, combinedTrace, instrVarName, hasCheckHazard, pipeStage, checkDestroyCode = ''):
     unlockHazard = False
     for i in self.pipes:
         if i.checkHazard:
@@ -148,6 +148,12 @@ def getInstrIssueCodePipe(self, trace, combinedTrace, instrVarName, hasCheckHaza
         codeString += """#ifndef DISABLE_TOOLS
                     }
                     else{
+            if(""" + instrVarName + """->toDestroy""" + checkDestroyCode + """){
+                delete """ + instrVarName + """;
+            }
+            else{
+                """ + instrVarName + """->inPipeline = false;
+            }
             this->curInstruction = this->NOPInstrInstance;
         """
         if trace:
@@ -164,8 +170,11 @@ def getInstrIssueCodePipe(self, trace, combinedTrace, instrVarName, hasCheckHaza
     if hasCheckHazard and unlockHazard:
         codeString +=  instrVarName + '->getUnlock_' + pipeStage.name + '(BasePipeStage::unlockQueue);\n'
     codeString += """
-            if(""" + instrVarName + """->toDestroy){
+            if(""" + instrVarName + """->toDestroy""" + checkDestroyCode + """){
                 delete """ + instrVarName + """;
+            }
+            else{
+                """ + instrVarName + """->inPipeline = false;
             }
             this->curInstruction = this->NOPInstrInstance;
             numCycles = 0;
@@ -233,7 +242,7 @@ def getInterruptCode(self, pipeStage = None):
 
 # Returns the code necessary for performing a standard instruction fetch: i.e.
 # read from memory and set the instruction parameters
-def standardInstrFetch(self, trace, combinedTrace, issueCodeGenerator, hasCheckHazard = False, pipeStage = None):
+def standardInstrFetch(self, trace, combinedTrace, issueCodeGenerator, hasCheckHazard = False, pipeStage = None, checkDestroyCode = ''):
     codeString = 'int instrId = this->decoder.decode(bitString);\n'
     if pipeStage:
         codeString += 'Instruction * instr = ' + pipeStage.name.upper() + '_PipeStage::INSTRUCTIONS[instrId];\n'
@@ -247,7 +256,7 @@ def standardInstrFetch(self, trace, combinedTrace, issueCodeGenerator, hasCheckH
         codeString += 'Instruction * instr = Processor::INSTRUCTIONS[instrId];\n'
     codeString += 'instr->setParams(bitString);\n'
 
-    codeString += issueCodeGenerator(self, trace, combinedTrace, 'instr', hasCheckHazard, pipeStage)
+    codeString += issueCodeGenerator(self, trace, combinedTrace, 'instr', hasCheckHazard, pipeStage, checkDestroyCode)
     return codeString
 
 def fetchWithCacheCode(self, fetchCode, trace, combinedTrace, issueCodeGenerator, hasCheckHazard = False, pipeStage = None):
@@ -278,9 +287,9 @@ def fetchWithCacheCode(self, fetchCode, trace, combinedTrace, issueCodeGenerator
     codeString += '}\nelse{\n'
     if self.fastFetch:
         codeString += fetchCode
-    codeString += standardInstrFetch(self, trace, combinedTrace, issueCodeGenerator, hasCheckHazard, pipeStage)
-    codeString += """unsigned int & curCount = cachedInstr->second.count;
-        if(curCount < """ + str(self.cacheLimit) + """){
+    codeString += 'unsigned int & curCount = cachedInstr->second.count;\n'
+    codeString += standardInstrFetch(self, trace, combinedTrace, issueCodeGenerator, hasCheckHazard, pipeStage, ' && curCount < ' + str(self.cacheLimit))
+    codeString += """if(curCount < """ + str(self.cacheLimit) + """){
             curCount++;
         }
         else{
@@ -1504,10 +1513,7 @@ def getMainCode(self, model, namespace):
         mainCode.addInclude('osEmulator.hpp')
     mainCode.addInclude('boost/program_options.hpp')
     mainCode.addInclude('boost/timer.hpp')
-    mainCode.addInclude('boost/filesystem/operations.hpp')
-    mainCode.addInclude('boost/filesystem/fstream.hpp')
-    mainCode.addInclude('boost/filesystem/convenience.hpp')
-    mainCode.addInclude('boost/filesystem/path.hpp')
+    mainCode.addInclude('boost/filesystem.hpp')
     mainCode.addInclude('string')
     mainCode.addInclude('vector')
     mainCode.addInclude('set')
