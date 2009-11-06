@@ -635,7 +635,11 @@ char *argv;
   InitX(N, x);                  /* place random values in x */
   InitU(N,umain);               /* initialize u arrays*/
   InitU2(N,umain2,rootN);
-    for(numIter = 0; numIter < 500; numIter++){
+  #ifdef SHORT_BENCH
+  for(numIter = 0; numIter < 5; numIter++){
+  #else
+  for(numIter = 0; numIter < 500; numIter++){
+  #endif
         SlaveStart(0);
     }
   return 0;

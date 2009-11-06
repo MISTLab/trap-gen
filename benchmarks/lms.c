@@ -76,7 +76,11 @@
  *                      $Revision: 696 $
  */
 
+#ifdef SHORT_BENCH
+#define N 5120  /* number of coefficient taps */
+#else
 #define N 512000  /* number of coefficient taps */
+#endif
 
 int H[N]; /* Filter Coefficient Vector */
 int X[N]; /* Filter State Variable Vector */

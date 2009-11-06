@@ -124,19 +124,23 @@ int main()
     {0x3243f6a8,0x885a308d,0x313198a2,0xe0370734};
     WORD32 outencry[4]; /*Uscita crittografia*/
     WORD32 outdecry[4]; /*UScita decrittografia*/
+    #ifdef SHORT_BENCH
+    for(i = 0; i < 20; i++){
+    #else
     for(i = 0; i < 1000; i++){
-    for (n_blk=0;n_blk<10;n_blk++)
-    {
-        keyschedule(key, m_expanded_key); /*Lancia Init che crea le chiavi
-              di sessione e controlla di avere tutti
-          i dati e restituisce SUCCESS.*/
-        encryptblock(block, outencry, m_expanded_key);
-        decryptblock(outencry, outdecry, m_expanded_key);
-        block[0]= block[0]+block[1]-block[2]+block[3]-block[2];
-        block[1]= block[2]+block[3]+block[3]-block[1]-block[0];
-        block[2]= block[2]-block[1]+block[3]+block[0]+block[2];
-        block[3]= block[0]-block[3]+block[1]+block[0]-block[2];
-    }
+    #endif
+        for (n_blk=0;n_blk<10;n_blk++)
+        {
+            keyschedule(key, m_expanded_key); /*Lancia Init che crea le chiavi
+                di sessione e controlla di avere tutti
+            i dati e restituisce SUCCESS.*/
+            encryptblock(block, outencry, m_expanded_key);
+            decryptblock(outencry, outdecry, m_expanded_key);
+            block[0]= block[0]+block[1]-block[2]+block[3]-block[2];
+            block[1]= block[2]+block[3]+block[3]-block[1]-block[0];
+            block[2]= block[2]-block[1]+block[3]+block[0]+block[2];
+            block[3]= block[0]-block[3]+block[1]+block[0]-block[2];
+        }
     }
 
     return 0;

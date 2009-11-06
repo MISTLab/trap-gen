@@ -532,19 +532,43 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             codeString += '\n//Here we update the aliases, so that what they point to is updated in the pipeline\n'
             for i in reversed(range(0, len(self.pipes) -1)):
                 for alias in self.aliasRegs:
-                    codeString += 'if(this->' + alias.name + '_' + self.pipes[i + 1].name + '.getPipeReg() != this->' + alias.name + '_' + self.pipes[i].name + '.getPipeReg()){\n'
-                    if trace and not combinedTrace:
-                        codeString += 'std::cerr << "Updating alias ' + alias.name + '_' + self.pipes[i + 1].name + '" << std::endl;\n'
-                    codeString += 'this->' + alias.name + '_' + self.pipes[i + 1].name + '.propagateAlias(*(this->' + alias.name + '_' + self.pipes[i].name + '.getPipeReg()));\n'
-                    codeString += '}\n'
+                    if not alias.isFixed:
+                        codeString += 'if(this->' + alias.name + '_' + self.pipes[i + 1].name + '.getPipeReg() != this->' + alias.name + '_' + self.pipes[i].name + '.getPipeReg()){\n'
+                        if trace and not combinedTrace:
+                            codeString += 'std::cerr << "Updating alias ' + alias.name + '_' + self.pipes[i + 1].name + '" << std::endl;\n'
+                        codeString += 'this->' + alias.name + '_' + self.pipes[i + 1].name + '.propagateAlias(*(this->' + alias.name + '_' + self.pipes[i].name + '.getPipeReg()));\n'
+                        codeString += '}\n'
                 for aliasB in self.aliasRegBanks:
-                    codeString += 'for(int i = 0; i < ' + str(aliasB.numRegs) + '; i++){\n'
-                    codeString += 'if(this->' + aliasB.name + '_' + self.pipes[i + 1].name + '[i].getPipeReg() != this->' + aliasB.name + '_' + self.pipes[i].name + '[i].getPipeReg()){\n'
-                    if trace and not combinedTrace:
-                        codeString += 'std::cerr << "Updating alias ' + aliasB.name + '_' + self.pipes[i + 1].name + '[" << i << "]" << std::endl;\n'
-                    codeString += 'this->' + aliasB.name + '_' + self.pipes[i + 1].name + '[i].propagateAlias(*(this->' + aliasB.name + '_' + self.pipes[i].name + '[i].getPipeReg()));\n'
-                    codeString += '}\n'
-                    codeString += '}\n'
+                    checkContiguous = True
+                    for j in range(0, len(aliasB.fixedIndices) - 1):
+                        if aliasB.fixedIndices[j] + 1 != aliasB.fixedIndices[j + 1]:
+                            checkContiguous = False
+                            break
+                    if checkContiguous:
+                        if aliasB.fixedIndices[0] > 0:
+                            codeString += 'for(int i = 0; i < ' + str(aliasB.fixedIndices[-1]) + '; i++){\n'
+                            codeString += 'if(this->' + aliasB.name + '_' + self.pipes[i + 1].name + '[i].getPipeReg() != this->' + aliasB.name + '_' + self.pipes[i].name + '[i].getPipeReg()){\n'
+                            if trace and not combinedTrace:
+                                codeString += 'std::cerr << "Updating alias ' + aliasB.name + '_' + self.pipes[i + 1].name + '[" << i << "]" << std::endl;\n'
+                            codeString += 'this->' + aliasB.name + '_' + self.pipes[i + 1].name + '[i].propagateAlias(*(this->' + aliasB.name + '_' + self.pipes[i].name + '[i].getPipeReg()));\n'
+                            codeString += '}\n'
+                            codeString += '}\n'
+                        if aliasB.fixedIndices[-1] + 1 < aliasB.numRegs:
+                            codeString += 'for(int i = ' + str(aliasB.fixedIndices[-1] + 1) + '; i < ' + str(aliasB.numRegs) + '; i++){\n'
+                            codeString += 'if(this->' + aliasB.name + '_' + self.pipes[i + 1].name + '[i].getPipeReg() != this->' + aliasB.name + '_' + self.pipes[i].name + '[i].getPipeReg()){\n'
+                            if trace and not combinedTrace:
+                                codeString += 'std::cerr << "Updating alias ' + aliasB.name + '_' + self.pipes[i + 1].name + '[" << i << "]" << std::endl;\n'
+                            codeString += 'this->' + aliasB.name + '_' + self.pipes[i + 1].name + '[i].propagateAlias(*(this->' + aliasB.name + '_' + self.pipes[i].name + '[i].getPipeReg()));\n'
+                            codeString += '}\n'
+                            codeString += '}\n'
+                    else:
+                        for j in range(0, aliasB.numRegs):
+                            if not j in aliasB.fixedIndices:
+                                codeString += 'if(this->' + aliasB.name + '_' + self.pipes[i + 1].name + '[' + str(j) + '].getPipeReg() != this->' + aliasB.name + '_' + self.pipes[i].name + '[' + str(j) + '].getPipeReg()){\n'
+                                if trace and not combinedTrace:
+                                    codeString += 'std::cerr << "Updating alias ' + aliasB.name + '_' + self.pipes[i + 1].name + '[" << ' + str(i) + ' << "]" << std::endl;\n'
+                                codeString += 'this->' + aliasB.name + '_' + self.pipes[i + 1].name + '[' + str(j) + '].propagateAlias(*(this->' + aliasB.name + '_' + self.pipes[i].name + '[' + str(j) + '].getPipeReg()));\n'
+                                codeString += '}\n'
             # Now I have to produce the code for unlocking the registers in the unlockQueue
             codeString += """
             // Finally registers are unlocked, so that stalls due to data hazards can be resolved

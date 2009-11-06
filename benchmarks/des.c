@@ -580,7 +580,11 @@ static unsigned long des_SPtrans[8][64]={
         unsigned char   cipher[8];
         };
 
+#ifdef SHORT_BENCH
+#define NTESTS  20
+#else
 #define NTESTS  (sizeof(test8)/sizeof(test8[0]))
+#endif
         struct  test8   test8[] =
         {
             {

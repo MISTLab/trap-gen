@@ -33,7 +33,11 @@ float factrl(int n)
 int main()
 {
     int i,j;
-    for(j = 0; j < 10000; j++){
+    #ifdef SHORT_BENCH
+    for(j = 0; j < 1000; j++){
+    #else
+    for(j = 0; j < 50000; j++){
+    #endif
         for(i=10;i<33;i++)
             factrl(i);
     }

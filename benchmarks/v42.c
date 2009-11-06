@@ -75,6 +75,22 @@ unsigned long   last;
 /****************************************************************
 * Internal source and buffers
 ****************************************************************/
+#ifdef SHORT_BENCH
+unsigned char inbuf[] = {
+/* yes, this is really ugly, but ANSI says strings shouldn't exceed 509
+    chars, so this way the code is more portable. - david */
+    '%','!','P','S','-','A','d','o','b','e','-','2','.','0','\n',
+        '%','%','C','r','e','a','t','o','r',':',' ','d','v','i','p','s','k',' ','5','.','5','8','a',' ','C','o','p','y','r','i','g','h','t',' ','1','9','8','6',',',' ','1','9','9','4',' ','R','a','d','i','c','a','l',' ','E','y','e',' ','S','o','f','t','w','a','r','e','\n',
+        '%','%','T','i','t','l','e',':',' ','s','e','s','t','e','m','p','l','a','t','e','.','d','v','i','\n',
+        '%','%','P','a','g','e','s',':',' ','1','\n',
+        '%','%','P','a','g','e','O','r','d','e','r',':',' ','A','s','c','e','n','d','\n',
+        '%','%','B','o','u','n','d','i','n','g','B','o','x',':',' ','0',' ','0',' ','6','1','2',' ','7','9','2','\n',
+        '%','%','D','o','c','u','m','e','n','t','F','o','n','t','s',':',' ','T','i','m','e','s','-','B','o','l','d',' ','T','i','m','e','s','-','R','o','m','a','n',' ','T','i','m','e','s','-','B','o','l','d','I','t','a','l','i','c',' ','T','i','m','e','s','-','I','t','a','l','i','c','\n',
+        '%','%','D','o','c','u','m','e','n','t','P','a','p','e','r','S','i','z','e','s',':',' ','L','e','t','t','e','r','\n',
+        '%','%','E','n','d','C','o','m','m','e','n','t','s','\n',
+        '%','%','E','O','F','\0'
+};
+#else
 unsigned char inbuf[] = {
 /* yes, this is really ugly, but ANSI says strings shouldn't exceed 509
     chars, so this way the code is more portable. - david */
@@ -215,6 +231,7 @@ unsigned char inbuf[] = {
         'u','s','e','r','d','i','c','t',' ','/','e','n','d','-','h','o','o','k',' ','k','n','o','w','n','{','e','n','d','-','h','o','o','k','}','i','f','\n',
         '%','%','E','O','F','\0'
 };
+#endif
 
 unsigned long   baddr, eaddr;
 int     codedone;
@@ -724,7 +741,9 @@ char    *argv[];
     unsigned char   *s, *t, *e;
     int i = 0;
 
+    #ifndef SHORT_BENCH
     for(i = 0; i < 5; i++){
+    #endif
         gP=gE=0;
         codedone = baddr = eaddr = escape = compress = 0;
         eout = outbuf;
@@ -743,6 +762,8 @@ char    *argv[];
         else {
             puts("v42: success\n");
         }
+    #ifndef SHORT_BENCH
     }
+    #endif
     return 0;
 }

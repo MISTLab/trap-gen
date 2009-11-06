@@ -95,6 +95,7 @@ main()
 			      "regime", "boom", "that", "impact", "and", "zoom", "texture",
 			      "magnet", "doom", "loom", "freq", "current", "phase",
 			      "images",
+#ifndef SHORT_BENCH
 			      "appears", "phase", "conductor", "wavez",
 			      "normal", "free", "termed",
 			      "provide", "for", "and", "struct", "about", "have",
@@ -112,6 +113,7 @@ main()
 			      "officers",
 			      "implement",
 			      "principalities",
+#endif
 			      NULL};
       char *search_strings[] = {"cabbie", "your", "It isn't here",
                                 "But it is here", "hodad", "yoohoo", "yoohoo",
@@ -119,6 +121,7 @@ main()
 				"In recent years, the field of photonic ",
 				"crystals has found new",
 				"applications in the RF and microwave",
+#ifndef SHORT_BENCH
 				"regime. A new type of metallic",
 				"electromagnetic crystal has been",
 				"developed that is having a",
@@ -160,6 +163,7 @@ main()
 				"Executive Officers and I will then decide",
 				"whether and how to implement such",
 				"principles.",
+#endif
                 NULL
 };
       int i,j;

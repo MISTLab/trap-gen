@@ -19,7 +19,11 @@ int main()
 {
  register unsigned long IMax,value;
 
+ #ifdef SHORT_BENCH
+ IMax = 20;//IMax = 40;
+ #else
  IMax = 30;//IMax = 40;
+ #endif
 
  printf("\n");
  printf("Fibonacci Benchmark\n");

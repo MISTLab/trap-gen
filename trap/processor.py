@@ -237,9 +237,13 @@ class AliasRegister:
         self.initAlias = initAlias
         self.offset = offset
         self.defValue = None
+        self.isFixed = False
 
     def setDefaultValue(self, value):
         self.defValue = value
+
+    def setFixed(self):
+        self.isFixed = True
 
 class MemoryAlias:
     """Alias for a register through a memory address: by reading and writing to the
@@ -281,6 +285,16 @@ class AliasRegBank:
         self.initAlias = initAlias
         self.defValues = [None for i in range(0, numRegs)]
         self.offsets = {}
+        self.fixedIndices = []
+
+    def setFixed(self, indices):
+        for index in indices:
+            if index >= self.numRegs:
+                raise Exception('Alias bank ' + self.name + ' does not have index ' + str(index) + ' in setting fixed indices')
+        for i in range(0, len(self.fixedIndices) - 1):
+            if self.fixedIndices[i] > self.fixedIndices[i + 1]:
+                raise Exception('Alias bank ' + self.name + ' have fixed indices not in acending order')
+        self.fixedIndices = indices
 
     def setOffset(self, regId, offset):
         self.offsets[regId] = offset

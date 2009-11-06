@@ -65,7 +65,11 @@ int main(void)
     unsigned short i1,i2;
     int n,i;
 
+    #ifdef SHORT_BENCH
+    for(i = 0; i < 100; i++){
+    #else
     for(i = 0; i < 10000; i++){
+    #endif
         i1=icrc(0,aa,40,(short)0,1);
         i2=icrc(i1,aa,42,(short)-1,1);
     }

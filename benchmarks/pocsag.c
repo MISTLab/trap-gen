@@ -1035,7 +1035,11 @@ int main()
     dx  j;                         /* msg process type index */
     int m = 0;
 
+    #ifdef SHORT_BENCH
+    for(m = 0; m < 4; m++){
+    #else
     for(m = 0; m < 100; m++){
+    #endif
         for (j = 0; j < 2; j++)
         {
             alpha_count=0;

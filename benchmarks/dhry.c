@@ -721,7 +721,11 @@ int main ()
     printf ("Program compiled without 'register' attribute\n");
     printf ("\n");
   }
-    Number_Of_Runs = 10000;
+    #ifdef SHORT_BENCH
+    Number_Of_Runs = 500;
+    #else
+    Number_Of_Runs = 50000;
+    #endif
 
   printf ("\n");
 

@@ -72,7 +72,11 @@ int main()
 
     disk    = 4;
 
-    for(i = 0; i < 10000; i++){
+    #ifdef SHORT_BENCH
+    for(i = 0; i < 50000; i++){
+    #else
+    for(i = 0; i < 5000000; i++){
+    #endif
         while ( disk < 6 )
         {
         disk++;
@@ -99,8 +103,8 @@ int main()
         }
 
         //sum_mps = sum_mps / (double)Loops;
-        printf("\nAverage Moves Per 25 usec = %10.4lf\n",sum_mps);
-        printf("\n");
+        //printf("\nAverage Moves Per 25 usec = %10.4lf\n",sum_mps);
+        //printf("\n");
     }
 
     exit(0);

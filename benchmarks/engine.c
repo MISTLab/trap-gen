@@ -335,13 +335,15 @@ int
 main(void)
 {
     int i = 0;
+    #ifndef SHORT_BENCH
     for(i = 0; i < 50; i++)
+    #endif
         engine();
 
     if ( (debug_val != 191932) || (debug_base!= 3250) || (debug_interval != 418230) )
     {
         puts("engine: failed\n");
-        return 0;
+        return -1;
     }
     puts("engine: success\n");
     return 0;

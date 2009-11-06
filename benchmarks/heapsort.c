@@ -108,7 +108,13 @@ for( i=0 ; i<= 20 ; i++)
 				  /* memory size 2000 * sizeof(long),*/
 				  /* and 256 iterations. p = 0 means */
 				  /* don't print the result.         */
+#ifdef SHORT_BENCH
+j = 32;
+k = 4;
+#else
 j = 2000;
+k = 64;
+#endif
 k = 64;
 p = 0;
 HSORT(j,k,p);

@@ -154,14 +154,19 @@ processor.addRegBank(asrRegs)
 # to access the registers more easily. Note that, in general, it is
 # responsibility of the programmer keeping the aliases updated
 regs = trap.AliasRegBank('REGS', 32, ('GLOBAL[0-7]', 'WINREGS[0-23]'))
+regs.setFixed([0, 1, 2, 3, 4, 5, 6, 7])
 processor.addAliasRegBank(regs)
 FP = trap.AliasRegister('FP', 'REGS[30]')
+FP.setFixed()
 processor.addAliasReg(FP)
 LR = trap.AliasRegister('LR', 'REGS[31]')
+LR.setFixed()
 processor.addAliasReg(LR)
 SP = trap.AliasRegister('SP', 'REGS[14]')
+SP.setFixed()
 processor.addAliasReg(SP)
 PCR = trap.AliasRegister('PCR', 'ASR[17]')
+PCR.setFixed()
 processor.addAliasReg(PCR)
 
 # Now I add the registers which I want to see printed in the instruction trace

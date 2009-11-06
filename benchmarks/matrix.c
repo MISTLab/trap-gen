@@ -62,9 +62,15 @@
  *                      $Revision: 696 $
  */
 
+#ifdef SHORT_BENCH
+#define X 40 /* first dimension of array A */
+#define Y 40 /* second dimension of array A, first dimension of array B */
+#define Z 40 /* second dimension of array B */
+#else
 #define X 150 /* first dimension of array A */
 #define Y 150 /* second dimension of array A, first dimension of array B */
 #define Z 150 /* second dimension of array B */
+#endif
 
 int matrix_pin_down(int A[], int B[], int C[])
 {

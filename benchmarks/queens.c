@@ -194,7 +194,11 @@
 #include <CursorCtl.h>                          /* Need cursor control interfaces */
 #endif
 
+#ifdef SHORT_BENCH
+#define MAXQUEENS   16                          /* Maximum number of queens */
+#else
 #define MAXQUEENS   20                          /* Maximum number of queens */
+#endif
 #define MAXRANKS    MAXQUEENS                   /* Maximum number of ranks (rows) */
 #define MAXFILES    MAXQUEENS                   /* Maximum number of files (columns) */
 #define MAXDIAGS    (MAXRANKS+MAXFILES-1)       /* Maximum number of diagonals */

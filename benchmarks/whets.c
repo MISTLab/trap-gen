@@ -313,7 +313,11 @@ int main(int argc, char *argv[])
     int count = 1, calibrate = 1;
     long xtra = 1;
     int section;
-    long x100 = 4;
+    #ifdef SHORT_BENCH
+    long x100 = 1;
+    #else
+    long x100 = 5;
+    #endif
     int duration = 100;
     FILE *outfile;
     char compiler[80] = " ", options[256] = " ", general[10][80] = {" "};

@@ -128,7 +128,9 @@ int main() {
   double x[16], y[16];
   int i, j;
 
+  #ifndef SHORT_BENCH
   for(j = 0; j < 50; j++){
+  #endif
     // Makes a fancy cubic signal
     for (i=0;i<16;i++){
         x[i]=5+i+0.4*i*i-0.02*i*i*i;
@@ -159,7 +161,9 @@ int main() {
         //printf("yy[%d]=%f\n",i,y[i]);
     }
     fprintf(stderr, "done iteration %d\n", j);
+  #ifndef SHORT_BENCH
   }
+  #endif
   return 0;
 }
 

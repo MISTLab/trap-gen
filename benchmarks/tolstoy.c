@@ -1935,11 +1935,15 @@ int main(int argc, char **argv) {
     //conv1();
     //conv2();
     int i = 0;
+    #ifndef SHORT_BENCH
     for(i = 0; i < 5; i++){
+    #endif
         conv3();
         rtconv();
         testperm();
+    #ifndef SHORT_BENCH
     }
+    #endif
 
 
     return 0;

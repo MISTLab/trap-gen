@@ -321,6 +321,10 @@ int main(void)
 //     printf(" %f",x[i]);
 //   printf("\n");
 
+#ifdef SHORT_BENCH
+   for (X = 0.0; X <= (2 * PI + 1e-6); X += (PI / 576))
+     tempVal = rad2deg(X);
+#else
   /* Now solve some random equations */
   for(a1=1;a1<10;a1+=1) {
     for(b1=10;b1>0;b1-=.1) {
@@ -333,7 +337,6 @@ int main(void)
 		printf("\n");*/
     }
   }
-
 
 //   printf("********* INTEGER SQR ROOTS ***********\n");
   /* perform some integer square roots */
@@ -367,7 +370,7 @@ int main(void)
      tempVal = rad2deg(X);
 // //     printf("%.12f radians = %3.0f degrees\n", X, rad2deg(X));
    }
-
+#endif
 
   return 0;
 }

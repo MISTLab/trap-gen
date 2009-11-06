@@ -3,8 +3,14 @@
 #include <math.h>
 #include <stdio.h>
 
-int ncols=240;
-int nrows=160;
+#ifdef SHORT_BENCH
+#define ncols 40
+#define nrows 40
+#else
+#define ncols 240
+#define nrows 160
+#endif
+
 unsigned long   huffbits[] = {
     0xd3767676, 0xad0b7380, 0x08080822, 0x2235ad6e,
         0x575aecfc, 0xbd5a5667, 0x04045114, 0x104446b5,
@@ -872,7 +878,7 @@ dquantz_lum (short *data)
 
 #define DCTSIZE 8
 #define BLKSIZE 64
-#define NBLKS 600
+#define NBLKS ((ncols*nrows)/BLKSIZE)
 
 static short dct_data[240*160];
 
@@ -920,7 +926,11 @@ int main ()
             }
         }
     }
+    #ifdef SHORT_BENCH
+    if (sum != 127637) {
+    #else
     if (sum != 2598822) {
+    #endif
         puts("jpeg: fail\n");
         return -1;
     }

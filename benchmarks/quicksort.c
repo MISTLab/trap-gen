@@ -1,6 +1,10 @@
 #include <stdio.h>
 
+#ifdef SHORT_BENCH
+#define TO_SORT_SIZE 2048
+#else
 #define TO_SORT_SIZE 16384
+#endif
 
 void QS(int[] ,int,int);
 void swap(int[],int,int);

@@ -95,13 +95,18 @@ int main()
 	if (dst[0] != 291 || dst[4] != 1164411171 || dst[10] != 1080066048)
 	{
 		puts("blit: failed\n");
+        return -1;
 	}
 	else
 	{
 		puts("blit: success\n");
 	}
 
+    #ifdef SHORT_BENCH
+    for(i = 0; i < 10; i++){
+    #else
     for(i = 0; i < 1000; i++){
+    #endif
         blit(17, 29, 1000*32);  /* bit blit */
         blit(29, 17, 1000*32);
     }

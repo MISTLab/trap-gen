@@ -59,7 +59,11 @@ int main()
     int k, t=0;
     int i = 0;
 
-    for(i = 0; i < 1000; i++){
+    #ifdef SHORT_BENCH
+    for(i = 0; i < 50; i++){
+    #else
+    for(i = 0; i < 5000; i++){
+    #endif
         t = 0;
         for (s = src, d = dst, t = 0 ; *s ; s += 4, d += 4)
         {       x  = s[0] ^ d[0];
