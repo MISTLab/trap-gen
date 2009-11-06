@@ -55,3 +55,9 @@ TRAP is mainly composed of three folders:
 
 TRAP depends on the NetworkX (https://networkx.lanl.gov/wiki) package for the creation and representation of the decoding tree
 (see decoder.py for more details).
+
+COMPILATION
+
+run ./waf configure --with-systemc=YOUR_SYSTEMC_LOCATION and ./waf from the command line
+
+For more details see http://code.google.com/p/trap-gen/wiki/Setup
