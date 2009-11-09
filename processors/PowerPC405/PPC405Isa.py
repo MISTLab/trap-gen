@@ -569,3 +569,27 @@ mullw_Instr.setCode(opCode,'execute')
 mullw_Instr.addBehavior(IncrementPC, 'execute')
 #mullw_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
 isa.addInstruction(mullw_Instr)
+
+#NAND
+opCode = cxx_writer.writer_code.Code("""
+ra = !((int)rs && (int)rb); 
+//(RA) ← ¬((RS) ∧ (RB))
+""")
+nand_Instr = trap.Instruction('NAND', True)
+nand_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,1,1,1,1,1], 'xo': [0,1,1,1,0,1,1,1,0,0]}, ('nand r', '%rt', ' r', '%ra', ' r', '%rb'))
+nand_Instr.setCode(opCode,'execute')
+nand_Instr.addBehavior(IncrementPC, 'execute')
+#nand_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(nand_Instr)
+
+#NEG
+opCode = cxx_writer.writer_code.Code("""
+rt = !((int)ra) + 1; 
+//(RT) ← ¬(RA) + 1
+""")
+neg_Instr = trap.Instruction('NEG', True)
+neg_Instr.setMachineCode(oper_X0form_3, {'primary_opcode': [0,1,1,1,1,1], 'xo': [0,0,1,1,0,1,0,0,0]}, ('nand r', '%rt', ' r', '%ra'))
+neg_Instr.setCode(opCode,'execute')
+neg_Instr.addBehavior(IncrementPC, 'execute')
+#neg_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(neg_Instr)
