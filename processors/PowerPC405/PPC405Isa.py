@@ -588,8 +588,48 @@ rt = !((int)ra) + 1;
 //(RT) ← ¬(RA) + 1
 """)
 neg_Instr = trap.Instruction('NEG', True)
-neg_Instr.setMachineCode(oper_X0form_3, {'primary_opcode': [0,1,1,1,1,1], 'xo': [0,0,1,1,0,1,0,0,0]}, ('nand r', '%rt', ' r', '%ra'))
+neg_Instr.setMachineCode(oper_X0form_3, {'primary_opcode': [0,1,1,1,1,1], 'xo': [0,0,1,1,0,1,0,0,0]}, ('neg r', '%rt', ' r', '%ra'))
 neg_Instr.setCode(opCode,'execute')
 neg_Instr.addBehavior(IncrementPC, 'execute')
 #neg_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
 isa.addInstruction(neg_Instr)
+
+#NMACCHW
+opCode = cxx_writer.writer_code.Code("""
+//nprod0:31 ← –((RA)16:31 x (RB)0:15) signed
+//temp0:32 ← nprod0:31 + (RT)
+//(RT) ← temp1:32
+""")
+nmacchw_Instr = trap.Instruction('NMACCHW', True)
+nmacchw_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [0,1,0,1,0,1,1,1,0]}, ('nmacchw r', '%rt', ' r', '%ra', ' r', '%rb'))
+nmacchw_Instr.setCode(opCode,'execute')
+nmacchw_Instr.addBehavior(IncrementPC, 'execute')
+#nmacchw_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(nmacchw_Instr)
+
+#NMACCHWS
+opCode = cxx_writer.writer_code.Code("""
+//nprod0:31 ← –((RA)16:31 x (RB)0:15 signed
+//temp0:32 ← nprod0:31 + (RT)
+//if ((nprod0 = RT0) ∧ (RT0 ≠ temp1)) then (RT) ← (RT0 || 31(¬RT0))
+//else (RT) ← temp1:32
+""")
+nmacchws_Instr = trap.Instruction('NMACCHWS', True)
+nmacchws_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [0,1,1,1,0,1,1,1,0]}, ('nmacchws r', '%rt', ' r', '%ra', ' r', '%rb'))
+nmacchws_Instr.setCode(opCode,'execute')
+nmacchws_Instr.addBehavior(IncrementPC, 'execute')
+#nmacchws_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(nmacchws_Instr)
+
+#NMACHHW
+opCode = cxx_writer.writer_code.Code("""
+//nprod0:31 ← –((RA)0:15 x (RB)0:15) signed
+//temp0:32 ← nprod0:31 + (RT)
+//(RT) ← temp1:32
+""")
+nmachhw_Instr = trap.Instruction('NMACHHW', True)
+nmachhw_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [0,0,0,1,0,1,1,1,0]}, ('nmacchws r', '%rt', ' r', '%ra', ' r', '%rb'))
+nmachhw_Instr.setCode(opCode,'execute')
+nmachhw_Instr.addBehavior(IncrementPC, 'execute')
+#nmacchws_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(nmachhw_Instr)
