@@ -155,6 +155,7 @@ processor.addRegBank(asrRegs)
 # responsibility of the programmer keeping the aliases updated
 regs = trap.AliasRegBank('REGS', 32, ('GLOBAL[0-7]', 'WINREGS[0-23]'))
 regs.setFixed([0, 1, 2, 3, 4, 5, 6, 7])
+regs.setCheckGroup()
 processor.addAliasRegBank(regs)
 FP = trap.AliasRegister('FP', 'REGS[30]')
 FP.setFixed()

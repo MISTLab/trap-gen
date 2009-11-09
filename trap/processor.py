@@ -286,6 +286,10 @@ class AliasRegBank:
         self.defValues = [None for i in range(0, numRegs)]
         self.offsets = {}
         self.fixedIndices = []
+        self.checkGroup = False
+
+    def setCheckGroup(self):
+        self.checkGroup = True
 
     def setFixed(self, indices):
         for index in indices:

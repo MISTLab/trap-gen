@@ -546,16 +546,22 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
                             break
                     if checkContiguous:
                         if aliasB.fixedIndices[0] > 0:
+                            if aliasB.checkGroup:
+                                codeString += 'if(this->' + aliasB.name + '_' + self.pipes[i + 1].name + '[0].getPipeReg() != this->' + aliasB.name + '_' + self.pipes[i].name + '[0].getPipeReg()){\n'
                             codeString += 'for(int i = 0; i < ' + str(aliasB.fixedIndices[-1]) + '; i++){\n'
-                            codeString += 'if(this->' + aliasB.name + '_' + self.pipes[i + 1].name + '[i].getPipeReg() != this->' + aliasB.name + '_' + self.pipes[i].name + '[i].getPipeReg()){\n'
+                            if not aliasB.checkGroup:
+                                codeString += 'if(this->' + aliasB.name + '_' + self.pipes[i + 1].name + '[i].getPipeReg() != this->' + aliasB.name + '_' + self.pipes[i].name + '[i].getPipeReg()){\n'
                             if trace and not combinedTrace:
                                 codeString += 'std::cerr << "Updating alias ' + aliasB.name + '_' + self.pipes[i + 1].name + '[" << i << "]" << std::endl;\n'
                             codeString += 'this->' + aliasB.name + '_' + self.pipes[i + 1].name + '[i].propagateAlias(*(this->' + aliasB.name + '_' + self.pipes[i].name + '[i].getPipeReg()));\n'
                             codeString += '}\n'
                             codeString += '}\n'
                         if aliasB.fixedIndices[-1] + 1 < aliasB.numRegs:
+                            if aliasB.checkGroup:
+                                codeString += 'if(this->' + aliasB.name + '_' + self.pipes[i + 1].name + '[' + str(aliasB.fixedIndices[-1] + 1) + '].getPipeReg() != this->' + aliasB.name + '_' + self.pipes[i].name + '[' + str(aliasB.fixedIndices[-1] + 1) + '].getPipeReg()){\n'
                             codeString += 'for(int i = ' + str(aliasB.fixedIndices[-1] + 1) + '; i < ' + str(aliasB.numRegs) + '; i++){\n'
-                            codeString += 'if(this->' + aliasB.name + '_' + self.pipes[i + 1].name + '[i].getPipeReg() != this->' + aliasB.name + '_' + self.pipes[i].name + '[i].getPipeReg()){\n'
+                            if not aliasB.checkGroup:
+                                codeString += 'if(this->' + aliasB.name + '_' + self.pipes[i + 1].name + '[i].getPipeReg() != this->' + aliasB.name + '_' + self.pipes[i].name + '[i].getPipeReg()){\n'
                             if trace and not combinedTrace:
                                 codeString += 'std::cerr << "Updating alias ' + aliasB.name + '_' + self.pipes[i + 1].name + '[" << i << "]" << std::endl;\n'
                             codeString += 'this->' + aliasB.name + '_' + self.pipes[i + 1].name + '[i].propagateAlias(*(this->' + aliasB.name + '_' + self.pipes[i].name + '[i].getPipeReg()));\n'
