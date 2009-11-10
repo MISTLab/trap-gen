@@ -31,7 +31,7 @@
 #   or see <http://www.gnu.org/licenses/>.
 #   (a) Luca Fossati, fossati@elet.polimi.it
 #   (b) Redwanur Rahman, md.rahman@mail.polimi.it
-#   (c) Ashanka das, Ak.das@mail.polimi.it
+#   (c) Ashanka Das, ashanka.das@mail.polimi.it
 ####################################################################################
 
 
@@ -633,3 +633,102 @@ nmachhw_Instr.setCode(opCode,'execute')
 nmachhw_Instr.addBehavior(IncrementPC, 'execute')
 #nmacchws_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
 isa.addInstruction(nmachhw_Instr)
+
+#NMACHHWS
+opCode = cxx_writer.writer_code.Code("""
+//nprod0:31 ← –((RA)0:15 x (RB)0:15) signed
+//temp0:32 ← nprod0:31 + (RT)
+//if ((nprod0 = RT0) ∧ (RT0 ≠ temp1)) then (RT) ← (RT0 || 31(¬RT0))
+//else (RT) ← temp1:32
+""")
+nmachhws_Instr = trap.Instruction('NMACHHWS', True)
+nmachhws_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [0,0,1,1,0,1,1,1,0]}, ('nmacchws r', '%rt', ' r', '%ra', ' r', '%rb'))
+nmachhws_Instr.setCode(opCode,'execute')
+nmachhws_Instr.addBehavior(IncrementPC, 'execute')
+#nmacchws_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(nmachhws_Instr)
+
+#NMACLHW
+opCode = cxx_writer.writer_code.Code("""
+//nprod0:31 ← –((RA)16:31 x (RB)16:31) signed
+//temp0:32 ← nprod0:31 + (RT)
+//(RT) ← temp1:32
+""")
+nmaclhw_Instr = trap.Instruction('NMACLHW', True)
+nmaclhw_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [1,1,0,1,0,1,1,1,0]}, ('nmaclhw r', '%rt', ' r', '%ra', ' r', '%rb'))
+nmaclhw_Instr.setCode(opCode,'execute')
+nmaclhw_Instr.addBehavior(IncrementPC, 'execute')
+#nmaclhw_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(nmaclhw_Instr)
+
+#NMACLHWS
+opCode = cxx_writer.writer_code.Code("""
+//nprod0:31 ← –((RA)16:31 x (RB)16:31) signed
+//temp0:32 ← nprod0:31 + (RT)
+//if ((nprod0 = RT0) ∧ (RT0 ≠ temp1)) then (RT) ← (RT0 || 31(¬RT0))
+//else (RT) ← temp1:32
+""")
+nmaclhws_Instr = trap.Instruction('NMACLHWS', True)
+nmaclhws_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [1,1,1,1,0,1,1,1,0]}, ('nmaclhws r', '%rt', ' r', '%ra', ' r', '%rb'))
+nmaclhws_Instr.setCode(opCode,'execute')
+nmaclhws_Instr.addBehavior(IncrementPC, 'execute')
+#nmaclhws_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(nmaclhws_Instr)
+
+#NOR
+opCode = cxx_writer.writer_code.Code("""
+ra = !((int)rs || (int)rb)
+//(RA) ← ¬((RS) ∨ (RB))
+""")
+nor_Instr = trap.Instruction('NOR', True)
+nor_Instr.setMachineCode(oper_Xform_1, {'primary_opcode': [0,1,1,1,1,1], 'xo': [0,0,0,1,1,1,1,1,0,0]}, ('nor r', '%rt', ' r', '%ra', ' r', '%rb'))
+nor_Instr.setCode(opCode,'execute')
+nor_Instr.addBehavior(IncrementPC, 'execute')
+#nor_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(nor_Instr)
+
+#OR
+opCode = cxx_writer.writer_code.Code("""
+ra = ((int)rs || (int)rb)
+//(RA) ← (RS) ∨ (RB)
+""")
+or_Instr = trap.Instruction('OR', True)
+or_Instr.setMachineCode(oper_Xform_7, {'primary_opcode': [0,1,1,1,1,1], 'xo': [0,1,1,0,1,1,1,1,0,0]}, ('or r', '%rs', ' r', '%ra', ' r', '%rb'))
+or_Instr.setCode(opCode,'execute')
+or_Instr.addBehavior(IncrementPC, 'execute')
+#or_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(or_Instr)
+
+#ORC
+opCode = cxx_writer.writer_code.Code("""
+ra = ((int)rs || !(int)rb)
+//(RA) ← (RS) ∨ ¬(RB)
+""")
+orc_Instr = trap.Instruction('ORC', True)
+orc_Instr.setMachineCode(oper_Xform_1, {'primary_opcode': [0,1,1,1,1,1], 'xo': [0,1,1,0,0,1,1,1,0,0]}, ('orc r', '%rt', ' r', '%ra', ' r', '%rb'))
+orc_Instr.setCode(opCode,'execute')
+orc_Instr.addBehavior(IncrementPC, 'execute')
+#orc_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(orc_Instr)
+
+#ORI
+opCode = cxx_writer.writer_code.Code("""
+//(RA) ← (RS) ∨ (16:0 || IM)
+""")
+ori_Instr = trap.Instruction('ORI', True)
+ori_Instr.setMachineCode(oper_Dform_3, {'primary_opcode': [0,1,1,0,0,0] }, ('ori r', '%rs', ' r', '%ra'))
+ori_Instr.setCode(opCode,'execute')
+ori_Instr.addBehavior(IncrementPC, 'execute')
+#ori_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(ori_Instr)
+
+#ORIS
+opCode = cxx_writer.writer_code.Code("""
+//(RA) ← (RS) ∨ (IM || 16:0)
+""")
+oris_Instr = trap.Instruction('ORIS', True)
+oris_Instr.setMachineCode(oper_Dform_3, {'primary_opcode': [0,1,1,0,0,1] }, ('oris r', '%rs', ' r', '%ra'))
+oris_Instr.setCode(opCode,'execute')
+oris_Instr.addBehavior(IncrementPC, 'execute')
+#oris_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(oris_Instr)
