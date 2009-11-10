@@ -53,7 +53,7 @@ opCode = cxx_writer.writer_code.Code("""
 bitSeq |= (((unsigned int)0xFFFFFFFF) << 16);
 return bitSeq;
 """)
-SignExtend_method = trap.HelperMethod('SignExtend', opCode, 'execute')
+SignExtend_method = trap.HelperMethod('SignExtend', opCode, 'execution')
 SignExtend_method.setSignature(('BIT<32>'), [('bitSeq', 'BIT<32>')])
 
 #Simple Branch
@@ -65,7 +65,7 @@ if (br == 1){
 }
 return PC;
 """)
-SimpleBranch_method = trap.HelperMethod('SimpleBranch', opCode, 'execute')
+SimpleBranch_method = trap.HelperMethod('SimpleBranch', opCode, 'execution')
 SimpleBranch_method.setSignature(('BIT<32>'), [('br', 'BIT<1>'),('offset', 'BIT<32>')])
 
 #Likely Branch
@@ -78,7 +78,7 @@ if (br == 1){	//This should be done while the next instruction is being fetch, b
 }
 return PC;
 """)
-LikelyBranch_method = trap.HelperMethod('LikelyBranch', opCode, 'execute')
+LikelyBranch_method = trap.HelperMethod('LikelyBranch', opCode, 'execution')
 LikelyBranch_method.setSignature(('BIT<32>'), [('br', 'BIT<1>'),('offset', 'BIT<32>')])
 
 # Exceptions
@@ -278,3 +278,7 @@ opCode = cxx_writer.writer_code.Code("""
 PC += 4;
 """)
 IncrementPC = trap.HelperOperation('IncrementPC', opCode, exception = False)
+
+
+
+

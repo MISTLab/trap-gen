@@ -199,7 +199,6 @@ andi_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors ne
 isa.addInstruction(andi_imm_Instr)
 
 
-
 #
 #BRANCH instruction family
 #See what happens with the instructions B and BAL
@@ -316,7 +315,7 @@ for (int i = 0; i < 32; i++) {
 rd = 32-rd;
 """)
 clz_reg_Instr = trap.Instruction('CLZ', True)
-clz_reg_Instr.setMachineCode(register_format,{'opcode': [0,1,1,1,0,0],'function':[1,0,0,0,0,1]},('clz r','%rd', ',',' r','%rs'))
+clz_reg_Instr.setMachineCode(register_format,{'opcode': [0,1,1,1,0,0],'function':[1,0,0,0,0,0]},('clz r','%rd', ',',' r','%rs'))
 clz_reg_Instr.setCode(opCode, 'execution')
 clz_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(clz_reg_Instr)
@@ -886,19 +885,19 @@ isa.addInstruction(swr_imm_Instr)
 #Software Debug Breakpoint
 #
 
-opCode = cxx_writer.writer_code.Code("""
-if ( DM == 0 ) {
-	RaiseException(SIGNAL_DEBUG_BREAKPOINT);
-} else {
-	RaiseException(SIGNAL_DEBUG_MODE_BREAKPOINT);
-}
-""")
-sdbbp_reg_Instr = trap.Instruction('SDBBP', True)
-sdbbp_reg_Instr.setMachineCode(code_format,{'opcode': [0, 1, 1, 1, 0, 0], 'function':[1, 1, 1, 1, 1, 1]},
-('sdbbp', ' r', '%code'))
-sdbbp_reg_Instr.setCode(opCode, 'execution')
-sdbbp_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-isa.addInstruction(sdbbp_reg_Instr)
+#opCode = cxx_writer.writer_code.Code("""
+#if ( DM == 0 ) {
+#	RaiseException(SIGNAL_DEBUG_BREAKPOINT);
+#} else {
+#	RaiseException(SIGNAL_DEBUG_MODE_BREAKPOINT);
+#}
+#""")
+#sdbbp_reg_Instr = trap.Instruction('SDBBP', True)
+#sdbbp_reg_Instr.setMachineCode(code_format,{'opcode': [0, 1, 1, 1, 0, 0], 'function':[1, 1, 1, 1, 1, 1]},
+#('sdbbp', ' r', '%code'))
+#sdbbp_reg_Instr.setCode(opCode, 'execution')
+#sdbbp_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
+#isa.addInstruction(sdbbp_reg_Instr)
 
 
 
@@ -1097,15 +1096,15 @@ isa.addInstruction(subu_reg_Instr)
 #
 
 
-opCode = cxx_writer.writer_code.Code("""
-RaiseException(SYS);
-""")
-syscall_reg_Instr = trap.Instruction('SYSCALL', True)
-syscall_reg_Instr.setMachineCode(code_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[0, 0, 1, 1, 0, 0]},
-'syscall')
-syscall_reg_Instr.setCode(opCode, 'execution')
-syscall_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-isa.addInstruction(syscall_reg_Instr)
+#opCode = cxx_writer.writer_code.Code("""
+#RaiseException(SYS);
+#""")
+#syscall_reg_Instr = trap.Instruction('SYSCALL', True)
+#syscall_reg_Instr.setMachineCode(code_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[0, 0, 1, 1, 0, 0]},
+#'syscall')
+#syscall_reg_Instr.setCode(opCode, 'execution')
+#syscall_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
+#isa.addInstruction(syscall_reg_Instr)
 
 
 

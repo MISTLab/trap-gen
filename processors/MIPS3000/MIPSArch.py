@@ -45,6 +45,7 @@ except ImportError:
         print ('Please specify in file MIPSArch.py the path where the core TRAP files are located')
 
 import MIPSIsa
+import MIPSTests
 
 # Lets now start building the processor
 processor = trap.Processor('MIPS3000', version = '0.1', systemc = False, instructionCache = True, fastFetch = True)
@@ -156,10 +157,10 @@ processor.addRegister(ErrorEPC)
 DESAVE = trap.Register('DESAVE',32)
 processor.addRegister(DESAVE)
 #ALIAS REGISTERS FOR CONFIG AND TAGLO & DATALO REGISTERS
-Config = trap.AliasRegister('CONFIG', 'Config0', offset = 0)
-processor.addAliasReg(Config)
-LowOrderCache = trap.AliasRegister('LOWORDERCACHE', 'TagLo', offset = 0)
-processor.addAliasReg(LowOrderCache)
+#Config = trap.AliasRegister('CONFIG', 'CONFIG0')
+#processor.addAliasReg(Config)
+#LowOrderCache = trap.AliasRegister('LOWORDERCACHE', 'TAGLO', offset = 0)
+#processor.addAliasReg(LowOrderCache)
 #LLbit
 LLbit = trap.Register('LLbit',1)
 processor.addRegister(LLbit)
@@ -256,7 +257,20 @@ irq.setOperation("""//Basically, what I have to do when
 }
 """)
 irq.addTest({}, {})
-#processor.addIrq(irq)
+processor.addIrq(irq)
+
+
+# Now it is time to add the pipeline stages
+executeStage = trap.PipeStage('execution')
+executeStage.setHazard()
+executeStage.setCheckUnknownInstr()
+executeStage.setCheckTools()
+processor.addPipeStage(executeStage)
+exceptionStage = trap.PipeStage('exception')
+processor.addPipeStage(exceptionStage)
+executeStage.setWriteBack()
+executeStage.setEndHazard()
+
 
 
 # The ABI is necessary to emulate system calls, personalize the GDB stub and,
@@ -270,4 +284,11 @@ processor.setABI(abi)
 
 
 #Creating the C++ files implementing the simulator
-processor.write(folder = 'processor', models = ['funcLT'])
+processor.write(folder = 'processor', models = ['funcLT'], tests = False, trace = False)
+
+
+
+
+
+
+
