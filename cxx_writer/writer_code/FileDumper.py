@@ -553,9 +553,13 @@ class Folder:
         else:
             sysclib = glob.glob(os.path.join(os.path.abspath(os.path.join(syscpath[0], '..')), 'lib-*'))
     conf.check_cxx(lib='systemc', uselib_store='SYSTEMC', mandatory=1, libpath=sysclib, errmsg='not found, use --with-systemc option')
-
+    ######################################################
+    # Check if systemc is compiled with quick threads or not
+    ######################################################
     if not os.path.exists(os.path.join(syscpath[0] , 'sysc' , 'qt')):
         conf.env.append_unique('CPPFLAGS', '-DSC_USE_PTHREADS')
+    elif sys.platform == 'cygwin':
+        conf.fatal('SystemC under cygwin must be compiled with PThread support: recompile it using the "make pthreads" command')
 
     ##################################################
     # Check for SystemC header and test the library

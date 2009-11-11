@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <stdio.h>
 
 #ifdef SHORT_BENCH
@@ -8,7 +9,7 @@
 
 void QS(int[] ,int,int);
 void swap(int[],int,int);
-int main()
+int main(int argc, char * argv[])
 {
  int o;
  int a[TO_SORT_SIZE];

@@ -291,6 +291,8 @@ def configure(conf):
     ######################################################
     if not os.path.exists(os.path.join(syscpath[0] , 'sysc' , 'qt')):
         conf.env.append_unique('CPPFLAGS', '-DSC_USE_PTHREADS')
+    elif sys.platform == 'cygwin':
+        conf.fatal('SystemC under cygwin must be compiled with PThread support: recompile it using the "make pthreads" command')
 
     ##################################################
     # Check for SystemC header and test the library
@@ -298,7 +300,7 @@ def configure(conf):
     if not sys.platform == 'cygwin':
         systemCerrmsg='Error, at least version 2.2.0 required'
     else:
-        systemCerrmsg='Error, at least version 2.2.0 required. SystemC also needs patching under cygwin: please controll that lines 175 and 177 of header systemc.h are commented; for more details refer to http://www.ht-lab.com/howto/sccygwin/sccygwin.html'
+        systemCerrmsg='Error, at least version 2.2.0 required.\nSystemC also needs patching under cygwin:\nplease controll that lines 175 and 177 of header systemc.h are commented;\nfor more details refer to http://www.ht-lab.com/howto/sccygwin/sccygwin.html\nhttp://www.dti.dk/_root/media/27325_SystemC_Getting_Started_artikel.pdf'
     conf.check_cxx(header_name='systemc.h', uselib='SYSTEMC', uselib_store='SYSTEMC', mandatory=1, includes=syscpath)
     conf.check_cxx(fragment="""
         #include <systemc.h>
