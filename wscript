@@ -251,16 +251,13 @@ def configure(conf):
     # Check for pthread library/flag
     ##################################################
     if not usingMsvc:
-        if conf.check_cxx(linkflags='-pthread') is None or conf.check_cxx(cxxflags='-pthread') is None:
+        if not conf.check_cxx(linkflags='-pthread') or not conf.check_cxx(cxxflags='-pthread'):
             conf.env.append_unique('LIB', 'pthread')
         else:
             conf.env.append_unique('LINKFLAGS', '-pthread')
             conf.env.append_unique('CXXFLAGS', '-pthread')
             conf.env.append_unique('CFLAGS', '-pthread')
             conf.env.append_unique('CCFLAGS', '-pthread')
-            pthread_uselib = []
-    else:
-        pthread_uselib = []
 
     ##################################################
     # Is SystemC compiled? Check for SystemC library
