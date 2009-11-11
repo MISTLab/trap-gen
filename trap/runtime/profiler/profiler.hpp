@@ -100,6 +100,7 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
         if(this->exited){
             std::string curFunName = this->bfdInstance.symbolAt(curPC);
             if(this->currentStack.size() > 1 && this->currentStack.back()->name != curFunName){
+//                 std::cerr << "Problem, exiting into " << curFunName << " while I should have gone into " << this->currentStack.back()->name << std::endl;
                 // There have been a problem ... we haven't come back to where we came from
                 std::vector<ProfFunction *>::reverse_iterator stackIterator_r, stackEnd_r;
                 stackIterator_r = this->currentStack.rbegin();
@@ -116,7 +117,7 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
                     this->currentStack.erase(this->currentStack.begin() + (this->currentStack.size() -numToPop -1), this->currentStack.end());
                 }
 /*                else
-                    std::cerr << "just exited I should have gone into " << this->bfdInstance.symbolAt(curPC) << std::endl;*/
+                    std::cerr << "just exited I should have gone into " << curFunName << std::endl;*/
             }
             this->exited = false;
         }
@@ -145,7 +146,7 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
                 curFun->address = curPC;
             }
 
-            //std::cerr << "entering in " << curFun->name << " " << std::hex << std::showbase << curPC << std::endl;
+//             std::cerr << "entering in " << curFun->name << " " << std::hex << std::showbase << curPC << " function at curPC " << funName << std::endl;
 
             //Now I have to update the statistics on the number of instructions executed on the
             //instruction stack so far
@@ -183,18 +184,16 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
             //Here I have to update the timing statistics for the
             //function on the top of the stack and pop it from
             //the stack
-            #ifndef NDEBUG
             if(this->currentStack.size() == 0){
-                THROW_ERROR("We are exiting from a routine at address " << std::hex << std::showbase << curPC << " name: " << this->bfdInstance.symbolAt(curPC) << " but the stack is empty");
+                THROW_ERROR("We are exiting from a routine at address " << std::hex << std::showbase << curPC << " name: " << funName << " but the stack is empty");
             }
-            #endif
             //Lets update the statistics for the current instruction
             ProfFunction * curFun = this->currentStack.back();
             curFun->exclNumInstr += this->oldFunInstructions;
             sc_time curTimeDelta = sc_time_stamp() - this->oldFunTime;
             curFun->exclTime += curTimeDelta;
 
-            //std::cerr << "exiting from " << curFun->name << " " << std::hex << std::showbase << this->prevPC << std::endl;
+//             std::cerr << "exiting from " << curFun->name << " " << std::hex << std::showbase << curPC << " I am in " << funName << std::endl;
 
             //Now I have to update the statistics on the number of instructions executed on the
             //instruction stack
@@ -214,9 +213,6 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
             this->exited = true;
             this->oldFunInstructions = 0;
             this->oldFunTime = sc_time_stamp();
-/*            if(this->currentStack.size() > 0){
-                std::cerr << "going into " << this->currentStack.back()->name << " " << std::hex << std::showbase << curPC << std::endl;
-            }*/
         }
         else{
             this->oldFunInstructions++;

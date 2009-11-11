@@ -334,17 +334,26 @@ int *rem;
 int
 main(void)
 {
-    int i = 0;
+    int i = 0, fail = 0;
+    engine();
+
+    if ( (debug_val != 191932) || (debug_base!= 3250) || (debug_interval != 418230) ){
+        fail = 1;
+    }
+
     #ifndef SHORT_BENCH
     for(i = 0; i < 50; i++)
     #endif
         engine();
 
-    if ( (debug_val != 191932) || (debug_base!= 3250) || (debug_interval != 418230) )
-    {
+    if(fail != 0){
         puts("engine: failed\n");
         return -1;
     }
-    puts("engine: success\n");
+    else{
+        puts("engine: success\n");
+        return 0;
+    }
+
     return 0;
 }

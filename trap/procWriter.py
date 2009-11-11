@@ -1529,7 +1529,7 @@ def getMainCode(self, model, namespace):
     parameters = [cxx_writer.writer_code.Parameter('argc', cxx_writer.writer_code.intType), cxx_writer.writer_code.Parameter('argv', cxx_writer.writer_code.charPtrType.makePointer())]
     mainFunction = cxx_writer.writer_code.Function('sc_main', mainCode, cxx_writer.writer_code.intType, parameters)
 
-    stopSimFunction = cxx_writer.writer_code.Code('std::cerr << std::endl << "Interrupted the simulation" << std::endl << std::endl;\nsc_stop();')
+    stopSimFunction = cxx_writer.writer_code.Code('std::cerr << std::endl << "Interrupted the simulation" << std::endl << std::endl;\nsc_stop();\nwait(SC_ZERO_TIME);')
     parameters = [cxx_writer.writer_code.Parameter('sig', cxx_writer.writer_code.intType)]
     signalFunction = cxx_writer.writer_code.Function('stopSimFunction', stopSimFunction, cxx_writer.writer_code.voidType, parameters)
 
