@@ -46,11 +46,11 @@
 #include <sstream>
 #include <exception>
 #include <stdexcept>
-#ifdef __GNUC__
-extern "C" {
-#include <execinfo.h>
-}
-#endif
+//#ifdef __GNUC__
+//extern "C" {
+//#include <execinfo.h>
+//}
+//#endif
 
 #include "trap_utils.hpp"
 

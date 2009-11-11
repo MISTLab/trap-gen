@@ -143,52 +143,6 @@ def configure(conf):
         conf.check_message_custom('gcc search path', '', 'ok')
 
     ###########################################################
-    # Check for IBERTY library
-    ###########################################################
-    if not usingMsvc:
-        if Options.options.bfddir:
-            searchDirs = [os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'lib'))))]
-
-        import glob
-        foundStatic = []
-        foundShared = []
-        for directory in searchDirs:
-            foundShared += glob.glob(os.path.join(directory, conf.env['shlib_PATTERN'].split('%s')[0] + 'iberty*' + conf.env['shlib_PATTERN'].split('%s')[1]))
-            foundStatic += glob.glob(os.path.join(directory, conf.env['staticlib_PATTERN'].split('%s')[0] + 'iberty*' + conf.env['staticlib_PATTERN'].split('%s')[1]))
-        if not foundStatic and not foundShared:
-            conf.fatal('IBERTY library not found, install binutils development package for your distribution')
-        tempLibs = []
-        staticPaths = []
-        for ibertylib in foundStatic:
-            tempLibs.append(os.path.splitext(os.path.basename(ibertylib))[0][len(conf.env['staticlib_PATTERN'].split('%s')[0]):])
-            staticPaths.append(os.path.split(ibertylib)[0])
-        foundStatic = tempLibs
-        tempLibs = []
-        sharedPaths = []
-        for ibertylib in foundShared:
-            tempLibs.append(os.path.splitext(os.path.basename(ibertylib))[0][len(conf.env['shlib_PATTERN'].split('%s')[0]):])
-            sharedPaths.append(os.path.split(ibertylib)[0])
-        foundShared = tempLibs
-        iberty_lib_name = ''
-        for ibertylib in foundStatic:
-            if ibertylib in foundShared:
-                iberty_lib_name = ibertylib
-                searchPaths = sharedPaths + staticPaths
-                break
-        if not iberty_lib_name:
-            if foundShared:
-                iberty_lib_name = foundShared[0]
-                searchPaths = sharedPaths
-            else:
-                for ibertylib in foundStatic:
-                    iberty_lib_name = ibertylib
-                    if 'pic' in ibertylib:
-                        break
-                searchPaths = staticPaths
-
-        conf.check_cc(lib=iberty_lib_name, uselib_store='BFD', mandatory=1, libpath=searchPaths, errmsg='not found, use --with-bfd option', okmsg='ok ' + iberty_lib_name)
-
-    ###########################################################
     # Check for BFD library and header
     ###########################################################
     if not usingMsvc:
@@ -239,19 +193,71 @@ def configure(conf):
         else:
             conf.check_cc(header_name='bfd.h', uselib='BFD', uselib_store='BFD', mandatory=1)
 
+    ###########################################################
+    # Check for IBERTY library
+    ###########################################################
+    if not usingMsvc:
+        if Options.options.bfddir:
+            searchDirs = [os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'lib'))))]
+
+        import glob
+        foundStatic = []
+        foundShared = []
+        for directory in searchDirs:
+            foundShared += glob.glob(os.path.join(directory, conf.env['shlib_PATTERN'].split('%s')[0] + 'iberty*' + conf.env['shlib_PATTERN'].split('%s')[1]))
+            foundStatic += glob.glob(os.path.join(directory, conf.env['staticlib_PATTERN'].split('%s')[0] + 'iberty*' + conf.env['staticlib_PATTERN'].split('%s')[1]))
+        if not foundStatic and not foundShared:
+            conf.fatal('IBERTY library not found, install binutils development package for your distribution')
+        tempLibs = []
+        staticPaths = []
+        for ibertylib in foundStatic:
+            tempLibs.append(os.path.splitext(os.path.basename(ibertylib))[0][len(conf.env['staticlib_PATTERN'].split('%s')[0]):])
+            staticPaths.append(os.path.split(ibertylib)[0])
+        foundStatic = tempLibs
+        tempLibs = []
+        sharedPaths = []
+        for ibertylib in foundShared:
+            tempLibs.append(os.path.splitext(os.path.basename(ibertylib))[0][len(conf.env['shlib_PATTERN'].split('%s')[0]):])
+            sharedPaths.append(os.path.split(ibertylib)[0])
+        foundShared = tempLibs
+        iberty_lib_name = ''
+        for ibertylib in foundStatic:
+            if ibertylib in foundShared:
+                iberty_lib_name = ibertylib
+                searchPaths = sharedPaths + staticPaths
+                break
+        if not iberty_lib_name:
+            if foundShared:
+                iberty_lib_name = foundShared[0]
+                searchPaths = sharedPaths
+            else:
+                for ibertylib in foundStatic:
+                    iberty_lib_name = ibertylib
+                    if 'pic' in ibertylib:
+                        break
+                searchPaths = staticPaths
+
+        conf.check_cc(lib=iberty_lib_name, uselib_store='BFD', mandatory=1, libpath=searchPaths, errmsg='not found, use --with-bfd option', okmsg='ok ' + iberty_lib_name)
+
     #########################################################
     # Check for zlib and libintl, needed by binutils under
     # MAC-OSX
     #########################################################
-    if sys.platform == 'darwin':
+    if sys.platform == 'darwin' or sys.platform == 'cygwin':
         conf.check_cc(lib='z', uselib_store='BFD', mandatory=1)
         conf.check_cc(lib='intl', uselib_store='BFD', mandatory=1, libpath=searchDirs)
+
+    #########################################################
+    # Check for the winsock library
+    #########################################################
+    if sys.platform == 'cygwin':
+        conf.check_cc(lib='ws2_32', uselib_store='WINSOCK', mandatory=1)
 
     ##################################################
     # Check for pthread library/flag
     ##################################################
     if not usingMsvc:
-        if not conf.check_cxx(linkflags='-pthread') or not conf.check_cxx(cxxflags='-pthread'):
+        if not conf.check_cxx(linkflags='-pthread') or not conf.check_cxx(cxxflags='-pthread') or sys.platform == 'cygwin':
             conf.env.append_unique('LIB', 'pthread')
         else:
             conf.env.append_unique('LINKFLAGS', '-pthread')
@@ -289,6 +295,10 @@ def configure(conf):
     ##################################################
     # Check for SystemC header and test the library
     ##################################################
+    if not sys.platform == 'cygwin':
+        systemCerrmsg='Error, at least version 2.2.0 required'
+    else:
+        systemCerrmsg='Error, at least version 2.2.0 required. SystemC also needs patching under cygwin: please controll that lines 175 and 177 of header systemc.h are commented; for more details refer to http://www.ht-lab.com/howto/sccygwin/sccygwin.html'
     conf.check_cxx(header_name='systemc.h', uselib='SYSTEMC', uselib_store='SYSTEMC', mandatory=1, includes=syscpath)
     conf.check_cxx(fragment="""
         #include <systemc.h>
@@ -308,7 +318,7 @@ def configure(conf):
                 return 0;
             };
         }
-    """, msg='Check for SystemC version', uselib='SYSTEMC', mandatory=1, errmsg='Error, at least version 2.2.0 required')
+    """, msg='Check for SystemC version', uselib='SYSTEMC', mandatory=1, errmsg=systemCerrmsg)
 
     if Options.options.pyinstalldir:
         conf.env['PYTHON_INSTALL_DIR'] = Options.options.pyinstalldir

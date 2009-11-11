@@ -269,6 +269,10 @@ class Folder:
                     printOnFile('    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_THREAD BOOST_SYSTEM SYSTEMC TLM TRAP BFD LIBERTY\'', wscriptFile)
                 else:
                     printOnFile('    obj.uselib = \'BOOST BOOST_PROGRAM_OPTIONS BOOST_THREAD BOOST_FILESYSTEM BOOST_SYSTEM SYSTEMC TLM TRAP BFD LIBERTY\'', wscriptFile)
+                printOnFile('    import sys', wscriptFile)
+                printOnFile('    if sys.platform == \'cygwin\':', wscriptFile)
+                printOnFile('        obj.env.append_unique(\'CPPFLAGS\', \'-D__USE_W32_SOCKETS\')', wscriptFile)
+                printOnFile('        obj.uselib += \' WINSOCK\'', wscriptFile)
                 printOnFile('    obj.add_objects = \'' + ' '.join(self.uselib_local + [os.path.split(self.path)[-1]]) + '\'', wscriptFile)
                 printOnFile('    obj.name = \'' + os.path.split(self.path)[-1] + '_main\'', wscriptFile)
                 printOnFile('    obj.target = \'' + os.path.split(self.path)[-1] + '\'\n', wscriptFile)
@@ -507,20 +511,23 @@ class Folder:
         conf.check_cc(lib='msvcr90', uselib_store='BFD', mandatory=1, libpath=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'lib'))))])
         conf.check_cc(header_name='bfd.h', uselib_store='BFD', mandatory=1, includes=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'include'))))])
 
+    #########################################################
+    # Check for the winsock library
+    #########################################################
+    if sys.platform == 'cygwin':
+        conf.check_cc(lib='ws2_32', uselib_store='WINSOCK', mandatory=1)
+
     ##################################################
     # Check for pthread library/flag
     ##################################################
     if not usingMsvc:
-        if conf.check_cxx(linkflags='-pthread') is None or conf.check_cxx(cxxflags='-pthread') is None:
+        if not conf.check_cxx(linkflags='-pthread') or not conf.check_cxx(cxxflags='-pthread') or sys.platform == 'cygwin':
             conf.env.append_unique('LIB', 'pthread')
         else:
             conf.env.append_unique('LINKFLAGS', '-pthread')
             conf.env.append_unique('CXXFLAGS', '-pthread')
             conf.env.append_unique('CFLAGS', '-pthread')
             conf.env.append_unique('CCFLAGS', '-pthread')
-            pthread_uselib = []
-    else:
-        pthread_uselib = []
 
     ##################################################
     # Is SystemC compiled? Check for SystemC library
@@ -553,6 +560,10 @@ class Folder:
     ##################################################
     # Check for SystemC header and test the library
     ##################################################
+    if not sys.platform == 'cygwin':
+        systemCerrmsg='Error, at least version 2.2.0 required'
+    else:
+        systemCerrmsg='Error, at least version 2.2.0 required. SystemC also needs patching under cygwin: please controll that lines 175 and 177 of header systemc.h are commented; for more details refer to http://www.ht-lab.com/howto/sccygwin/sccygwin.html'
     conf.check_cxx(header_name='systemc.h', uselib='SYSTEMC', uselib_store='SYSTEMC', mandatory=1, includes=syscpath, errmsg='not found, use --with-systemc option')
     conf.check_cxx(fragment='''
         #include <systemc.h>
@@ -572,7 +583,7 @@ class Folder:
                 return 0;
             };
         }
-    ''', msg='Check for SystemC version', uselib='SYSTEMC', mandatory=1, errmsg='Error, at least version 2.2.0 required')
+    ''', msg='Check for SystemC version', uselib='SYSTEMC', mandatory=1, errmsg=systemCerrmsg)
 
     ##################################################
     # Check for TLM header

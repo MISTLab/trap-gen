@@ -42,7 +42,10 @@ except:
     raise Exception('Error occurred during the import of module networkx, required for the creation of the decoder. Please correctly install the module, at least version 0.36 required')
 
 try:
-    nxVersion = float(NX.__version__)
+    import re
+    p = re.compile( '([a-z]|[A-Z])*')
+    nxVersion = p.sub('', NX.__version__)
+    nxVersion = float(nxVersion)
 except:
     import traceback
     traceback.print_exc()
@@ -305,17 +308,24 @@ class decoderCreator:
         else:
             outEdges = self.decodingTree.edges(subtree, data = True)
         (mask, value) = subtree.splitFunction.toCode()
-        if outEdges[0][-1][-1] > outEdges[1][-1][-1]:
+        if nxVersion > 0.99:
+            decodePatternZero = outEdges[0][-1]['decodePattern']
+            decodePatternOne = outEdges[1][-1]['decodePattern']
+        else:
+            decodePatternZero = outEdges[0][-1]
+            decodePatternOne = outEdges[1][-1]
+
+        if decodePatternZero[-1] > decodePatternOne[-1]:
             nodeIf = outEdges[0][1]
             nodeElse = outEdges[1][1]
-            if outEdges[0][-1][0] == 1:
+            if decodePatternZero[0] == 1:
                 compareFun = '=='
             else:
                 compareFun = '!='
         else:
             nodeIf = outEdges[1][1]
             nodeElse = outEdges[0][1]
-            if outEdges[1][-1][0] == 1:
+            if decodePatternOne[0] == 1:
                 compareFun = '=='
             else:
                 compareFun = '!='
@@ -360,13 +370,20 @@ class decoderCreator:
         else:
             outEdges = self.decodingTree.edges(subtree, data = True)
         mask = subtree.splitFunction.toCode()
-        outEdges = sorted(outEdges, lambda x, y: cmp(y[-1][-1], x[-1][-1]))
+        if nxVersion > 0.99:
+            outEdges = sorted(outEdges, lambda x, y: cmp(y[-1]['decodePattern'][-1], x[-1]['decodePattern'][-1]))
+        else:
+            outEdges = sorted(outEdges, lambda x, y: cmp(y[-1][-1], x[-1][-1]))
         if '0' in  mask[2:]:
             code = 'switch(instrCode & ' + mask + '){\n'
         else:
             code = 'switch(instrCode){\n'
         for edge in outEdges:
-            code += 'case ' + hex(edge[-1][0]) + ':{\n'
+            if nxVersion > 0.99:
+                decodePattern = edge[-1]['decodePattern'][0]
+            else:
+                decodePattern = edge[-1][0]
+            code += 'case ' + hex(decodePattern) + ':{\n'
             if edge[1].instrId != None:
                 if edge[1].instrId != -1:
                     #code += '\n' + str(edge[1].patterns) + '\n'
@@ -833,7 +850,10 @@ class decoderCreator:
             subtree.splitFunction = bestTable
             for i in leavesTable:
                 self.decodingTree.add_node(i[0])
-                self.decodingTree.add_edge(subtree, i[0], i[1])
+                if nxVersion > 0.99:
+                    self.decodingTree.add_edge(subtree, i[0], decodePattern=i[1])
+                else:
+                    self.decodingTree.add_edge(subtree, i[0], i[1])
                 self.computeDecoderRec(i[0])
         else:
             # It is better to split on the pattern
@@ -841,7 +861,10 @@ class decoderCreator:
             if len(leavesPattern) > 1:
                 for i in leavesPattern:
                     self.decodingTree.add_node(i[0])
-                    self.decodingTree.add_edge(subtree, i[0], i[1])
+                    if nxVersion > 0.99:
+                        self.decodingTree.add_edge(subtree, i[0], decodePattern=i[1])
+                    else:
+                        self.decodingTree.add_edge(subtree, i[0], i[1])
                     self.computeDecoderRec(i[0])
 
     def printDecoder(self, fileName):

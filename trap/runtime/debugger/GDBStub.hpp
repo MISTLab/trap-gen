@@ -68,12 +68,6 @@
 #include <systemc.h>
 
 #include <vector>
-#include <boost/thread/thread.hpp>
-#include <boost/thread/xtime.hpp>
-#include <boost/thread/condition.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/algorithm/string.hpp>
 
 #include "trap_utils.hpp"
 
@@ -84,6 +78,13 @@
 #include "BreakpointManager.hpp"
 #include "WatchpointManager.hpp"
 #include "GDBConnectionManager.hpp"
+
+#include <boost/thread/thread.hpp>
+#include <boost/thread/xtime.hpp>
+#include <boost/thread/condition.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string.hpp>
 
 namespace trap{
 

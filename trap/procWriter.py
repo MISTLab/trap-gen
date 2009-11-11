@@ -50,7 +50,10 @@ except:
     raise Exception('Error occurred during the import of module networkx, required for the creation of the decoder. Please correctly install the module')
 
 try:
-    nxVersion = float(NX.__version__)
+    import re
+    p = re.compile( '([a-z]|[A-Z])*')
+    nxVersion = p.sub('', NX.__version__)
+    nxVersion = float(nxVersion)
 except:
     import traceback
     traceback.print_exc()

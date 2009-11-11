@@ -72,7 +72,7 @@
 #include <io.h>
 #endif
 #ifdef __GNUC__
-#if !(defined(__MACOSX__) || defined(__DARWIN__) || defined(__APPLE__))
+#if !(defined(__MACOSX__) || defined(__DARWIN__) || defined(__APPLE__) || defined(__CYGWIN__))
 #include <error.h>
 #endif
 #endif
