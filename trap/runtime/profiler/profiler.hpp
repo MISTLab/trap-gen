@@ -67,8 +67,6 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
     std::set<std::string> ignored;
     bool exited;
 
-    //issueWidth prevPC;
-
     ///Based on the new instruction just issued, the statistics on the instructions
     ///are updated
     inline void updateInstructionStats(const issueWidth &curPC, const InstructionBase *curInstr) throw(){
