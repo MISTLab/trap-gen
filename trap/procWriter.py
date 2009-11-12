@@ -496,10 +496,9 @@ def procInitCode(self, model):
         initString += 'this->' + irqPort.name + ' = -1;\n'
     return initString
 
-def createRegsAttributes(self, model, processorElements, initElements, bodyAliasInit, aliasInit):
+def createRegsAttributes(self, model, processorElements, initElements, bodyAliasInit, aliasInit, bodyInits):
     # Creates the code for the processor attributes (registers, aliases, etc) and the code to initialize them in the
     # processor constructor
-    bodyInits = ''
     bodyDestructor = ''
     abiIfInit = ''
 
@@ -910,7 +909,7 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         if self.irqs:
             codeString += '}\n'
         if len(self.tlmPorts) > 0 and model.endswith('LT'):
-            codeString += 'this->quantKeeper.inc((numCycles + 1)*this->latency);\nif(this->quantKeeper.need_sync()) this->quantKeeper.sync();\n'
+            codeString += 'this->quantKeeper.inc((numCycles + 1)*this->latency);\nif(this->quantKeeper.need_sync()){\nthis->quantKeeper.sync();\n}\n'
         elif model.startswith('acc') or self.systemc or model.endswith('AT'):
             codeString += 'wait((numCycles + 1)*this->latency);\n'
         else:
@@ -1024,7 +1023,7 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         processorElements.append(quantumKeeperAttribute)
         bodyInits += 'quantKeeper.set_global_quantum( this->latency*100 );\nquantKeeper.reset();\n'
     # Lets now add the registers, the reg banks, the aliases, etc.
-    (bodyInits, bodyDestructor, abiIfInit) = createRegsAttributes(self, model, processorElements, initElements, bodyAliasInit, aliasInit)
+    (bodyInits, bodyDestructor, abiIfInit) = createRegsAttributes(self, model, processorElements, initElements, bodyAliasInit, aliasInit, bodyInits)
 
     # Finally memories, TLM ports, etc.
     if self.memory:
