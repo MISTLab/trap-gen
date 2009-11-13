@@ -171,13 +171,56 @@ SYM(win_unf):
 /* interrupt handler: it simply calls the isrHandler which has to be defines in the C file*/
 .globl SYM(irq_routine)
 SYM(irq_routine):
-   nop
-   nop
-   mov %tbr, %o0
-   call SYM(isrHandler)
-   nop
-   nop
-   jmpl    %l1,  %g0
-   rett    %l2
-   nop
-   nop
+    nop
+    nop
+    mov %tbr, %g5
+    mov SYM(myData), %l4
+    and  %g5, 0xf0, %g5
+    sra  %g5, 4, %g5
+    add  %g5, 0x30, %g5
+    stb  %g5, [ %l4 ]
+    sll  %g5, 0x18, %g5
+    sra  %g5, 0x18, %g5
+    cmp  %g5, 0x39
+    ble  goAndPrint
+    nop
+    add  %g5, 7, %g5
+    stb  %g5, [ %l4 ]
+goAndPrint:
+    mov  2, %o0
+    mov SYM(myData), %l4
+    add %l4, 4, %o1
+    mov  1, %o2
+    call  SYM(write)
+    nop
+    mov  2, %o0
+    mov SYM(myData), %o1
+    mov  1, %o2
+    call  SYM(write)
+    nop
+    mov  2, %o0
+    mov SYM(myData), %l4
+    add %l4, 4, %o1
+    mov  1, %o2
+    call  SYM(write)
+    nop
+    nop
+    nop
+    jmpl    %l1,  %g0
+    rett    %l2
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+
+SYM(myData):
+.long   0
+.byte '\n'
+.byte '\n'
+.byte '\n'
+.byte '\n'
+
+.align 8

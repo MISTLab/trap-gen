@@ -3,8 +3,7 @@ of the processor. In order to do this, we need to use modified software initiali
 in order to correctly set the exception vectors in addresses 0x110-0x1f0 (analogous to what
 done for register windows over/under-flow handlers at addresses 0x50 and 0x60).
 
-The software routine (standard C routine) being called when an interrupt arrives is called
-"isrHandler" and it is located in program irqTester.c
+When an interrupt arrives the ID of the interrupt is printed on the screen
 
 File irqGenerator.hpp file contains the hardware module responsible for the interrupt generation:
 simply add its include to the main.cpp file of the processor you need to test

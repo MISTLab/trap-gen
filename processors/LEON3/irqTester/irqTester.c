@@ -44,24 +44,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-//Interrupt handler routine, called every time an interrupt is triggered
-//the address of the interrupt vector is passed to the routine
-void isrHandler(int irqAddr){
-    char irqNum = ((irqAddr & 0x000000F0) >> 4) + '0';
-    if(irqNum > '9')
-        irqNum += 7;
-    write(2, "\n", 1);
-    write(2, &irqNum, 1);
-    write(2, "\n", 1);
-}
-
-//Main routine of the program: it simply prints a lot of
-//stuff to the screen: if it correctly works, we should see the
-//print intermixed with the IRQ prints
+//Main routine of the program: it does nothing
 int main(int argc, char * argv[]){
     int i = 0;
-    for(i = 0; i < 1000; i++){
-        fprintf(stderr, "iter=%d\n", i);
+    for(i = 0; i < 10000; i++){
+        ;
     }
     return 0;
 }
