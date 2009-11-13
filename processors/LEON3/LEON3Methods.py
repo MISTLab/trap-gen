@@ -336,6 +336,10 @@ raiseExcCode +=  """
         PC = TBR;
         NPC = TBR + 4;
     }
+    if(exceptionId > TRAP_INSTRUCTION && exceptionId < IMPL_DEP_EXC){
+        // finally I acknowledge the interrupt on the external pin port
+        irqAck.send_pin_req(IMPL_DEP_EXC - exceptionId, 0);
+    }
     flush();
     annull();
 }

@@ -47,7 +47,12 @@
 //Interrupt handler routine, called every time an interrupt is triggered
 //the address of the interrupt vector is passed to the routine
 void isrHandler(int irqAddr){
-    fprintf(stderr, "irq=%#x\n", irqAddr);
+    char irqNum = ((irqAddr & 0x000000F0) >> 4) + '0';
+    if(irqNum > '9')
+        irqNum += 7;
+    write(2, "\n", 1);
+    write(2, &irqNum, 1);
+    write(2, "\n", 1);
 }
 
 //Main routine of the program: it simply prints a lot of

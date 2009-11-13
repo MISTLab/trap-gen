@@ -24,10 +24,10 @@ SYM(_start):
 SYM(start):
         /* Initialization of all the global registers to 0 a part from PSR and WIM
         */
-        set     __PSR_INIT,%g1
+        set     __PSR_INIT, %g1
         wr      %g1, %g0, %psr
         mov     %g0, %tbr
-        mov     %g0, %wim;
+        mov     %g0, %wim
         mov     %g0, %y
 
         flush
@@ -71,26 +71,26 @@ wl0:
         /* see if the stack is already setup. if not, then default
         *  to the __stack symbol
         */
-        cmp     %g0,%sp
+        cmp     %g0, %sp
         bne      1f
         sethi   %hi(__stack), %g1
-        or      %g1,%lo(__stack),%g1
+        or      %g1, %lo(__stack), %g1
         mov %g1, %sp                ! set the stack pointer
         add     %sp, -1024, %fp
-        mov     %fp , %sp
+        mov     %fp, %sp
         /*add     %fp, -128, %sp*/
 1:
 
     /* zero the bss section */
-        sethi %hi(__bss_start),%g2
-        or    %g2,%lo(__bss_start),%g2      ! start of bss
-        sethi %hi(_end),%g3
-        or    %g3,%lo(_end),%g3         ! end of bss
-        mov   %g0,%g1               ! so std has two zeros
+        sethi %hi(__bss_start), %g2
+        or    %g2, %lo(__bss_start), %g2      ! start of bss
+        sethi %hi(_end), %g3
+        or    %g3, %lo(_end), %g3         ! end of bss
+        mov   %g0, %g1               ! so std has two zeros
 zerobss:
-        std    %g0,[%g2]
-        add    %g2,8,%g2
-        cmp    %g2,%g3
+        std    %g0, [%g2]
+        add    %g2, 8, %g2
+        cmp    %g2, %g3
         bleu,a zerobss
         nop
 
@@ -133,9 +133,9 @@ setIrqLoop:
     ldd [%l1], %l2
     add %l4, %l0, %l4
     sll %l4, 4, %l5
-    std %l2, [%l5 + 11 * 16]
+    std %l2, [%l5 + 0x11 * 16]
     ldd [%l1 + 8], %l2
-    std %l2, [%l5 + 11 * 16 + 8]
+    std %l2, [%l5 + 0x11 * 16 + 8]
     cmp %l4, %g0
     bne setIrqLoop
     nop
@@ -170,7 +170,7 @@ init:
 1:
     sethi   %hi(SYM(software_init_hook)), %g1
         or      %g1,%lo(SYM(software_init_hook)),%g1
-    cmp %g0,%g1
+    cmp %g0, %g1
     nop
 
     /* Initialize the program status register */
@@ -183,6 +183,11 @@ init:
     call    SYM(software_init_hook)
     nop
 2:
+    /*Enable TRAP, by lowering the PIL*/
+    mov %psr, %l0
+    and  %l0, 0xFFFFF0FF, %l0
+    wr  %l0, %psr
+    nop
     call SYM(main)
     nop
 

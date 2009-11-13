@@ -208,7 +208,7 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             # Here is the code to deal with interrupts; note one problem: if an interrupt is raised, we need to
             # deal with it in the correct stage, i.e. we need to create a special instruction reaching the correct
             # stage and dealing with it properly.
-            codeString += getInterruptCode(self, pipeStage)
+            codeString += getInterruptCode(self, trace, pipeStage)
             # computes the correct memory and/or memory port from which fetching the instruction stream
             fetchCode = computeFetchCode(self)
             # computes the address from which the next instruction shall be fetched

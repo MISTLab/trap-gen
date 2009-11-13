@@ -467,8 +467,7 @@ def getGetIRQPorts(self, namespace):
         payloadType = cxx_writer.writer_code.Type('tlm::tlm_generic_payload', 'tlm.h')
         tlmPortElements = []
 
-        blockTransportCode = """tlm::tlm_command cmd = trans.get_command();
-            unsigned char* ptr = trans.get_data_ptr();
+        blockTransportCode = """unsigned char* ptr = trans.get_data_ptr();
             sc_dt::uint64 adr = trans.get_address();
             if(*ptr == 0){
                 //Lower the interrupt

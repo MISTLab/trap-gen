@@ -52,9 +52,9 @@ def getGetIRQInstr(self, model, trace, namespace):
             behaviorCode = 'this->totalInstrCycles = 0;\n'
         userDefineBehavior = ''
         for pipeStage in self.pipes:
+            userDefineBehavior = ''
             if model.startswith('acc'):
                 behaviorCode = 'this->stageCycles = 0;\n'
-                userDefineBehavior = ''
             if irq.operation.has_key(pipeStage.name):
                 userDefineBehavior += str(irq.operation[pipeStage.name])
                 if model.startswith('acc'):
@@ -92,7 +92,7 @@ def getGetIRQInstr(self, model, trace, namespace):
         setparamsParam = cxx_writer.writer_code.Parameter('bitString', self.bitSizes[1].makeRef().makeConst())
         setparamsDecl = cxx_writer.writer_code.Method('setParams', emptyBody, cxx_writer.writer_code.voidType, 'pu', [setparamsParam], noException = True)
         IRQInstrElements.append(setparamsDecl)
-        getIstructionNameBody = cxx_writer.writer_code.Code('return \"IRQ' + irq.name + 'Instruction\";')
+        getIstructionNameBody = cxx_writer.writer_code.Code('return \"IRQ_' + irq.name + '_Instruction\";')
         getIstructionNameDecl = cxx_writer.writer_code.Method('getInstructionName', getIstructionNameBody, cxx_writer.writer_code.stringType, 'pu', noException = True, const = True)
         IRQInstrElements.append(getIstructionNameDecl)
         getMnemonicBody = cxx_writer.writer_code.Code('return \"irq_' + irq.name + '\";')
@@ -134,6 +134,10 @@ def getGetIRQInstr(self, model, trace, namespace):
         setInterruptValueBody = cxx_writer.writer_code.Code('this->' + irq.name + ' = interruptValue;')
         setInterruptValueDecl = cxx_writer.writer_code.Method('setInterruptValue', setInterruptValueBody, cxx_writer.writer_code.voidType, 'pu', [InterruptValueParam], noException = True, inline = True)
         IRQInstrElements.append(setInterruptValueDecl)
+
+        # Now I declare the instruction variables for this IRQ instruction
+        for var in irq.variables:
+            IRQInstrElements.append(cxx_writer.writer_code.Attribute(var.name, var.varType, 'pro',  var.static))
 
         # Finally I can declare the IRQ class for this specific IRQ
         from procWriter import baseInstrInitElement

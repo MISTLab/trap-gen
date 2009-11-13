@@ -173,7 +173,7 @@ SYM(win_unf):
 SYM(irq_routine):
    nop
    nop
-   mov %tbr, %i0
+   mov %tbr, %o0
    call SYM(isrHandler)
    nop
    nop

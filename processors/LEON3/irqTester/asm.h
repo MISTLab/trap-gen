@@ -19,7 +19,7 @@
 #define __WINSIZE 8
 #define __WIM_INIT 2
 
-#define __PSR_INIT 0x00e0
+#define __PSR_INIT 0x0fe0
 
 /* Indicate we are in an assembly file and get the basic CPU definitions.  */
 #define ASM

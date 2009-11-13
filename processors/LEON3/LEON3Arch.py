@@ -223,24 +223,31 @@ processor.addTLMPort('dataMem')
 # At the end I have to acknowledge the interrupt, by writing on the ack
 # port.
 irqPort = trap.Interrupt('IRQ', 32)
+irqPort.setOperation("""
+pcounter = PC;
+#ifndef ACC_MODEL
+npcounter = NPC;
+#endif
+""", 'fetch')
+irqPort.setOperation("""
+#ifdef ACC_MODEL
+npcounter = PC;
+#endif
+""", 'decode')
 irqPort.setOperation("""//Basically, what I have to do when
 //an interrupt arrives is very simple: we check that interrupts
 //are enabled and that the the processor can take this interrupt
 //(valid interrupt level). The we simply raise an exception and
 //acknowledge the IRQ on the irqAck port.
-// First of all I have to move to a new register window
-unsigned int newCwp = ((unsigned int)(PSR[key_CWP] - 1)) % """ + str(numRegWindows) + """;
-PSR.immediateWrite((PSR & 0xFFFFFFE0) | newCwp);
-""" + updateAliasCode_exception() + """
-// Now I set the TBR
-TBR[key_TT] = 0x10 + IRQ;
-// I have to jump to the address contained in the TBR register
-PC = TBR;
-NPC = TBR + 4;
-// finally I acknowledge the interrupt on the external pin port
-irqAck.send_pin_req(IRQ, 0);
+//All of this can be simply done by calling the
+//RaiseException method
+// Note that 38 corresponds to the highest defined exception
+// (IMPL_DEP_EXC): this because interrupt 1 has id 37, etc.
+RaiseException(pcounter, npcounter, 38 - IRQ);
 """, 'exception')
 irqPort.setCondition('PSR[key_ET] && (IRQ == 15 || IRQ > PSR[key_PIL])')
+irqPort.addVariable(('pcounter', 'BIT<32>'))
+irqPort.addVariable(('npcounter', 'BIT<32>'))
 # in the IRQ tests I specify first the status of the processor before the
 # interrupt, then the status I expect after the execution of the interrupt
 irqPort.addTest({'IRQ': 0x1, 'PSR' : 0x00000f20, 'TBR': 0x0, 'PC': 0x0, 'NPC': 0x0}, {'PSR' : 0x00000f20, 'TBR': 0x0, 'PC': 0x0, 'NPC': 0x0})

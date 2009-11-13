@@ -34,6 +34,7 @@
 #
 ####################################################################################
 
+import cxx_writer
 import procWriter, registerWriter, memWriter, interfaceWriter, portsWriter, pipelineWriter, irqWriter
 
 validModels = ['funcLT', 'funcAT', 'accLT', 'accAT']
@@ -1370,6 +1371,21 @@ class Interrupt:
         self.condition = ''
         self.tests = []
         self.operation = {}
+        self.variables = []
+
+    def addVariable(self, variable):
+        # adds a variable global to the instruction; note that
+        # variable has to be an instance of cxx_writer.Variable
+        if isinstance(variable, type(())):
+            from isa import resolveBitType
+            variable = cxx_writer.writer_code.Variable(variable[0], resolveBitType(variable[1]))
+        for instrVar in self.variables:
+            if variable.name == instrVar.name:
+                if variable.varType.name != instrVar.varType.name:
+                    raise Exception('Trying to add variable ' + variable.name + ' of type ' + variable.varType.name + ' to instruction ' + self.name + ' which already has a variable with such a name of type ' + instrVar.varType.name)
+                else:
+                    return
+        self.variables.append(variable)
 
     def setOperation(self, operation, stage):
         self.operation[stage] = operation

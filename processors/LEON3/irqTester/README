@@ -9,3 +9,9 @@ The software routine (standard C routine) being called when an interrupt arrives
 File irqGenerator.hpp file contains the hardware module responsible for the interrupt generation:
 simply add its include to the main.cpp file of the processor you need to test
 and connect it to the correct TLM interrupt port of the processor.
+The code for the connection looks like:
+
+    IrqGenerator irqGen("irqGen", sc_time(latency*1000, SC_US));
+    irqGen.initSocket.bind(procInst.IRQ_port.socket);
+    procInst.irqAck.initSocket.bind(irqGen.targSocket);
+

@@ -215,7 +215,7 @@ def computeCurrentPC(self, model):
     return fetchAddress
 
 # Computes and prints the code necessary for dealing with interrupts
-def getInterruptCode(self, pipeStage = None):
+def getInterruptCode(self, trace, pipeStage = None):
     interruptCode = ''
     orderedIrqList = sorted(self.irqs, lambda x,y: cmp(y.priority, x.priority))
     for irqPort in orderedIrqList:
@@ -233,12 +233,23 @@ def getInterruptCode(self, pipeStage = None):
         # in the functional one.
         # Functional: we only need to call the instruction behavior
         # Cycle accurate, we need to add the instruction to the pipeline
+        if trace:
+            interruptCode += 'std::cerr << "Received interrupt " << std::hex << std::showbase << IRQ << std::endl;'
         interruptCode += 'this->' + irqPort.name + '_irqInstr->setInterruptValue(' + irqPort.name + ');\n'
+        interruptCode += 'try{\n'
         if pipeStage:
             interruptCode += 'numCycles = this->' + irqPort.name + '_irqInstr->behavior_' + pipeStage.name + '(BasePipeStage::unlockQueue);\n'
             interruptCode += 'this->curInstruction = this->' + irqPort.name + '_irqInstr;\n'
         else:
             interruptCode += 'numCycles = this->' + irqPort.name + '_irqInstr->behavior();\n'
+        interruptCode +='}\ncatch(annull_exception &etc){\n'
+        if trace:
+            interruptCode += 'this->' + irqPort.name + """_irqInstr->printTrace();
+                    std::cerr << "Skipped Instruction " << this->""" + irqPort.name + """_irqInstr->getInstructionName() << std::endl << std::endl;
+            """
+        interruptCode += """numCycles = 0;
+            }
+            """
         interruptCode += '\n}\n'
     if self.irqs:
         interruptCode += 'else{\n'
@@ -886,7 +897,7 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         codeString += 'this->instrExecuting = true;\n'
 
         #Here is the code to deal with interrupts
-        codeString += getInterruptCode(self)
+        codeString += getInterruptCode(self, trace)
         # computes the correct memory and/or memory port from which fetching the instruction stream
         fetchCode = computeFetchCode(self)
         # computes the address from which the nest instruction shall be fetched
@@ -1290,24 +1301,20 @@ def getMainCode(self, model, namespace):
         std::cerr << "It is necessary to specify the application which has to be simulated" << " using the --application command line option" << std::endl << std::endl;
         std::cerr << desc << std::endl;
         return -1;
-    }"""
+    }
+    """
     if (self.systemc or model.startswith('acc') or model.endswith('AT')) and not self.externalClock:
-        code += """double latency = 10e-6; // 1us
+        code += """double latency = 1; // 1us
         if(vm.count("frequency") != 0){
             latency = 1/(vm["frequency"].as<double>());
         }
         //Now we can procede with the actual instantiation of the processor
-        Processor procInst(\"""" + self.name + """\", sc_time(latency*10e9, SC_NS));
+        Processor procInst(\"""" + self.name + """\", sc_time(latency*10e9, SC_US));
         """
     else:
         code += """
         //Now we can procede with the actual instantiation of the processor
         Processor procInst(\"""" + self.name + """\");
-        """
-    if self.externalClock:
-        code += '//** Here we have to connect the external clock to procInst.clock input port **//\n'
-        code += """sc_clock TestClk("TestClock", 10, SC_NS,0.5);
-        procInst.clock(TestClk);
         """
     instrMemName = ''
     instrDissassName = ''
@@ -1316,10 +1323,10 @@ def getMainCode(self, model, namespace):
         //wtih the processor
         """
         if model.endswith('LT'):
-            code += """MemoryLT<""" + str(len(self.tlmPorts)) + """, """ + str(self.wordSize*self.byteSize) + """> mem("procMem", 1024*1024*10, sc_time(latency*10e9*2, SC_NS));
+            code += """MemoryLT<""" + str(len(self.tlmPorts)) + """, """ + str(self.wordSize*self.byteSize) + """> mem("procMem", 1024*1024*10, sc_time(latency*2, SC_US));
             """
         else:
-            code += """MemoryAT<""" + str(len(self.tlmPorts)) + """, """ + str(self.wordSize*self.byteSize) + """> mem("procMem", 1024*1024*10, sc_time(latency*10e9*2, SC_NS));
+            code += """MemoryAT<""" + str(len(self.tlmPorts)) + """, """ + str(self.wordSize*self.byteSize) + """> mem("procMem", 1024*1024*10, sc_time(latency*2, SC_US));
             """
         numPort = 0
         for tlmPortName, fetch in self.tlmPorts.items():
@@ -1484,7 +1491,7 @@ def getMainCode(self, model, namespace):
     std::cout << "Execution Speed " << (double)procInst.numInstructions/(elapsedSec*1e6) << " MIPS" << std::endl;
     """
     if self.systemc or model.startswith('acc') or model.endswith('AT'):
-        code += 'std::cout << \"Simulated time \" << ((sc_time_stamp().to_default_time_units())/(sc_time(1, SC_NS).to_default_time_units())) << " ns" << std::endl;\n'
+        code += 'std::cout << \"Simulated time \" << ((sc_time_stamp().to_default_time_units())/(sc_time(1, SC_US).to_default_time_units())) << " us" << std::endl;\n'
     else:
         code += 'std::cout << \"Elapsed \" << procInst.totalCycles << \" cycles\" << std::endl;\n'
     if self.endOp:

@@ -5,7 +5,7 @@ OUTPUT_ARCH(sparc)
 ENTRY(_start)
 SECTIONS
 {
-   PROVIDE (__executable_start = 0xFF); . = 0xFF; /*I leave the first 256 byte free for the trap table*/
+   PROVIDE (__executable_start = 0x1FF); . = 0x1FF; /*I leave the first 256 byte free for the trap table*/
    PROVIDE (exit = _exit); /*Ugly hack to avoid the missing symbol exit; note that the distructors are not called this way*/
   /* Read-only sections, merged into text segment: */
   .interp         : { *(.interp) }
