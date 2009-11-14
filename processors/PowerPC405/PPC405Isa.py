@@ -902,3 +902,54 @@ rlwnm_Instr.setCode(opCode,'execute')
 rlwnm_Instr.addBehavior(IncrementPC, 'execute')
 #rlwnm_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
 isa.addInstruction(rlwnm_Instr)
+
+#SC
+opCode = cxx_writer.writer_code.Code("""
+//(SRR1) ← (MSR)
+//(SRR0) ← (PC)
+//PC ← EVPR0:15 || 0x0C00
+//(MSR[WE, EE, PR, DR, IR]) ← 0
+""")
+sc_Instr = trap.Instruction('SC', True)
+sc_Instr.setMachineCode(oper_SCform, {'primary_opcode': [0,1,0,0,0,1] , '1':[1] }, ())
+sc_Instr.setCode(opCode,'execute')
+sc_Instr.addBehavior(IncrementPC, 'execute')
+#sc_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(sc_Instr)
+
+#SLW
+opCode = cxx_writer.writer_code.Code("""
+//n ← (RB)27:31
+//r ← ROTL((RS), n)
+//if (RB)26 = 0 then
+//    m ← MASK(0, 31 – n)
+//else
+//    m ← 320
+//(RA) ← r ∧ m
+""")
+slw_Instr = trap.Instruction('SLW', True)
+slw_Instr.setMachineCode(oper_Xform_7, {'primary_opcode': [0,1,1,1,1,1], 'xo': [0,0,0,0,0,1,1,0,0,0] }, ('slw r', '%rs', ' r', '%ra', ' r', '%rb'))
+slw_Instr.setCode(opCode,'execute')
+slw_Instr.addBehavior(IncrementPC, 'execute')
+#slw_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(slw_Instr)
+
+#SRAW
+opCode = cxx_writer.writer_code.Code("""
+//n ← (RB)27:31
+//r ← ROTL((RS), 32 – n)
+//if (RB)26 = 0 then
+//    m ← MASK(n, 31)
+//else
+//    m ← 320
+//s ← (RS)0
+//(RA) ← (r ∧ m) ∨ (32s ∧ ¬m)
+//XER[CA] ← s ∧ ((r ∧ ¬m) ≠ 0)
+""")
+sraw_Instr = trap.Instruction('SRAW', True)
+sraw_Instr.setMachineCode(oper_Xform_7, {'primary_opcode': [0,1,1,1,1,1], 'xo': [1,1,0,0,0,1,1,0,0,0] }, ('sraw r', '%rs', ' r', '%ra', ' r', '%rb'))
+sraw_Instr.setCode(opCode,'execute')
+sraw_Instr.addBehavior(IncrementPC, 'execute')
+#sraw_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(sraw_Instr)
+
