@@ -1309,7 +1309,7 @@ def getMainCode(self, model, namespace):
             latency = 1/(vm["frequency"].as<double>());
         }
         //Now we can procede with the actual instantiation of the processor
-        Processor procInst(\"""" + self.name + """\", sc_time(latency*10e9, SC_US));
+        Processor procInst(\"""" + self.name + """\", sc_time(latency, SC_US));
         """
     else:
         code += """
