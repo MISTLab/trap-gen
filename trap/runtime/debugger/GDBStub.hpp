@@ -519,7 +519,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     ///Method used to resume execution after GDB has issued
     ///the continue or step signal
     void resumeExecution(){
-        //I'm going to restart execution, so I can again enable watch and break points
+        //I'm going to restart execution, so I can again re-enable watch and break points
         this->breakEnabled = true;
         this->watchEnabled = true;
         this->simStartTime = sc_time_stamp().to_double();
@@ -718,6 +718,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     }
 
     bool killApp(){
+        std::cerr << std::endl << "Killing the program according to GDB request" << std::endl << std::endl;
         this->isKilled = true;
         sc_stop();
         wait();

@@ -4,7 +4,7 @@ all: $(addsuffix .O0, $(TARGETS)) $(addsuffix .O1, $(TARGETS)) $(addsuffix .O2, 
 
 $(addsuffix .O0, $(TARGETS)): $(addsuffix .c, $(basename $@))
 ifneq ("$(CC_CROSS)", "")
-	$(CC_CROSS) -o $@ -O0 $(CFLAGS) $(addsuffix .c, $(basename $@)) -lm
+	$(CC_CROSS) -o $@ -g3 -O0 $(CFLAGS) $(addsuffix .c, $(basename $@)) -lm
 else
 	echo "CC_CROSS environmental variable not set"
 	exit 1
@@ -12,7 +12,7 @@ endif
 
 $(addsuffix .O1, $(TARGETS)): $(addsuffix .c, $(basename $@))
 ifneq ("$(CC_CROSS)", "")
-	$(CC_CROSS) -o $@ -O1 $(CFLAGS) $(addsuffix .c, $(basename $@)) -lm
+	$(CC_CROSS) -o $@ -g3 -O1 $(CFLAGS) $(addsuffix .c, $(basename $@)) -lm
 else
 	echo "CC_CROSS environmental variable not set"
 	exit 1
@@ -20,7 +20,7 @@ endif
 
 $(addsuffix .O2, $(TARGETS)): $(addsuffix .c, $(basename $@))
 ifneq ("$(CC_CROSS)", "")
-	$(CC_CROSS) -o $@ -O2 $(CFLAGS) $(addsuffix .c, $(basename $@)) -lm
+	$(CC_CROSS) -o $@ -g3 -O2 $(CFLAGS) $(addsuffix .c, $(basename $@)) -lm
 else
 	echo "CC_CROSS environmental variable not set"
 	exit 1
@@ -28,7 +28,7 @@ endif
 
 $(addsuffix .O3, $(TARGETS)): $(addsuffix .c, $(basename $@))
 ifneq ("$(CC_CROSS)", "")
-	$(CC_CROSS) -o $@ -O3 $(CFLAGS) $(addsuffix .c, $(basename $@)) -lm
+	$(CC_CROSS) -o $@ -g3 -O3 $(CFLAGS) $(addsuffix .c, $(basename $@)) -lm
 else
 	echo "CC_CROSS environmental variable not set"
 	exit 1

@@ -220,7 +220,7 @@ void trap::GDBConnectionManager::sendResponse(GDBResponse &response){
             do{
                 ack = this->readQueueChar();
                 if(ack == '\x0'){
-                    std::cerr << "Connection Unexpetedly closed by the GDB Debugger" << std::endl;
+                    std::cerr << std::endl <<  "Connection Unexpetedly closed by the GDB Debugger" << std::endl << std::endl;
                     this->killed = true;
                     return;
                 }
@@ -253,7 +253,9 @@ trap::GDBRequest trap::GDBConnectionManager::processRequest(){
         while((receivedChar & 0x7f) != '$'){
             receivedChar = this->readQueueChar();
             if(receivedChar == '\x0'){
-                std::cerr << "Connection Unexpetedly closed by the GDB Debugger" << std::endl;
+                std::cerr << std::endl << "Connection Unexpetedly closed by the GDB Debugger before sending a request" << std::endl;
+                std::cerr << std::endl << "There might be a problem with your GDB client" << std::endl << std::endl;
+                std::cerr << std::endl << "Detaching from GDB and restarting simulation" << std::endl << std::endl;
                 req.type = GDBRequest::ERROR_req;
                 this->killed = true;
                 return req;
@@ -271,7 +273,8 @@ trap::GDBRequest trap::GDBConnectionManager::processRequest(){
         while((receivedChar & 0x7f) != '#'){
             receivedChar = this->readQueueChar();
             if(receivedChar == '\x0'){
-                std::cerr << "Connection Unexpetedly closed by the GDB Debugger" << std::endl;
+                std::cerr << std::endl << "Connection Unexpetedly closed by the GDB Debugger" << std::endl << std::endl;
+                std::cerr << std::endl << "Detaching from GDB and restarting simulation" << std::endl << std::endl;
                 req.type = GDBRequest::ERROR_req;
                 this->killed = true;
                 return req;
@@ -284,14 +287,16 @@ trap::GDBRequest trap::GDBConnectionManager::processRequest(){
         char checkSum[2];
         checkSum[0] = this->readQueueChar();
         if(checkSum[0] == '\x0'){
-            std::cerr << "Connection Unexpetedly closed by the GDB Debugger" << std::endl;
+            std::cerr << std::endl << "Connection Unexpetedly closed by the GDB Debugger" << std::endl << std::endl;
+            std::cerr << std::endl << "Detaching from GDB and restarting simulation" << std::endl << std::endl;
             req.type = GDBRequest::ERROR_req;
             this->killed = true;
             return req;
         }
         checkSum[1] = this->readQueueChar();
         if(checkSum[1] == '\x0'){
-            std::cerr << "Connection Unexpetedly closed by the GDB Debugger" << std::endl;
+            std::cerr << std::endl << "Connection Unexpetedly closed by the GDB Debugger" << std::endl << std::endl;
+            std::cerr << std::endl << "Detaching from GDB and restarting simulation" << std::endl << std::endl;
             req.type = GDBRequest::ERROR_req;
             this->killed = true;
             return req;

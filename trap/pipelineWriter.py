@@ -186,12 +186,12 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
         constructorInit = []
         constructorParams = [pipeNameParam] + constructorParamsBase
 
-        codeString = """unsigned int numNOPS = 0;
-        this->curInstruction = this->NOPInstrInstance;
+        codeString = """this->curInstruction = this->NOPInstrInstance;
         this->nextInstruction = this->NOPInstrInstance;
         """
         if pipeStage == self.pipes[0]:
             # This is the fetch pipeline stage, I have to fetch instructions
+            codeString += 'unsigned int numNOPS = 0;\n'
             if self.instructionCache:
                 codeString += 'template_map< ' + str(self.bitSizes[1]) + ', CacheElem >::iterator instrCacheEnd = this->instrCache.end();\n'
             codeString += 'while(true){\n'
