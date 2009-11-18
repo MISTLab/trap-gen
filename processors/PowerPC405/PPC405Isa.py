@@ -503,62 +503,561 @@ dccci_Instr.addBehavior(IncrementPC, 'execute')
 #dccci_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
 isa.addInstruction(dccci_Instr)
 #DCREAD
+opCode = cxx_writer.writer_code.Code("""ea = (((int) ra|0) + (int) rb);
+//TODO
+""")
+dread_Instr = trap.Instruction('DCREAD', True)
+dread_Instr.setMachineCode(oper_Xform_2, {'primary_opcode': [0,1,1,1,1,1],'xo': [0,1,1,1,1,0,0,1,1,0]}, ('dread r','%ra', ' r', '%rb'))
+dread_Instr.setCode(opCode,'execute')
+dread_Instr.addBehavior(IncrementPC, 'execute')
+#dread_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(dread_Instr)
 #DIVW
+opCode = cxx_writer.writer_code.Code("""rt = ((int) ra / (int) ra);
+""")
+divw_Instr = trap.Instruction('DIVW', True)
+divw_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,1,1,1,1,1],'xo': [0,1,1,1,1,0,1,0,1,1]}, ('divw r', '%rt', ' r', '%ra', ' r', '%rb'))
+divw_Instr.setCode(opCode,'execute')
+divw_Instr.addBehavior(IncrementPC, 'execute')
+#divw_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(divw_Instr)
 #DIVWU
+opCode = cxx_writer.writer_code.Code("""rt = ((int) ra / (int) ra);
+""")
+divwu_Instr = trap.Instruction('DIVWU', True)
+divwu_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,1,1,1,1,1],'xo': [0,1,1,1,0,0,1,0,1,1]}, ('divwu r', '%rt', ' r', '%ra', ' r', '%rb'))
+divwu_Instr.setCode(opCode,'execute')
+divwu_Instr.addBehavior(IncrementPC, 'execute')
+#divwu_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(divwu_Instr)
 #EIEIO
+opCode = cxx_writer.writer_code.Code("""""")
+eieio_Instr = trap.Instruction('EIEIO', True)
+eieio_Instr.setMachineCode(oper_Xform_24, {'primary_opcode': [0,1,1,1,1,1],'xo': [1,1,0,1,0,1,0,1,1,0]}, ('TODO'))
+eieio_Instr.setCode(opCode,'execute')
+eieio_Instr.addBehavior(IncrementPC, 'execute')
+#eieio_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(eieio_Instr)
 #EQV
+opCode = cxx_writer.writer_code.Code("""ra =  ~((int) rs ^ (int) rb);
+""")
+eqv_Instr = trap.Instruction('EQV', True)
+eqv_Instr.setMachineCode(oper_Xform_7, {'primary_opcode': [0,1,1,1,1,1],'xo': [0,0,1,1,1,1,1,0,0,0]}, ('eqv r', '%ra', ' r', '%rs', ' r', '%rb'))
+eqv_Instr.setCode(opCode,'execute')
+eqv_Instr.addBehavior(IncrementPC, 'execute')
+#divwu_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(eqv_Instr)
 #EXTSB
+opCode = cxx_writer.writer_code.Code("""ra =  exts((int)rs);
+""")
+extsb_Instr = trap.Instruction('EXTSB', True)
+extsb_Instr.setMachineCode(oper_Xform_13, {'primary_opcode': [0,1,1,1,1,1],'xo': [1,1,1,0,1,1,1,0,1,0]}, ('extsb r', '%ra', ' r', '%rs'))
+extsb_Instr.setCode(opCode,'execute')
+extsb_Instr.addBehavior(IncrementPC, 'execute')
+#extsb_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(extsb_Instr)
 #EXTSH
+opCode = cxx_writer.writer_code.Code("""ra =  exts((int)rs);
+""")
+extsh_Instr = trap.Instruction('EXTSH', True)
+extsh_Instr.setMachineCode(oper_Xform_13, {'primary_opcode': [0,1,1,1,1,1],'xo': [1,1,1,0,0,1,1,0,1,0]}, ('extsb r', '%ra', ' r', '%rs'))
+extsh_Instr.setCode(opCode,'execute')
+extsh_Instr.addBehavior(IncrementPC, 'execute')
+#extsh_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(extsh_Instr)
 #ICBI
+opCode = cxx_writer.writer_code.Code("""ea = (((int) ra|0) + (int) rb);
+//icbi(ea);
+""")
+icbi_Instr = trap.Instruction('ICBI', True)
+icbi_Instr.setMachineCode(oper_Xform_23, {'primary_opcode': [0,1,1,1,1,1],'xo': [1,1,1,1,0,1,0,1,1,0]}, ('icbi r', '%ra', ' r', '%rb'))
+icbi_Instr.setCode(opCode,'execute')
+icbi_Instr.addBehavior(IncrementPC, 'execute')
+#icbi_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(icbi_Instr)
 #ICBT
+opCode = cxx_writer.writer_code.Code("""ea = (((int) ra|0) + (int) rb);
+//icbt(ea);
+""")
+icbt_Instr = trap.Instruction('ICBT', True)
+icbt_Instr.setMachineCode(oper_Xform_23, {'primary_opcode': [0,1,1,1,1,1],'xo': [0,1,0,0,0,0,0,1,1,0]}, ('icbt r', '%ra', ' r', '%rb'))
+icbt_Instr.setCode(opCode,'execute')
+icbt_Instr.addBehavior(IncrementPC, 'execute')
+#icbt_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(icbt_Instr)
 #ICCCI
+opCode = cxx_writer.writer_code.Code("""ea = (((int) ra|0) + (int) rb);
+//iccc(iccci cache array);
+""")
+iccci_Instr = trap.Instruction('ICCCI', True)
+iccci_Instr.setMachineCode(oper_Xform_23, {'primary_opcode': [0,1,1,1,1,1],'xo': [1,1,1,1,0,0,0,1,1,0]}, ('icbt r', '%ra', ' r', '%rb'))
+iccci_Instr.setCode(opCode,'execute')
+iccci_Instr.addBehavior(IncrementPC, 'execute')
+#iccci_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(iccci_Instr)
 #ICREAD
+opCode = cxx_writer.writer_code.Code("""ea = (((int) ra|0) + (int) rb);
+//TODO;
+""")
+icread_Instr = trap.Instruction('ICREAD', True)
+icread_Instr.setMachineCode(oper_Xform_23, {'primary_opcode': [0,1,1,1,1,1],'xo': [1,1,1,1,1,0,0,1,1,0]}, ('icread r', '%ra', ' r', '%rb'))
+icread_Instr.setCode(opCode,'execute')
+icread_Instr.addBehavior(IncrementPC, 'execute')
+#icread_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(icread_Instr)
 #ISYNC
+opCode = cxx_writer.writer_code.Code("""//TODO
+""")
+isync_Instr = trap.Instruction('ISYNC', True)
+isync_Instr.setMachineCode(oper_Xform_24, {'primary_opcode': [0,1,0,0,1,1],'xo': [0,0,1,0,0,1,0,1,1,0]}, ('TODO'))
+isync_Instr.setCode(opCode,'execute')
+isync_Instr.addBehavior(IncrementPC, 'execute')
+#isync_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(isync_Instr)
 #LBZ
+opCode = cxx_writer.writer_code.Code("""//TODO
+""")
+lbz_Instr = trap.Instruction('LBZ', True)
+lbz_Instr.setMachineCode(oper_Dform_1, {'primary_opcode': [1,0,0,0,1,0]}, ('TODO'))
+lbz_Instr.setCode(opCode,'execute')
+lbz_Instr.addBehavior(IncrementPC, 'execute')
+#lbz_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(lbz_Instr)
 #LBZU
+opCode = cxx_writer.writer_code.Code("""//TODO
+""")
+lbzu_Instr = trap.Instruction('LBZU', True)
+lbzu_Instr.setMachineCode(oper_Dform_1, {'primary_opcode': [1,0,0,0,1,1]}, ('TODO'))
+lbzu_Instr.setCode(opCode,'execute')
+lbzu_Instr.addBehavior(IncrementPC, 'execute')
+#lbz_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(lbzu_Instr)
 #LBZUX
+opCode = cxx_writer.writer_code.Code("""
+ea = (((int) ra|0) + (int) rb);
+//(int) ra = ea;//TODO (RT) ← 240 || MS(EA,1)
+""")
+lbzux_Instr = trap.Instruction('LBZUX', True)
+lbzux_Instr.setMachineCode(oper_Xform_2, {'primary_opcode': [0,1,1,1,1,1],'xo': [0,0,0,1,1,1,0,1,1,1]}, ('lbzux r', '%rt', ' r', '%ra', ' r', '%rb'))
+lbzux_Instr.setCode(opCode,'execute')
+lbzux_Instr.addBehavior(IncrementPC, 'execute')
+#lbzux_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(lbzux_Instr)
 #LBZX
+opCode = cxx_writer.writer_code.Code("""
+ea = (((int) ra|0) + (int) rb);
+//TODO (RT) ← 240 || MS(EA,1)
+""")
+lbzx_Instr = trap.Instruction('LBZX', True)
+lbzx_Instr.setMachineCode(oper_Xform_2, {'primary_opcode': [0,1,1,1,1,1],'xo': [0,0,0,1,0,1,0,1,1,1]}, ('lbzx r', '%rt', ' r', '%ra', ' r', '%rb'))
+lbzx_Instr.setCode(opCode,'execute')
+lbzx_Instr.addBehavior(IncrementPC, 'execute')
+#lbzx_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(lbzx_Instr)
 #LHA
+opCode = cxx_writer.writer_code.Code("""ea = (((int) ra|0) + exts(d));
+//TODO (RT) ← exts(MS(EA,1));
+""")
+lha_Instr = trap.Instruction('LHA', True)
+lha_Instr.setMachineCode(oper_Dform_1, {'primary_opcode': [1,0,1,0,1,0]}, ('TODO'))
+lha_Instr.setCode(opCode,'execute')
+lha_Instr.addBehavior(IncrementPC, 'execute')
+#lbz_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(lha_Instr)
 #LHAU
+opCode = cxx_writer.writer_code.Code("""ea = (((int) ra) + exts(d));
+//(int) ra = ea;
+//TODO (RT) ← exts(MS(EA,2));
+""")
+lhau_Instr = trap.Instruction('LHAU', True)
+lhau_Instr.setMachineCode(oper_Dform_1, {'primary_opcode': [1,0,1,0,1,1]}, ('TODO'))
+lhau_Instr.setCode(opCode,'execute')
+lhau_Instr.addBehavior(IncrementPC, 'execute')
+#lbz_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(lhau_Instr)
 #LHAUX
+opCode = cxx_writer.writer_code.Code("""
+ea = (((int) ra) + (int) rb);
+//(int) ra = ea;
+//TODO (RT) ← exts(MS(EA,2));
+""")
+lhaux_Instr = trap.Instruction('LHAUX', True)
+lhaux_Instr.setMachineCode(oper_Xform_2, {'primary_opcode': [0,1,1,1,1,1],'xo': [0,1,0,1,1,1,0,1,1,1]}, ('lhaux r', '%rt', ' r', '%ra', ' r', '%rb'))
+lhaux_Instr.setCode(opCode,'execute')
+lhaux_Instr.addBehavior(IncrementPC, 'execute')
+#lhaux_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(lhaux_Instr)
 #LHAX
+opCode = cxx_writer.writer_code.Code("""
+ea = (((int) ra|0) + (int) rb);
+//TODO (RT) ← exts(MS(EA,2));
+""")
+lhax_Instr = trap.Instruction('LHAX', True)
+lhax_Instr.setMachineCode(oper_Xform_2, {'primary_opcode': [0,1,1,1,1,1],'xo': [0,1,0,1,0,1,0,1,1,1]}, ('lhax r', '%rt', ' r', '%ra', ' r', '%rb'))
+lhax_Instr.setCode(opCode,'execute')
+lhax_Instr.addBehavior(IncrementPC, 'execute')
+#lhax_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(lhax_Instr)
 #LHBRX
+opCode = cxx_writer.writer_code.Code("""
+ea = (((int) ra|0) + (int) rb);
+//TODO (RT) ← 160 || MS(EA +1,1) || MS(EA,1);
+""")
+lhbrx_Instr = trap.Instruction('LHBRX', True)
+lhbrx_Instr.setMachineCode(oper_Xform_2, {'primary_opcode': [0,1,1,1,1,1],'xo': [1,1,0,0,0,1,0,1,1,0]}, ('lhbrx r', '%rt', ' r', '%ra', ' r', '%rb'))
+lhbrx_Instr.setCode(opCode,'execute')
+lhbrx_Instr.addBehavior(IncrementPC, 'execute')
+#lhax_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(lhbrx_Instr)
 #LHZ
+opCode = cxx_writer.writer_code.Code("""ea = (((int) ra|0) + exts(d));
+//TODO (RT) ← 160 || MS(EA,2);
+""")
+lhz_Instr = trap.Instruction('LHZ', True)
+lhz_Instr.setMachineCode(oper_Dform_1, {'primary_opcode': [1,0,1,0,0,0]}, ('TODO'))
+lhz_Instr.setCode(opCode,'execute')
+lhz_Instr.addBehavior(IncrementPC, 'execute')
+#lhz_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(lhz_Instr)
 #LHZU
+opCode = cxx_writer.writer_code.Code("""ea = ((int) ra + exts(d));
+//(int) ra = ea;
+//TODO (RT) ← 160 || MS(EA,2);
+""")
+lhzu_Instr = trap.Instruction('LHZU', True)
+lhzu_Instr.setMachineCode(oper_Dform_1, {'primary_opcode': [1,0,1,0,0,1]}, ('TODO'))
+lhzu_Instr.setCode(opCode,'execute')
+lhzu_Instr.addBehavior(IncrementPC, 'execute')
+#lhzu_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(lhzu_Instr)
 #LHZUX
+opCode = cxx_writer.writer_code.Code("""
+ea = ((int) ra + (int) rb);
+//(int) ra = ea;
+//TODO (RT) ← 160 || MS(EA +1,1) || MS(EA,1);
+""")
+lhzux_Instr = trap.Instruction('LHZUX', True)
+lhzux_Instr.setMachineCode(oper_Xform_2, {'primary_opcode': [0,1,1,1,1,1],'xo': [1,0,0,0,1,1,0,1,1,1]}, ('lhzux r', '%rt', ' r', '%ra', ' r', '%rb'))
+lhzux_Instr.setCode(opCode,'execute')
+lhzux_Instr.addBehavior(IncrementPC, 'execute')
+#lhzux_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(lhzux_Instr)
 #LHZX
+opCode = cxx_writer.writer_code.Code("""
+ea = (((int) ra |0) + (int) rb);
+//(int) ra = ea;
+//TODO (RT) ← 160 || MS(EA,2);
+""")
+lhzx_Instr = trap.Instruction('LHZX', True)
+lhzx_Instr.setMachineCode(oper_Xform_2, {'primary_opcode': [0,1,1,1,1,1],'xo': [0,1,0,0,0,1,0,1,1,1]}, ('lhzx r', '%rt', ' r', '%ra', ' r', '%rb'))
+lhzx_Instr.setCode(opCode,'execute')
+lhzx_Instr.addBehavior(IncrementPC, 'execute')
+#lhzx_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(lhzx_Instr)
 #LMW
+opCode = cxx_writer.writer_code.Code("""ea = ((int) ra + exts(d));
+//(int) r = ea;
+//TODO 
+//do while r ≤ 31
+//if ((r ≠ RA) ∨ (r = 31)) then
+//(GPR(r)) ← MS(EA,4)
+//r ← r + 1
+//EA ← EA + 4;
+""")
+lmw_Instr = trap.Instruction('LMW', True)
+lmw_Instr.setMachineCode(oper_Dform_1, {'primary_opcode': [1,0,1,1,1,0]}, ('TODO'))
+lmw_Instr.setCode(opCode,'execute')
+lmw_Instr.addBehavior(IncrementPC, 'execute')
+#lmw_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(lmw_Instr)
 #LSWI
+opCode = cxx_writer.writer_code.Code("""
+ea = ((int) ra |0);
+//TODO LONG;
+""")
+lswi_Instr = trap.Instruction('LSWI', True)
+lswi_Instr.setMachineCode(oper_Xform_2, {'primary_opcode': [0,1,1,1,1,1],'xo': [1,0,0,1,0,1,0,1,0,1]}, ('lswi r', '%rt', ' r', '%ra', ' r', '%rb'))
+lswi_Instr.setCode(opCode,'execute')
+lswi_Instr.addBehavior(IncrementPC, 'execute')
+#lhzx_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(lswi_Instr)
 #LSWX
+opCode = cxx_writer.writer_code.Code("""
+ea = (((int) ra |0) + (int) rb);
+//TODO LONG;
+""")
+lswx_Instr = trap.Instruction('LSWX', True)
+lswx_Instr.setMachineCode(oper_Xform_2, {'primary_opcode': [0,1,1,1,1,1],'xo': [1,0,0,0,0,1,0,1,0,1]}, ('lswx r', '%rt', ' r', '%ra', ' r', '%rb'))
+lswx_Instr.setCode(opCode,'execute')
+lswx_Instr.addBehavior(IncrementPC, 'execute')
+#lswx_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(lswx_Instr)
 #LWARX
+opCode = cxx_writer.writer_code.Code("""
+ea = (((int) ra |0) + (int) rb);
+//TODO RESERVE ← 1;
+//(RT) ← MS(EA,4)
+""")
+lwarx_Instr = trap.Instruction('LWARX', True)
+lwarx_Instr.setMachineCode(oper_Xform_2, {'primary_opcode': [0,1,1,1,1,1],'xo': [0,0,0,0,0,1,0,1,0,0]}, ('lwarx r', '%rt', ' r', '%ra', ' r', '%rb'))
+lwarx_Instr.setCode(opCode,'execute')
+lwarx_Instr.addBehavior(IncrementPC, 'execute')
+#lwarx_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(lwarx_Instr)
 #LWBRX
+opCode = cxx_writer.writer_code.Code("""
+ea = (((int) ra |0) + (int) rb);
+//TODO (RT) ← MS(EA+3,1) || MS(EA+2,1) || MS(EA+1,1) || MS(EA,1)
+""")
+lwbrx_Instr = trap.Instruction('LWBRX', True)
+lwbrx_Instr.setMachineCode(oper_Xform_2, {'primary_opcode': [0,1,1,1,1,1],'xo': [1,0,0,0,0,1,0,1,1,0]}, ('lwbrx r', '%rt', ' r', '%ra', ' r', '%rb'))
+lwbrx_Instr.setCode(opCode,'execute')
+lwbrx_Instr.addBehavior(IncrementPC, 'execute')
+#lwbrx_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(lwbrx_Instr)
+
 #LWZ
+opCode = cxx_writer.writer_code.Code("""ea = (((int) ra|0) + exts(d));
+//TODO (rt) ← MS(EA,4)
+""")
+lwz_Instr = trap.Instruction('LWZ', True)
+lwz_Instr.setMachineCode(oper_Dform_1, {'primary_opcode': [1,0,0,0,0,0]}, ('TODO'))
+lwz_Instr.setCode(opCode,'execute')
+lwz_Instr.addBehavior(IncrementPC, 'execute')
+#lwz_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(lwz_Instr)
 #LWZU
+opCode = cxx_writer.writer_code.Code("""ea = (((int) ra) + exts(d));
+//(int) ra = ea;
+//TODO (rt) ← MS(EA,4)
+
+""")
+lwzu_Instr = trap.Instruction('LWZU', True)
+lwzu_Instr.setMachineCode(oper_Dform_1, {'primary_opcode': [1,0,0,0,0,1]}, ('TODO'))
+lwzu_Instr.setCode(opCode,'execute')
+lwzu_Instr.addBehavior(IncrementPC, 'execute')
+#lwzu_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(lwzu_Instr)
 #LWZUX
+opCode = cxx_writer.writer_code.Code("""
+ea = (((int) ra) + (int) rb);
+//(int) ra = ea;
+//TODO (rt) ← MS(EA,4)
+""")
+lwzux_Instr = trap.Instruction('LWZUX', True)
+lwzux_Instr.setMachineCode(oper_Xform_2, {'primary_opcode': [0,1,1,1,1,1],'xo': [0,0,0,0,1,1,0,1,1,1]}, ('lwzux r', '%rt', ' r', '%ra', ' r', '%rb'))
+lwzux_Instr.setCode(opCode,'execute')
+lwzux_Instr.addBehavior(IncrementPC, 'execute')
+#lwzux_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(lwzux_Instr)
 #LWZX
+opCode = cxx_writer.writer_code.Code("""
+ea = (((int) ra) + (int) rb);
+//TODO (rt) ← MS(EA,4)
+""")
+lwzx_Instr = trap.Instruction('LWZX', True)
+lwzx_Instr.setMachineCode(oper_Xform_2, {'primary_opcode': [0,1,1,1,1,1],'xo': [0,0,0,0,0,1,0,1,1,1]}, ('lwzx r', '%rt', ' r', '%ra', ' r', '%rb'))
+lwzx_Instr.setCode(opCode,'execute')
+lwzx_Instr.addBehavior(IncrementPC, 'execute')
+#lwzx_Instr.addTest({'bf': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 0xfd33, 'GPR[2]': 0xd6cc, 'GPR[3]': 0xfffff, 'PC':0x0, 'TARGET':0xffffffff}, {'GPR[3]': 0xffffd999, 'PC':0x4})
+isa.addInstruction(lwzx_Instr)
 #MACCHW
+opCode = cxx_writer.writer_code.Code("""
+//TODO
+""")
+macchw_Instr = trap.Instruction('MACCHW', True)
+macchw_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [0,1,0,1,0,1,1,0,0]}, ('macchw r', '%rt', ' r', '%ra', ' r', '%rb'))
+macchw_Instr.setCode(opCode,'execute')
+macchw_Instr.addBehavior(IncrementPC, 'execute')
+#macchw_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(macchw_Instr)
 #MACCHWS
+opCode = cxx_writer.writer_code.Code("""
+//TODO
+""")
+macchws_Instr = trap.Instruction('MACCHWS', True)
+macchws_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [0,1,1,1,0,1,1,0,0]}, ('macchws r', '%rt', ' r', '%ra', ' r', '%rb'))
+macchws_Instr.setCode(opCode,'execute')
+macchws_Instr.addBehavior(IncrementPC, 'execute')
+#macchw_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(macchws_Instr)
 #MACCHWSU
+opCode = cxx_writer.writer_code.Code("""
+//TODO
+""")
+macchwsu_Instr = trap.Instruction('MACCHWSU', True)
+macchwsu_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [0,1,1,0,0,1,1,0,0]}, ('macchwsu r', '%rt', ' r', '%ra', ' r', '%rb'))
+macchwsu_Instr.setCode(opCode,'execute')
+macchwsu_Instr.addBehavior(IncrementPC, 'execute')
+#macchwsu_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(macchwsu_Instr)
 #MACCHWU
+opCode = cxx_writer.writer_code.Code("""
+//TODO
+""")
+macchwu_Instr = trap.Instruction('MACCHWU', True)
+macchwu_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [0,1,0,0,0,1,1,0,0]}, ('macchwu r', '%rt', ' r', '%ra', ' r', '%rb'))
+macchwu_Instr.setCode(opCode,'execute')
+macchwu_Instr.addBehavior(IncrementPC, 'execute')
+#macchwu_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(macchwu_Instr)
 #MACHHW
+opCode = cxx_writer.writer_code.Code("""
+//TODO
+""")
+machhw_Instr = trap.Instruction('MACHHW', True)
+machhw_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [0,0,0,1,0,1,1,0,0]}, ('machhw r', '%rt', ' r', '%ra', ' r', '%rb'))
+machhw_Instr.setCode(opCode,'execute')
+machhw_Instr.addBehavior(IncrementPC, 'execute')
+#machhw_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(machhw_Instr)
 #MACHHWS
+opCode = cxx_writer.writer_code.Code("""
+//TODO
+""")
+machhws_Instr = trap.Instruction('MACHHWS', True)
+machhws_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [0,0,1,1,0,1,1,0,0]}, ('machhws r', '%rt', ' r', '%ra', ' r', '%rb'))
+machhws_Instr.setCode(opCode,'execute')
+machhws_Instr.addBehavior(IncrementPC, 'execute')
+#machhws_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(machhws_Instr)
 #MACHHWSU
+opCode = cxx_writer.writer_code.Code("""
+//TODO
+""")
+machhwsu_Instr = trap.Instruction('MACHHWSU', True)
+machhwsu_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [0,0,1,0,0,1,1,0,0]}, ('machhwsu r', '%rt', ' r', '%ra', ' r', '%rb'))
+machhwsu_Instr.setCode(opCode,'execute')
+machhwsu_Instr.addBehavior(IncrementPC, 'execute')
+#machhws_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(machhwsu_Instr)
 #MACHHWU
+opCode = cxx_writer.writer_code.Code("""
+//TODO
+""")
+machhwu_Instr = trap.Instruction('MACHHWU', True)
+machhwu_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [0,0,0,0,0,1,1,0,0]}, ('machhwu r', '%rt', ' r', '%ra', ' r', '%rb'))
+machhwu_Instr.setCode(opCode,'execute')
+machhwu_Instr.addBehavior(IncrementPC, 'execute')
+#machhu_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(machhwu_Instr)
 #MACLHW
+opCode = cxx_writer.writer_code.Code("""
+//TODO
+""")
+maclhw_Instr = trap.Instruction('MACLHW', True)
+maclhw_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [1,1,0,1,0,1,1,0,0]}, ('maclhw r', '%rt', ' r', '%ra', ' r', '%rb'))
+maclhw_Instr.setCode(opCode,'execute')
+maclhw_Instr.addBehavior(IncrementPC, 'execute')
+#maclhw_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(maclhw_Instr)
 #MACLHWS
+opCode = cxx_writer.writer_code.Code("""
+//TODO
+""")
+maclhws_Instr = trap.Instruction('MACLHWS', True)
+maclhws_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [1,1,1,1,0,1,1,0,0]}, ('maclhws r', '%rt', ' r', '%ra', ' r', '%rb'))
+maclhws_Instr.setCode(opCode,'execute')
+maclhws_Instr.addBehavior(IncrementPC, 'execute')
+#maclhws_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(maclhws_Instr)
 #MACLHWSU
+opCode = cxx_writer.writer_code.Code("""
+//TODO
+""")
+maclhwsu_Instr = trap.Instruction('MACLHWSU', True)
+maclhwsu_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [1,1,1,0,0,1,1,0,0]}, ('maclhwsu r', '%rt', ' r', '%ra', ' r', '%rb'))
+maclhwsu_Instr.setCode(opCode,'execute')
+maclhwsu_Instr.addBehavior(IncrementPC, 'execute')
+#maclhwsu_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(maclhwsu_Instr)
 #MACLHWU
+opCode = cxx_writer.writer_code.Code("""
+//TODO
+""")
+maclhwu_Instr = trap.Instruction('MACLHWU', True)
+maclhwu_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [1,1,0,0,0,1,1,0,0]}, ('maclhwu r', '%rt', ' r', '%ra', ' r', '%rb'))
+maclhwu_Instr.setCode(opCode,'execute')
+maclhwu_Instr.addBehavior(IncrementPC, 'execute')
+#maclhwsu_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(maclhwu_Instr)
 #MCRF
+opCode = cxx_writer.writer_code.Code("""
+m=(int) bfa;
+n=(int) bf;
+""")
+mcrf_Instr = trap.Instruction('MCRF', True)
+mcrf_Instr.setMachineCode(oper_XLform_3, {'primary_opcode': [0,1,0,0,1,1], 'xo': [0,0,0,0,0,0,0,0,0]}, ('TODO'))
+mcrf_Instr.setCode(opCode,'execute')
+mcrf_Instr.addBehavior(IncrementPC, 'execute')
+#mcrf_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(mcrf_Instr)
 #MCRXR
+opCode = cxx_writer.writer_code.Code("""
+n=(int)bf;
+//TODO
+""")
+mcrxr_Instr = trap.Instruction('MCRXR', True)
+mcrxr_Instr.setMachineCode(oper_Xform_18, {'primary_opcode': [0,1,1,1,1,1], 'xo': [1,0,0,0,0,0,0,0,0]}, ('TODO'))
+mcrxr_Instr.setCode(opCode,'execute')
+mcrxr_Instr.addBehavior(IncrementPC, 'execute')
+#mcrf_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(mcrxr_Instr)
 #MFCR
+opCode = cxx_writer.writer_code.Code("""
+n=(int)cr;
+""")
+mfcr_Instr = trap.Instruction('MFCR', True)
+mfcr_Instr.setMachineCode(oper_Xform_6, {'primary_opcode': [0,1,1,1,1,1], 'xo': [0,0,0,0,1,0,0,1,1]}, ('TODO'))
+mfcr_Instr.setCode(opCode,'execute')
+mfcr_Instr.addBehavior(IncrementPC, 'execute')
+#mfcr_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(mfcr_Instr)
 #MFDCR
+opCode = cxx_writer.writer_code.Code("""
+//TODO;
+""")
+mfdcr_Instr = trap.Instruction('MFDCR', True)
+mfdcr_Instr.setMachineCode(oper_XFXForm_2, {'primary_opcode': [0,1,1,1,1,1], 'xo': [1,0,1,0,0,0,0,1,1]}, ('TODO'))
+mfdcr_Instr.setCode(opCode,'execute')
+mfdcr_Instr.addBehavior(IncrementPC, 'execute')
+#mfdcr_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(mfdcr_Instr)
 #MFMSR
+opCode = cxx_writer.writer_code.Code("""
+rt=(int)msr;
+""")
+mfmsr_Instr = trap.Instruction('MFMSR', True)
+mfmsr_Instr.setMachineCode(oper_Xform_6, {'primary_opcode': [0,1,1,1,1,1], 'xo': [0,0,1,0,1,0,0,1,1]}, ('TODO'))
+mfmsr_Instr.setCode(opCode,'execute')
+mfmsr_Instr.addBehavior(IncrementPC, 'execute')
+#mfcr_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(mfmsr_Instr)
 #MFSPR
+opCode = cxx_writer.writer_code.Code("""
+//TODO;
+""")
+mfspr_Instr = trap.Instruction('MFSPR', True)
+mfspr_Instr.setMachineCode(oper_XFXForm_1, {'primary_opcode': [0,1,1,1,1,1], 'xo': [1,0,1,0,1,0,0,1,1]}, ('TODO'))
+mfspr_Instr.setCode(opCode,'execute')
+mfspr_Instr.addBehavior(IncrementPC, 'execute')
+#mfspr_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(mfspr_Instr)
 #MFTB
+opCode = cxx_writer.writer_code.Code("""
+//TODO;
+""")
+mftb_Instr = trap.Instruction('MFTB', True)
+mftb_Instr.setMachineCode(oper_XFXForm_1, {'primary_opcode': [0,1,1,1,1,1], 'xo': [1,0,1,1,1,0,0,1,1]}, ('TODO'))
+mftb_Instr.setCode(opCode,'execute')
+mftb_Instr.addBehavior(IncrementPC, 'execute')
+#mftb_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(mftb_Instr)
 #MTCRF
 #MTDCR
 #MTMSR
 #MTSPR
+
 #MULCHW
 opCode = cxx_writer.writer_code.Code("""
 rt = (int)ra * (int)(signed)rb; //rb is signed
@@ -609,7 +1108,7 @@ rt = (int)ra * (int)(signed)rb; //rb is signed
 //(RT) ← prod0:31
 """)
 mulhw_Instr = trap.Instruction('MULHW', True)
-mulhw_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,1,1,1,1,1], 'xo': [0,1,0,0,1,0,1,1]}, ('mulhw r', '%rt', ' r', '%ra', ' r', '%rb'))
+mulhw_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,1,1,1,1,1], 'xo': [0,0,1,0,0,1,0,1,1]}, ('mulhw r', '%rt', ' r', '%ra', ' r', '%rb'))
 mulhw_Instr.setCode(opCode,'execute')
 mulhw_Instr.addBehavior(IncrementPC, 'execute')
 #mulhw_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
@@ -622,7 +1121,7 @@ rt = (int)ra * (int)(unsigned)rb; //rb is unsigned
 //(RT) ← prod0:31
 """)
 mulhwu_Instr = trap.Instruction('MULHWU', True)
-mulhwu_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,1,1,1,1,1], 'xo': [0,0,0,0,1,0,1,1]}, ('mulhwu r', '%rt', ' r', '%ra', ' r', '%rb'))
+mulhwu_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,1,1,1,1,1], 'xo': [0,0,0,0,0,1,0,1,1]}, ('mulhwu r', '%rt', ' r', '%ra', ' r', '%rb'))
 mulhwu_Instr.setCode(opCode,'execute')
 mulhwu_Instr.addBehavior(IncrementPC, 'execute')
 #mulhwu_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
