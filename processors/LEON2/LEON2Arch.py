@@ -53,18 +53,18 @@ import cxx_writer
 
 # It is nice to keep the ISA and the architecture separated
 # so we use the import trick
-import LEON3Isa
-import LEON3Tests
+import LEON2Isa
+import LEON2Tests
 from LEONDefs import *
 # Code used to move to a new register window
-from LEON3Methods import updateAliasCode_exception
-from LEON3Methods import updateAliasCode_abi
+from LEON2Methods import updateAliasCode_exception
+from LEON2Methods import updateAliasCode_abi
 
 # Lets now start building the processor
-processor = trap.Processor('LEON3', version = '0.2.0', systemc = True, instructionCache = True, cacheLimit = 256)
+processor = trap.Processor('LEON2', version = '0.1.0', systemc = False, instructionCache = True, cacheLimit = 256)
 processor.setBigEndian() # big endian
 processor.setWordsize(4, 8) # 4 bytes per word, 8 bits per byte
-processor.setISA(LEON3Isa.isa) # lets set the instruction set
+processor.setISA(LEON2Isa.isa) # lets set the instruction set
 
 # Ok, now we move to the description of more complicated processor
 # resources
@@ -72,12 +72,12 @@ processor.setISA(LEON3Isa.isa) # lets set the instruction set
 # Here I add a constant to the instruction set so that it can be used from the code implementing
 # the various instructions
 # Number of defined register windows
-LEON3Isa.isa.addConstant(cxx_writer.writer_code.uintType, 'NUM_REG_WIN', numRegWindows)
+LEON2Isa.isa.addConstant(cxx_writer.writer_code.uintType, 'NUM_REG_WIN', numRegWindows)
 # Specifies whether the multiplier unit is pipelined or not
 if pipelinedMult:
-    LEON3Isa.isa.addConstant(cxx_writer.writer_code.boolType, 'PIPELINED_MULT', 'true')
+    LEON2Isa.isa.addConstant(cxx_writer.writer_code.boolType, 'PIPELINED_MULT', 'true')
 else:
-    LEON3Isa.isa.addConstant(cxx_writer.writer_code.boolType, 'PIPELINED_MULT', 'false')
+    LEON2Isa.isa.addConstant(cxx_writer.writer_code.boolType, 'PIPELINED_MULT', 'false')
 
 # There are 8 global register, and a variable number of
 # of 16-registers set; this number depends on the number of
@@ -93,7 +93,6 @@ processor.addRegBank(windowRegs)
 psrBitMask = {'IMPL': (28, 31), 'VER': (24, 27), 'ICC_n': (23, 23), 'ICC_z': (22, 22), 'ICC_v': (21, 21), 'ICC_c': (20, 20), 'EC': (13, 13), 'EF': (12, 12), 'PIL': (8, 11), 'S': (7, 7), 'PS': (6, 6), 'ET': (5, 5), 'CWP': (0, 4)}
 psrReg = trap.Register('PSR', 32, psrBitMask)
 psrReg.setDefaultValue(0xF3000080)
-#psrReg.setDelay(3)
 processor.addRegister(psrReg)
 # Window Invalid Mask Register
 wimBitMask = {}
@@ -101,7 +100,6 @@ for i in range(0, 32):
     wimBitMask['WIM_' + str(i)] = (i, i)
 wimReg = trap.Register('WIM', 32, wimBitMask)
 wimReg.setDefaultValue(0)
-#wimReg.setDelay(3)
 processor.addRegister(wimReg)
 # Trap Base Register
 tbrBitMask = {'TBA' : (12, 31), 'TT' : (4, 11)}
@@ -110,7 +108,6 @@ tbrReg.setDefaultValue(0)
 processor.addRegister(tbrReg)
 # Multiply / Divide Register
 yReg = trap.Register('Y', 32)
-#yReg.setDelay(3)
 processor.addRegister(yReg)
 # Program Counter
 pcReg = trap.Register('PC', 32)
@@ -130,7 +127,6 @@ asrRegs = trap.RegisterBank('ASR', 32, 32)
 # here I set the default value for the processor configuration register
 # (see page 24 of LEON3 preliminary datasheed)
 asrRegs.setDefaultValue(0x00000300 + numRegWindows, 17)
-#asrRegs.setGlobalDelay(3)
 processor.addRegBank(asrRegs)
 
 # Now I set the alias: they can (and will) be used by the instructions
@@ -251,15 +247,11 @@ processor.addPipeStage(fetchStage)
 decodeStage = trap.PipeStage('decode')
 decodeStage.setHazard()
 processor.addPipeStage(decodeStage)
-regsStage = trap.PipeStage('regs')
-processor.addPipeStage(regsStage)
 executeStage = trap.PipeStage('execute')
 executeStage.setCheckUnknownInstr()
 processor.addPipeStage(executeStage)
 memoryStage = trap.PipeStage('memory')
 processor.addPipeStage(memoryStage)
-exceptionStage = trap.PipeStage('exception')
-processor.addPipeStage(exceptionStage)
 wbStage = trap.PipeStage('wb')
 wbStage.setWriteBack()
 wbStage.setEndHazard()
