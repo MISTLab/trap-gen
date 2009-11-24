@@ -1546,3 +1546,52 @@ stbx_Instr.setCode(opCode,'execute')
 stbx_Instr.addBehavior(IncrementPC, 'execute')
 #stbx_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
 isa.addInstruction(stbx_Instr)
+
+#STH
+opCode = cxx_writer.writer_code.Code("""
+//EA ← (RA|0) + (RB)
+//MS(EA, 1) ← (RS)24:31
+""")
+sth_Instr = trap.Instruction('STH', True)
+sth_Instr.setMachineCode(oper_Dform_3, {'primary_opcode': [1,0,1,1,0,0]}, ('sth r', '%rs', ' r', '%ra' ))
+sth_Instr.setCode(opCode,'execute')
+sth_Instr.addBehavior(IncrementPC, 'execute')
+#sth_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(sth_Instr)
+
+#STHBRX
+opCode = cxx_writer.writer_code.Code("""
+//EA ← (RA|0) + (RB)
+//MS(EA, 2) ← (RS)24:31 || (RS)16:23
+""")
+sthbrx_Instr = trap.Instruction('STHBRX', True)
+sthbrx_Instr.setMachineCode(oper_Xform_9, {'primary_opcode': [0,1,1,1,1,1] , 'xo': [1,1,1,0,0,1,0,1,1,0] }, ('sthbrx r', '%rs', ' r', '%ra', ' r', '%rb' ))
+sthbrx_Instr.setCode(opCode,'execute')
+sthbrx_Instr.addBehavior(IncrementPC, 'execute')
+#sthbrx_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(sthbrx_Instr)
+
+#STHU
+opCode = cxx_writer.writer_code.Code("""
+//EA ← (RA) + EXTS(D)
+//MS(EA, 2) ← (RS)16:31
+//(RA) ← EA
+""")
+sthu_Instr = trap.Instruction('STHU', True)
+sthu_Instr.setMachineCode(oper_Dform_3, {'primary_opcode': [1,0,1,1,0,1]}, ('sthu r', '%rs', ' r', '%ra' ))
+sthu_Instr.setCode(opCode,'execute')
+sthu_Instr.addBehavior(IncrementPC, 'execute')
+#sthu_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(sthu_Instr)
+
+#STHUX
+opCode = cxx_writer.writer_code.Code("""
+//EA ← (RA|0) + (RB)
+//MS(EA, 2) ← (RS)24:31 || (RS)16:23
+""")
+sthux_Instr = trap.Instruction('STHUX', True)
+sthux_Instr.setMachineCode(oper_Xform_9, {'primary_opcode': [0,1,1,1,1,1] , 'xo': [0,1,1,0,1,1,0,1,1,1] }, ('sthux r', '%rs', ' r', '%ra', ' r', '%rb' ))
+sthux_Instr.setCode(opCode,'execute')
+sthux_Instr.addBehavior(IncrementPC, 'execute')
+#sthux_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(sthux_Instr)
