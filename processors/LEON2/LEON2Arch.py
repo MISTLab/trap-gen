@@ -47,7 +47,7 @@ except ImportError:
     try:
         import trap
     except ImportError:
-        print ('Please specify in file LEON3Arch.py the path where the core TRAP files are located')
+        print ('Please specify in file LEON2Arch.py the path where the core TRAP files are located')
 
 import cxx_writer
 
@@ -120,12 +120,12 @@ npcReg.setDefaultValue(('ENTRY_POINT', 4))
 npcReg.setWbStageOrder(['exception', 'decode', 'fetch'])
 processor.addRegister(npcReg)
 # Ancillary State Registers
-# in the LEON3 processor some of them have a special meaning:
+# in the LEON2 processor some of them have a special meaning:
 # 24-31 are used for hardware breakpoints
 # 17 is the processor configuration register
 asrRegs = trap.RegisterBank('ASR', 32, 32)
 # here I set the default value for the processor configuration register
-# (see page 24 of LEON3 preliminary datasheed)
+# (see page 24 of LEON2 preliminary datasheed)
 asrRegs.setDefaultValue(0x00000300 + numRegWindows, 17)
 processor.addRegBank(asrRegs)
 
@@ -151,35 +151,12 @@ processor.addAliasReg(PCR)
 
 # Now I add the registers which I want to see printed in the instruction trace
 # COMMENT FOR COMPARISON
-#LEON3Isa.isa.addTraceRegister(pcReg)
-#LEON3Isa.isa.addTraceRegister(npcReg)
-LEON3Isa.isa.addTraceRegister(psrReg)
-LEON3Isa.isa.addTraceRegister(regs)
-LEON3Isa.isa.addTraceRegister(tbrReg)
-LEON3Isa.isa.addTraceRegister(wimReg)
-
-# Memory alias: registers which are memory mapped; we
-# loose a lot of performance, should we really use them?? CHECK
-#for j in range(0, 8):
-#    regMap = trap.MemoryAlias(0x300000 + j, 'GLOBAL[' + str(j) + ']')
-#    processor.addMemAlias(regMap)
-#for i in range(0, numRegWindows):
-#    for j in range(0, 16):
-#        regMap = trap.MemoryAlias(0x300008 + i*16 + j, 'WINREGS[' + str(i*16 + j) + ']')
-#        processor.addMemAlias(regMap)
-#regMap = trap.MemoryAlias(0x400000, 'Y')
-#processor.addMemAlias(regMap)
-#regMap = trap.MemoryAlias(0x400004, 'PSR')
-#processor.addMemAlias(regMap)
-#regMap = trap.MemoryAlias(0x40000C, 'WIM')
-#processor.addMemAlias(regMap)
-#regMap = trap.MemoryAlias(0x400010, 'PC')
-#processor.addMemAlias(regMap)
-#regMap = trap.MemoryAlias(0x400014, 'NPC')
-#processor.addMemAlias(regMap)
-#for j in range(16, 32):
-#    regMap = trap.MemoryAlias(0x400040 + j, 'ASR[' + str(j) + ']')
-#    processor.addMemAlias(regMap)
+#LEON2Isa.isa.addTraceRegister(pcReg)
+#LEON2Isa.isa.addTraceRegister(npcReg)
+LEON2Isa.isa.addTraceRegister(psrReg)
+LEON2Isa.isa.addTraceRegister(regs)
+LEON2Isa.isa.addTraceRegister(tbrReg)
+LEON2Isa.isa.addTraceRegister(wimReg)
 
 # Register from which the instructions are fetched; note that in the
 # functional model there is an offset between the PC and the actual
@@ -189,9 +166,9 @@ processor.setFetchRegister('PC')
 
 # Lets now add details about the processor interconnection (i.e. memory ports,
 # interrupt ports, pins, etc.)
-processor.addTLMPort('instrMem', True)
-processor.addTLMPort('dataMem')
-#processor.setMemory('dataMem', 10*1024*1024)
+#processor.addTLMPort('instrMem', True)
+#processor.addTLMPort('dataMem')
+processor.setMemory('dataMem', 10*1024*1024)
 #processor.setMemory('dataMem', 10*1024*1024, True, 'PC')
 
 # It PSR[ET] == 0 I do not do anything; else
@@ -223,7 +200,7 @@ irqPort.setOperation("""//Basically, what I have to do when
 // Note that 38 corresponds to the highest defined exception
 // (IMPL_DEP_EXC): this because interrupt 1 has id 37, etc.
 RaiseException(pcounter, npcounter, 38 - IRQ);
-""", 'exception')
+""", 'wb')
 irqPort.setCondition('PSR[key_ET] && (IRQ == 15 || IRQ > PSR[key_PIL])')
 irqPort.addVariable(('pcounter', 'BIT<32>'))
 irqPort.addVariable(('npcounter', 'BIT<32>'))
@@ -278,19 +255,18 @@ abi.setECallPreCode(pre_code)
 abi.setECallPostCode(post_code)
 abi.returnCall([('PC', 'LR', 8), ('NPC', 'LR', 12)])
 abi.addMemory('dataMem')
-#abi.setCallInstr([LEON3Isa.call_Instr, None, (LEON3Isa.save_imm_Instr, LEON3Isa.save_reg_Instr)])
-abi.setCallInstr([LEON3Isa.call_Instr, None, None])
-abi.setReturnCallInstr([(LEON3Isa.restore_imm_Instr, LEON3Isa.restore_reg_Instr, LEON3Isa.jump_imm_Instr, LEON3Isa.jump_reg_Instr), (LEON3Isa.jump_imm_Instr, LEON3Isa.jump_reg_Instr, LEON3Isa.restore_imm_Instr, LEON3Isa.restore_reg_Instr)])
+abi.setCallInstr([LEON2Isa.call_Instr, None, None])
+abi.setReturnCallInstr([(LEON2Isa.restore_imm_Instr, LEON2Isa.restore_reg_Instr, LEON2Isa.jump_imm_Instr, LEON2Isa.jump_reg_Instr), (LEON2Isa.jump_imm_Instr, LEON2Isa.jump_reg_Instr, LEON2Isa.restore_imm_Instr, LEON2Isa.restore_reg_Instr)])
 processor.setABI(abi)
 
 # Finally we can dump the processor on file
 #processor.write(folder = 'processor', models = ['funcLT'], dumpDecoderName = 'decoder.dot')
 #processor.write(folder = 'processor', models = ['funcLT'], trace = True)
-#processor.write(folder = 'processor', models = ['funcLT'], tests = False)
+processor.write(folder = 'processor', models = ['funcLT'], tests = True)
 #processor.write(folder = 'processor', models = ['funcLT'], trace = True, tests = False)
 #processor.write(folder = 'processor', models = ['funcAT'], trace = False)
 #processor.write(folder = 'processor', models = ['funcAT'])
 #processor.write(folder = 'processor', models = ['funcAT', 'funcLT'], tests = False)
 #processor.write(folder = 'processor', models = ['accLT'], trace = True)
-processor.write(folder = 'processor', models = ['accLT', 'funcAT', 'accAT', 'funcLT'], trace = False)
+#processor.write(folder = 'processor', models = ['accLT', 'funcAT', 'accAT', 'funcLT'], trace = False)
 #processor.write(folder = 'processor', models = ['accLT', 'funcLT'], trace = True, combinedTrace = True)

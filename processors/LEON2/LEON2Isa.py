@@ -40,8 +40,8 @@
 # creation of the processor
 import trap
 import cxx_writer
-from LEON3Coding import *
-from LEON3Methods import *
+from LEON2Coding import *
+from LEON2Methods import *
 from LEONDefs import *
 
 # ISA declaration: it is the container for all the single instructions
@@ -205,9 +205,12 @@ else{
 }
 #endif
 """)
-opCodeException = cxx_writer.writer_code.Code("""
+opCodeWbException = cxx_writer.writer_code.Code("""
 if(notAligned){
     RaiseException(pcounter, npcounter, MEM_ADDR_NOT_ALIGNED);
+}
+else{
+    rd = readValue;
 }
 """)
 ldsh_imm_Instr = trap.Instruction('LDSH_imm', True, frequency = 1)
@@ -216,8 +219,7 @@ ldsh_imm_Instr.setVarField('rd', ('REGS', 0), 'out')
 ldsh_imm_Instr.setCode(opCodeRegsImmNPC, 'decode')
 ldsh_imm_Instr.setCode(opCodeExec, 'execute')
 ldsh_imm_Instr.setCode(opCodeMem, 'memory')
-ldsh_imm_Instr.setCode(opCodeException, 'exception')
-ldsh_imm_Instr.setCode(opCodeWb, 'wb')
+ldsh_imm_Instr.setCode(opCodeWbException, 'wb')
 ldsh_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 ldsh_imm_Instr.setCode(opCodeReadPC, 'fetch')
 ldsh_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
@@ -232,8 +234,7 @@ ldsh_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
 ldsh_reg_Instr.setCode(opCodeRegsRegsNPC, 'decode')
 ldsh_reg_Instr.setCode(opCodeExec, 'execute')
 ldsh_reg_Instr.setCode(opCodeMem, 'memory')
-ldsh_reg_Instr.setCode(opCodeException, 'exception')
-ldsh_reg_Instr.setCode(opCodeWb, 'wb')
+ldsh_reg_Instr.setCode(opCodeWbException, 'wb')
 ldsh_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 ldsh_reg_Instr.setCode(opCodeReadPC, 'fetch')
 ldsh_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
@@ -274,8 +275,7 @@ lduh_imm_Instr.setVarField('rd', ('REGS', 0), 'out')
 lduh_imm_Instr.setCode(opCodeRegsImmNPC, 'decode')
 lduh_imm_Instr.setCode(opCodeExec, 'execute')
 lduh_imm_Instr.setCode(opCodeMem, 'memory')
-lduh_imm_Instr.setCode(opCodeException, 'exception')
-lduh_imm_Instr.setCode(opCodeWb, 'wb')
+lduh_imm_Instr.setCode(opCodeWbException, 'wb')
 lduh_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 lduh_imm_Instr.setCode(opCodeReadPC, 'fetch')
 lduh_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
@@ -290,8 +290,7 @@ lduh_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
 lduh_reg_Instr.setCode(opCodeRegsRegsNPC, 'decode')
 lduh_reg_Instr.setCode(opCodeExec, 'execute')
 lduh_reg_Instr.setCode(opCodeMem, 'memory')
-lduh_reg_Instr.setCode(opCodeException, 'exception')
-lduh_reg_Instr.setCode(opCodeWb, 'wb')
+lduh_reg_Instr.setCode(opCodeWbException, 'wb')
 lduh_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 lduh_reg_Instr.setCode(opCodeReadPC, 'fetch')
 lduh_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
@@ -317,8 +316,7 @@ ld_imm_Instr.setVarField('rd', ('REGS', 0), 'out')
 ld_imm_Instr.setCode(opCodeRegsImmNPC, 'decode')
 ld_imm_Instr.setCode(opCodeExec, 'execute')
 ld_imm_Instr.setCode(opCodeMem, 'memory')
-ld_imm_Instr.setCode(opCodeException, 'exception')
-ld_imm_Instr.setCode(opCodeWb, 'wb')
+ld_imm_Instr.setCode(opCodeWbException, 'wb')
 ld_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 ld_imm_Instr.setCode(opCodeReadPC, 'fetch')
 ld_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
@@ -333,8 +331,7 @@ ld_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
 ld_reg_Instr.setCode(opCodeRegsRegsNPC, 'decode')
 ld_reg_Instr.setCode(opCodeExec, 'execute')
 ld_reg_Instr.setCode(opCodeMem, 'memory')
-ld_reg_Instr.setCode(opCodeException, 'exception')
-ld_reg_Instr.setCode(opCodeWb, 'wb')
+ld_reg_Instr.setCode(opCodeWbException, 'wb')
 ld_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 ld_reg_Instr.setCode(opCodeReadPC, 'fetch')
 ld_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
@@ -343,14 +340,6 @@ ld_reg_Instr.addVariable(('address', 'BIT<32>'))
 ld_reg_Instr.addVariable(('readValue', 'BIT<32>'))
 ld_reg_Instr.addVariable(('notAligned', 'BIT<1>'))
 isa.addInstruction(ld_reg_Instr)
-opCodeDecodeImm = cxx_writer.writer_code.Code(ReadNPCDecode + 'address = rs1 + SignExtend(simm13, 13);\n' + notAlignComputeCode)
-opCodeDecodeRegs = cxx_writer.writer_code.Code(ReadNPCDecode + 'address = rs1 + rs2;\n' + notAlignComputeCode)
-flushCode = """#ifdef ACC_MODEL
-if(notAligned){
-    flush();
-}
-#endif
-"""
 notAlignComputeCode = """
 notAligned = (address & 0x00000007) != 0;
 #ifdef ACC_MODEL
@@ -360,6 +349,14 @@ if(notAligned){
 REGS[rd_bit ^ 0x1].lock();
 #endif
 """
+opCodeDecodeImm = cxx_writer.writer_code.Code(ReadNPCDecode + 'address = rs1 + SignExtend(simm13, 13);\n' + notAlignComputeCode)
+opCodeDecodeRegs = cxx_writer.writer_code.Code(ReadNPCDecode + 'address = rs1 + rs2;\n' + notAlignComputeCode)
+flushCode = """#ifdef ACC_MODEL
+if(notAligned){
+    flush();
+}
+#endif
+"""
 opCodeExec = cxx_writer.writer_code.Code(flushCode)
 opCodeMem = cxx_writer.writer_code.Code("""
 if(!notAligned){
@@ -367,18 +364,23 @@ if(!notAligned){
     stall(1);
 }
 """ + flushCode)
-opCodeWb = cxx_writer.writer_code.Code("""
-if(rd_bit % 2 == 0){
-    rd = (unsigned int)(readValue & 0x00000000FFFFFFFFLL);
-    REGS[rd_bit + 1] = (unsigned int)((readValue >> 32) & 0x00000000FFFFFFFFLL);
+opCodeWbException = cxx_writer.writer_code.Code("""
+if(notAligned){
+    RaiseException(pcounter, npcounter, MEM_ADDR_NOT_ALIGNED);
 }
 else{
-    REGS[rd_bit - 1] = (unsigned int)(readValue & 0x00000000FFFFFFFFLL);
-    rd = (unsigned int)((readValue >> 32) & 0x00000000FFFFFFFFLL);
+    if(rd_bit % 2 == 0){
+        rd = (unsigned int)(readValue & 0x00000000FFFFFFFFLL);
+        REGS[rd_bit + 1] = (unsigned int)((readValue >> 32) & 0x00000000FFFFFFFFLL);
+    }
+    else{
+        REGS[rd_bit - 1] = (unsigned int)(readValue & 0x00000000FFFFFFFFLL);
+        rd = (unsigned int)((readValue >> 32) & 0x00000000FFFFFFFFLL);
+    }
+    #ifdef ACC_MODEL
+    unlockQueue[0].push_back(REGS[rd_bit ^ 0x1].getPipeReg());
+    #endif
 }
-#ifdef ACC_MODEL
-unlockQueue[0].push_back(REGS[rd_bit ^ 0x1].getPipeReg());
-#endif
 """)
 ldd_imm_Instr = trap.Instruction('LDD_imm', True, frequency = 6)
 ldd_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 0, 0, 0, 1, 1]}, ('ldd r', '%rs1', '+', '%simm13', ' r', '%rd'))
@@ -386,8 +388,7 @@ ldd_imm_Instr.setVarField('rd', ('REGS', 0), 'out')
 ldd_imm_Instr.setCode(opCodeDecodeImm, 'decode')
 ldd_imm_Instr.setCode(opCodeExec, 'execute')
 ldd_imm_Instr.setCode(opCodeMem, 'memory')
-ldd_imm_Instr.setCode(opCodeException, 'exception')
-ldd_imm_Instr.setCode(opCodeWb, 'wb')
+ldd_imm_Instr.setCode(opCodeWbException, 'wb')
 ldd_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 ldd_imm_Instr.setCode(opCodeReadPC, 'fetch')
 ldd_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
@@ -402,8 +403,7 @@ ldd_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
 ldd_reg_Instr.setCode(opCodeDecodeRegs, 'decode')
 ldd_reg_Instr.setCode(opCodeExec, 'execute')
 ldd_reg_Instr.setCode(opCodeMem, 'memory')
-ldd_reg_Instr.setCode(opCodeException, 'exception')
-ldd_reg_Instr.setCode(opCodeWb, 'wb')
+ldd_reg_Instr.setCode(opCodeWbException, 'wb')
 ldd_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 ldd_reg_Instr.setCode(opCodeReadPC, 'fetch')
 ldd_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
@@ -417,8 +417,13 @@ opCodeRegsRegs = cxx_writer.writer_code.Code(ReadNPCDecode + """
 address = rs1 + rs2;
 supervisor = PSR[key_S];
 """)
-opCodeWb = cxx_writer.writer_code.Code("""
-rd = readValue;
+opCodeWbException = cxx_writer.writer_code.Code("""
+if(!supervisor){
+    RaiseException(pcounter, npcounter, PRIVILEDGE_INSTR);
+}
+else{
+    rd = readValue;
+}
 """)
 opCodeMem = cxx_writer.writer_code.Code("""
 #ifdef ACC_MODEL
@@ -439,19 +444,13 @@ if(!supervisor){
 }
 #endif
 """)
-opCodeException = cxx_writer.writer_code.Code("""
-if(!supervisor){
-    RaiseException(pcounter, npcounter, PRIVILEDGE_INSTR);
-}
-""")
 ldsba_reg_Instr = trap.Instruction('LDSBA_reg', True, frequency = 1)
 ldsba_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 1, 1, 0, 0, 1]}, ('ldba r', '%rs1', '+r', '%rs2', ' ', '%asi', ' r', '%rd'))
 ldsba_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
 ldsba_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 ldsba_reg_Instr.setCode(opCodeExec, 'execute')
 ldsba_reg_Instr.setCode(opCodeMem, 'memory')
-ldsba_reg_Instr.setCode(opCodeException, 'exception')
-ldsba_reg_Instr.setCode(opCodeWb, 'wb')
+ldsba_reg_Instr.setCode(opCodeWbException, 'wb')
 ldsba_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 ldsba_reg_Instr.setCode(opCodeReadPC, 'fetch')
 ldsba_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
@@ -480,12 +479,15 @@ if(notAligned || !supervisor){
 }
 #endif
 """)
-opCodeException = cxx_writer.writer_code.Code("""
+opCodeWbException = cxx_writer.writer_code.Code("""
 if(!supervisor){
     RaiseException(pcounter, npcounter, PRIVILEDGE_INSTR);
 }
-if(notAligned){
+else if(notAligned){
     RaiseException(pcounter, npcounter, MEM_ADDR_NOT_ALIGNED);
+}
+else{
+    rd = readValue;
 }
 """)
 ldsha_reg_Instr = trap.Instruction('LDSHA_reg', True, frequency = 1)
@@ -494,8 +496,7 @@ ldsha_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
 ldsha_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 ldsha_reg_Instr.setCode(opCodeExec, 'execute')
 ldsha_reg_Instr.setCode(opCodeMem, 'memory')
-ldsha_reg_Instr.setCode(opCodeException, 'exception')
-ldsha_reg_Instr.setCode(opCodeWb, 'wb')
+ldsha_reg_Instr.setCode(opCodeWbException, 'wb')
 ldsha_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 ldsha_reg_Instr.setCode(opCodeReadPC, 'fetch')
 ldsha_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
@@ -524,9 +525,12 @@ if(!supervisor){
 }
 #endif
 """)
-opCodeException = cxx_writer.writer_code.Code("""
+opCodeWbException = cxx_writer.writer_code.Code("""
 if(!supervisor){
     RaiseException(pcounter, npcounter, PRIVILEDGE_INSTR);
+}
+else{
+    rd = readValue;
 }
 """)
 lduba_reg_Instr = trap.Instruction('LDUBA_reg', True, frequency = 1)
@@ -535,8 +539,7 @@ lduba_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
 lduba_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 lduba_reg_Instr.setCode(opCodeExec, 'execute')
 lduba_reg_Instr.setCode(opCodeMem, 'memory')
-lduba_reg_Instr.setCode(opCodeException, 'exception')
-lduba_reg_Instr.setCode(opCodeWb, 'wb')
+lduba_reg_Instr.setCode(opCodeWbException, 'wb')
 lduba_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 lduba_reg_Instr.setCode(opCodeReadPC, 'fetch')
 lduba_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
@@ -565,12 +568,15 @@ if(notAligned || !supervisor){
 }
 #endif
 """)
-opCodeException = cxx_writer.writer_code.Code("""
+opCodeWbException = cxx_writer.writer_code.Code("""
 if(!supervisor){
     RaiseException(pcounter, npcounter, PRIVILEDGE_INSTR);
 }
-if(notAligned){
+else if(notAligned){
     RaiseException(pcounter, npcounter, MEM_ADDR_NOT_ALIGNED);
+}
+else{
+    rd = readValue;
 }
 """)
 lduha_reg_Instr = trap.Instruction('LDUHA_reg', True, frequency = 1)
@@ -579,8 +585,7 @@ lduha_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
 lduha_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 lduha_reg_Instr.setCode(opCodeExec, 'execute')
 lduha_reg_Instr.setCode(opCodeMem, 'memory')
-lduha_reg_Instr.setCode(opCodeException, 'exception')
-lduha_reg_Instr.setCode(opCodeWb, 'wb')
+lduha_reg_Instr.setCode(opCodeWbException, 'wb')
 lduha_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 lduha_reg_Instr.setCode(opCodeReadPC, 'fetch')
 lduha_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
@@ -616,8 +621,7 @@ lda_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
 lda_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 lda_reg_Instr.setCode(opCodeExec, 'execute')
 lda_reg_Instr.setCode(opCodeMem, 'memory')
-lda_reg_Instr.setCode(opCodeException, 'exception')
-lda_reg_Instr.setCode(opCodeWb, 'wb')
+lda_reg_Instr.setCode(opCodeWbException, 'wb')
 lda_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 lda_reg_Instr.setCode(opCodeReadPC, 'fetch')
 lda_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
@@ -654,18 +658,26 @@ else{
 }
 #endif
 """)
-opCodeWb = cxx_writer.writer_code.Code("""
-if(rd_bit % 2 == 0){
-    rd = (unsigned int)(readValue & 0x00000000FFFFFFFFLL);
-    REGS[rd_bit + 1] = (unsigned int)((readValue >> 32) & 0x00000000FFFFFFFFLL);
+opCodeWbException = cxx_writer.writer_code.Code("""
+if(!supervisor){
+    RaiseException(pcounter, npcounter, PRIVILEDGE_INSTR);
+}
+else if(notAligned){
+    RaiseException(pcounter, npcounter, MEM_ADDR_NOT_ALIGNED);
 }
 else{
-    REGS[rd_bit - 1] = (unsigned int)(readValue & 0x00000000FFFFFFFFLL);
-    rd = (unsigned int)((readValue >> 32) & 0x00000000FFFFFFFFLL);
+    if(rd_bit % 2 == 0){
+        rd = (unsigned int)(readValue & 0x00000000FFFFFFFFLL);
+        REGS[rd_bit + 1] = (unsigned int)((readValue >> 32) & 0x00000000FFFFFFFFLL);
+    }
+    else{
+        REGS[rd_bit - 1] = (unsigned int)(readValue & 0x00000000FFFFFFFFLL);
+        rd = (unsigned int)((readValue >> 32) & 0x00000000FFFFFFFFLL);
+    }
+    #ifdef ACC_MODEL
+    unlockQueue[0].push_back(REGS[rd_bit ^ 0x1].getPipeReg());
+    #endif
 }
-#ifdef ACC_MODEL
-unlockQueue[0].push_back(REGS[rd_bit ^ 0x1].getPipeReg());
-#endif
 """)
 ldda_reg_Instr = trap.Instruction('LDDA_reg', True, frequency = 1)
 ldda_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 1, 0, 0, 1, 1]}, ('ldda r', '%rs1', '+r', '%rs2', ' ', '%asi', ' r', '%rd'))
@@ -673,8 +685,7 @@ ldda_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
 ldda_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 ldda_reg_Instr.setCode(opCodeExec, 'execute')
 ldda_reg_Instr.setCode(opCodeMem, 'memory')
-ldda_reg_Instr.setCode(opCodeException, 'exception')
-ldda_reg_Instr.setCode(opCodeWb, 'wb')
+ldda_reg_Instr.setCode(opCodeWbException, 'wb')
 ldda_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 ldda_reg_Instr.setCode(opCodeReadPC, 'fetch')
 ldda_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
@@ -747,7 +758,7 @@ sth_imm_Instr.setVarField('rd', ('REGS', 0), 'in')
 sth_imm_Instr.setCode(opCodeRegsImm, 'decode')
 sth_imm_Instr.setCode(opCodeMem, 'memory')
 sth_imm_Instr.setCode(opCodeExec, 'execute')
-sth_imm_Instr.setCode(opCodeException, 'exception')
+sth_imm_Instr.setCode(opCodeException, 'wb')
 sth_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 sth_imm_Instr.setCode(opCodeReadPC, 'fetch')
 sth_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
@@ -762,7 +773,7 @@ sth_reg_Instr.setVarField('rd', ('REGS', 0), 'in')
 sth_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 sth_reg_Instr.setCode(opCodeMem, 'memory')
 sth_reg_Instr.setCode(opCodeExec, 'execute')
-sth_reg_Instr.setCode(opCodeException, 'exception')
+sth_reg_Instr.setCode(opCodeException, 'wb')
 sth_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 sth_reg_Instr.setCode(opCodeReadPC, 'fetch')
 sth_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
@@ -1010,11 +1021,7 @@ sta_reg_Instr.addVariable(('address', 'BIT<32>'))
 sta_reg_Instr.addVariable(('toWrite', 'BIT<32>'))
 isa.addInstruction(sta_reg_Instr)
 
-# *******************************
-# Arrived here with modifications
-#
-
-opCodeRegsRegs = cxx_writer.writer_code.Code("""
+opCodeRegsRegs = cxx_writer.writer_code.Code(ReadNPCDecode + """
 address = rs1 + rs2;
 if(rd_bit % 2 == 0){
     toWrite = rd || (((unsigned long long)REGS[rd_bit + 1]) << 32);
@@ -1044,13 +1051,12 @@ if(!supervisor || notAligned){
 stda_reg_Instr = trap.Instruction('STDA_reg', True, frequency = 1)
 stda_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 1, 0, 1, 1, 1]}, ('stda r', '%rd', ' r', '%rs1', '+r', '%rs2', ' ', '%asi'))
 stda_reg_Instr.setVarField('rd', ('REGS', 0), 'in')
-stda_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+stda_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 stda_reg_Instr.setCode(opCodeMem, 'memory')
 stda_reg_Instr.setCode(opCodeExec, 'execute')
 stda_reg_Instr.setCode(opCodeException, 'exception')
 stda_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 stda_reg_Instr.setCode(opCodeReadPC, 'fetch')
-stda_reg_Instr.setCode(opCodeReadNPC, 'decode')
 stda_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
 stda_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 stda_reg_Instr.addVariable(('supervisor', 'BIT<1>'))
@@ -1078,7 +1084,7 @@ rd = readValue;
 ldstub_imm_Instr = trap.Instruction('LDSTUB_imm', True, frequency = 1)
 ldstub_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 0, 1, 1, 0, 1]}, ('ldastub r', '%rs1', '+', '%simm13', ' r', '%rd'))
 ldstub_imm_Instr.setVarField('rd', ('REGS', 0), 'out')
-ldstub_imm_Instr.setCode(opCodeRegsImm, 'regs')
+ldstub_imm_Instr.setCode(opCodeRegsImm, 'decode')
 ldstub_imm_Instr.setCode(opCodeMem, 'memory')
 ldstub_imm_Instr.setCode(opCodeWb, 'wb')
 ldstub_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -1088,14 +1094,14 @@ isa.addInstruction(ldstub_imm_Instr)
 ldstub_reg_Instr = trap.Instruction('LDSTUB_reg', True, frequency = 1)
 ldstub_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 0, 1, 1, 0, 1]}, ('ldastub r', '%rs1', '+r', '%rs2', ' r', '%rd'))
 ldstub_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
-ldstub_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+ldstub_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 ldstub_reg_Instr.setCode(opCodeMem, 'memory')
 ldstub_reg_Instr.setCode(opCodeWb, 'wb')
 ldstub_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 ldstub_reg_Instr.addVariable(('address', 'BIT<32>'))
 ldstub_reg_Instr.addVariable(('readValue', 'BIT<32>'))
 isa.addInstruction(ldstub_reg_Instr)
-opCodeRegsRegs = cxx_writer.writer_code.Code("""
+opCodeRegsRegs = cxx_writer.writer_code.Code(ReadNPCDecode + """
 address = rs1 + rs2;
 supervisor = PSR[key_S];
 """)
@@ -1116,22 +1122,23 @@ else{
 }
 stall(2);
 """)
-opCodeException = cxx_writer.writer_code.Code("""
+opCodeWbException = cxx_writer.writer_code.Code("""
 if(!supervisor){
     RaiseException(pcounter, npcounter, PRIVILEDGE_INSTR);
+}
+else{
+    rd = readValue;
 }
 """)
 ldstuba_reg_Instr = trap.Instruction('LDSTUBA_reg', True, frequency = 1)
 ldstuba_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 1, 1, 1, 0, 1]}, ('ldastub r', '%rs1', '+r', '%rs2', ' ', '%asi', ' r', '%rd'))
 ldstuba_reg_Instr.setVarField('rd', ('REGS', 0), 'out')
-ldstuba_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+ldstuba_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 ldstuba_reg_Instr.setCode(opCodeMem, 'memory')
 ldstuba_reg_Instr.setCode(opCodeExec, 'execute')
-ldstuba_reg_Instr.setCode(opCodeException, 'exception')
-ldstuba_reg_Instr.setCode(opCodeWb, 'wb')
+ldstuba_reg_Instr.setCode(opCodeWbException, 'wb')
 ldstuba_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 ldstuba_reg_Instr.setCode(opCodeReadPC, 'fetch')
-ldstuba_reg_Instr.setCode(opCodeReadNPC, 'decode')
 ldstuba_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
 ldstuba_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 ldstuba_reg_Instr.addVariable(('supervisor', 'BIT<1>'))
@@ -1140,11 +1147,11 @@ ldstuba_reg_Instr.addVariable(('readValue', 'BIT<32>'))
 isa.addInstruction(ldstuba_reg_Instr)
 
 # Swap
-opCodeRegsImm = cxx_writer.writer_code.Code("""
+opCodeRegsImm = cxx_writer.writer_code.Code(ReadNPCDecode + """
 address = rs1 + SignExtend(simm13, 13);
 toWrite = rd;
 """)
-opCodeRegsRegs = cxx_writer.writer_code.Code("""
+opCodeRegsRegs = cxx_writer.writer_code.Code(ReadNPCDecode + """
 address = rs1 + rs2;
 toWrite = rd;
 """)
@@ -1166,25 +1173,23 @@ else{
 }
 stall(2);
 """)
-opCodeWb = cxx_writer.writer_code.Code("""
-rd = readValue;
-""")
-opCodeException = cxx_writer.writer_code.Code("""
+opCodeWbException = cxx_writer.writer_code.Code("""
 if(notAligned){
     RaiseException(pcounter, npcounter, MEM_ADDR_NOT_ALIGNED);
+}
+else{
+    rd = readValue;
 }
 """)
 swap_imm_Instr = trap.Instruction('SWAP_imm', True, frequency = 1)
 swap_imm_Instr.setMachineCode(mem_format2, {'op3': [0, 0, 1, 1, 1, 1]}, ('swap r', '%rs1', '+', '%simm13', ' r', '%rd'))
 swap_imm_Instr.setVarField('rd', ('REGS', 0), 'inout')
-swap_imm_Instr.setCode(opCodeRegsImm, 'regs')
+swap_imm_Instr.setCode(opCodeRegsImm, 'decode')
 swap_imm_Instr.setCode(opCodeMem, 'memory')
-swap_imm_Instr.setCode(opCodeExec, 'exception')
-swap_imm_Instr.setCode(opCodeException, 'execute')
-swap_imm_Instr.setCode(opCodeWb, 'wb')
+swap_imm_Instr.setCode(opCodeExec, 'execute')
+swap_imm_Instr.setCode(opCodeWbException, 'wb')
 swap_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 swap_imm_Instr.setCode(opCodeReadPC, 'fetch')
-swap_imm_Instr.setCode(opCodeReadNPC, 'decode')
 swap_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
 swap_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 swap_imm_Instr.addVariable(('notAligned', 'BIT<1>'))
@@ -1195,14 +1200,12 @@ isa.addInstruction(swap_imm_Instr)
 swap_reg_Instr = trap.Instruction('SWAP_reg', True, frequency = 1)
 swap_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 0, 1, 1, 1, 1]}, ('swap r', '%rs1', '+r', '%rs2', ' r', '%rd'))
 swap_reg_Instr.setVarField('rd', ('REGS', 0), 'inout')
-swap_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+swap_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 swap_reg_Instr.setCode(opCodeMem, 'memory')
-swap_reg_Instr.setCode(opCodeExec, 'exception')
-swap_reg_Instr.setCode(opCodeException, 'execute')
-swap_reg_Instr.setCode(opCodeWb, 'wb')
+swap_reg_Instr.setCode(opCodeExec, 'execute')
+swap_reg_Instr.setCode(opCodeWbException, 'wb')
 swap_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 swap_reg_Instr.setCode(opCodeReadPC, 'fetch')
-swap_reg_Instr.setCode(opCodeReadNPC, 'decode')
 swap_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
 swap_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 swap_reg_Instr.addVariable(('notAligned', 'BIT<1>'))
@@ -1210,7 +1213,7 @@ swap_reg_Instr.addVariable(('address', 'BIT<32>'))
 swap_reg_Instr.addVariable(('readValue', 'BIT<32>'))
 swap_reg_Instr.addVariable(('toWrite', 'BIT<32>'))
 isa.addInstruction(swap_reg_Instr)
-opCodeRegsRegs = cxx_writer.writer_code.Code("""
+opCodeRegsRegs = cxx_writer.writer_code.Code(ReadNPCDecode + """
 address = rs1 + rs2;
 toWrite = rd;
 supervisor = PSR[key_S];
@@ -1247,14 +1250,13 @@ if(notAligned){
 swapa_reg_Instr = trap.Instruction('SWAPA_reg', True, frequency = 1)
 swapa_reg_Instr.setMachineCode(mem_format1, {'op3': [0, 1, 1, 1, 1, 1]}, ('swapa r', '%rs1', '+r', '%rs2', ' ', '%asi', ' r', '%rd'))
 swapa_reg_Instr.setVarField('rd', ('REGS', 0), 'inout')
-swapa_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+swapa_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 swapa_reg_Instr.setCode(opCodeMem, 'memory')
 swapa_reg_Instr.setCode(opCodeExec, 'exception')
 swapa_reg_Instr.setCode(opCodeException, 'execute')
 swapa_reg_Instr.setCode(opCodeWb, 'wb')
 swapa_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 swapa_reg_Instr.setCode(opCodeReadPC, 'fetch')
-swapa_reg_Instr.setCode(opCodeReadNPC, 'decode')
 swapa_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
 swapa_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 swapa_reg_Instr.addVariable(('supervisor', 'BIT<1>'))
@@ -1290,7 +1292,7 @@ result = rs1_op & SignExtend(simm13, 13);
 and_imm_Instr = trap.Instruction('AND_imm', True, frequency = 10)
 and_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 0, 0, 0, 1]}, ('and r', '%rs1', ' ', '%simm13', ' r', '%rd'))
 and_imm_Instr.setCode(opCodeExecImm, 'execute')
-and_imm_Instr.setCode(opCodeReadRegs1, 'regs')
+and_imm_Instr.setCode(opCodeReadRegs1, 'decode')
 and_imm_Instr.addBehavior(WB_plain, 'wb')
 and_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 and_imm_Instr.addVariable(('result', 'BIT<32>'))
@@ -1302,7 +1304,7 @@ result = rs1_op & rs2_op;
 and_reg_Instr = trap.Instruction('AND_reg', True, frequency = 7)
 and_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 0, 0, 0, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('and r', '%rs1', ' r', '%rs2', ' r', '%rd'))
 and_reg_Instr.setCode(opCodeExecReg, 'execute')
-and_reg_Instr.setCode(opCodeReadRegs2, 'regs')
+and_reg_Instr.setCode(opCodeReadRegs2, 'decode')
 and_reg_Instr.addBehavior(WB_plain, 'wb')
 and_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 and_reg_Instr.addVariable(('result', 'BIT<32>'))
@@ -1312,7 +1314,7 @@ isa.addInstruction(and_reg_Instr)
 andcc_imm_Instr = trap.Instruction('ANDcc_imm', True, frequency = 6)
 andcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 0, 0, 0, 1]}, ('andcc r', '%rs1', ' ', '%simm13', ' r', '%rd'))
 andcc_imm_Instr.setCode(opCodeExecImm, 'execute')
-andcc_imm_Instr.setCode(opCodeReadRegs1, 'regs')
+andcc_imm_Instr.setCode(opCodeReadRegs1, 'decode')
 andcc_imm_Instr.addBehavior(WB_plain, 'wb')
 andcc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 andcc_imm_Instr.addBehavior(ICC_writeLogic, 'execute', False)
@@ -1323,7 +1325,7 @@ isa.addInstruction(andcc_imm_Instr)
 andcc_reg_Instr = trap.Instruction('ANDcc_reg', True, frequency = 2)
 andcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 0, 0, 0, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('andcc r', '%rs1', ' r', '%rs2', ' r', '%rd'))
 andcc_reg_Instr.setCode(opCodeExecReg, 'execute')
-andcc_reg_Instr.setCode(opCodeReadRegs2, 'regs')
+andcc_reg_Instr.setCode(opCodeReadRegs2, 'decode')
 andcc_reg_Instr.addBehavior(WB_plain, 'wb')
 andcc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 andcc_reg_Instr.addBehavior(ICC_writeLogic, 'execute', False)
@@ -1338,7 +1340,7 @@ result = rs1_op & ~(SignExtend(simm13, 13));
 andn_imm_Instr = trap.Instruction('ANDN_imm', True, frequency = 2)
 andn_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 0, 1, 0, 1]}, ('andn r', '%rs1', ' ', '%simm13', ' r', '%rd'))
 andn_imm_Instr.setCode(opCodeExecImm, 'execute')
-andn_imm_Instr.setCode(opCodeReadRegs1, 'regs')
+andn_imm_Instr.setCode(opCodeReadRegs1, 'decode')
 andn_imm_Instr.addBehavior(WB_plain, 'wb')
 andn_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 andn_imm_Instr.addVariable(('result', 'BIT<32>'))
@@ -1350,7 +1352,7 @@ result = rs1_op & ~rs2_op;
 andn_reg_Instr = trap.Instruction('ANDN_reg', True, frequency = 5)
 andn_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 0, 1, 0, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('andn r', '%rs1', ' r', '%rs2', ' r', '%rd'))
 andn_reg_Instr.setCode(opCodeExecReg, 'execute')
-andn_reg_Instr.setCode(opCodeReadRegs2, 'regs')
+andn_reg_Instr.setCode(opCodeReadRegs2, 'decode')
 andn_reg_Instr.addBehavior(WB_plain, 'wb')
 andn_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 andn_reg_Instr.addVariable(('result', 'BIT<32>'))
@@ -1360,7 +1362,7 @@ isa.addInstruction(andn_reg_Instr)
 andncc_imm_Instr = trap.Instruction('ANDNcc_imm', True, frequency = 2)
 andncc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 0, 1, 0, 1]}, ('andncc r', '%rs1', ' ', '%simm13', ' r', '%rd'))
 andncc_imm_Instr.setCode(opCodeExecImm, 'execute')
-andncc_imm_Instr.setCode(opCodeReadRegs1, 'regs')
+andncc_imm_Instr.setCode(opCodeReadRegs1, 'decode')
 andncc_imm_Instr.addBehavior(WB_plain, 'wb')
 andncc_imm_Instr.addBehavior(ICC_writeLogic, 'execute', False)
 andncc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -1371,7 +1373,7 @@ isa.addInstruction(andncc_imm_Instr)
 andncc_reg_Instr = trap.Instruction('ANDNcc_reg', True, frequency = 2)
 andncc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 0, 1, 0, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('andncc r', '%rs1', ' r', '%rs2', ' r', '%rd'))
 andncc_reg_Instr.setCode(opCodeExecReg, 'execute')
-andncc_reg_Instr.setCode(opCodeReadRegs2, 'regs')
+andncc_reg_Instr.setCode(opCodeReadRegs2, 'decode')
 andncc_reg_Instr.addBehavior(WB_plain, 'wb')
 andncc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 andncc_reg_Instr.addBehavior(ICC_writeLogic, 'execute', False)
@@ -1386,7 +1388,7 @@ result = rs1_op | SignExtend(simm13, 13);
 or_imm_Instr = trap.Instruction('OR_imm', True, frequency = 12)
 or_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 0, 0, 1, 0]}, ('or r', '%rs1', ' ', '%simm13', ' r', '%rd'))
 or_imm_Instr.setCode(opCodeExecImm, 'execute')
-or_imm_Instr.setCode(opCodeReadRegs1, 'regs')
+or_imm_Instr.setCode(opCodeReadRegs1, 'decode')
 or_imm_Instr.addBehavior(WB_plain, 'wb')
 or_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 or_imm_Instr.addVariable(('result', 'BIT<32>'))
@@ -1398,7 +1400,7 @@ result = rs1_op | rs2_op;
 or_reg_Instr = trap.Instruction('OR_reg', True, frequency = 12)
 or_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 0, 0, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('or r', '%rs1', ' r', '%rs2', ' r', '%rd'))
 or_reg_Instr.setCode(opCodeExecReg, 'execute')
-or_reg_Instr.setCode(opCodeReadRegs2, 'regs')
+or_reg_Instr.setCode(opCodeReadRegs2, 'decode')
 or_reg_Instr.addBehavior(WB_plain, 'wb')
 or_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 or_reg_Instr.addVariable(('result', 'BIT<32>'))
@@ -1408,7 +1410,7 @@ isa.addInstruction(or_reg_Instr)
 orcc_imm_Instr = trap.Instruction('ORcc_imm', True, frequency = 4)
 orcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 0, 0, 1, 0]}, ('orcc r', '%rs1', ' ', '%simm13', ' r', '%rd'))
 orcc_imm_Instr.setCode(opCodeExecImm, 'execute')
-orcc_imm_Instr.setCode(opCodeReadRegs1, 'regs')
+orcc_imm_Instr.setCode(opCodeReadRegs1, 'decode')
 orcc_imm_Instr.addBehavior(WB_plain, 'wb')
 orcc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 orcc_imm_Instr.addBehavior(ICC_writeLogic, 'execute', False)
@@ -1419,7 +1421,7 @@ isa.addInstruction(orcc_imm_Instr)
 orcc_reg_Instr = trap.Instruction('ORcc_reg', True, frequency = 5)
 orcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 0, 0, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('orcc r', '%rs1', ' r', '%rs2', ' r', '%rd'))
 orcc_reg_Instr.setCode(opCodeExecReg, 'execute')
-orcc_reg_Instr.setCode(opCodeReadRegs2, 'regs')
+orcc_reg_Instr.setCode(opCodeReadRegs2, 'decode')
 orcc_reg_Instr.addBehavior(WB_plain, 'wb')
 orcc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 orcc_reg_Instr.addBehavior(ICC_writeLogic, 'execute', False)
@@ -1434,7 +1436,7 @@ result = rs1_op | ~(SignExtend(simm13, 13));
 orn_imm_Instr = trap.Instruction('ORN_imm', True, frequency = 2)
 orn_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 0, 1, 1, 0]}, ('orn r', '%rs1', ' ', '%simm13', ' r', '%rd'))
 orn_imm_Instr.setCode(opCodeExecImm, 'execute')
-orn_imm_Instr.setCode(opCodeReadRegs1, 'regs')
+orn_imm_Instr.setCode(opCodeReadRegs1, 'decode')
 orn_imm_Instr.addBehavior(WB_plain, 'wb')
 orn_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 orn_imm_Instr.addVariable(('result', 'BIT<32>'))
@@ -1446,7 +1448,7 @@ result = rs1_op | ~rs2_op;
 orn_reg_Instr = trap.Instruction('ORN_reg', True, frequency = 2)
 orn_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 0, 1, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('orn r', '%rs1', ' r', '%rs2', ' r', '%rd'))
 orn_reg_Instr.setCode(opCodeExecReg, 'execute')
-orn_reg_Instr.setCode(opCodeReadRegs2, 'regs')
+orn_reg_Instr.setCode(opCodeReadRegs2, 'decode')
 orn_reg_Instr.addBehavior(WB_plain, 'wb')
 orn_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 orn_reg_Instr.addVariable(('result', 'BIT<32>'))
@@ -1456,7 +1458,7 @@ isa.addInstruction(orn_reg_Instr)
 orncc_imm_Instr = trap.Instruction('ORNcc_imm', True, frequency = 2)
 orncc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 0, 1, 1, 0]}, ('orncc r', '%rs1', ' ', '%simm13', ' r', '%rd'))
 orncc_imm_Instr.setCode(opCodeExecImm, 'execute')
-orncc_imm_Instr.setCode(opCodeReadRegs1, 'regs')
+orncc_imm_Instr.setCode(opCodeReadRegs1, 'decode')
 orncc_imm_Instr.addBehavior(WB_plain, 'wb')
 orncc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 orncc_imm_Instr.addBehavior(ICC_writeLogic, 'execute', False)
@@ -1466,7 +1468,7 @@ isa.addInstruction(orncc_imm_Instr)
 orncc_reg_Instr = trap.Instruction('ORNcc_reg', True, frequency = 2)
 orncc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 0, 1, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('orncc r', '%rs1', ' r', '%rs2', ' r', '%rd'))
 orncc_reg_Instr.setCode(opCodeExecReg, 'execute')
-orncc_reg_Instr.setCode(opCodeReadRegs2, 'regs')
+orncc_reg_Instr.setCode(opCodeReadRegs2, 'decode')
 orncc_reg_Instr.addBehavior(WB_plain, 'wb')
 orncc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 orncc_reg_Instr.addBehavior(ICC_writeLogic, 'execute', False)
@@ -1481,7 +1483,7 @@ result = rs1_op ^ SignExtend(simm13, 13);
 xor_imm_Instr = trap.Instruction('XOR_imm', True, frequency = 3)
 xor_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 0, 0, 1, 1]}, ('xor r', '%rs1', ' ', '%simm13', ' r', '%rd'))
 xor_imm_Instr.setCode(opCodeExecImm, 'execute')
-xor_imm_Instr.setCode(opCodeReadRegs1, 'regs')
+xor_imm_Instr.setCode(opCodeReadRegs1, 'decode')
 xor_imm_Instr.addBehavior(WB_plain, 'wb')
 xor_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 xor_imm_Instr.addVariable(('result', 'BIT<32>'))
@@ -1493,7 +1495,7 @@ result = rs1_op ^ rs2_op;
 xor_reg_Instr = trap.Instruction('XOR_reg', True, frequency = 7)
 xor_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 0, 0, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('xor r', '%rs1', ' r', '%rs2', ' r', '%rd'))
 xor_reg_Instr.setCode(opCodeExecReg, 'execute')
-xor_reg_Instr.setCode(opCodeReadRegs2, 'regs')
+xor_reg_Instr.setCode(opCodeReadRegs2, 'decode')
 xor_reg_Instr.addBehavior(WB_plain, 'wb')
 xor_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 xor_reg_Instr.addVariable(('result', 'BIT<32>'))
@@ -1503,7 +1505,7 @@ isa.addInstruction(xor_reg_Instr)
 xorcc_imm_Instr = trap.Instruction('XORcc_imm', True, frequency = 2)
 xorcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 0, 0, 1, 1]}, ('xorcc r', '%rs1', ' ', '%simm13', ' r', '%rd'))
 xorcc_imm_Instr.setCode(opCodeExecImm, 'execute')
-xorcc_imm_Instr.setCode(opCodeReadRegs1, 'regs')
+xorcc_imm_Instr.setCode(opCodeReadRegs1, 'decode')
 xorcc_imm_Instr.addBehavior(WB_plain, 'wb')
 xorcc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 xorcc_imm_Instr.addBehavior(ICC_writeLogic, 'execute', False)
@@ -1514,7 +1516,7 @@ isa.addInstruction(xorcc_imm_Instr)
 xorcc_reg_Instr = trap.Instruction('XORcc_reg', True, frequency = 2)
 xorcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 0, 0, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('xorcc r', '%rs1', ' r', '%rs2', ' r', '%rd'))
 xorcc_reg_Instr.setCode(opCodeExecReg, 'execute')
-xorcc_reg_Instr.setCode(opCodeReadRegs2, 'regs')
+xorcc_reg_Instr.setCode(opCodeReadRegs2, 'decode')
 xorcc_reg_Instr.addBehavior(WB_plain, 'wb')
 xorcc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 xorcc_reg_Instr.addBehavior(ICC_writeLogic, 'execute', False)
@@ -1529,7 +1531,7 @@ result = rs1_op ^ ~(SignExtend(simm13, 13));
 xnor_imm_Instr = trap.Instruction('XNOR_imm', True, frequency = 2)
 xnor_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 0, 1, 1, 1]}, ('xnor r', '%rs1', ' ', '%simm13', ' r', '%rd'))
 xnor_imm_Instr.setCode(opCodeExecImm, 'execute')
-xnor_imm_Instr.setCode(opCodeReadRegs1, 'regs')
+xnor_imm_Instr.setCode(opCodeReadRegs1, 'decode')
 xnor_imm_Instr.addBehavior(WB_plain, 'wb')
 xnor_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 xnor_imm_Instr.addVariable(('result', 'BIT<32>'))
@@ -1541,7 +1543,7 @@ result = rs1_op ^ ~rs2_op;
 xnor_reg_Instr = trap.Instruction('XNOR_reg', True, frequency = 2)
 xnor_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 0, 1, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('xnor r', '%rs1', ' r', '%rs2', ' r', '%rd'))
 xnor_reg_Instr.setCode(opCodeExecReg, 'execute')
-xnor_reg_Instr.setCode(opCodeReadRegs2, 'regs')
+xnor_reg_Instr.setCode(opCodeReadRegs2, 'decode')
 xnor_reg_Instr.addBehavior(WB_plain, 'wb')
 xnor_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 xnor_reg_Instr.addVariable(('result', 'BIT<32>'))
@@ -1551,7 +1553,7 @@ isa.addInstruction(xnor_reg_Instr)
 xnorcc_imm_Instr = trap.Instruction('XNORcc_imm', True, frequency = 2)
 xnorcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 0, 1, 1, 1]}, ('xnorcc r', '%rs1', ' ', '%simm13', ' r', '%rd'))
 xnorcc_imm_Instr.setCode(opCodeExecImm, 'execute')
-xnorcc_imm_Instr.setCode(opCodeReadRegs1, 'regs')
+xnorcc_imm_Instr.setCode(opCodeReadRegs1, 'decode')
 xnorcc_imm_Instr.addBehavior(WB_plain, 'wb')
 xnorcc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 xnorcc_imm_Instr.addBehavior(ICC_writeLogic, 'execute', False)
@@ -1562,7 +1564,7 @@ isa.addInstruction(xnorcc_imm_Instr)
 xnorcc_reg_Instr = trap.Instruction('XNORcc_reg', True, frequency = 2)
 xnorcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 0, 1, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('xnorcc r', '%rs1', ' r', '%rs2', ' r', '%rd'))
 xnorcc_reg_Instr.setCode(opCodeExecReg, 'execute')
-xnorcc_reg_Instr.setCode(opCodeReadRegs2, 'regs')
+xnorcc_reg_Instr.setCode(opCodeReadRegs2, 'decode')
 xnorcc_reg_Instr.addBehavior(WB_plain, 'wb')
 xnorcc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 xnorcc_reg_Instr.addBehavior(ICC_writeLogic, 'execute', False)
@@ -1586,7 +1588,7 @@ result = rs1_op << simm13;
 sll_imm_Instr = trap.Instruction('SLL_imm', True, frequency = 9)
 sll_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 0, 0, 1, 0, 1]}, ('sll r', '%rs1', ' ', '%simm13', ' r', '%rd'))
 sll_imm_Instr.setCode(opCodeExec, 'execute')
-sll_imm_Instr.setCode(opCodeRegsImm, 'regs')
+sll_imm_Instr.setCode(opCodeRegsImm, 'decode')
 sll_imm_Instr.addBehavior(WB_plain, 'wb')
 sll_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 sll_imm_Instr.addVariable(('result', 'BIT<32>'))
@@ -1598,7 +1600,7 @@ result = rs1_op << (rs2_op & 0x0000001f);
 sll_reg_Instr = trap.Instruction('SLL_reg', True, frequency = 6)
 sll_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 0, 0, 1, 0, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('sll r', '%rs1', ' r', '%rs2', ' r', '%rd'))
 sll_reg_Instr.setCode(opCodeExec, 'execute')
-sll_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+sll_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 sll_reg_Instr.addBehavior(WB_plain, 'wb')
 sll_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 sll_reg_Instr.addVariable(('result', 'BIT<32>'))
@@ -1611,7 +1613,7 @@ result = ((unsigned int)rs1_op) >> simm13;
 srl_imm_Instr = trap.Instruction('SRL_imm', True, frequency = 9)
 srl_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 0, 0, 1, 1, 0]}, ('srl r', '%rs1', ' ', '%simm13', ' r', '%rd'))
 srl_imm_Instr.setCode(opCodeExec, 'execute')
-srl_imm_Instr.setCode(opCodeRegsImm, 'regs')
+srl_imm_Instr.setCode(opCodeRegsImm, 'decode')
 srl_imm_Instr.addBehavior(WB_plain, 'wb')
 srl_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 srl_imm_Instr.addVariable(('result', 'BIT<32>'))
@@ -1623,7 +1625,7 @@ result = ((unsigned int)rs1_op) >> (rs2_op & 0x0000001f);
 srl_reg_Instr = trap.Instruction('SRL_reg', True, frequency = 3)
 srl_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 0, 0, 1, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('srl r', '%rs1', ' r', '%rs2', ' r', '%rd'))
 srl_reg_Instr.setCode(opCodeExec, 'execute')
-srl_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+srl_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 srl_reg_Instr.addBehavior(WB_plain, 'wb')
 srl_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 srl_reg_Instr.addVariable(('result', 'BIT<32>'))
@@ -1636,7 +1638,7 @@ result = ((int)rs1_op) >> simm13;
 sra_imm_Instr = trap.Instruction('SRA_imm', True, frequency = 7)
 sra_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 0, 0, 1, 1, 1]}, ('sra r', '%rs1', ' ', '%simm13', ' r', '%rd'))
 sra_imm_Instr.setCode(opCodeExec, 'execute')
-sra_imm_Instr.setCode(opCodeRegsImm, 'regs')
+sra_imm_Instr.setCode(opCodeRegsImm, 'decode')
 sra_imm_Instr.addBehavior(WB_plain, 'wb')
 sra_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 sra_imm_Instr.addVariable(('result', 'BIT<32>'))
@@ -1648,7 +1650,7 @@ result = ((int)rs1_op) >> (rs2_op & 0x0000001f);
 sra_reg_Instr = trap.Instruction('SRA_reg', True, frequency = 2)
 sra_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 0, 0, 1, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('sra r', '%rs1', ' r', '%rs2', ' r', '%rd'))
 sra_reg_Instr.setCode(opCodeExec, 'execute')
-sra_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+sra_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 sra_reg_Instr.addBehavior(WB_plain, 'wb')
 sra_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 sra_reg_Instr.addVariable(('result', 'BIT<32>'))
@@ -1670,7 +1672,7 @@ result = rs1_op + rs2_op;
 """)
 add_imm_Instr = trap.Instruction('ADD_imm', True, frequency = 11)
 add_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 0, 0, 0, 0]}, ('add r', '%rs1', ' ', '%simm13', ' r', '%rd'))
-add_imm_Instr.setCode(opCodeRegsImm, 'regs')
+add_imm_Instr.setCode(opCodeRegsImm, 'decode')
 add_imm_Instr.setCode(opCodeExec, 'execute')
 add_imm_Instr.addBehavior(WB_plain, 'wb')
 add_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -1680,7 +1682,7 @@ add_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
 isa.addInstruction(add_imm_Instr)
 add_reg_Instr = trap.Instruction('ADD_reg', True, frequency = 9)
 add_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 0, 0, 0, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('add r', '%rs1', ' r', '%rs2', ' r', '%rd'))
-add_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+add_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 add_reg_Instr.setCode(opCodeExec, 'execute')
 add_reg_Instr.addBehavior(WB_plain, 'wb')
 add_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -1690,7 +1692,7 @@ add_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
 isa.addInstruction(add_reg_Instr)
 addcc_imm_Instr = trap.Instruction('ADDcc_imm', True, frequency = 5)
 addcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 0, 0, 0, 0]}, ('addcc r', '%rs1', ' ', '%simm13', ' r', '%rd'))
-addcc_imm_Instr.setCode(opCodeRegsImm, 'regs')
+addcc_imm_Instr.setCode(opCodeRegsImm, 'decode')
 addcc_imm_Instr.setCode(opCodeExec, 'execute')
 addcc_imm_Instr.addBehavior(WB_plain, 'wb')
 addcc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -1702,7 +1704,7 @@ addcc_imm_Instr.addSpecialRegister('PSR', 'out', 'execute')
 isa.addInstruction(addcc_imm_Instr)
 addcc_reg_Instr = trap.Instruction('ADDcc_reg', True, frequency = 7)
 addcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 0, 0, 0, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('addcc r', '%rs1', ' r', '%rs2', ' r', '%rd'))
-addcc_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+addcc_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 addcc_reg_Instr.setCode(opCodeExec, 'execute')
 addcc_reg_Instr.addBehavior(WB_plain, 'wb')
 addcc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -1723,7 +1725,7 @@ result = rs1_op + rs2_op + PSR_execute[key_ICC_c];
 """)
 addx_imm_Instr = trap.Instruction('ADDX_imm', True, frequency = 5)
 addx_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 1, 0, 0, 0]}, ('addx r', '%rs1', ' ', '%simm13', ' r', '%rd'))
-addx_imm_Instr.setCode(opCodeRegsImm, 'regs')
+addx_imm_Instr.setCode(opCodeRegsImm, 'decode')
 addx_imm_Instr.setCode(opCodeExec, 'execute')
 addx_imm_Instr.addBehavior(WB_plain, 'wb')
 addx_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -1734,7 +1736,7 @@ addx_imm_Instr.addSpecialRegister('PSR', 'in', 'execute')
 isa.addInstruction(addx_imm_Instr)
 addx_reg_Instr = trap.Instruction('ADDX_reg', True, frequency = 6)
 addx_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 1, 0, 0, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('addx r', '%rs1', ' r', '%rs2', ' r', '%rd'))
-addx_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+addx_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 addx_reg_Instr.setCode(opCodeExec, 'execute')
 addx_reg_Instr.addBehavior(WB_plain, 'wb')
 addx_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -1745,7 +1747,7 @@ addx_reg_Instr.addSpecialRegister('PSR', 'in', 'execute')
 isa.addInstruction(addx_reg_Instr)
 addxcc_imm_Instr = trap.Instruction('ADDXcc_imm', True, frequency = 2)
 addxcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 1, 0, 0, 0]}, ('addxcc r', '%rs1', ' ', '%simm13', ' r', '%rd'))
-addxcc_imm_Instr.setCode(opCodeRegsImm, 'regs')
+addxcc_imm_Instr.setCode(opCodeRegsImm, 'decode')
 addxcc_imm_Instr.setCode(opCodeExec, 'execute')
 addxcc_imm_Instr.addBehavior(WB_plain, 'wb')
 addxcc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -1757,7 +1759,7 @@ addxcc_imm_Instr.addSpecialRegister('PSR', 'inout', 'execute')
 isa.addInstruction(addxcc_imm_Instr)
 addxcc_reg_Instr = trap.Instruction('ADDXcc_reg', True, frequency = 2)
 addxcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 1, 0, 0, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('addxcc r', '%rs1', ' r', '%rs2', ' r', '%rd'))
-addxcc_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+addxcc_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 addxcc_reg_Instr.setCode(opCodeExec, 'execute')
 addxcc_reg_Instr.addBehavior(WB_plain, 'wb')
 addxcc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -1776,7 +1778,7 @@ if(!temp_V && (((rs1_op | rs2_op) & 0x00000003) != 0)){
 """)
 taddcc_imm_Instr = trap.Instruction('TADDcc_imm', True, frequency = 1)
 taddcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 0, 0, 0, 0, 0]}, ('taddcc r', '%rs1', ' ', '%simm13', ' r', '%rd'))
-taddcc_imm_Instr.setCode(opCodeRegsImm, 'regs')
+taddcc_imm_Instr.setCode(opCodeRegsImm, 'decode')
 taddcc_imm_Instr.setCode(opCodeExec, 'execute')
 taddcc_imm_Instr.addBehavior(WB_plain, 'wb')
 taddcc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -1789,7 +1791,7 @@ taddcc_imm_Instr.addSpecialRegister('PSR', 'out', 'execute')
 isa.addInstruction(taddcc_imm_Instr)
 taddcc_reg_Instr = trap.Instruction('TADDcc_reg', True, frequency = 1)
 taddcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 0, 0, 0, 0, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('taddcc r', '%rs1', ' r', '%rs2', ' r', '%rd'))
-taddcc_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+taddcc_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 taddcc_reg_Instr.setCode(opCodeExec, 'execute')
 taddcc_reg_Instr.addBehavior(WB_plain, 'wb')
 taddcc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -1800,6 +1802,15 @@ taddcc_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 taddcc_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
 taddcc_reg_Instr.addSpecialRegister('PSR', 'out', 'execute')
 isa.addInstruction(taddcc_reg_Instr)
+
+opCodeRegsImmTrap = cxx_writer.writer_code.Code(ReadNPCDecode + """
+rs1_op = rs1;
+rs2_op = SignExtend(simm13, 13);
+""")
+opCodeRegsRegsTrap = cxx_writer.writer_code.Code(ReadNPCDecode + """
+rs1_op = rs1;
+rs2_op = rs2;
+""")
 opCodeTrap = cxx_writer.writer_code.Code("""
 if(temp_V){
     RaiseException(pcounter, npcounter, TAG_OVERFLOW);
@@ -1807,14 +1818,13 @@ if(temp_V){
 """)
 taddcctv_imm_Instr = trap.Instruction('TADDccTV_imm', True, frequency = 1)
 taddcctv_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 0, 0, 0, 1, 0]}, ('taddcctv r', '%rs1', ' ', '%simm13', ' r', '%rd'))
-taddcctv_imm_Instr.setCode(opCodeRegsImm, 'regs')
+taddcctv_imm_Instr.setCode(opCodeRegsImmTrap, 'decode')
 taddcctv_imm_Instr.setCode(opCodeExec, 'execute')
-taddcctv_imm_Instr.setCode(opCodeTrap, 'exception')
+taddcctv_imm_Instr.setCode(opCodeTrap, 'wb')
 taddcctv_imm_Instr.addBehavior(WB_tv, 'wb')
 taddcctv_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 taddcctv_imm_Instr.addBehavior(ICC_writeTVAdd, 'execute', False)
 taddcctv_imm_Instr.setCode(opCodeReadPC, 'fetch')
-taddcctv_imm_Instr.setCode(opCodeReadNPC, 'decode')
 taddcctv_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
 taddcctv_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 taddcctv_imm_Instr.addVariable(('result', 'BIT<32>'))
@@ -1825,14 +1835,13 @@ taddcctv_imm_Instr.addSpecialRegister('PSR', 'out', 'execute')
 isa.addInstruction(taddcctv_imm_Instr)
 taddcctv_reg_Instr = trap.Instruction('TADDccTV_reg', True, frequency = 1)
 taddcctv_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 0, 0, 0, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('taddcctv r', '%rs1', ' r', '%rs2', ' r', '%rd'))
-taddcctv_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+taddcctv_reg_Instr.setCode(opCodeRegsRegsTrap, 'decode')
 taddcctv_reg_Instr.setCode(opCodeExec, 'execute')
-taddcctv_reg_Instr.setCode(opCodeTrap, 'exception')
+taddcctv_reg_Instr.setCode(opCodeTrap, 'wb')
 taddcctv_reg_Instr.addBehavior(WB_tv, 'wb')
 taddcctv_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 taddcctv_reg_Instr.addBehavior(ICC_writeTVAdd, 'execute', False)
 taddcctv_reg_Instr.setCode(opCodeReadPC, 'fetch')
-taddcctv_reg_Instr.setCode(opCodeReadNPC, 'decode')
 taddcctv_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
 taddcctv_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 taddcctv_reg_Instr.addVariable(('result', 'BIT<32>'))
@@ -1856,7 +1865,7 @@ result = rs1_op - rs2_op;
 """)
 sub_imm_Instr = trap.Instruction('SUB_imm', True, frequency = 4)
 sub_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 0, 1, 0, 0]}, ('sub r', '%rs1', ' ', '%simm13', ' r', '%rd'))
-sub_imm_Instr.setCode(opCodeRegsImm, 'regs')
+sub_imm_Instr.setCode(opCodeRegsImm, 'decode')
 sub_imm_Instr.setCode(opCodeExec, 'execute')
 sub_imm_Instr.addBehavior(WB_plain, 'wb')
 sub_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -1866,7 +1875,7 @@ sub_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
 isa.addInstruction(sub_imm_Instr)
 sub_reg_Instr = trap.Instruction('SUB_reg', True, frequency = 6)
 sub_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 0, 1, 0, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('sub r', '%rs1', ' r', '%rs2', ' r', '%rd'))
-sub_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+sub_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 sub_reg_Instr.setCode(opCodeExec, 'execute')
 sub_reg_Instr.addBehavior(WB_plain, 'wb')
 sub_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -1876,7 +1885,7 @@ sub_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
 isa.addInstruction(sub_reg_Instr)
 subcc_imm_Instr = trap.Instruction('SUBcc_imm', True, frequency = 10)
 subcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 0, 1, 0, 0]}, ('subcc r', '%rs1', ' ', '%simm13', ' r', '%rd'))
-subcc_imm_Instr.setCode(opCodeRegsImm, 'regs')
+subcc_imm_Instr.setCode(opCodeRegsImm, 'decode')
 subcc_imm_Instr.setCode(opCodeExec, 'execute')
 subcc_imm_Instr.addBehavior(WB_plain, 'wb')
 subcc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -1888,7 +1897,7 @@ subcc_imm_Instr.addSpecialRegister('PSR', 'out', 'execute')
 isa.addInstruction(subcc_imm_Instr)
 subcc_reg_Instr = trap.Instruction('SUBcc_reg', True, frequency = 8)
 subcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 0, 1, 0, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('subcc r', '%rs1', ' r', '%rs2', ' r', '%rd'))
-subcc_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+subcc_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 subcc_reg_Instr.setCode(opCodeExec, 'execute')
 subcc_reg_Instr.addBehavior(WB_plain, 'wb')
 subcc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -1907,7 +1916,7 @@ result = rs1_op - rs2_op - PSR_execute[key_ICC_c];
 """)
 subx_imm_Instr = trap.Instruction('SUBX_imm', True, frequency = 3)
 subx_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 1, 1, 0, 0]}, ('subx r', '%rs1', ' ', '%simm13', ' r', '%rd'))
-subx_imm_Instr.setCode(opCodeRegsImm, 'regs')
+subx_imm_Instr.setCode(opCodeRegsImm, 'decode')
 subx_imm_Instr.setCode(opCodeExec, 'execute')
 subx_imm_Instr.addBehavior(WB_plain, 'wb')
 subx_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -1918,7 +1927,7 @@ subx_imm_Instr.addSpecialRegister('PSR', 'in', 'execute')
 isa.addInstruction(subx_imm_Instr)
 subx_reg_Instr = trap.Instruction('SUBX_reg', True, frequency = 5)
 subx_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 1, 1, 0, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('subx r', '%rs1', ' r', '%rs2', ' r', '%rd'))
-subx_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+subx_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 subx_reg_Instr.setCode(opCodeExec, 'execute')
 subx_reg_Instr.addBehavior(WB_plain, 'wb')
 subx_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -1929,7 +1938,7 @@ subx_reg_Instr.addSpecialRegister('PSR', 'in', 'execute')
 isa.addInstruction(subx_reg_Instr)
 subxcc_imm_Instr = trap.Instruction('SUBXcc_imm', True, frequency = 2)
 subxcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 1, 1, 0, 0]}, ('subxcc r', '%rs1', ' ', '%simm13', ' r', '%rd'))
-subxcc_imm_Instr.setCode(opCodeRegsImm, 'regs')
+subxcc_imm_Instr.setCode(opCodeRegsImm, 'decode')
 subxcc_imm_Instr.setCode(opCodeExec, 'execute')
 subxcc_imm_Instr.addBehavior(WB_plain, 'wb')
 subxcc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -1941,7 +1950,7 @@ subxcc_imm_Instr.addSpecialRegister('PSR', 'inout', 'execute')
 isa.addInstruction(subxcc_imm_Instr)
 subxcc_reg_Instr = trap.Instruction('SUBXcc_reg', True, frequency = 2)
 subxcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 1, 1, 0, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('subxcc r', '%rs1', ' r', '%rs2', ' r', '%rd'))
-subxcc_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+subxcc_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 subxcc_reg_Instr.setCode(opCodeExec, 'execute')
 subxcc_reg_Instr.addBehavior(WB_plain, 'wb')
 subxcc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -1960,7 +1969,7 @@ if(!temp_V && (((rs1_op | rs2_op) & 0x00000003) != 0)){
 """)
 tsubcc_imm_Instr = trap.Instruction('TSUBcc_imm', True, frequency = 1)
 tsubcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 0, 0, 0, 0, 1]}, ('tsubcc r', '%rs1', ' ', '%simm13', ' r', '%rd'))
-tsubcc_imm_Instr.setCode(opCodeRegsImm, 'regs')
+tsubcc_imm_Instr.setCode(opCodeRegsImm, 'decode')
 tsubcc_imm_Instr.setCode(opCodeExec, 'execute')
 tsubcc_imm_Instr.addBehavior(WB_plain, 'wb')
 tsubcc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -1973,7 +1982,7 @@ tsubcc_imm_Instr.addSpecialRegister('PSR', 'out', 'execute')
 isa.addInstruction(tsubcc_imm_Instr)
 tsubcc_reg_Instr = trap.Instruction('TSUBcc_reg', True, frequency = 1)
 tsubcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 0, 0, 0, 0, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('tsubcc r', '%rs1', ' r', '%rs2', ' r', '%rd'))
-tsubcc_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+tsubcc_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 tsubcc_reg_Instr.setCode(opCodeExec, 'execute')
 tsubcc_reg_Instr.addBehavior(WB_plain, 'wb')
 tsubcc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -1991,14 +2000,13 @@ if(temp_V){
 """)
 tsubcctv_imm_Instr = trap.Instruction('TSUBccTV_imm', True, frequency = 1)
 tsubcctv_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 0, 0, 0, 1, 1]}, ('tsubcctv r', '%rs1', ' ', '%simm13', ' r', '%rd'))
-tsubcctv_imm_Instr.setCode(opCodeRegsImm, 'regs')
+tsubcctv_imm_Instr.setCode(opCodeRegsImmTrap, 'decode')
 tsubcctv_imm_Instr.setCode(opCodeExec, 'execute')
-tsubcctv_imm_Instr.setCode(opCodeTrap, 'exception')
+tsubcctv_imm_Instr.setCode(opCodeTrap, 'wb')
 tsubcctv_imm_Instr.addBehavior(WB_tv, 'wb')
 tsubcctv_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 tsubcctv_imm_Instr.addBehavior(ICC_writeTVSub, 'execute', False)
 tsubcctv_imm_Instr.setCode(opCodeReadPC, 'fetch')
-tsubcctv_imm_Instr.setCode(opCodeReadNPC, 'decode')
 tsubcctv_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
 tsubcctv_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 tsubcctv_imm_Instr.addVariable(('result', 'BIT<32>'))
@@ -2009,14 +2017,13 @@ tsubcctv_imm_Instr.addSpecialRegister('PSR', 'out', 'execute')
 isa.addInstruction(tsubcctv_imm_Instr)
 tsubcctv_reg_Instr = trap.Instruction('TSUBccTV_reg', True, frequency = 1)
 tsubcctv_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 0, 0, 0, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('tsubcctv r', '%rs1', ' r', '%rs2', ' r', '%rd'))
-tsubcctv_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+tsubcctv_reg_Instr.setCode(opCodeRegsRegsTrap, 'decode')
 tsubcctv_reg_Instr.setCode(opCodeExec, 'execute')
-tsubcctv_reg_Instr.setCode(opCodeTrap, 'exception')
+tsubcctv_reg_Instr.setCode(opCodeTrap, 'wb')
 tsubcctv_reg_Instr.addBehavior(WB_tv, 'wb')
 tsubcctv_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 tsubcctv_reg_Instr.addBehavior(ICC_writeTVSub, 'execute', False)
 tsubcctv_reg_Instr.setCode(opCodeReadPC, 'fetch')
-tsubcctv_reg_Instr.setCode(opCodeReadNPC, 'decode')
 tsubcctv_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
 tsubcctv_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 tsubcctv_reg_Instr.addVariable(('result', 'BIT<32>'))
@@ -2058,7 +2065,7 @@ Y = yNew;
 """)
 mulscc_imm_Instr = trap.Instruction('MULScc_imm', True, frequency = 2)
 mulscc_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 0, 0, 1, 0, 0]}, ('mulscc r', '%rs1', ' ', '%simm13', ' r', '%rd'))
-mulscc_imm_Instr.setCode(opCodeRegsImm, 'regs')
+mulscc_imm_Instr.setCode(opCodeRegsImm, 'decode')
 mulscc_imm_Instr.setCode(opCodeExec, 'execute')
 mulscc_imm_Instr.addBehavior(WB_plain, 'wb')
 mulscc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -2071,7 +2078,7 @@ mulscc_imm_Instr.addSpecialRegister('Y', 'inout', 'execute')
 isa.addInstruction(mulscc_imm_Instr)
 mulscc_reg_Instr = trap.Instruction('MULScc_reg', True, frequency = 2)
 mulscc_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 0, 0, 1, 0, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('mulscc r', '%rs1', ' r', '%rs2', ' r', '%rd'))
-mulscc_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+mulscc_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 mulscc_reg_Instr.setCode(opCodeExec, 'execute')
 mulscc_reg_Instr.addBehavior(WB_plain, 'wb')
 mulscc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -2106,7 +2113,7 @@ stall(2);
 """)
 umul_imm_Instr = trap.Instruction('UMUL_imm', True, frequency = 2)
 umul_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 1, 0, 1, 0]}, ('umul r', '%rs1', ' ', '%simm13', ' r', '%rd'))
-umul_imm_Instr.setCode(opCodeRegsImm, 'regs')
+umul_imm_Instr.setCode(opCodeRegsImm, 'decode')
 umul_imm_Instr.setCode(opCodeExecU, 'execute')
 umul_imm_Instr.addBehavior(WB_plain, 'wb')
 umul_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -2121,7 +2128,7 @@ else:
 isa.addInstruction(umul_imm_Instr)
 umul_reg_Instr = trap.Instruction('UMUL_reg', True, frequency = 2)
 umul_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 1, 0, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('umul r', '%rs1', ' r', '%rs2', ' r', '%rd'))
-umul_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+umul_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 umul_reg_Instr.setCode(opCodeExecU, 'execute')
 umul_reg_Instr.addBehavior(WB_plain, 'wb')
 umul_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -2136,7 +2143,7 @@ else:
 isa.addInstruction(umul_reg_Instr)
 smul_imm_Instr = trap.Instruction('SMUL_imm', True, frequency = 3)
 smul_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 1, 0, 1, 1]}, ('smul r', '%rs1', ' ', '%simm13', ' r', '%rd'))
-smul_imm_Instr.setCode(opCodeRegsImm, 'regs')
+smul_imm_Instr.setCode(opCodeRegsImm, 'decode')
 smul_imm_Instr.setCode(opCodeExecS, 'execute')
 smul_imm_Instr.addBehavior(WB_plain, 'wb')
 smul_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -2151,7 +2158,7 @@ else:
 isa.addInstruction(smul_imm_Instr)
 smul_reg_Instr = trap.Instruction('SMUL_reg', True, frequency = 4)
 smul_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 1, 0, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('smul r', '%rs1', ' r', '%rs2', ' r', '%rd'))
-smul_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+smul_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 smul_reg_Instr.setCode(opCodeExecS, 'execute')
 smul_reg_Instr.addBehavior(WB_plain, 'wb')
 smul_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -2166,7 +2173,7 @@ else:
 isa.addInstruction(smul_reg_Instr)
 umulcc_imm_Instr = trap.Instruction('UMULcc_imm', True, frequency = 2)
 umulcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 1, 0, 1, 0]}, ('umulcc r', '%rs1', ' ', '%simm13', ' r', '%rd'))
-umulcc_imm_Instr.setCode(opCodeRegsImm, 'regs')
+umulcc_imm_Instr.setCode(opCodeRegsImm, 'decode')
 umulcc_imm_Instr.setCode(opCodeExecU, 'execute')
 umulcc_imm_Instr.addBehavior(WB_plain, 'wb')
 umulcc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -2183,7 +2190,7 @@ else:
 isa.addInstruction(umulcc_imm_Instr)
 umulcc_reg_Instr = trap.Instruction('UMULcc_reg', True, frequency = 2)
 umulcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 1, 0, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('umulcc r', '%rs1', ' r', '%rs2', ' r', '%rd'))
-umulcc_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+umulcc_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 umulcc_reg_Instr.setCode(opCodeExecU, 'execute')
 umulcc_reg_Instr.addBehavior(WB_plain, 'wb')
 umulcc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -2200,7 +2207,7 @@ else:
 isa.addInstruction(umulcc_reg_Instr)
 smulcc_imm_Instr = trap.Instruction('SMULcc_imm', True, frequency = 2)
 smulcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 1, 0, 1, 1]}, ('smulcc r', '%rs1', ' ', '%simm13', ' r', '%rd'))
-smulcc_imm_Instr.setCode(opCodeRegsImm, 'regs')
+smulcc_imm_Instr.setCode(opCodeRegsImm, 'decode')
 smulcc_imm_Instr.setCode(opCodeExecS, 'execute')
 smulcc_imm_Instr.addBehavior(WB_plain, 'wb')
 smulcc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -2217,7 +2224,7 @@ else:
 isa.addInstruction(smulcc_imm_Instr)
 smulcc_reg_Instr = trap.Instruction('SMULcc_reg', True, frequency = 2)
 smulcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 1, 0, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('smulcc r', '%rs1', ' r', '%rs2', ' r', '%rd'))
-smulcc_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+smulcc_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 smulcc_reg_Instr.setCode(opCodeExecS, 'execute')
 smulcc_reg_Instr.addBehavior(WB_plain, 'wb')
 smulcc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -2233,94 +2240,12 @@ else:
     smulcc_reg_Instr.setWbDelay('rd', 2)
 isa.addInstruction(smulcc_reg_Instr)
 
-# Multiply Accumulate Instructions
-opCodeRegsImm = cxx_writer.writer_code.Code("""
-rs1_op = rs1;
-rs2_op = SignExtend(simm13, 13);
-""")
-opCodeRegsRegs = cxx_writer.writer_code.Code("""
-rs1_op = rs1;
-rs2_op = rs2;
-""")
-opCodeExecS = cxx_writer.writer_code.Code("""
-int resultTemp = ((int)SignExtend(rs1_op & 0x0000ffff, 16))*((int)SignExtend(rs2_op & 0x0000ffff, 16));
-#ifndef ACC_MODEL
-long long resultAcc = ((((long long)(Y & 0x000000ff)) << 32) | (int)ASR[18]) + resultTemp;
-#else
-long long resultAcc = ((((long long)(Y_execute & 0x000000ff)) << 32) | (int)ASR_execute[18]) + resultTemp;
-#endif
-Y = (resultAcc & 0x000000ff00000000LL) >> 32;
-ASR[18] = resultAcc & 0x00000000FFFFFFFFLL;
-result = resultAcc & 0x00000000FFFFFFFFLL;
-stall(1);
-""")
-opCodeExecU = cxx_writer.writer_code.Code("""
-unsigned int resultTemp = ((unsigned int)rs1_op & 0x0000ffff)*((unsigned int)rs2_op & 0x0000ffff);
-#ifndef ACC_MODEL
-unsigned long long resultAcc = ((((unsigned long long)(Y & 0x000000ff)) << 32) | (unsigned int)ASR[18]) + resultTemp;
-#else
-unsigned long long resultAcc = ((((unsigned long long)(Y_execute & 0x000000ff)) << 32) | (unsigned int)ASR_execute[18]) + resultTemp;
-#endif
-Y = (resultAcc & 0x000000ff00000000LL) >> 32;
-ASR[18] = resultAcc & 0x00000000FFFFFFFFLL;
-result = resultAcc & 0x00000000FFFFFFFFLL;
-stall(1);
-""")
-umac_imm_Instr = trap.Instruction('UMAC_imm', True, frequency = 1)
-umac_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 1, 1, 0]}, ('umac r', '%rs1', ' ', '%simm13', ' r', '%rd'))
-umac_imm_Instr.setCode(opCodeRegsImm, 'regs')
-umac_imm_Instr.setCode(opCodeExecU, 'execute')
-umac_imm_Instr.addBehavior(WB_plain, 'wb')
-umac_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
-umac_imm_Instr.addVariable(('result', 'BIT<32>'))
-umac_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
-umac_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
-umac_imm_Instr.addSpecialRegister('Y', 'inout', 'execute')
-umac_imm_Instr.addSpecialRegister('ASR[18]', 'inout', 'execute')
-isa.addInstruction(umac_imm_Instr)
-umac_reg_Instr = trap.Instruction('UMAC_reg', True, frequency = 1)
-umac_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 1, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('umac r', '%rs1', ' r', '%rs2', ' r', '%rd'))
-umac_reg_Instr.setCode(opCodeRegsRegs, 'regs')
-umac_reg_Instr.setCode(opCodeExecU, 'execute')
-umac_reg_Instr.addBehavior(WB_plain, 'wb')
-umac_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
-umac_reg_Instr.addVariable(('result', 'BIT<32>'))
-umac_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
-umac_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
-umac_reg_Instr.addSpecialRegister('Y', 'inout', 'execute')
-umac_reg_Instr.addSpecialRegister('ASR[18]', 'inout', 'execute')
-isa.addInstruction(umac_reg_Instr)
-smac_imm_Instr = trap.Instruction('SMAC_imm', True, frequency = 1)
-smac_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 1, 1, 1]}, ('smac r', '%rs1', ' ', '%simm13', ' r', '%rd'))
-smac_imm_Instr.setCode(opCodeRegsImm, 'regs')
-smac_imm_Instr.setCode(opCodeExecS, 'execute')
-smac_imm_Instr.addBehavior(WB_plain, 'wb')
-smac_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
-smac_imm_Instr.addVariable(('result', 'BIT<32>'))
-smac_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
-smac_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
-smac_imm_Instr.addSpecialRegister('Y', 'inout', 'execute')
-smac_imm_Instr.addSpecialRegister('ASR[18]', 'inout', 'execute')
-isa.addInstruction(smac_imm_Instr)
-smac_reg_Instr = trap.Instruction('SMAC_reg', True, frequency = 1)
-smac_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 1, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('smac r', '%rs1', ' r', '%rs2', ' r', '%rd'))
-smac_reg_Instr.setCode(opCodeRegsRegs, 'regs')
-smac_reg_Instr.setCode(opCodeExecS, 'execute')
-smac_reg_Instr.addBehavior(WB_plain, 'wb')
-smac_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
-smac_reg_Instr.addVariable(('result', 'BIT<32>'))
-smac_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
-smac_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
-smac_reg_Instr.addSpecialRegister('Y', 'inout', 'execute')
-smac_reg_Instr.addSpecialRegister('ASR[18]', 'inout', 'execute')
-isa.addInstruction(smac_reg_Instr)
-
 # Divide
-opCodeRegsImm = cxx_writer.writer_code.Code("""
+opCodeRegsImm = cxx_writer.writer_code.Code(ReadNPCDecode + """
 rs1_op = rs1;
 rs2_op = SignExtend(simm13, 13);
 """)
-opCodeRegsRegs = cxx_writer.writer_code.Code("""
+opCodeRegsRegs = cxx_writer.writer_code.Code(ReadNPCDecode + """
 rs1_op = rs1;
 rs2_op = rs2;
 """)
@@ -2372,13 +2297,12 @@ if(exception){
 """)
 udiv_imm_Instr = trap.Instruction('UDIV_imm', True, frequency = 2)
 udiv_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 1, 1, 1, 0]}, ('udiv', ' r', '%rs1', ' ', '%simm13', ' r', '%rd'))
-udiv_imm_Instr.setCode(opCodeRegsImm, 'regs')
+udiv_imm_Instr.setCode(opCodeRegsImm, 'decode')
 udiv_imm_Instr.setCode(opCodeExecU, 'execute')
-udiv_imm_Instr.setCode(opCodeTrap, 'exception')
+udiv_imm_Instr.setCode(opCodeTrap, 'wb')
 udiv_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 udiv_imm_Instr.addBehavior(WB_plain, 'wb')
 udiv_imm_Instr.setCode(opCodeReadPC, 'fetch')
-udiv_imm_Instr.setCode(opCodeReadNPC, 'decode')
 udiv_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
 udiv_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 udiv_imm_Instr.addVariable(('exception', 'BIT<1>'))
@@ -2391,13 +2315,12 @@ udiv_imm_Instr.setWbDelay('rd', 33)
 isa.addInstruction(udiv_imm_Instr)
 udiv_reg_Instr = trap.Instruction('UDIV_reg', True, frequency = 2)
 udiv_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 1, 1, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('udiv', ' r', '%rs1', ' r', '%rs2', ' r', '%rd'))
-udiv_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+udiv_reg_Instr.setCode(opCodeRegsRegs, 'ReadNPCDecode + ')
 udiv_reg_Instr.setCode(opCodeExecU, 'execute')
-udiv_reg_Instr.setCode(opCodeTrap, 'exception')
+udiv_reg_Instr.setCode(opCodeTrap, 'wb')
 udiv_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 udiv_reg_Instr.addBehavior(WB_plain, 'wb')
 udiv_reg_Instr.setCode(opCodeReadPC, 'fetch')
-udiv_reg_Instr.setCode(opCodeReadNPC, 'decode')
 udiv_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
 udiv_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 udiv_reg_Instr.addVariable(('exception', 'BIT<1>'))
@@ -2410,13 +2333,12 @@ udiv_reg_Instr.setWbDelay('rd', 33)
 isa.addInstruction(udiv_reg_Instr)
 sdiv_imm_Instr = trap.Instruction('SDIV_imm', True, frequency = 2)
 sdiv_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 1, 1, 1, 1]}, ('sdiv', ' r', '%rs1', ' ', '%simm13', '%rd'))
-sdiv_imm_Instr.setCode(opCodeRegsImm, 'regs')
+sdiv_imm_Instr.setCode(opCodeRegsImm, 'decode')
 sdiv_imm_Instr.setCode(opCodeExecS, 'execute')
-sdiv_imm_Instr.setCode(opCodeTrap, 'exception')
+sdiv_imm_Instr.setCode(opCodeTrap, 'wb')
 sdiv_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 sdiv_imm_Instr.addBehavior(WB_plain, 'wb')
 sdiv_imm_Instr.setCode(opCodeReadPC, 'fetch')
-sdiv_imm_Instr.setCode(opCodeReadNPC, 'decode')
 sdiv_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
 sdiv_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 sdiv_imm_Instr.addVariable(('exception', 'BIT<1>'))
@@ -2429,13 +2351,12 @@ sdiv_imm_Instr.setWbDelay('rd', 33)
 isa.addInstruction(sdiv_imm_Instr)
 sdiv_reg_Instr = trap.Instruction('SDIV_reg', True, frequency = 2)
 sdiv_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 1, 1, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('sdiv', ' r', '%rs1', ' r', '%rs2', '%rd'))
-sdiv_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+sdiv_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 sdiv_reg_Instr.setCode(opCodeExecS, 'execute')
-sdiv_reg_Instr.setCode(opCodeTrap, 'exception')
+sdiv_reg_Instr.setCode(opCodeTrap, 'wb')
 sdiv_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 sdiv_reg_Instr.addBehavior(WB_plain, 'wb')
 sdiv_reg_Instr.setCode(opCodeReadPC, 'fetch')
-sdiv_reg_Instr.setCode(opCodeReadNPC, 'decode')
 sdiv_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
 sdiv_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 sdiv_reg_Instr.addVariable(('exception', 'BIT<1>'))
@@ -2448,14 +2369,13 @@ sdiv_reg_Instr.setWbDelay('rd', 33)
 isa.addInstruction(sdiv_reg_Instr)
 udivcc_imm_Instr = trap.Instruction('UDIVcc_imm', True, frequency = 1)
 udivcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 1, 1, 1, 0]}, ('udivcc', ' r', '%rs1', ' ', '%simm13', '%rd'))
-udivcc_imm_Instr.setCode(opCodeRegsImm, 'regs')
+udivcc_imm_Instr.setCode(opCodeRegsImm, 'decode')
 udivcc_imm_Instr.setCode(opCodeExecU, 'execute')
-udivcc_imm_Instr.setCode(opCodeTrap, 'exception')
+udivcc_imm_Instr.setCode(opCodeTrap, 'wb')
 udivcc_imm_Instr.addBehavior(ICC_writeDiv, 'execute', False)
 udivcc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 udivcc_imm_Instr.addBehavior(WB_plain, 'wb')
 udivcc_imm_Instr.setCode(opCodeReadPC, 'fetch')
-udivcc_imm_Instr.setCode(opCodeReadNPC, 'decode')
 udivcc_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
 udivcc_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 udivcc_imm_Instr.addVariable(('exception', 'BIT<1>'))
@@ -2469,14 +2389,13 @@ udivcc_imm_Instr.setWbDelay('rd', 33)
 isa.addInstruction(udivcc_imm_Instr)
 udivcc_reg_Instr = trap.Instruction('UDIVcc_reg', True, frequency = 1)
 udivcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 1, 1, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('udivcc', ' r', '%rs1', ' r', '%rs2', '%rd'))
-udivcc_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+udivcc_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 udivcc_reg_Instr.setCode(opCodeExecU, 'execute')
-udivcc_reg_Instr.setCode(opCodeTrap, 'exception')
+udivcc_reg_Instr.setCode(opCodeTrap, 'wb')
 udivcc_reg_Instr.addBehavior(ICC_writeDiv, 'execute', False)
 udivcc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 udivcc_reg_Instr.addBehavior(WB_plain, 'wb')
 udivcc_reg_Instr.setCode(opCodeReadPC, 'fetch')
-udivcc_reg_Instr.setCode(opCodeReadNPC, 'decode')
 udivcc_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
 udivcc_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 udivcc_reg_Instr.addVariable(('exception', 'BIT<1>'))
@@ -2490,14 +2409,13 @@ udivcc_reg_Instr.setWbDelay('rd', 33)
 isa.addInstruction(udivcc_reg_Instr)
 sdivcc_imm_Instr = trap.Instruction('SDIVcc_imm', True, frequency = 1)
 sdivcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 1, 1, 1, 1]}, ('sdivcc', ' r', '%rs1', ' ', '%simm13', '%rd'))
-sdivcc_imm_Instr.setCode(opCodeRegsImm, 'regs')
+sdivcc_imm_Instr.setCode(opCodeRegsImm, 'decode')
 sdivcc_imm_Instr.setCode(opCodeExecS, 'execute')
-sdivcc_imm_Instr.setCode(opCodeTrap, 'exception')
+sdivcc_imm_Instr.setCode(opCodeTrap, 'wb')
 sdivcc_imm_Instr.addBehavior(ICC_writeDiv, 'execute', False)
 sdivcc_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 sdivcc_imm_Instr.addBehavior(WB_plain, 'wb')
 sdivcc_imm_Instr.setCode(opCodeReadPC, 'fetch')
-sdivcc_imm_Instr.setCode(opCodeReadNPC, 'decode')
 sdivcc_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
 sdivcc_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 sdivcc_imm_Instr.addVariable(('exception', 'BIT<1>'))
@@ -2511,14 +2429,13 @@ sdivcc_imm_Instr.setWbDelay('rd', 33)
 isa.addInstruction(sdivcc_imm_Instr)
 sdivcc_reg_Instr = trap.Instruction('SDIVcc_reg', True, frequency = 1)
 sdivcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 1, 1, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('sdivcc', ' r', '%rs1', ' r', '%rs2', '%rd'))
-sdivcc_reg_Instr.setCode(opCodeRegsRegs, 'regs')
+sdivcc_reg_Instr.setCode(opCodeRegsRegs, 'decode')
 sdivcc_reg_Instr.setCode(opCodeExecS, 'execute')
-sdivcc_reg_Instr.setCode(opCodeTrap, 'exception')
+sdivcc_reg_Instr.setCode(opCodeTrap, 'wb')
 sdivcc_reg_Instr.addBehavior(ICC_writeDiv, 'execute', False)
 sdivcc_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 sdivcc_reg_Instr.addBehavior(WB_plain, 'wb')
 sdivcc_reg_Instr.setCode(opCodeReadPC, 'fetch')
-sdivcc_reg_Instr.setCode(opCodeReadNPC, 'decode')
 sdivcc_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
 sdivcc_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 sdivcc_reg_Instr.addVariable(('exception', 'BIT<1>'))
@@ -2553,13 +2470,11 @@ if(!okNewWin){
 }
 #endif
 """)
-opCodeTrap = cxx_writer.writer_code.Code("""
+opCodeWb = cxx_writer.writer_code.Code("""
 if(!okNewWin){
     RaiseException(pcounter, npcounter, WINDOW_OVERFLOW);
 }
-""")
-opCodeWb = cxx_writer.writer_code.Code("""
-if(okNewWin){
+else{
     rd = result;
     #ifdef ACC_MODEL
     unlockQueue[0].push_back(rd.getPipeReg());
@@ -2569,10 +2484,8 @@ if(okNewWin){
 save_imm_Instr = trap.Instruction('SAVE_imm', True, frequency = 6)
 save_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 1, 0, 0]}, ('save', ' r', '%rs1', ' ', '%simm13', ' r', '%rd'))
 save_imm_Instr.setCode(opCodeDecImm, 'decode')
-save_imm_Instr.setCode(opCodeFlush, 'regs')
 save_imm_Instr.setCode(opCodeFlush, 'execute')
 save_imm_Instr.setCode(opCodeFlush, 'memory')
-save_imm_Instr.setCode(opCodeTrap, 'exception')
 save_imm_Instr.setCode(opCodeWb, 'wb')
 save_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 save_imm_Instr.setCode(opCodeReadPC, 'fetch')
@@ -2589,10 +2502,8 @@ isa.addInstruction(save_imm_Instr)
 save_reg_Instr = trap.Instruction('SAVE_reg', True, frequency = 2)
 save_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 1, 0, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('save', ' r', '%rs1', ' r', '%rs2', ' r', '%rd'))
 save_reg_Instr.setCode(opCodeDecRegs, 'decode')
-save_reg_Instr.setCode(opCodeFlush, 'regs')
 save_reg_Instr.setCode(opCodeFlush, 'execute')
 save_reg_Instr.setCode(opCodeFlush, 'memory')
-save_reg_Instr.setCode(opCodeTrap, 'exception')
 save_reg_Instr.setCode(opCodeWb, 'wb')
 save_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 save_reg_Instr.setCode(opCodeReadPC, 'fetch')
@@ -2621,18 +2532,22 @@ else{
 opCodeDecRegs = cxx_writer.writer_code.Code(ReadNPCDecode + 'result = rs1 + rs2;\n' + opCodeDec)
 opCodeDecImm = cxx_writer.writer_code.Code(ReadNPCDecode + 'result = rs1 + SignExtend(simm13, 13);\n' + opCodeDec)
 
-opCodeTrap = cxx_writer.writer_code.Code("""
+opCodeWb = cxx_writer.writer_code.Code("""
 if(!okNewWin){
     RaiseException(pcounter, npcounter, WINDOW_UNDERFLOW);
+}
+else{
+    rd = result;
+    #ifdef ACC_MODEL
+    unlockQueue[0].push_back(rd.getPipeReg());
+    #endif
 }
 """)
 restore_imm_Instr = trap.Instruction('RESTORE_imm', True, frequency = 2)
 restore_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 1, 0, 1]}, ('restore', ' r', '%rs1', ' ', '%simm13', ' r', '%rd'))
 restore_imm_Instr.setCode(opCodeDecImm, 'decode')
-restore_imm_Instr.setCode(opCodeFlush, 'regs')
 restore_imm_Instr.setCode(opCodeFlush, 'execute')
 restore_imm_Instr.setCode(opCodeFlush, 'memory')
-restore_imm_Instr.setCode(opCodeTrap, 'exception')
 restore_imm_Instr.setCode(opCodeWb, 'wb')
 restore_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 restore_imm_Instr.setCode(opCodeReadPC, 'fetch')
@@ -2649,10 +2564,8 @@ isa.addInstruction(restore_imm_Instr)
 restore_reg_Instr = trap.Instruction('RESTORE_reg', True, frequency = 6)
 restore_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 1, 0, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('restore', ' r', '%rs1', ' r', '%rs2', ' r', '%rd'))
 restore_reg_Instr.setCode(opCodeDecRegs, 'decode')
-restore_reg_Instr.setCode(opCodeFlush, 'regs')
 restore_reg_Instr.setCode(opCodeFlush, 'execute')
 restore_reg_Instr.setCode(opCodeFlush, 'memory')
-restore_reg_Instr.setCode(opCodeTrap, 'exception')
 restore_reg_Instr.setCode(opCodeWb, 'wb')
 restore_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 restore_reg_Instr.setCode(opCodeReadPC, 'fetch')
@@ -2806,7 +2719,10 @@ isa.addInstruction(call_Instr)
 
 # Jump and Link
 opCodeWb = cxx_writer.writer_code.Code("""
-if(!trapNotAligned){
+if(trapNotAligned){
+    RaiseException(pcounter, npcounter, MEM_ADDR_NOT_ALIGNED);
+}
+else{
     rd = pcounter;
 }
 """)
@@ -2830,18 +2746,12 @@ unsigned int jumpAddr = rs1 + SignExtend(simm13, 13);
 opCodeDecodeRegs = cxx_writer.writer_code.Code(ReadNPCDecode + """
 unsigned int jumpAddr = rs1 + rs2;
 """ + actualJumpCode)
-opCodeTrap = cxx_writer.writer_code.Code("""
-if(trapNotAligned){
-    RaiseException(pcounter, npcounter, MEM_ADDR_NOT_ALIGNED);
-}
-""")
 opCodeExec = cxx_writer.writer_code.Code("""
 stall(2);
 """)
 jump_imm_Instr = trap.Instruction('JUMP_imm', True, frequency = 7)
 jump_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 0, 0, 0]}, ('jmpl', ' r', '%rs1', '+', '%simm13', ' r', '%rd'))
 jump_imm_Instr.setCode(opCodeDecodeImm, 'decode')
-jump_imm_Instr.setCode(opCodeTrap, 'exception')
 jump_imm_Instr.setCode(opCodeWb, 'wb')
 jump_imm_Instr.setCode(opCodeExec, 'execute')
 jump_imm_Instr.setCode(opCodeReadPC, 'fetch')
@@ -2853,7 +2763,6 @@ isa.addInstruction(jump_imm_Instr)
 jump_reg_Instr = trap.Instruction('JUMP_reg', True, frequency = 3)
 jump_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 0, 0, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('jmpl', ' r', '%rs1', '+r', '%rs2', ' r', '%rd'))
 jump_reg_Instr.setCode(opCodeDecodeRegs, 'decode')
-jump_reg_Instr.setCode(opCodeTrap, 'exception')
 jump_reg_Instr.setCode(opCodeExec, 'execute')
 jump_reg_Instr.setCode(opCodeWb, 'wb')
 jump_reg_Instr.setCode(opCodeReadPC, 'fetch')
@@ -2905,6 +2814,13 @@ if(exceptionEnabled){
 else if(!supervisor || invalidWin || notAligned){
     THROW_EXCEPTION("Invalid processor mode during execution of the RETT instruction - supervisor: " << supervisor << " newCwp: " << std::hex << std::showbase << newCwp << " targetAddr: " << std::hex << std::showbase << targetAddr);
 }
+#ifdef ACC_MODEL
+else{
+    if(exceptionEnabled || !supervisor || invalidWin || notAligned){
+        flush();
+    }
+}
+#endif
 """
 TrapCode += 'else{\n' + updateAliasCode_exception() + '\n}'
 opCodeTrap = cxx_writer.writer_code.Code(TrapCode)
@@ -2918,11 +2834,9 @@ if(exceptionEnabled || !supervisor || invalidWin || notAligned){
 rett_imm_Instr = trap.Instruction('RETT_imm', True, frequency = 2)
 rett_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 0, 0, 1]}, ('rett r', '%rs1', '+', '%simm13'))
 rett_imm_Instr.setCode(opCodeImm, 'decode')
-rett_imm_Instr.setCode(opCodeFlush, 'regs')
 rett_imm_Instr.setCode(opCodeExec, 'execute')
 rett_imm_Instr.setCode(opCodeFlush, 'memory')
-rett_imm_Instr.setCode(opCodeTrap, 'exception')
-rett_imm_Instr.setCode(opCodeFlush, 'wb')
+rett_imm_Instr.setCode(opCodeTrap, 'wb')
 rett_imm_Instr.setCode(opCodeReadPC, 'fetch')
 rett_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
 rett_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
@@ -2940,11 +2854,9 @@ isa.addInstruction(rett_imm_Instr)
 rett_reg_Instr = trap.Instruction('RETT_reg', True, frequency = 2)
 rett_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 0, 0, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('rett r', '%rs1', '+r', '%rs2'))
 rett_reg_Instr.setCode(opCodeRegs, 'decode')
-rett_reg_Instr.setCode(opCodeFlush, 'regs')
 rett_reg_Instr.setCode(opCodeExec, 'execute')
 rett_reg_Instr.setCode(opCodeFlush, 'memory')
-rett_reg_Instr.setCode(opCodeTrap, 'exception')
-rett_reg_Instr.setCode(opCodeFlush, 'wb')
+rett_reg_Instr.setCode(opCodeTrap, 'wb')
 rett_reg_Instr.setCode(opCodeReadPC, 'fetch')
 rett_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
 rett_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
@@ -3022,7 +2934,7 @@ int('1011', 2) : 'ge', int('0011', 2) : 'l', int('1100', 2) : 'gu', int('0100', 
 int('01010', 2) : 'cs', int('1110', 2) : 'pos', int('0110', 2) : 'neg', int('1111', 2) : 'vc', int('0111', 2) : 'vs',}),
 ' r', '%rs1', '+', '%imm7'))
 trap_imm_Instr.setCode(opCode, 'decode')
-trap_imm_Instr.setCode(opCodeTrapImm, 'exception')
+trap_imm_Instr.setCode(opCodeTrapImm, 'wb')
 trap_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False, functionalModel = False)
 trap_imm_Instr.setCode(opCodeReadPC, 'fetch')
 trap_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
@@ -3038,7 +2950,7 @@ int('1011', 2) : 'ge', int('0011', 2) : 'l', int('1100', 2) : 'gu', int('0100', 
 int('01010', 2) : 'cs', int('1110', 2) : 'pos', int('0110', 2) : 'neg', int('1111', 2) : 'vc', int('0111', 2) : 'vs',}),
 ' r', '%rs1', '+r', '%rs2'))
 trap_reg_Instr.setCode(opCode, 'decode')
-trap_reg_Instr.setCode(opCodeTrapReg, 'exception')
+trap_reg_Instr.setCode(opCodeTrapReg, 'wb')
 trap_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False, functionalModel = False)
 trap_reg_Instr.setCode(opCodeReadPC, 'fetch')
 trap_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
@@ -3057,7 +2969,7 @@ rd = y_temp;
 readY_Instr = trap.Instruction('READy', True, frequency = 1)
 readY_Instr.setMachineCode(read_special_format, {'op3': [1, 0, 1, 0, 0, 0], 'asr': [0, 0, 0, 0, 0]},
 ('rd ', 'y', ' r', '%rd'), subInstr = True)
-readY_Instr.setCode(opCodeRegs, 'regs')
+readY_Instr.setCode(opCodeRegs, 'decode')
 readY_Instr.setCode(opCodeWb, 'wb')
 readY_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 readY_Instr.addVariable(('y_temp', 'BIT<32>'))
@@ -3071,12 +2983,12 @@ rd = asr_temp;
 """)
 readASR_Instr = trap.Instruction('READasr', True, frequency = 1)
 readASR_Instr.setMachineCode(read_special_format, {'op3': [1, 0, 1, 0, 0, 0]}, ('rd asr ', '%asr', ' r', '%rd'))
-readASR_Instr.setCode(opCodeRegs, 'regs')
+readASR_Instr.setCode(opCodeRegs, 'decode')
 readASR_Instr.setCode(opCodeWb, 'wb')
 readASR_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 readASR_Instr.addVariable(('asr_temp', 'BIT<32>'))
 isa.addInstruction(readASR_Instr)
-opCodeRegs = cxx_writer.writer_code.Code("""
+opCodeRegs = cxx_writer.writer_code.Code(ReadNPCDecode + """
 #ifdef ACC_MODEL
 psr_temp = PSR_execute;
 #else
@@ -3084,72 +2996,66 @@ psr_temp = PSR;
 #endif
 supervisor = (psr_temp & 0x00000080) != 0;
 """)
-opCodeTrap = cxx_writer.writer_code.Code("""
+opCodeWb = cxx_writer.writer_code.Code("""
 if(!supervisor){
     RaiseException(pcounter, npcounter, PRIVILEDGE_INSTR);
 }
-""")
-opCodeWb = cxx_writer.writer_code.Code("""
-rd = psr_temp;
+else{
+    rd = psr_temp;
+}
 """)
 readPsr_Instr = trap.Instruction('READpsr', True, frequency = 2)
 readPsr_Instr.setMachineCode(read_special_format, {'op3': [1, 0, 1, 0, 0, 1]}, ('rd ', 'psr r', '%rd'))
-readPsr_Instr.setCode(opCodeRegs, 'regs')
-readPsr_Instr.setCode(opCodeTrap, 'exception')
+readPsr_Instr.setCode(opCodeRegs, 'decode')
 readPsr_Instr.setCode(opCodeWb, 'wb')
 readPsr_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 readPsr_Instr.setCode(opCodeReadPC, 'fetch')
-readPsr_Instr.setCode(opCodeReadNPC, 'decode')
 readPsr_Instr.addVariable(('pcounter', 'BIT<32>'))
 readPsr_Instr.addVariable(('npcounter', 'BIT<32>'))
 readPsr_Instr.addVariable(cxx_writer.writer_code.Variable('supervisor', cxx_writer.writer_code.boolType))
 readPsr_Instr.addVariable(('psr_temp', 'BIT<32>'))
 isa.addInstruction(readPsr_Instr)
-opCodeRegs = cxx_writer.writer_code.Code("""
+opCodeRegs = cxx_writer.writer_code.Code(ReadNPCDecode + """
 wim_temp = WIM;
 supervisor = PSR[key_S];
 """)
-opCodeTrap = cxx_writer.writer_code.Code("""
+opCodeWb = cxx_writer.writer_code.Code("""
 if(!supervisor){
     RaiseException(pcounter, npcounter, PRIVILEDGE_INSTR);
 }
-""")
-opCodeWb = cxx_writer.writer_code.Code("""
-rd = wim_temp;
+else{
+    rd = wim_temp;
+}
 """)
 readWim_Instr = trap.Instruction('READwim', True, frequency = 1)
 readWim_Instr.setMachineCode(read_special_format, {'op3': [1, 0, 1, 0, 1, 0]}, ('rd ', 'wim r', '%rd'))
-readWim_Instr.setCode(opCodeRegs, 'regs')
-readWim_Instr.setCode(opCodeTrap, 'exception')
+readWim_Instr.setCode(opCodeRegs, 'decode')
 readWim_Instr.setCode(opCodeWb, 'wb')
 readWim_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 readWim_Instr.setCode(opCodeReadPC, 'fetch')
-readWim_Instr.setCode(opCodeReadNPC, 'decode')
 readWim_Instr.addVariable(('pcounter', 'BIT<32>'))
 readWim_Instr.addVariable(('npcounter', 'BIT<32>'))
 readWim_Instr.addVariable(cxx_writer.writer_code.Variable('supervisor', cxx_writer.writer_code.boolType))
 readWim_Instr.addVariable(('wim_temp', 'BIT<32>'))
 isa.addInstruction(readWim_Instr)
-opCodeRegs = cxx_writer.writer_code.Code("""
+opCodeRegs = cxx_writer.writer_code.Code(ReadNPCDecode + """
 tbr_temp = TBR;
 supervisor = PSR[key_S];
 """)
-opCodeTrap = cxx_writer.writer_code.Code("""
+opCodeWb = cxx_writer.writer_code.Code("""
 if(!supervisor){
     RaiseException(pcounter, npcounter, PRIVILEDGE_INSTR);
 }
-""")
-opCodeWb = cxx_writer.writer_code.Code("""
-rd = tbr_temp;
+else{
+    rd = tbr_temp;
+}
 """)
 readTbr_Instr = trap.Instruction('READtbr', True, frequency = 1)
 readTbr_Instr.setMachineCode(read_special_format, {'op3': [1, 0, 1, 0, 1, 1]}, ('rd ', 'tbr r', '%rd'))
-readTbr_Instr.setCode(opCodeRegs, 'regs')
-readTbr_Instr.setCode(opCodeTrap, 'exception')
+readTbr_Instr.setCode(opCodeRegs, 'decode')
 readTbr_Instr.setCode(opCodeWb, 'wb')
 readTbr_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 readTbr_Instr.setCode(opCodeReadPC, 'fetch')
-readTbr_Instr.setCode(opCodeReadNPC, 'decode')
 readTbr_Instr.addVariable(('pcounter', 'BIT<32>'))
 readTbr_Instr.addVariable(('npcounter', 'BIT<32>'))
 readTbr_Instr.addVariable(cxx_writer.writer_code.Variable('supervisor', cxx_writer.writer_code.boolType))
@@ -3168,7 +3074,7 @@ Y = result;
 """)
 writeY_reg_Instr = trap.Instruction('WRITEY_reg', True, frequency = 1)
 writeY_reg_Instr.setMachineCode(write_special_format1, {'op3': [1, 1, 0, 0, 0, 0], 'rd': [0, 0, 0, 0, 0]}, ('wr r', '%rs1', ' r', '%rs2', ' y'), subInstr = True)
-writeY_reg_Instr.setCode(opCodeXorR, 'regs')
+writeY_reg_Instr.setCode(opCodeXorR, 'decode')
 writeY_reg_Instr.setCode(opCodeExec, 'execute')
 writeY_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 writeY_reg_Instr.addSpecialRegister('Y', 'out', 'execute')
@@ -3176,7 +3082,7 @@ writeY_reg_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(writeY_reg_Instr)
 writeY_imm_Instr = trap.Instruction('WRITEY_imm', True, frequency = 2)
 writeY_imm_Instr.setMachineCode(write_special_format2, {'op3': [1, 1, 0, 0, 0, 0], 'rd': [0, 0, 0, 0, 0]}, ('wr r', '%rs1', ' ', '%simm13', ' y'), subInstr = True)
-writeY_imm_Instr.setCode(opCodeXorI, 'regs')
+writeY_imm_Instr.setCode(opCodeXorI, 'decode')
 writeY_imm_Instr.setCode(opCodeExec, 'execute')
 writeY_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 writeY_imm_Instr.addSpecialRegister('Y', 'out', 'execute')
@@ -3187,7 +3093,7 @@ ASR[rd] = result;
 """)
 writeASR_reg_Instr = trap.Instruction('WRITEasr_reg', True, frequency = 1)
 writeASR_reg_Instr.setMachineCode(write_special_format1, {'op3': [1, 1, 0, 0, 0, 0]}, ('wr r', '%rs1', ' r', '%rs2', ' asr', '%rd'))
-writeASR_reg_Instr.setCode(opCodeXorR, 'regs')
+writeASR_reg_Instr.setCode(opCodeXorR, 'decode')
 writeASR_reg_Instr.setCode(opCodeExec, 'execute')
 writeASR_reg_Instr.setCode(opCodeWb, 'wb')
 writeASR_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -3195,23 +3101,21 @@ writeASR_reg_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(writeASR_reg_Instr)
 writeASR_imm_Instr = trap.Instruction('WRITEasr_imm', True, frequency = 1)
 writeASR_imm_Instr.setMachineCode(write_special_format2, {'op3': [1, 1, 0, 0, 0, 0]}, ('wr r', '%rs1', ' ', '%simm13', ' asr', '%rd'))
-writeASR_imm_Instr.setCode(opCodeXorI, 'regs')
+writeASR_imm_Instr.setCode(opCodeXorI, 'decode')
 writeASR_imm_Instr.setCode(opCodeExec, 'execute')
 writeASR_imm_Instr.setCode(opCodeWb, 'wb')
 writeASR_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 writeASR_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(writeASR_imm_Instr)
 
-# ############################TODO: With respect to exceptions, the program counter appears to be written immediately:
-# this means that exceptions has to see the new value of the program counter ####################################
-opCodeXorR = cxx_writer.writer_code.Code("""
+opCodeXorR = cxx_writer.writer_code.Code(ReadNPCDecode + """
 // Note how we filter writes to EF and EC fields since we do not
 // have neither a co-processor nor the FPU
 result = ((rs1 ^ rs2) & 0x00FFCFFF) | 0xF3000000;
 supervisorException = (PSR[key_S] == 0);
 illegalCWP = (result & 0x0000001f) >= NUM_REG_WIN;
 """)
-opCodeXorI = cxx_writer.writer_code.Code("""
+opCodeXorI = cxx_writer.writer_code.Code(ReadNPCDecode + """
 // Note how we filter writes to EF and EC fields since we do not
 // have neither a co-processor nor the FPU
 result = ((rs1 ^ SignExtend(simm13, 13)) & 0x00FFCFFF) | 0xF3000000;
@@ -3233,12 +3137,11 @@ if(illegalCWP){
 """)
 writePsr_reg_Instr = trap.Instruction('WRITEpsr_reg', True, frequency = 2)
 writePsr_reg_Instr.setMachineCode(write_special_format1, {'op3': [1, 1, 0, 0, 0, 1]}, ('wr r', '%rs1', ' r', '%rs2', ' psr'))
-writePsr_reg_Instr.setCode(opCodeXorR, 'regs')
+writePsr_reg_Instr.setCode(opCodeXorR, 'decode')
 writePsr_reg_Instr.setCode(opCodeExec, 'execute')
-writePsr_reg_Instr.setCode(opCodeTrap, 'exception')
+writePsr_reg_Instr.setCode(opCodeTrap, 'wb')
 writePsr_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 writePsr_reg_Instr.setCode(opCodeReadPC, 'fetch')
-writePsr_reg_Instr.setCode(opCodeReadNPC, 'decode')
 writePsr_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
 writePsr_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 writePsr_reg_Instr.addSpecialRegister('PSR', 'out', 'execute')
@@ -3248,12 +3151,11 @@ writePsr_reg_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(writePsr_reg_Instr)
 writePsr_imm_Instr = trap.Instruction('WRITEpsr_imm', True, frequency = 2)
 writePsr_imm_Instr.setMachineCode(write_special_format2, {'op3': [1, 1, 0, 0, 0, 1]}, ('wr r', '%rs1', ' ', '%simm13', ' psr'))
-writePsr_imm_Instr.setCode(opCodeXorI, 'regs')
+writePsr_imm_Instr.setCode(opCodeXorI, 'decode')
 writePsr_imm_Instr.setCode(opCodeExec, 'execute')
-writePsr_imm_Instr.setCode(opCodeTrap, 'exception')
+writePsr_imm_Instr.setCode(opCodeTrap, 'wb')
 writePsr_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 writePsr_imm_Instr.setCode(opCodeReadPC, 'fetch')
-writePsr_imm_Instr.setCode(opCodeReadNPC, 'decode')
 writePsr_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
 writePsr_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 writePsr_imm_Instr.addSpecialRegister('PSR', 'out', 'execute')
@@ -3261,31 +3163,27 @@ writePsr_imm_Instr.addVariable(cxx_writer.writer_code.Variable('supervisorExcept
 writePsr_imm_Instr.addVariable(cxx_writer.writer_code.Variable('illegalCWP', cxx_writer.writer_code.boolType))
 writePsr_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(writePsr_imm_Instr)
-opCodeXorR = cxx_writer.writer_code.Code("""
+opCodeXorR = cxx_writer.writer_code.Code(ReadNPCDecode + """
 result = rs1 ^ rs2;
 raiseException = (PSR[key_S] == 0);
 """)
-opCodeXorI = cxx_writer.writer_code.Code("""
+opCodeXorI = cxx_writer.writer_code.Code(ReadNPCDecode + """
 result = rs1 ^ SignExtend(simm13, 13);
 raiseException = (PSR[key_S] == 0);
 """)
 opCodeWb = cxx_writer.writer_code.Code("""
-if(!raiseException){
-    WIM = result & ((unsigned int)0xFFFFFFFF >> (32 - NUM_REG_WIN));
-}
-""")
-opCodeTrap = cxx_writer.writer_code.Code("""
 if(raiseException){
     RaiseException(pcounter, npcounter, PRIVILEDGE_INSTR);
+}
+else{
+    WIM = result & ((unsigned int)0xFFFFFFFF >> (32 - NUM_REG_WIN));
 }
 """)
 writeWim_reg_Instr = trap.Instruction('WRITEwim_reg', True, frequency = 1)
 writeWim_reg_Instr.setMachineCode(write_special_format1, {'op3': [1, 1, 0, 0, 1, 0]}, ('wr r', '%rs1', ' r', '%rs2', ' wim'))
-writeWim_reg_Instr.setCode(opCodeXorR, 'regs')
-writeWim_reg_Instr.setCode(opCodeTrap, 'exception')
+writeWim_reg_Instr.setCode(opCodeXorR, 'decode')
 writeWim_reg_Instr.setCode(opCodeWb, 'wb')
 writeWim_reg_Instr.setCode(opCodeReadPC, 'fetch')
-writeWim_reg_Instr.setCode(opCodeReadNPC, 'decode')
 writeWim_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
 writeWim_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 writeWim_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -3294,11 +3192,9 @@ writeWim_reg_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(writeWim_reg_Instr)
 writeWim_imm_Instr = trap.Instruction('WRITEwim_imm', True, frequency = 1)
 writeWim_imm_Instr.setMachineCode(write_special_format2, {'op3': [1, 1, 0, 0, 1, 0]}, ('wr r', '%rs1', ' ', '%simm13', ' wim'))
-writeWim_imm_Instr.setCode(opCodeXorI, 'regs')
-writeWim_imm_Instr.setCode(opCodeTrap, 'exception')
+writeWim_imm_Instr.setCode(opCodeXorI, 'decode')
 writeWim_imm_Instr.setCode(opCodeWb, 'wb')
 writeWim_imm_Instr.setCode(opCodeReadPC, 'fetch')
-writeWim_imm_Instr.setCode(opCodeReadNPC, 'decode')
 writeWim_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
 writeWim_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 writeWim_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -3306,17 +3202,18 @@ writeWim_imm_Instr.addVariable(cxx_writer.writer_code.Variable('raiseException',
 writeWim_imm_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(writeWim_imm_Instr)
 opCodeWb = cxx_writer.writer_code.Code("""
-if(!raiseException){
+if(raiseException){
+    RaiseException(pcounter, npcounter, PRIVILEDGE_INSTR);
+}
+else{
     TBR |= (result & 0xFFFFF000);
 }
 """)
 writeTbr_reg_Instr = trap.Instruction('WRITEtbr_reg', True, frequency = 1)
 writeTbr_reg_Instr.setMachineCode(write_special_format1, {'op3': [1, 1, 0, 0, 1, 1]}, ('wr r', '%rs1', ' r', '%rs2', ' tbr'))
-writeTbr_reg_Instr.setCode(opCodeXorR, 'regs')
-writeTbr_reg_Instr.setCode(opCodeTrap, 'exception')
+writeTbr_reg_Instr.setCode(opCodeXorR, 'decode')
 writeTbr_reg_Instr.setCode(opCodeWb, 'wb')
 writeTbr_reg_Instr.setCode(opCodeReadPC, 'fetch')
-writeTbr_reg_Instr.setCode(opCodeReadNPC, 'decode')
 writeTbr_reg_Instr.addVariable(('pcounter', 'BIT<32>'))
 writeTbr_reg_Instr.addVariable(('npcounter', 'BIT<32>'))
 writeTbr_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
@@ -3325,10 +3222,8 @@ writeTbr_reg_Instr.addVariable(('result', 'BIT<32>'))
 isa.addInstruction(writeTbr_reg_Instr)
 writeTbr_imm_Instr = trap.Instruction('WRITEtbr_imm', True, frequency = 1)
 writeTbr_imm_Instr.setMachineCode(write_special_format2, {'op3': [1, 1, 0, 0, 1, 1]}, ('wr r', '%rs1', ' ', '%simm13', ' tbr'))
-writeTbr_imm_Instr.setCode(opCodeXorI, 'regs')
-writeTbr_imm_Instr.setCode(opCodeTrap, 'exception')
+writeTbr_imm_Instr.setCode(opCodeXorI, 'decode')
 writeTbr_imm_Instr.setCode(opCodeReadPC, 'fetch')
-writeTbr_imm_Instr.setCode(opCodeReadNPC, 'decode')
 writeTbr_imm_Instr.addVariable(('pcounter', 'BIT<32>'))
 writeTbr_imm_Instr.addVariable(('npcounter', 'BIT<32>'))
 writeTbr_imm_Instr.setCode(opCodeWb, 'wb')
@@ -3352,7 +3247,7 @@ RaiseException(pcounter, npcounter, ILLEGAL_INSTR);
 """)
 unimpl_Instr = trap.Instruction('UNIMP', True, frequency = 1)
 unimpl_Instr.setMachineCode(b_sethi_format1, {'op2' : [0, 0, 0]}, ('unimp ', '%imm22'))
-unimpl_Instr.setCode(opCode, 'exception')
+unimpl_Instr.setCode(opCode, 'wb')
 unimpl_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
 unimpl_Instr.setCode(opCodeReadPC, 'fetch')
 unimpl_Instr.setCode(opCodeReadNPC, 'decode')

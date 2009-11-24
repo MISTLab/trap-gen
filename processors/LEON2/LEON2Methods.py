@@ -102,7 +102,6 @@ def updateAliasCode_exception():
         REGS_decode[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) """ + modCode + """]);
         REGS_execute[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) """ + modCode + """]);
         REGS_memory[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) """ + modCode + """]);
-        REGS_exception[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) """ + modCode + """]);
     }
     #endif
     """
@@ -343,7 +342,7 @@ raiseExcCode +=  """
     annull();
 }
 """
-RaiseException_method = trap.HelperMethod('RaiseException', cxx_writer.writer_code.Code(raiseExcCode), 'exception')
+RaiseException_method = trap.HelperMethod('RaiseException', cxx_writer.writer_code.Code(raiseExcCode), 'wb')
 RaiseException_methodParams = []
 RaiseException_methodParams.append(cxx_writer.writer_code.Parameter('pcounter', cxx_writer.writer_code.uintType))
 RaiseException_methodParams.append(cxx_writer.writer_code.Parameter('npcounter', cxx_writer.writer_code.uintType))
