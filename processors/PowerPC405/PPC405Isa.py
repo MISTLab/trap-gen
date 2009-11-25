@@ -1595,3 +1595,59 @@ sthux_Instr.setCode(opCode,'execute')
 sthux_Instr.addBehavior(IncrementPC, 'execute')
 #sthux_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
 isa.addInstruction(sthux_Instr)
+
+#STHX
+opCode = cxx_writer.writer_code.Code("""
+//EA ← (RA|0) + (RB)
+//MS(EA, 2) ← (RS)16:31
+""")
+sthx_Instr = trap.Instruction('STHX', True)
+sthx_Instr.setMachineCode(oper_Xform_9, {'primary_opcode': [0,1,1,1,1,1] , 'xo': [0,1,1,0,0,1,0,1,1,1] }, ('sthx r', '%rs', ' r', '%ra', ' r', '%rb' ))
+sthx_Instr.setCode(opCode,'execute')
+sthx_Instr.addBehavior(IncrementPC, 'execute')
+#sthx_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(sthx_Instr)
+
+#STMW
+opCode = cxx_writer.writer_code.Code("""
+//EA ← (RA|0) + EXTS(D)
+//r ← RS
+//do while r ≤ 31
+//  MS(EA, 4) ← (GPR(r))
+//  r ← r + 1
+//  EA ← EA + 4
+""")
+stmw_Instr = trap.Instruction('STMW', True)
+stmw_Instr.setMachineCode(oper_Dform_3, {'primary_opcode': [1,0,1,1,1,1]}, ('stmw r', '%rs', ' r', '%ra' ))
+stmw_Instr.setCode(opCode,'execute')
+stmw_Instr.addBehavior(IncrementPC, 'execute')
+#stmw_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(stmw_Instr)
+
+#STSWI
+opCode = cxx_writer.writer_code.Code("""
+//EA ← (RA|0)
+//if NB = 0 then
+   //n ← 32
+//else
+//   n ← NB
+//r ← RS – 1
+//i ← 0
+//do while n > 0
+//   if i = 0 then
+//       r ← r + 1
+//   if r = 32 then
+//       r ← 0
+//   MS(EA,1) ← (GPR(r)i:i+7)
+//   i ← i + 8
+//   if i = 32 then
+//       i ← 0
+//   EA ← EA + 1
+//   n ← n – 1
+""")
+stswi_Instr = trap.Instruction('STSWI', True)
+stswi_Instr.setMachineCode(oper_Xform_10, {'primary_opcode': [0,1,1,1,1,1], 'xo': [1,0,1,1,0,1,0,1,0,1] }, ('stswi r', '%rs', ' r', '%ra' ))
+stswi_Instr.setCode(opCode,'execute')
+stswi_Instr.addBehavior(IncrementPC, 'execute')
+#stswi_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(stswi_Instr)
