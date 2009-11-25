@@ -779,9 +779,15 @@ def getIRQTests(self, trace, combinedTrace, namespace):
             if(irq.condition):
                 code += ') && (' + irq.condition + ')'
             code += '){\n'
-            # Now here we insert the actual interrupt behavior
-            for irqCode in irq.operation.values():
-                code += irqCode + '\n'
+            # Now here we insert the actual interrupt behavior by simply creating and calling the
+            # interrupt instruction
+            from procWriter import baseInstrInitElement
+            code += 'IRQ_' + irq.name + '_Instruction toTest(' + baseInstrInitElement + ', ' + irq.name + ');\n'
+            code += """try{
+                toTest.behavior();
+            }
+            catch(annull_exception &etc){
+            }"""
             code += '\n}\n'
 
             # finally I check the correctness of the executed operation
@@ -808,6 +814,7 @@ def getIRQTests(self, trace, combinedTrace, namespace):
                 code += ', (' + str(self.bitSizes[1]) + ')' + hex(value) + ');\n\n'
             code += destrDecls
             curTest = cxx_writer.writer_code.Code(code)
+            curTest.addInclude('instructions.hpp')
             wariningDisableCode = '#ifdef _WIN32\n#pragma warning( disable : 4101 )\n#endif\n'
             includeUnprotectedCode = '#define private public\n#define protected public\n#include \"registers.hpp\"\n#include \"memory.hpp\"\n#undef private\n#undef protected\n'
             curTest.addInclude(['boost/test/test_tools.hpp', 'customExceptions.hpp', wariningDisableCode, includeUnprotectedCode, 'alias.hpp'])

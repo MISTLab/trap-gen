@@ -586,6 +586,12 @@ class Processor:
             for stage, beh in instr.prebehaviors.items():
                 if not stage in [i.name for i in self.pipes]:
                     raise Exception('Pipeline stage ' + stage + ' declared for behavior ' + beh.name + ' in instruction ' + instrName + ' does not exist')
+            for stage, beh in instr.postbehaviors.items():
+                if not stage in [i.name for i in self.pipes]:
+                    raise Exception('Pipeline stage ' + stage + ' declared for behavior ' + beh.name + ' in instruction ' + instrName + ' does not exist')
+            for stage in instr.code.keys():
+                if not stage in [i.name for i in self.pipes]:
+                    raise Exception('Pipeline stage ' + stage + ' declared for code in instruction ' + instrName + ' does not exist')
         wbStage = False
         checkHazardStage = False
         for pipeStage in self.pipes:
