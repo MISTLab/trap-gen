@@ -829,11 +829,12 @@ def getCPPInstrTest(self, processor, model, trace, combinedTrace, namespace = ''
         archElemsDeclStr += 'unsigned int totalCycles;\n'
     if processor.memory:
         memDebugInit = ''
+        memCyclesInit = ''
         if processor.memory[2]:
-            memDebugInit += ', totalCycles'
+            memCyclesInit += ', totalCycles'
         if processor.memory[3]:
             memDebugInit += ', ' + processor.memory[3]
-        archElemsDeclStr += namespace + '::LocalMemory ' + processor.memory[0] + '(' + str(processor.memory[1]) + memDebugInit + memAliasInit + ');\n'
+        archElemsDeclStr += namespace + '::LocalMemory ' + processor.memory[0] + '(' + str(processor.memory[1]) + memCyclesInit + memAliasInit + memDebugInit + ');\n'
         baseInitElement += processor.memory[0] + ', '
     # Note how I declare local memories even for TLM ports. I use 1MB as default dimension
     for tlmPorts in processor.tlmPorts.keys():
