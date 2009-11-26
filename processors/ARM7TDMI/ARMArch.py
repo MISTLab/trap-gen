@@ -99,7 +99,7 @@ processor.addRegister(mp_id)
 regs = trap.AliasRegBank('REGS', 16, 'RB[0-15]')
 regs.setOffset(15, 4)
 processor.addAliasRegBank(regs)
-FP = trap.AliasRegister('FP', 'REGS[12]')
+FP = trap.AliasRegister('FP', 'REGS[11]')
 processor.addAliasReg(FP)
 SP = trap.AliasRegister('SPTR', 'REGS[13]')
 processor.addAliasReg(SP)
@@ -132,6 +132,7 @@ if processor.systemc:
     processor.addTLMPort('instrMem', True)
     processor.addTLMPort('dataMem')
 else:
+    #processor.setMemory('dataMem', 10*1024*1024, True, 'PC')
     processor.setMemory('dataMem', 10*1024*1024)
 # Now lets add the interrupt ports
 irq = trap.Interrupt('IRQ', 1, priority = 0)
