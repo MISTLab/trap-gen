@@ -2813,13 +2813,6 @@ if(exceptionEnabled){
 else if(!supervisor || invalidWin || notAligned){
     THROW_EXCEPTION("Invalid processor mode during execution of the RETT instruction - supervisor: " << supervisor << " newCwp: " << std::hex << std::showbase << newCwp << " targetAddr: " << std::hex << std::showbase << targetAddr);
 }
-#ifdef ACC_MODEL
-else{
-    if(exceptionEnabled || !supervisor || invalidWin || notAligned){
-        flush();
-    }
-}
-#endif
 """
 TrapCode += 'else{\n' + updateAliasCode_exception() + '\n}'
 opCodeTrap = cxx_writer.writer_code.Code(TrapCode)

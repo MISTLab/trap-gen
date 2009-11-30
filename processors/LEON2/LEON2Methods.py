@@ -102,6 +102,7 @@ def updateAliasCode_exception():
         REGS_decode[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) """ + modCode + """]);
         REGS_execute[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) """ + modCode + """]);
         REGS_memory[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) """ + modCode + """]);
+        REGS_wb[i].updateAlias(WINREGS_pipe[(newCwp*16 + i - 8) """ + modCode + """]);
     }
     #endif
     """

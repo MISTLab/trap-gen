@@ -834,7 +834,8 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
             else if(custComm == "status"){
                  //Returns the current status of the STUB
                  resp.type = GDBResponse::OUTPUT_rsp;
-                 resp.message = "Current simulation time: " + boost::lexical_cast<std::string>(sc_time_stamp().to_double()) + " (ps)\n";
+                 resp.message = "Current simulation time: " + boost::lexical_cast<std::string>((sc_time_stamp().to_default_time_units())/(sc_time(1, \
+        SC_US).to_default_time_units())) + " (us)\n";
                  if(this->timeToGo != 0)
                     resp.message += "Simulating for : " + boost::lexical_cast<std::string>(this->timeToGo) + " Nanoseconds\n";
                  this->connManager.sendResponse(resp);
@@ -843,14 +844,15 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
             else if(custComm == "time"){
                 //This command is simply a query to know the current simulation time
                 resp.type = GDBResponse::OUTPUT_rsp;
-                 resp.message = "Current simulation time: " + boost::lexical_cast<std::string>(sc_time_stamp().to_double()) + " (ps)\n";
+                 resp.message = "Current simulation time: " + boost::lexical_cast<std::string>((sc_time_stamp().to_default_time_units())/(sc_time(1, \
+        SC_US).to_default_time_units())) + " (us)\n";
                  this->connManager.sendResponse(resp);
                  resp.type = GDBResponse::OK_rsp;
             }
             else if(custComm == "help"){
                 //This command is simply a query to know the current simulation time
                 resp.type = GDBResponse::OUTPUT_rsp;
-                 resp.message = "Help about the custom GDB commands available for the ReSP simulation platform:\n";
+                 resp.message = "Help about the custom GDB commands available for TRAP generated simulators:\n";
                  resp.message += "   monitor help:       prints the current message\n";
                  resp.message += "   monitor time:       returns the current simulation time\n";
                  resp.message += "   monitor status:     returns the status of the simulation\n";
