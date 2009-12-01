@@ -101,3 +101,13 @@ int lstat(const char *path, struct stat *buf){
     _exit(-1);
     return -1;
 }
+
+int kill(pid_t pid, int sig){
+    _exit(-1);
+    return -1;
+}
+
+pid_t getpid(void){
+    _exit(-1);
+    return -1;
+}

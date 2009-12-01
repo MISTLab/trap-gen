@@ -61,7 +61,7 @@ from LEON3Methods import updateAliasCode_exception
 from LEON3Methods import updateAliasCode_abi
 
 # Lets now start building the processor
-processor = trap.Processor('LEON3', version = '0.2.0', systemc = True, instructionCache = True, cacheLimit = 256)
+processor = trap.Processor('LEON3', version = '0.2.0', systemc = False, instructionCache = True, cacheLimit = 256)
 processor.setBigEndian() # big endian
 processor.setWordsize(4, 8) # 4 bytes per word, 8 bits per byte
 processor.setISA(LEON3Isa.isa) # lets set the instruction set
@@ -193,9 +193,9 @@ processor.setFetchRegister('PC')
 
 # Lets now add details about the processor interconnection (i.e. memory ports,
 # interrupt ports, pins, etc.)
-processor.addTLMPort('instrMem', True)
-processor.addTLMPort('dataMem')
-#processor.setMemory('dataMem', 10*1024*1024)
+#processor.addTLMPort('instrMem', True)
+#processor.addTLMPort('dataMem')
+processor.setMemory('dataMem', 10*1024*1024)
 #processor.setMemory('dataMem', 10*1024*1024, True, 'PC')
 
 # It PSR[ET] == 0 I do not do anything; else
