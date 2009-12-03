@@ -1946,3 +1946,59 @@ twi_Instr.setCode(opCode,'execute')
 twi_Instr.addBehavior(IncrementPC, 'execute')
 #twi_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
 isa.addInstruction(twi_Instr)
+
+#WRTEE
+opCode = cxx_writer.writer_code.Code("""
+//MSR[EE] ← (RS)16
+""")
+wrtee_Instr = trap.Instruction('WRTEE', True)
+wrtee_Instr.setMachineCode(oper_Xform_15, {'primary_opcode': [0,1,1,1,1,1], 'xo': [0,0,1,0,0,0,0,0,1,1] }, ('wrtee r', '%rs'))
+wrtee_Instr.setCode(opCode,'execute')
+wrtee_Instr.addBehavior(IncrementPC, 'execute')
+#wrtee_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(wrtee_Instr)
+
+#WRTEEI
+opCode = cxx_writer.writer_code.Code("""
+//MSR[EE] ← E
+""")
+wrteei_Instr = trap.Instruction('WRTEEI', True)
+wrteei_Instr.setMachineCode(oper_Xform_25, {'primary_opcode': [0,1,1,1,1,1], 'xo': [0,0,0,1,1,1,0,0,1,1] }, ())
+wrteei_Instr.setCode(opCode,'execute')
+wrteei_Instr.addBehavior(IncrementPC, 'execute')
+#wrteei_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(wrteei_Instr)
+
+#XOR
+opCode = cxx_writer.writer_code.Code("""
+//(RA) ← (RS) ⊕ (RB)
+""")
+xor_Instr = trap.Instruction('XOR', True)
+xor_Instr.setMachineCode(oper_Xform_9, {'primary_opcode': [0,1,1,1,1,1], 'xo': [0,1,0,0,1,1,1,1,0,0] }, ('xor r', '%rs', ' r', '%ra', ' r', '%rb'))
+xor_Instr.setCode(opCode,'execute')
+xor_Instr.addBehavior(IncrementPC, 'execute')
+#xor_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(xor_Instr)
+
+#XORI
+opCode = cxx_writer.writer_code.Code("""
+//(RA) ← (RS) ⊕ (160 || IM)
+""")
+xori_Instr = trap.Instruction('XORI', True)
+xori_Instr.setMachineCode(oper_Dform_3, {'primary_opcode': [0,1,1,0,1,0] }, ('xori r', '%rs', ' r', '%ra'))
+xori_Instr.setCode(opCode,'execute')
+xori_Instr.addBehavior(IncrementPC, 'execute')
+#xori_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(xori_Instr)
+
+#XORIS
+opCode = cxx_writer.writer_code.Code("""
+//(RA) ← (RS) ⊕ (IM || 16
+//                       0)
+""")
+xoris_Instr = trap.Instruction('XORIS', True)
+xoris_Instr.setMachineCode(oper_Dform_3, {'primary_opcode': [0,1,1,0,1,1] }, ('xoris r', '%rs', ' r', '%ra'))
+xoris_Instr.setCode(opCode,'execute')
+xoris_Instr.addBehavior(IncrementPC, 'execute')
+#xoris_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(xoris_Instr)
