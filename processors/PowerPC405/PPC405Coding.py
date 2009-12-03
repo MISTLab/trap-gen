@@ -32,7 +32,7 @@
 #
 #   (a) Luca Fossati, fossati@elet.polimi.it
 #   (b) Redwanur Rahman, md.rahman@mail.polimi.it
-#   (c) Ashanka das, Ak.das@mail.polimi.it#
+#   (c) Ashanka Das, ashanka.das@mail.polimi.it
 ####################################################################################
 
 
@@ -243,8 +243,3 @@ oper_Mform_2 = trap.MachineCode([('primary_opcode', 6), ('rs', 5), ('ra', 5), ('
 #oper_Mform_2.setVarField('rt', ('GPR', 0), 'out')
 oper_Mform_2.setVarField('ra', ('GPR', 0), 'in')
 #oper_mform_2.setVarField('rb', ('GPR', 0), 'in')
-
-
-
-
-
