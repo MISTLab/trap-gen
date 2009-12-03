@@ -32,7 +32,7 @@
 #
 #   (a) Luca Fossati, fossati@elet.polimi.it
 #   (b) Redwanur Rahman, md.rahman@mail.polimi.it
-#   (c) Ashanka das, Ak.das@mail.polimi.it
+#   (c) Ashanka das, ashanka.das@mail.polimi.it
 #
 ####################################################################################
 
