@@ -1848,3 +1848,101 @@ sync_Instr.setCode(opCode,'execute')
 sync_Instr.addBehavior(IncrementPC, 'execute')
 #sync_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
 isa.addInstruction(sync_Instr)
+
+
+#TLBIA
+opCode = cxx_writer.writer_code.Code("""
+//None
+""")
+tlbia_Instr = trap.Instruction('TLBIA', True) 
+tlbia_Instr.setMachineCode(oper_Xform_24, {'primary_opcode': [0,1,1,1,1,1], 'xo': [0,1,0,1,1,1,0,0,1,0] }, ())
+tlbia_Instr.setCode(opCode,'execute')
+tlbia_Instr.addBehavior(IncrementPC, 'execute')
+#tlbia_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(tlbia_Instr)
+
+#TLBRE
+opCode = cxx_writer.writer_code.Code("""
+//if WS4 = 1
+//    (RT) ← TLBLO[(RA26:31)]
+//else
+//    (RT) ← TLBHI[(RA26:31)]
+//    (PID) ← TID from TLB[(RA26:31)]
+""")
+tlbre_Instr = trap.Instruction('TLBRE', True) 
+tlbre_Instr.setMachineCode(oper_Xform_4, {'primary_opcode': [0,1,1,1,1,1], 'xo': [1,1,1,0,1,1,0,0,1,0] }, ('tlbre r', '%rt', ' r', '%ra'))
+tlbre_Instr.setCode(opCode,'execute')
+tlbre_Instr.addBehavior(IncrementPC, 'execute')
+#tlbre_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(tlbre_Instr)
+
+#TLBSX
+opCode = cxx_writer.writer_code.Code("""
+//EA ← (RA|0) + (RB)
+//if Rc = 1
+//    CR[CR0]LT ← 0
+//    CR[CR0]GT ← 0
+//    CR[CR0]SO ← XER[SO]
+//if Valid TLB entry matching EA and PID is in the TLB then
+//    (RT) ← Index of matching TLB Entry
+//    if Rc = 1
+//        CR[CR0]EQ ← 1
+//else
+//    (RT) Undefined
+//    if Rc = 1
+//        CR[CR0]EQ ← 0
+""")
+tlbsx_Instr = trap.Instruction('TLBSX', True) 
+tlbsx_Instr.setMachineCode(oper_Xform_1, {'primary_opcode': [0,1,1,1,1,1], 'xo': [1,1,1,0,0,1,0,0,1,0] }, ('tlbsx r', '%rt', ' r', '%ra', ' r', '%rb'))
+tlbsx_Instr.setCode(opCode,'execute')
+tlbsx_Instr.addBehavior(IncrementPC, 'execute')
+#tlbsx_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(tlbsx_Instr)
+
+#TLBSYNC
+opCode = cxx_writer.writer_code.Code("""
+//None
+""")
+tlbsync_Instr = trap.Instruction('TLBSYNC', True)
+tlbsync_Instr.setMachineCode(oper_Xform_24, {'primary_opcode': [0,1,1,1,1,1], 'xo': [1,0,0,0,1,1,0,1,1,0] }, ())
+tlbsync_Instr.setCode(opCode,'execute')
+tlbsync_Instr.addBehavior(IncrementPC, 'execute')
+#tlbsync_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(tlbsync_Instr)
+
+#TLBWE
+opCode = cxx_writer.writer_code.Code("""
+//if WS4 = 1
+//    TLBLO[(RA26:31)] ← (RS)
+//else
+//    TLBHI[(RA26:31)] ← (RS)
+//    TID of TLB[(RA26:31)] ← (PID24:31)
+""")
+tlbwe_Instr = trap.Instruction('TLBWE', True) 
+tlbwe_Instr.setMachineCode(oper_Xform_4, {'primary_opcode': [0,1,1,1,1,1], 'xo': [1,1,1,1,0,1,0,0,1,0] }, ('tlbwe r', '%rt', ' r', '%ra'))
+tlbwe_Instr.setCode(opCode,'execute')
+tlbwe_Instr.addBehavior(IncrementPC, 'execute')
+#tlbre_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(tlbwe_Instr)
+
+#TW
+opCode = cxx_writer.writer_code.Code("""
+//TODO Little complicated
+""")
+tw_Instr = trap.Instruction('TW', True) 
+tw_Instr.setMachineCode(oper_Xform_1, {'primary_opcode': [0,1,1,1,1,1], 'xo': [0,0,0,0,0,0,0,1,0,0] }, ('tw r', '%rt', ' r', '%ra', ' r', '%rb'))
+tw_Instr.setCode(opCode,'execute')
+tw_Instr.addBehavior(IncrementPC, 'execute')
+#tw_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(tw_Instr)
+
+#TWI
+opCode = cxx_writer.writer_code.Code("""
+//TODO Little complicated
+""")
+twi_Instr = trap.Instruction('TWI', True) 
+twi_Instr.setMachineCode(oper_Dform_7, {'primary_opcode': [0,0,0,0,1,1] }, ('twi r', '%to', ' r', '%ra'))
+twi_Instr.setCode(opCode,'execute')
+twi_Instr.addBehavior(IncrementPC, 'execute')
+#twi_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
+isa.addInstruction(twi_Instr)
