@@ -131,7 +131,8 @@ long temp31 = rs + rt;
 //}
 """)
 add_reg_Instr = trap.Instruction('ADD', True)
-add_reg_Instr.setMachineCode(register_format,{'opcode': [0,0,0,0,0,0],'function':[1,0,0,0,0,0]},('add r','%rd', ',',' r','%rs', ',',' r','%rt'))
+add_reg_Instr.setMachineCode(register_format,{'opcode': [0,0,0,0,0,0], 'function':[1,0,0,0,0,0]},('add r','%rd', ',',' r','%rs', ',',' r','%rt'))
+#{'op3': [0, 0, 0, 0, 0, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}
 add_reg_Instr.setCode(opCode, 'execution')
 add_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(add_reg_Instr)
