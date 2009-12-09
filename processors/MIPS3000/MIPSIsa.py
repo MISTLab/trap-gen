@@ -91,7 +91,6 @@ isa.addDefines("""
 #define SIGNAL_DEBUG_MODE_BREAKPOINT
 """)
 
-
 #-------------------------------------------------------------------------------------
 # Let's now procede to set the behavior of the instructions
 #-------------------------------------------------------------------------------------
@@ -125,11 +124,11 @@ isa.addDefines("""
 opCode = cxx_writer.writer_code.Code("""
 long long temp32 = (((rs | 0x8000) << 1) | rs) + (((rt | 0x8000) << 1) | rt) ;
 long temp31 = rs + rt;
-if (temp32 != temp31){
-	RaiseException(OV);
-}esle{
+//if (temp32 != temp31){
+//	RaiseException(OV);
+//}else{
 	rd = temp31;
-}
+//}
 """)
 add_reg_Instr = trap.Instruction('ADD', True)
 add_reg_Instr.setMachineCode(register_format,{'opcode': [0,0,0,0,0,0],'function':[1,0,0,0,0,0]},('add r','%rd', ',',' r','%rs', ',',' r','%rt'))
@@ -143,8 +142,8 @@ long long temp32 = (((rs | 0x8000) << 1) | rs) + ((( SignExtend(immediate)  | 0x
 long temp31 = rs + rt;
 if (temp32 != temp31){
 	RaiseException(OV);
-}esle{
-	rd = temp31;
+}else{
+	rt = temp31;
 }
 """)
 addi_imm_Instr = trap.Instruction('ADDI', True)
@@ -212,7 +211,7 @@ bool br = ( (rs == rt && op4 == 0) || (rs != rt && op4 == 0x1) );
 	}
 """)	#Specify correctly the jump instruction
 b2r_imm_Instr = trap.Instruction('BRANCH2REGISTERS', True)
-b2r_imm_Instr.setMachineCode(b_format1,{'op3': [010]}, 
+b2r_imm_Instr.setMachineCode(b_format1,{'op3': [0,1,0]}, 
 ('b', ('%op4', {int('1',2):'ne', int('0',2):'eq'}), ('%op2', {int('1',2):'l'}),
  ' r', '%rs', ',', ' r', '%rt', ',', ' r', '%immediate'))
 b2r_imm_Instr.setCode(opCode, 'execution')
@@ -229,7 +228,7 @@ bool br = ( ((int)rs<=0 && op4 == 0) || ((int)rs>0 && op4 == 0x1) );
 	}
 """)
 bz_imm_Instr = trap.Instruction('BRANCHZ', True)
-bz_imm_Instr.setMachineCode(b_format1,{'op3': [011]},
+bz_imm_Instr.setMachineCode(b_format1,{'op3': [0,1,1]},
 ('b', ('%op4', {int('1',2):'gtz', int('0',2):'lez'}), ('%op2', {int('1',2):'l'}),
  ' r', '%rs', ',', ' r', '%immediate'))
 bz_imm_Instr.setCode(opCode, 'execution')
@@ -275,6 +274,7 @@ break_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors n
 isa.addInstruction(break_reg_Instr)
 
 
+
 #
 #CACHE
 #
@@ -302,6 +302,8 @@ clo_reg_Instr.setMachineCode(register_format,{'opcode': [0,1,1,1,0,0],'function'
 clo_reg_Instr.setCode(opCode, 'execution')
 clo_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(clo_reg_Instr)
+
+
 
 #
 #CLZ
@@ -365,11 +367,13 @@ isa.addInstruction(divu_reg_Instr)
 #JUMP Instruction Family
 #
 
+#Revisar estas funciones de la familia jump
+
 opCode = cxx_writer.writer_code.Code("""
-if (op2 == 0b1){
-GPR[31] = PC+8;
-}
-NPC = (PC[31:28]<<28) + (target<<2);
+//if (op2 == 0b1){
+//GPR[31] = PC+8;
+//}
+//NPC = (PC[31:28]<<28) + (target<<2);
 """)
 j_jump_Instr = trap.Instruction('JUMP', True)
 j_jump_Instr.setMachineCode(jump_format,{},('j', ('%op2',{int('1',2):'al'}), ' r', '%target'))
@@ -379,13 +383,14 @@ isa.addInstruction(j_jump_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
-if (function == 0b001001){
-rd = PC+8;
-}
-if (CA == 0){
-	NPC = rs;
-} else {
-	NPC = rs<<1;
+//if (function == 0b001001){
+//rd = PC+8;
+//}
+//if (CA == 0){
+//	NPC = rs;
+//} else {
+//	NPC = rs<<1;
+//}
 """)
 jr_jump_Instr = trap.Instruction('JUMPR', True)
 jr_jump_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function': [0, 0, 1, 0, 0, 0]},('jr', ' r', '%rs'))
@@ -410,24 +415,20 @@ opCode = cxx_writer.writer_code.Code("""	//ASK HOW DOES DATAMEM READS, ACCORDING
 long result;
 long address = SignExtend(immediate)+rs;
 if ( ((address%2) != 0 ) && op3 == 0x01)
-	RaiseException(ADEL)
+	RaiseException(ADEL);
 if (op3 == 0)
 	result = dataMem.read_byte(address);
 if (op3 == 0b01)
 	result = dataMem.read_half(address);
 if (op3 == 0b11)
 	result = dataMem.read_word(address);
-if (op2 == 0b1 && op3 != 0b10){
-	result = (unsigned)result;
-} else {
+if (op3 != 0b10)
 	result = SignExtend(result);
-}
 if (op3 == 0b10){
-	short bytes = address 0x0003;
+	short bytes = address & 0x0003;	//This change was made much after the coding was done
 	address = address & 0xFFFC;
 	long aux1;
 	long aux2 = rt;
-	if (op2 == 0){
 		aux1 = dataMem.read_word(address)<<bytes;
 		switch(bytes){
 			case 0x1:{
@@ -439,25 +440,9 @@ if (op3 == 0b10){
 			case 0x3:{
 				aux2 = aux2 & 0x000F;
 			break;}
-			case default:{
+			default:{
 			break;}
 		}
-	}else{
-		aux1 = dataMem.read_word(address)>>(bytes^0x3);
-		switch(bytes){
-			case 0x1:{
-				aux2 = aux2 & 0xFFF0;
-			break;}
-			case 0x2:{
-				aux2 = aux2 & 0xFF00;
-			break;}
-			case 0x3:{
-				aux2 = aux2 & 0xFFF0;
-			break;}
-			case default:{
-			break;}
-		}
-	}
 	result = aux1 | aux2;
 }
 rt = result;
@@ -472,6 +457,42 @@ load_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors ne
 isa.addInstruction(load_imm_Instr)
 
 
+opCode = cxx_writer.writer_code.Code("""	//ASK HOW DOES DATAMEM READS, ACCORDING TO ENDIANESS
+long result;
+long address = SignExtend(immediate)+rs;
+if ( ((address%2) != 0 ) && op3 == 0x01)
+	RaiseException(ADEL);
+if (op3 == 0)
+	result = dataMem.read_byte(address);
+if (op3 == 0b01)
+	result = dataMem.read_half(address);
+if (op3 == 0b11)
+	result = dataMem.read_word(address);
+if (op3 != 0b10)
+	result = (unsigned)result;
+if (op3 == 0b10){
+	short bytes = address & 0x0003;	//This change was made much after the coding was done
+	address = address & 0xFFFC;
+	long aux1;
+	long aux2 = rt;
+		aux1 = dataMem.read_word(address)>>(bytes^0x3);
+		switch(bytes){
+			case 0x1:{
+				aux2 = aux2 & 0xFFF0;
+			break;}
+			case 0x2:{
+				aux2 = aux2 & 0xFF00;
+			break;}
+			case 0x3:{
+				aux2 = aux2 & 0xFFF0;
+			break;}
+			default:{
+			break;}
+		}
+	result = aux1 | aux2;
+}
+rt = result;
+""")
 load2_imm_Instr = trap.Instruction('LOAD_U_R', True)
 load2_imm_Instr.setMachineCode(s_format,{'op': [1, 0, 0], 'op2': [1]},
 ('l', ('%op3', {int('00',2):'bu', int('01',2):'hu', int('10',2):'wr'}),
@@ -522,7 +543,7 @@ opCodeCommon2 = cxx_writer.writer_code.Code("""
 result = (unsigned)rs*(unsigned)rt;
 """)
 opCode = cxx_writer.writer_code.Code("""
-long long operand = (HI<<32)|(LO);
+long long operand = (((long long)(HI))<<32)|(LO);
 long long temp = operand + result;
 LO = temp;
 HI = temp>>32;
@@ -548,7 +569,7 @@ isa.addInstruction(maddu_reg_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
-long long operand = (HI<<32)|(LO);
+long long operand = (((long long)(HI))<<32)|(LO);
 long long temp = operand - result;
 LO = temp;
 HI = temp>>32;
@@ -693,6 +714,7 @@ isa.addInstruction(movz_reg_Instr)
 
 
 
+
 #
 #OR Instruction Family
 #
@@ -734,6 +756,7 @@ isa.addInstruction(or_imm_Instr)
 #
 #PREFETCH
 #
+
 
 
 
@@ -802,7 +825,7 @@ isa.addInstruction(sw_imm_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
 long address = SignExtend(immediate) + rs;
-short bytes = address 0x0003;
+short bytes = address & 0x0003;	//verificar esta función, le agregué el & luego después sin estar segura
 address = address & 0xFFFC;
 long aux1 = dataMem.read_word(address);
 long result;
@@ -823,7 +846,7 @@ long result;
 			rt = rt & 0x000F;
 			aux1 = aux1 & 0xFFF0;
 		break;}
-		case default:{
+		default:{
 		break;}
 	}
 
@@ -842,7 +865,7 @@ isa.addInstruction(swl_imm_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
 long address = SignExtend(immediate) + rs;
-short bytes = address 0x0003;
+short bytes = address & 0x0003; //verificar esta función, le agregué el & luego después sin estar segura
 address = address & 0xFFFC;
 long aux1 = dataMem.read_word(address);
 long result;
@@ -863,7 +886,7 @@ long result;
 		case 0x3:{
 			aux1 = 0x0000;
 		break;}
-		case default:{
+		default:{
 		break;}
 	}
 
@@ -885,19 +908,23 @@ isa.addInstruction(swr_imm_Instr)
 #Software Debug Breakpoint
 #
 
-#opCode = cxx_writer.writer_code.Code("""
-#if ( DM == 0 ) {
-#	RaiseException(SIGNAL_DEBUG_BREAKPOINT);
-#} else {
-#	RaiseException(SIGNAL_DEBUG_MODE_BREAKPOINT);
-#}
-#""")
-#sdbbp_reg_Instr = trap.Instruction('SDBBP', True)
-#sdbbp_reg_Instr.setMachineCode(code_format,{'opcode': [0, 1, 1, 1, 0, 0], 'function':[1, 1, 1, 1, 1, 1]},
-#('sdbbp', ' r', '%code'))
-#sdbbp_reg_Instr.setCode(opCode, 'execution')
-#sdbbp_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-#isa.addInstruction(sdbbp_reg_Instr)
+
+
+#Implement this again
+
+opCode = cxx_writer.writer_code.Code("""
+//if ( DM == 0 ) {
+	//RaiseException(SIGNAL_DEBUG_BREAKPOINT);
+//} else {
+	//RaiseException(SIGNAL_DEBUG_MODE_BREAKPOINT);
+//}
+""")
+sdbbp_reg_Instr = trap.Instruction('SDBBP', True)
+sdbbp_reg_Instr.setMachineCode(code_format,{'opcode': [0, 1, 1, 1, 0, 0], 'function':[1, 1, 1, 1, 1, 1]},
+('sdbbp', ' r', '%code'))
+sdbbp_reg_Instr.setCode(opCode, 'execution')
+sdbbp_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
+isa.addInstruction(sdbbp_reg_Instr)
 
 
 
@@ -949,7 +976,7 @@ opCode = cxx_writer.writer_code.Code("""
 short shift = rs & 0x001F;
 long temp = 0x0000;
 long sign = 0x8000;
-for (int x=0; x<sihft; x++ ){
+for (int x=0; x<shift; x++ ){
 	temp = temp | sign;
 	sign = sign>>1;
 }
@@ -987,6 +1014,7 @@ isa.addInstruction(srlv_reg_Instr)
 
 
 
+
 #
 #SET Instruction Family
 #
@@ -1008,9 +1036,9 @@ isa.addInstruction(slt_reg_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
 if (rs < SignExtend(immediate) ){
-	rd = 0x0001;
+	rt = 0x0001;
 }else{
-	rd = 0x0000;
+	rt = 0x0000;
 }
 """)
 slti_imm_Instr = trap.Instruction('SLTI', True)
@@ -1023,9 +1051,9 @@ isa.addInstruction(slti_imm_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
 if ((unsigned)rs < (unsigned)SignExtend(immediate) ){
-	rd = 0x0001;
+	rt = 0x0001;
 }else{
-	rd = 0x0000;
+	rt = 0x0000;
 }
 """)
 sltiu_imm_Instr = trap.Instruction('SLTIU', True)
@@ -1061,7 +1089,7 @@ long long temp32 = (((rs | 0x8000) << 1) | rs) - (((rt | 0x8000) << 1) | rt) ;
 long temp31 = rs - rt;
 if (temp32 != temp31){
 	RaiseException(OV);
-}esle{
+}else{
 	rd = temp31;
 }
 """)
@@ -1096,15 +1124,15 @@ isa.addInstruction(subu_reg_Instr)
 #
 
 
-#opCode = cxx_writer.writer_code.Code("""
-#RaiseException(SYS);
-#""")
-#syscall_reg_Instr = trap.Instruction('SYSCALL', True)
-#syscall_reg_Instr.setMachineCode(code_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[0, 0, 1, 1, 0, 0]},
-#'syscall')
-#syscall_reg_Instr.setCode(opCode, 'execution')
-#syscall_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-#isa.addInstruction(syscall_reg_Instr)
+opCode = cxx_writer.writer_code.Code("""
+RaiseException(SYS);
+""")
+syscall_reg_Instr = trap.Instruction('SYSCALL', True)
+syscall_reg_Instr.setMachineCode(code_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[0, 0, 1, 1, 0, 0]},
+('syscall'))
+syscall_reg_Instr.setCode(opCode, 'execution')
+syscall_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
+isa.addInstruction(syscall_reg_Instr)
 
 
 
@@ -1315,3 +1343,4 @@ xor_imm_Instr.setMachineCode(immediate_format,{'opcode': [0, 0, 1, 1, 1, 0]},
 xor_imm_Instr.setCode(opCode, 'execution')
 xor_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(xor_imm_Instr)
+

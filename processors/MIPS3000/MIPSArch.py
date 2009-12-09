@@ -256,8 +256,8 @@ irq.setOperation("""//Basically, what I have to do when
 //acknowledge the IRQ on the irqAck port.
 }
 """)
-irq.addTest({}, {})
-processor.addIrq(irq)
+#irq.addTest({}, {})
+#processor.addIrq(irq)
 
 
 # Now it is time to add the pipeline stages
@@ -284,8 +284,9 @@ processor.setABI(abi)
 
 
 #Creating the C++ files implementing the simulator
-processor.write(folder = 'processor', models = ['funcLT'], tests = False, trace = False)
-
+#processor.write(folder = 'processor', models = ['funcLT'], tests = True, trace = False)
+#processor.write(folder = 'processor', models = ['funcLT'], tests = False, trace = False)
+processor.write(folder = 'mips', models = ['funcLT'])
 
 
 
