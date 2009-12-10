@@ -374,7 +374,7 @@ class decoderCreator:
             outEdges = sorted(outEdges, lambda x, y: cmp(y[-1]['decodePattern'][-1], x[-1]['decodePattern'][-1]))
         else:
             outEdges = sorted(outEdges, lambda x, y: cmp(y[-1][-1], x[-1][-1]))
-        if '0' in  mask[2:]:
+        if len(mask) < 4 or '0' in  mask[2:]:
             code = 'switch(instrCode & ' + mask + '){\n'
         else:
             code = 'switch(instrCode){\n'
