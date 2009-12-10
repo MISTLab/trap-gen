@@ -374,7 +374,17 @@ class decoderCreator:
             outEdges = sorted(outEdges, lambda x, y: cmp(y[-1]['decodePattern'][-1], x[-1]['decodePattern'][-1]))
         else:
             outEdges = sorted(outEdges, lambda x, y: cmp(y[-1][-1], x[-1][-1]))
-        if len(mask) < 4 or '0' in  mask[2:]:
+        hasToDeclareMask = True
+        if (len(mask) - 2)*4 == len(subtree.splitFunction.table):
+            numFs = 0
+            for i in mask[2:]:
+                if i == 'f':
+                    numFs += 1
+                else:
+                    break
+            if numFs == len(mask) - 2:
+                hasToDeclareMask = False
+        if hasToDeclareMask:
             code = 'switch(instrCode & ' + mask + '){\n'
         else:
             code = 'switch(instrCode){\n'
