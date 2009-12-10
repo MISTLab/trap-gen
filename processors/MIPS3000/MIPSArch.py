@@ -45,7 +45,7 @@ except ImportError:
         print ('Please specify in file MIPSArch.py the path where the core TRAP files are located')
 
 import MIPSIsa
-import MIPSTests
+#import MIPSTests
 
 # Lets now start building the processor
 processor = trap.Processor('MIPS3000', version = '0.1', systemc = False, instructionCache = True, fastFetch = True)
@@ -62,16 +62,16 @@ processor.addRegBank(GPR)
 
 #
 #CP0 REGISTERS
-#    
-        
+#
+
 #CP0[0] 	Index		-- Reserved in the case of the 4Kp processor
 #CP0[1] 	Random		-- Reserved in the case of the 4Kp processor
 #CP0[2] 	EntryLo		-- Reserved in the case of the 4Kp processor
 #CP0[3] 	EntryLo		-- Reserved in the case of the 4Kp processor
 #CP0[4] 	Context		-- Reserved in the case of the 4Kp processor
 #CP0[5] 	PageMask	-- Reserved in the case of the 4Kp processor
-#CP0[6] 	Wired		-- Reserved in the case of the 4Kp processor          
-#CP0[7] 	Reserved            
+#CP0[6] 	Wired		-- Reserved in the case of the 4Kp processor
+#CP0[7] 	Reserved
 #CP0[8] 	BadVAddr
 BadVAddr = trap.Register('BadVAddr',32)
 processor.addRegister(BadVAddr)
@@ -125,7 +125,7 @@ WatchHiBits = {'z1':(31,31), 'G':(30,30), 'z1':(24,29), 'ASID':(16,23), 'Z2':(12
 WatchHi = trap.Register('WATCHHI',32,WatchHiBits)
 WatchHi.setDefaultValue(0)
 processor.addRegister(WatchHi)
-#CP0[20 - 22] 	Reserved  
+#CP0[20 - 22] 	Reserved
 #CP0[23]    	Debug
 DebugBits = {'DBD':(31,31), 'DM':(30,30), 'NoDCR':(29,29), 'LSNM':(28,28), 'Doze':(27,27), 'Halt':(26,26), 'CountDM':(25,25), 'IBusEP':(24,24), 'MCheckP':(23,23), 'CacheEP':(22,22), 'DBusEP':(21,21), 'IEXI':(20,20), 'DDBSImpr':(19,19), 'DDBLImpr':(18,18),  'Ver':(15,17), 'DExcCode':(10,14), 'NoSST':(9,9), 'SSt':(8,8),   'R':(6,7),   'DINT':(5,5), 'DIB':(4,4), 'DDBS':(3,3), 'DDBL':(2,2), 'DBp':(1,1), 'DSS':(0,0)}
 Debug = trap.Register('DEBUG',32,DebugBits)
@@ -134,13 +134,13 @@ processor.addRegister(Debug)
 #CP0[24]    	DEPC
 Depc = trap.Register('DEPC',32)
 processor.addRegister(Depc)
-#CP0[25]    	Reserved                 
+#CP0[25]    	Reserved
 #CP0[26]    	ErrCtl
 ErrCtlBits = {'R':(30,31), 'WST':(29,29), 'SPR':(28,28), 'R':(0,27)}
 ErrCtl = trap.Register('ERRCTL',32,ErrCtlBits)
 ErrCtl.setDefaultValue(0)
 processor.addRegister(ErrCtl)
-#CP0[27]    	Reserved  
+#CP0[27]    	Reserved
 #CP0[28]    	TagLo
 TagLoBits = {'PA':(10,31), 'R1':(8,9), 'VALID':(4,7), 'R2':(3,3), 'L':(2,2), 'LRF':(1,1), 'R3':(0,0)}
 TagLo = trap.Register('TAGLO',32,TagLoBits)
@@ -286,7 +286,7 @@ processor.setABI(abi)
 #Creating the C++ files implementing the simulator
 #processor.write(folder = 'processor', models = ['funcLT'], tests = True, trace = False)
 #processor.write(folder = 'processor', models = ['funcLT'], tests = False, trace = False)
-processor.write(folder = 'mips', models = ['funcLT'])
+processor.write(folder = 'mips', models = ['funcLT'], dumpDecoderName = 'decoder.dot')
 
 
 

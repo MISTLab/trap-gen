@@ -4159,6 +4159,16 @@ def getMainCode(self, model, namespace):
 #endif""")
 
     mainCode.addInclude('#define WIN32_LEAN_AND_MEAN')
+    mainCode.addInclude('iostream')
+    mainCode.addInclude('string')
+    mainCode.addInclude('vector')
+    mainCode.addInclude('set')
+    mainCode.addInclude('signal.h')
+
+    mainCode.addInclude('boost/program_options.hpp')
+    mainCode.addInclude('boost/timer.hpp')
+    mainCode.addInclude('boost/filesystem.hpp')
+
     if model.endswith('LT'):
         mainCode.addInclude('MemoryLT.hpp')
     else:
@@ -4171,19 +4181,10 @@ def getMainCode(self, model, namespace):
     if self.abi:
         mainCode.addInclude('GDBStub.hpp')
         mainCode.addInclude('profiler.hpp')
-        if model.startswith('acc'):
-            mainCode.addInclude('osEmulatorCA.hpp')
-        else:
-            mainCode.addInclude('osEmulator.hpp')
-    mainCode.addInclude('boost/program_options.hpp')
-    mainCode.addInclude('boost/timer.hpp')
-    mainCode.addInclude('boost/filesystem/operations.hpp')
-    mainCode.addInclude('boost/filesystem/fstream.hpp')
-    mainCode.addInclude('boost/filesystem/convenience.hpp')
-    mainCode.addInclude('boost/filesystem/path.hpp')
-    mainCode.addInclude('string')
-    mainCode.addInclude('vector')
-    mainCode.addInclude('set')
+        #if model.startswith('acc'):
+            #mainCode.addInclude('osEmulatorCA.hpp')
+        #else:
+        mainCode.addInclude('osEmulator.hpp')
     parameters = [cxx_writer.writer_code.Parameter('argc', cxx_writer.writer_code.intType), cxx_writer.writer_code.Parameter('argv', cxx_writer.writer_code.charPtrType.makePointer())]
     function = cxx_writer.writer_code.Function('sc_main', mainCode, cxx_writer.writer_code.intType, parameters)
     return function

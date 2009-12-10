@@ -361,7 +361,7 @@ class decoderCreator:
             outEdges = self.decodingTree.edges(subtree, data = True)
         mask = subtree.splitFunction.toCode()
         outEdges = sorted(outEdges, lambda x, y: cmp(y[-1][-1], x[-1][-1]))
-        if '0' in  mask[2:]:
+        if len(mask) < 4 or '0' in  mask[2:]:
             code = 'switch(instrCode & ' + mask + '){\n'
         else:
             code = 'switch(instrCode){\n'
