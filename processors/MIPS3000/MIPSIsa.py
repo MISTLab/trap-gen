@@ -122,29 +122,32 @@ isa.addDefines("""
 #
 
 opCode = cxx_writer.writer_code.Code("""
-long long temp32 = (((rs | 0x8000) << 1) | rs) + (((rt | 0x8000) << 1) | rt) ;
-long temp31 = rs + rt;
-//if (temp32 != temp31){
-//	RaiseException(OV);
-//}else{
-	rd = temp31;
-//}
+signed long temp = rs + rt;
+signed long long temp1 = (signed long long)rs+ (signed long long)rt;
+signed long long temp2 = rs + rt;
+if (temp1 - temp2 != 0){
+	rd = 0x33333333;	//Eliminar cuando se hayan agregado las excepciones
+	RaiseException(OV);
+}else{
+	rd = (int)temp;
+}
 """)
 add_reg_Instr = trap.Instruction('ADD', True)
 add_reg_Instr.setMachineCode(register_format,{'opcode': [0,0,0,0,0,0], 'function':[1,0,0,0,0,0]},('add r','%rd', ',',' r','%rs', ',',' r','%rt'))
-#{'op3': [0, 0, 0, 0, 0, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}
 add_reg_Instr.setCode(opCode, 'execution')
 add_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(add_reg_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
-long long temp32 = (((rs | 0x8000) << 1) | rs) + ((( SignExtend(immediate)  | 0x8000) << 1) | SignExtend(immediate) );
-long temp31 = rs + rt;
-if (temp32 != temp31){
+signed long long temp = rs + SignExtend(immediate);
+signed long long temp1 = (signed long long)rs+ (signed long long)rt;
+signed long long temp2 = rs + rt;
+if (temp1 - temp2 != 0){
+	rt = 0x00000001;	//Eliminar cuando se hayan agregado las excepciones
 	RaiseException(OV);
 }else{
-	rt = temp31;
+	rt = temp;
 }
 """)
 addi_imm_Instr = trap.Instruction('ADDI', True)
@@ -294,8 +297,10 @@ isa.addInstruction(break_reg_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
 rd = 0;
+unsigned int temp = rs;
 for (int i = 0; i < 32; i++) {
-	rd += rs % 2;
+	rd += temp % 2;
+	temp = temp>>1;
 }
 """)
 clo_reg_Instr = trap.Instruction('CLO', True)
@@ -312,8 +317,10 @@ isa.addInstruction(clo_reg_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
 rd = 0;
+unsigned int temp = rs;
 for (int i = 0; i < 32; i++) {
-	rd += rs % 2;
+	rd += temp % 2;
+	temp = temp>>1;
 }
 rd = 32-rd;
 """)
@@ -336,22 +343,32 @@ isa.addInstruction(clz_reg_Instr)
 #
 
 opCode = cxx_writer.writer_code.Code("""
-LO = (int)rs / (int)rt;
-HI = (int)rs % (int)rt;
+if (rt == 0){
+	LO =0;
+	HI =rs;
+}else{
+	LO = (int)rs / (int)rt;
+	HI = (int)rs % (int)rt;
+}
 """)
 div_reg_Instr = trap.Instruction('DIV', True)
-div_reg_Instr.setMachineCode(register_format,{'opcode': [0,0,0,0,0,0],'function':[0,1,1,0,1,0]},('div r','%rd', ',',' r','%rs'))
+div_reg_Instr.setMachineCode(register_format,{'opcode': [0,0,0,0,0,0],'function':[0,1,1,0,1,0]},('div r','%rs', ',',' r','%rt'))
 div_reg_Instr.setCode(opCode, 'execution')
 div_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(div_reg_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
-LO = SignExtend((unsigned int)rs / (unsigned int)rt);
-HI = SignExtend((unsigned int)rs % (unsigned int)rt);
+if (rt == 0){
+	LO =0;
+	HI =rs;
+}else{
+	LO = (unsigned int)rs / (unsigned int)rt;
+	HI = (unsigned int)rs % (unsigned int)rt;
+}
 """)
 divu_reg_Instr = trap.Instruction('DIVU', True)
-divu_reg_Instr.setMachineCode(register_format,{'opcode': [0,0,0,0,0,0],'function':[0,1,1,0,1,1]},('divu r','%rd', ',',' r','%rs'))
+divu_reg_Instr.setMachineCode(register_format,{'opcode': [0,0,0,0,0,0],'function':[0,1,1,0,1,1]},('divu r','%rs', ',',' r','%rt'))
 divu_reg_Instr.setCode(opCode, 'execution')
 divu_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(divu_reg_Instr)

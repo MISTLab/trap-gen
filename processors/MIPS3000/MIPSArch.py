@@ -45,7 +45,7 @@ except ImportError:
         print ('Please specify in file MIPSArch.py the path where the core TRAP files are located')
 
 import MIPSIsa
-#import MIPSTests
+import MIPSTests
 
 # Lets now start building the processor
 processor = trap.Processor('MIPS3000', version = '0.1', systemc = False, instructionCache = True, fastFetch = True)

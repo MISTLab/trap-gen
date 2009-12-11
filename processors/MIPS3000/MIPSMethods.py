@@ -50,6 +50,7 @@ import cxx_writer
 
 #Sign Extension
 opCode = cxx_writer.writer_code.Code("""
+if((bitSeq & (1 << 15)) != 0)
 bitSeq |= (((unsigned int)0xFFFFFFFF) << 16);
 return bitSeq;
 """)
@@ -84,6 +85,8 @@ LikelyBranch_method.setSignature(('BIT<32>'), [('br', 'BIT<1>'),('offset', 'BIT<
 # Exceptions
 raiseExcCode =  """
 long vectorOffset = 0;
+
+printf("Error");
 
 
 annull();

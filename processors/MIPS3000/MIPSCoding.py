@@ -52,7 +52,7 @@ import trap
 #General Immediate type format (I-Type)
 immediate_format = trap.MachineCode([('opcode', 6), ('rs', 5), ('rt', 5), ('immediate', 16)])
 immediate_format.setVarField('rs', ('GPR', 0), 'in')
-immediate_format.setVarField('rt', ('GPR', 0), 'inout')
+immediate_format.setVarField('rt', ('GPR', 0), 'out')
 
 #Jump type format (J-Type)
 jump_format = trap.MachineCode([('opcode', 5), ('op2',1), ('target', 26)])
