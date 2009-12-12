@@ -152,4 +152,24 @@ divu_reg_Instr.addTest({'rs': 0, 'rt': 10},{'GPR[0]': 467,   'GPR[10]': 0,  'PC'
 
 
 
+#
+#MULTIPLY Instruction Family
+#
+
+madd_reg_Instr.addTest({'rs': 0, 'rt': 10},{'HI': 1000,   'LO': 1000,   'GPR[0]': 467,   'GPR[10]': 0,  'PC' : 0},{'HI': 1000,   'LO': 1000,   'GPR[0]': 467,   'GPR[10]': 0,  'PC' : 4})
+madd_reg_Instr.addTest({'rs': 0, 'rt': 10},{'HI': 1000,   'LO': 1000,   'GPR[0]': 467,   'GPR[10]': 1,  'PC' : 0},{'HI': 1000,   'LO': 1467,   'GPR[0]': 467,   'GPR[10]': 1,  'PC' : 4})
+madd_reg_Instr.addTest({'rs': 0, 'rt': 10},{'HI': 1000,   'LO': 65535,   'GPR[0]': 65535,   'GPR[10]': 2,  'PC' : 0},{'HI': 1000,   'LO': 196605,   'GPR[0]': 65535,   'GPR[10]': 2,  'PC' : 4})
+
+
+#HI||LO+(rs*rt)
+
+
+
+
+
+
+
+
+
+
 

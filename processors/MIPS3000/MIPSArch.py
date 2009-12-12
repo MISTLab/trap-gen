@@ -261,11 +261,15 @@ irq.setOperation("""//Basically, what I have to do when
 
 
 # Now it is time to add the pipeline stages
+executionStage = trap.PipeStage('execution1')
+executionStage.setCheckTools()
+processor.addPipeStage(executionStage)
 executeStage = trap.PipeStage('execution')
 executeStage.setHazard()
 executeStage.setCheckUnknownInstr()
 executeStage.setCheckTools()
 processor.addPipeStage(executeStage)
+
 exceptionStage = trap.PipeStage('exception')
 processor.addPipeStage(exceptionStage)
 executeStage.setWriteBack()

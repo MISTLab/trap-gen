@@ -555,15 +555,16 @@ isa.addInstruction(lui_imm_Instr)
 #
 
 opCodeCommon1 = cxx_writer.writer_code.Code("""
-result = rs*rt;
+result = (int)rs*(int)rt;
 """)
 opCodeCommon2 = cxx_writer.writer_code.Code("""
-result = (unsigned)rs*(unsigned)rt;
+result = (unsigned int)rs*(unsigned int)rt;
 """)
 opCode = cxx_writer.writer_code.Code("""
-long long operand = (((long long)(HI))<<32)|(LO);
+long long hiAux = HI;
+long long operand = ((hiAux<<32))|(LO);
 long long temp = operand + result;
-LO = temp;
+LO = temp & 0x0FFFFFFFF;
 HI = temp>>32;
 """)
 madd_reg_Instr = trap.Instruction('MADD', True)
