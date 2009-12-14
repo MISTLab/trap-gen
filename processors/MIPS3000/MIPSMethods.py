@@ -50,12 +50,12 @@ import cxx_writer
 
 #Sign Extension
 opCode = cxx_writer.writer_code.Code("""
-if((bitSeq & (1 << 15)) != 0)
-bitSeq |= (((unsigned int)0xFFFFFFFF) << 16);
+if((bitSeq & (1 << (bitSeq_length - 1))) != 0)
+    bitSeq |= (((unsigned int)0xFFFFFFFF) << bitSeq_length);
 return bitSeq;
 """)
 SignExtend_method = trap.HelperMethod('SignExtend', opCode, 'execution')
-SignExtend_method.setSignature(('BIT<32>'), [('bitSeq', 'BIT<32>')])
+SignExtend_method.setSignature(('BIT<32>'), [('bitSeq', 'BIT<32>'), cxx_writer.writer_code.Parameter('bitSeq_length', cxx_writer.writer_code.uintType)])
 
 #Simple Branch
 opCode = cxx_writer.writer_code.Code("""

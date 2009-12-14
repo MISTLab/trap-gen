@@ -140,7 +140,7 @@ isa.addInstruction(add_reg_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
-signed long long temp = rs + SignExtend(immediate);
+signed long long temp = rs + SignExtend(immediate,16);
 signed long long temp1 = (signed long long)rs+ (signed long long)rt;
 signed long long temp2 = rs + rt;
 if (temp1 - temp2 != 0){
@@ -158,7 +158,7 @@ isa.addInstruction(addi_imm_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
-rt = rs + SignExtend(immediate);
+rt = rs + SignExtend(immediate,16);
 """)
 addiu_imm_Instr = trap.Instruction('ADDIU', True)
 addiu_imm_Instr.setMachineCode(immediate_format,{'opcode': [0,0,1,0,0,1]},('addiu r','%rt', ',',' r','%rs', ',',' r','%immediate'))
@@ -209,9 +209,9 @@ isa.addInstruction(andi_imm_Instr)
 opCode = cxx_writer.writer_code.Code("""
 bool br = ( (rs == rt && op4 == 0) || (rs != rt && op4 == 0x1) );
 	if (op2 == 0){
-		PC = SimpleBranch(br,(int)SignExtend(immediate));
+		PC = SimpleBranch(br,(int)SignExtend(immediate,16));
 	}else{
-		PC = LikelyBranch(br,(int)SignExtend(immediate));
+		PC = LikelyBranch(br,(int)SignExtend(immediate,16));
 	}
 """)	#Specify correctly the jump instruction
 b2r_imm_Instr = trap.Instruction('BRANCH2REGISTERS', True)
@@ -226,9 +226,9 @@ isa.addInstruction(b2r_imm_Instr)
 opCode = cxx_writer.writer_code.Code("""
 bool br = ( ((int)rs<=0 && op4 == 0) || ((int)rs>0 && op4 == 0x1) );
 	if (op2 == 0){
-		PC = SimpleBranch(br,(int)SignExtend(immediate));
+		PC = SimpleBranch(br,(int)SignExtend(immediate,16));
 	}else{
-		PC = LikelyBranch(br,(int)SignExtend(immediate));
+		PC = LikelyBranch(br,(int)SignExtend(immediate,16));
 	}
 """)
 bz_imm_Instr = trap.Instruction('BRANCHZ', True)
@@ -246,9 +246,9 @@ bool br = ( ((int)rs<0 && (rt3 == 0x0 || rt3 == 0x2)) || ((int)rs>=0 && (rt3 == 
 		GPR[31] = PC+8;
 	}
 	if (rt3 == 0x0 || rt3 == 0x1){
-		PC = SimpleBranch(br,(int)SignExtend(immediate));
+		PC = SimpleBranch(br,(int)SignExtend(immediate,16));
 	}else{
-		PC = LikelyBranch(br,(int)SignExtend(immediate));
+		PC = LikelyBranch(br,(int)SignExtend(immediate,16));
 	}
 """)
 breg_imm_Instr = trap.Instruction('BRANCHREGIMM', True)
@@ -431,7 +431,7 @@ isa.addInstruction(jlr_jump_Instr)
 
 opCode = cxx_writer.writer_code.Code("""	//ASK HOW DOES DATAMEM READS, ACCORDING TO ENDIANESS
 long result;
-long address = SignExtend(immediate)+rs;
+long address = SignExtend(immediate,16)+rs;
 if ( ((address%2) != 0 ) && op3 == 0x01)
 	RaiseException(ADEL);
 if (op3 == 0)
@@ -441,7 +441,7 @@ if (op3 == 0b01)
 if (op3 == 0b11)
 	result = dataMem.read_word(address);
 if (op3 != 0b10)
-	result = SignExtend(result);
+	result = SignExtend(result,16);
 if (op3 == 0b10){
 	short bytes = address & 0x0003;	//This change was made much after the coding was done
 	address = address & 0xFFFC;
@@ -477,7 +477,7 @@ isa.addInstruction(load_imm_Instr)
 
 opCode = cxx_writer.writer_code.Code("""	//ASK HOW DOES DATAMEM READS, ACCORDING TO ENDIANESS
 long result;
-long address = SignExtend(immediate)+rs;
+long address = SignExtend(immediate,16)+rs;
 if ( ((address%2) != 0 ) && op3 == 0x01)
 	RaiseException(ADEL);
 if (op3 == 0)
@@ -522,7 +522,7 @@ isa.addInstruction(load2_imm_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
-long address = SignExtend(immediate)+rs;
+long address = SignExtend(immediate,16)+rs;
 if ((address%4) != 0)
 	RaiseException(ADEL);
 rt = dataMem.read_word(address);
@@ -555,10 +555,18 @@ isa.addInstruction(lui_imm_Instr)
 #
 
 opCodeCommon1 = cxx_writer.writer_code.Code("""
-result = (int)rs*(int)rt;
+long long op1 = rs;
+long long op2 = rt;
+if((rs & (1 << 31)) != 0)
+    op1 = ((unsigned long long)0xFFFFFFFF00000000) | rs;
+if((rt & (1 << 31)) != 0)
+    op2 = ((unsigned long long)0xFFFFFFFF00000000) | rt;
+result = (long long)(op1*op2);
 """)
 opCodeCommon2 = cxx_writer.writer_code.Code("""
-result = (unsigned int)rs*(unsigned int)rt;
+long long op1 = rs;
+long long op2 = rt;
+result = (unsigned long long)(op1*op2);
 """)
 opCode = cxx_writer.writer_code.Code("""
 long long hiAux = HI;
@@ -588,9 +596,10 @@ isa.addInstruction(maddu_reg_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
-long long operand = (((long long)(HI))<<32)|(LO);
+long long hiAux = HI;
+long long operand = (((long long)(hiAux))<<32)|(LO);
 long long temp = operand - result;
-LO = temp;
+LO = temp & 0x0FFFFFFFF;
 HI = temp>>32;
 """)
 msub_reg_Instr = trap.Instruction('MSUB', True)
@@ -784,7 +793,7 @@ isa.addInstruction(or_imm_Instr)
 #
 
 opCode = cxx_writer.writer_code.Code("""
-long address = SignExtend(immediate) + rs;
+long address = SignExtend(immediate,16) + rs;
 dataMem.write_byte(address, rt);
 """)
 sb_imm_Instr = trap.Instruction('SB', True)
@@ -797,7 +806,7 @@ isa.addInstruction(sb_imm_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
-long address = SignExtend(immediate) + rs;
+long address = SignExtend(immediate,16) + rs;
 if ( (address%4) != 0 )
 	RaiseException(ADES);
 if (LLbit)
@@ -815,7 +824,7 @@ isa.addInstruction(sc_imm_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
-long address = SignExtend(immediate) + rs;
+long address = SignExtend(immediate,16) + rs;
 if ( (address%2) != 0 )
 	RaiseException(ADES);
 dataMem.write_half(address, rt);
@@ -829,7 +838,7 @@ isa.addInstruction(sh_imm_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
-long address = SignExtend(immediate) + rs;
+long address = SignExtend(immediate,16) + rs;
 if ( (address%4) != 0 )
 	RaiseException(ADES);
 dataMem.write_word(address, rt);
@@ -843,7 +852,7 @@ isa.addInstruction(sw_imm_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
-long address = SignExtend(immediate) + rs;
+long address = SignExtend(immediate,16) + rs;
 short bytes = address & 0x0003;	//verificar esta función, le agregué el & luego después sin estar segura
 address = address & 0xFFFC;
 long aux1 = dataMem.read_word(address);
@@ -883,7 +892,7 @@ isa.addInstruction(swl_imm_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
-long address = SignExtend(immediate) + rs;
+long address = SignExtend(immediate,16) + rs;
 short bytes = address & 0x0003; //verificar esta función, le agregué el & luego después sin estar segura
 address = address & 0xFFFC;
 long aux1 = dataMem.read_word(address);
@@ -1054,7 +1063,7 @@ isa.addInstruction(slt_reg_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
-if (rs < SignExtend(immediate) ){
+if (rs < SignExtend(immediate,16) ){
 	rt = 0x0001;
 }else{
 	rt = 0x0000;
@@ -1069,7 +1078,7 @@ isa.addInstruction(slti_imm_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
-if ((unsigned)rs < (unsigned)SignExtend(immediate) ){
+if ((unsigned)rs < (unsigned)SignExtend(immediate,16) ){
 	rt = 0x0001;
 }else{
 	rt = 0x0000;
@@ -1165,7 +1174,7 @@ opr2 = rt;
 """)
 opCodeOperandsI = cxx_writer.writer_code.Code("""
 opr1 = rs;
-opr2 = SignExtend(immediate);
+opr2 = SignExtend(immediate,16);
 """)
 opCodeOperandsU = cxx_writer.writer_code.Code("""
 opr1 = (unsigned)rs;
@@ -1173,7 +1182,7 @@ opr2 = (unsigned)rt;
 """)
 opCodeOperandsIU = cxx_writer.writer_code.Code("""
 opr1 = (unsigned)rs;
-opr2 = (unsigned)SignExtend(immediate);
+opr2 = (unsigned)SignExtend(immediate,16);
 """)
 opCodeCondition = cxx_writer.writer_code.Code("""
 cond = (opr1==opr2);

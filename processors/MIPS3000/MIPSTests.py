@@ -162,11 +162,41 @@ madd_reg_Instr.addTest({'rs': 0, 'rt': 10},{'HI': 1000,   'LO': 65535,   'GPR[0]
 madd_reg_Instr.addTest({'rs': 0, 'rt': 10},{'HI': 1000,   'LO': 65535,   'GPR[0]': 65535,   'GPR[10]': -2,  'PC' : 0},{'HI': 0x3E7,   'LO': 0xFFFF0001,   'GPR[0]': 65535,   'GPR[10]': -2,  'PC' : 4})
 madd_reg_Instr.addTest({'rs': 0, 'rt': 10},{'HI': 0xFFF,   'LO': 0xFFFFFFFF,   'GPR[0]': 0xFFFFFFFF,   'GPR[10]': 0xFFFFFFFF,  'PC' : 0},{'HI': 0x1000,  'LO': 0,   'GPR[0]': 0xFFFFFFFF,   'GPR[10]': 0xFFFFFFFF,  'PC' : 4})
 madd_reg_Instr.addTest({'rs': 0, 'rt': 10},{'HI': 0xEFFF,   'LO': 0xFFFFFFFF,   'GPR[0]': 0xFFFFFFFF,   'GPR[10]': 0xFFFFFFFF,  'PC' : 0},{'HI': 0xF000,   'LO': 0,   'GPR[0]': 0xFFFFFFFF,   'GPR[10]': 0xFFFFFFFF,  'PC' : 4})
+madd_reg_Instr.addTest({'rs': 0, 'rt': 10},{'HI': 0,   'LO': 0,   'GPR[0]': 0x0FFFFFFF,   'GPR[10]': 0x0FFFFFFF,  'PC' : 0},{'HI': 0xFFFFFF,   'LO': 0xE0000001,   'GPR[0]': 0x0FFFFFFF,   'GPR[10]': 0x0FFFFFFF,  'PC' : 4})
 
 
 maddu_reg_Instr.addTest({'rs': 0, 'rt': 10},{'HI': 1000,   'LO': 1000,   'GPR[0]': 467,   'GPR[10]': 0,  'PC' : 0},{'HI': 1000,   'LO': 1000,   'GPR[0]': 467,   'GPR[10]': 0,  'PC' : 4})
 maddu_reg_Instr.addTest({'rs': 0, 'rt': 10},{'HI': 1000,   'LO': 1000,   'GPR[0]': 467,   'GPR[10]': 1,  'PC' : 0},{'HI': 1000,   'LO': 1467,   'GPR[0]': 467,   'GPR[10]': 1,  'PC' : 4})
 maddu_reg_Instr.addTest({'rs': 0, 'rt': 10},{'HI': 1000,   'LO': 65535,   'GPR[0]': 65535,   'GPR[10]': 2,  'PC' : 0},{'HI': 1000,   'LO': 196605,   'GPR[0]': 65535,   'GPR[10]': 2,  'PC' : 4})
-maddu_reg_Instr.addTest({'rs': 0, 'rt': 10},{'HI': 1000,   'LO': 65535,   'GPR[0]': 65535,   'GPR[10]': -2,  'PC' : 0},{'HI': 0x103E6,   'LO':0xFFFE0002,   'GPR[0]': 65535,   'GPR[10]': -2,  'PC' : 4})
+maddu_reg_Instr.addTest({'rs': 0, 'rt': 10},{'HI': 0,   'LO': 0,   'GPR[0]': 0x10,   'GPR[10]': 0xFFFFFFFE,  'PC' : 0},{'HI': 0xF,   'LO': 0xFFFFFFE0,   'GPR[0]': 0x10,   'GPR[10]': -2,  'PC' : 4})
 maddu_reg_Instr.addTest({'rs': 0, 'rt': 10},{'HI': 0x1,   'LO': 0xFFFFFFFE,   'GPR[0]': 0xFFFFFFFF,   'GPR[10]': 0xFFFFFFFF,  'PC' : 0},{'HI': 0xFFFFFFFF,   'LO': 0xFFFFFFFF,   'GPR[0]': 0xFFFFFFFF,   'GPR[10]': 0xFFFFFFFF,  'PC' : 4})
+
+
+msub_reg_Instr.addTest({'rs': 0, 'rt': 10},{'HI': 1000,   'LO': 1000,   'GPR[0]': 467,   'GPR[10]': 0,  'PC' : 0},{'HI': 1000,   'LO': 1000,   'GPR[0]': 467,   'GPR[10]': 0,  'PC' : 4})
+msub_reg_Instr.addTest({'rs': 0, 'rt': 10},{'HI': 1000,   'LO': 1000,   'GPR[0]': 0xFFFFF,   'GPR[10]': 0xFFFFF,  'PC' : 0},{'HI': 0x2E8,   'LO': 0x002003E7,   'GPR[0]': 0xFFFFF,   'GPR[10]': 0xFFFFF,  'PC' : 4})
+msub_reg_Instr.addTest({'rs': 0, 'rt': 10},{'HI': 1000,   'LO': 65535,   'GPR[0]': 65535,   'GPR[10]': 2,  'PC' : 0},{'HI': 0x3E7,   'LO': 0xFFFF0001,   'GPR[0]': 65535,   'GPR[10]': 2,  'PC' : 4})
+msub_reg_Instr.addTest({'rs': 0, 'rt': 10},{'HI': 1000,   'LO': 65535,   'GPR[0]': 65535,   'GPR[10]': -2,  'PC' : 0},{'HI': 1000,   'LO': 196605,   'GPR[0]': 65535,   'GPR[10]': -2,  'PC' : 4})
+msub_reg_Instr.addTest({'rs': 0, 'rt': 10},{'HI': 0x1E8,   'LO': 0x80,   'GPR[0]': 1280000000,   'GPR[10]': 1280000000,  'PC' : 0},{'HI': 0xE9433DC9,   'LO': 0x70000080,   'GPR[0]': 1280000000,   'GPR[10]': 1280000000,  'PC' : 4})
+
+
+msubu_reg_Instr.addTest({'rs': 0, 'rt': 10},{'HI': 1000,   'LO': 1000,   'GPR[0]': 467,   'GPR[10]': 0,  'PC' : 0},{'HI': 1000,   'LO': 1000,   'GPR[0]': 467,   'GPR[10]': 0,  'PC' : 4})
+msubu_reg_Instr.addTest({'rs': 0, 'rt': 10},{'HI': 1000,   'LO': 1000,   'GPR[0]': 0xFFFFF,   'GPR[10]': 0xFFFFF,  'PC' : 0},{'HI': 0x2E8,   'LO': 0x002003E7,   'GPR[0]': 0xFFFFF,   'GPR[10]': 0xFFFFF,  'PC' : 4})
+msubu_reg_Instr.addTest({'rs': 0, 'rt': 10},{'HI': 1000,   'LO': 65535,   'GPR[0]': 65535,   'GPR[10]': 2,  'PC' : 0},{'HI': 0x3E7,   'LO': 0xFFFF0001,   'GPR[0]': 65535,   'GPR[10]': 2,  'PC' : 4})
+msubu_reg_Instr.addTest({'rs': 0, 'rt': 10},{'HI': 1000,   'LO': 65535,   'GPR[0]': 65535,   'GPR[10]': -2,  'PC' : 0},{'HI': 0xFFFF03E9,   'LO': 0x0002FFFD,   'GPR[0]': 65535,   'GPR[10]': -2,  'PC' : 4})
+msubu_reg_Instr.addTest({'rs': 0, 'rt': 10},{'HI': 0x1E8,   'LO': 0x80,   'GPR[0]': 1280000000,   'GPR[10]': 1280000000,  'PC' : 0},{'HI': 0xE9433DC9,   'LO': 0x70000080,   'GPR[0]': 1280000000,   'GPR[10]': 1280000000,  'PC' : 4})
+msubu_reg_Instr.addTest({'rs': 0, 'rt': 10},{'HI': 0,   'LO': 0,   'GPR[0]': 0x10,   'GPR[10]': 0xFFFFFFFE,  'PC' : 0},{'HI': 0xFFFFFFF0,   'LO': 0x00000020,   'GPR[0]': 0x10,   'GPR[10]': -2,  'PC' : 4})
+msubu_reg_Instr.addTest({'rs': 0, 'rt': 10},{'HI': 0x1,   'LO': 0xFFFFFFFE,   'GPR[0]': 0xFFFFFFFF,   'GPR[10]': 0xFFFFFFFF,  'PC' : 0},{'HI': 0x3,   'LO': 0xFFFFFFFD,   'GPR[0]': 0xFFFFFFFF,   'GPR[10]': 0xFFFFFFFF,  'PC' : 4})
+
+
+
+
+
+
+
+
+
+
+
+
+
 
