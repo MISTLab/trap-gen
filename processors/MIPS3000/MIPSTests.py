@@ -188,7 +188,18 @@ msubu_reg_Instr.addTest({'rs': 0, 'rt': 10},{'HI': 0,   'LO': 0,   'GPR[0]': 0x1
 msubu_reg_Instr.addTest({'rs': 0, 'rt': 10},{'HI': 0x1,   'LO': 0xFFFFFFFE,   'GPR[0]': 0xFFFFFFFF,   'GPR[10]': 0xFFFFFFFF,  'PC' : 0},{'HI': 0x3,   'LO': 0xFFFFFFFD,   'GPR[0]': 0xFFFFFFFF,   'GPR[10]': 0xFFFFFFFF,  'PC' : 4})
 
 
+mul_reg_Instr.addTest({'rd': 0, 'rs': 10, 'rt': 11},{'GPR[0]' : 0, 'GPR[10]' : 0xFFFFFFFF,   'GPR[11]' : 0xFFFFFFFF, 'PC' : 0},{'GPR[0]' : 1, 'GPR[10]' : 0xFFFFFFFF,   'GPR[11]' : 0xFFFFFFFF, 'PC' : 4})
+mul_reg_Instr.addTest({'rd': 0, 'rs': 10, 'rt': 11},{'GPR[0]' : 0, 'GPR[10]' : 32767,   'GPR[11]' : 32767, 'PC' : 0},{'GPR[0]' : 0x3FFF0001, 'GPR[10]' : 32767,   'GPR[11]' : 32767, 'PC' : 4})
+mul_reg_Instr.addTest({'rd': 0, 'rs': 10, 'rt': 11},{'GPR[0]' : 0, 'GPR[10]' : 32767,   'GPR[11]' : -32767, 'PC' : 0},{'GPR[0]' : 0xC000FFFF, 'GPR[10]' : 32767,   'GPR[11]' : -32767, 'PC' : 4})
+mul_reg_Instr.addTest({'rd': 0, 'rs': 10, 'rt': 11},{'GPR[0]' : 0, 'GPR[10]' : -32767,   'GPR[11]' : -32767, 'PC' : 0},{'GPR[0]' : 0x3FFF0001, 'GPR[10]' : -32767,   'GPR[11]' : -32767, 'PC' : 4})
 
+
+mult_reg_Instr.addTest({'rs': 10, 'rt': 11},{'GPR[10]' : 0xFFFFFFFF,   'GPR[11]' : 0xFFFFFFFF, 'PC' : 0},{'HI': 0,   'LO': 1,   'GPR[10]' : 0xFFFFFFFF,   'GPR[11]' : 0xFFFFFFFF, 'PC' : 4})
+mult_reg_Instr.addTest({'rs': 10, 'rt': 11},{'GPR[10]' : 32767,   'GPR[11]' : 32767, 'PC' : 0},{'HI': 0,   'LO': 0x3FFF0001,   'GPR[10]' : 32767,   'GPR[11]' : 32767, 'PC' : 4})
+mult_reg_Instr.addTest({'rs': 10, 'rt': 11},{'GPR[10]' : 32767,   'GPR[11]' : -32767, 'PC' : 0},{'HI': 0xFFFFFFFF,   'LO': 0xC000FFFF,   'GPR[10]' : 32767,   'GPR[11]' : -32767, 'PC' : 4})
+mult_reg_Instr.addTest({'rs': 10, 'rt': 11},{'GPR[10]' : -32767,   'GPR[11]' : -32767, 'PC' : 0},{'HI': 0,   'LO': 0x3FFF0001,   'GPR[10]' : -32767,   'GPR[11]' : -32767, 'PC' : 4})
+
+#Añadir casos (para las dos últimas instrucciones) en los que los multiplicandos sean de hasta 32 bits, no sólo de 16, como 32767.
 
 
 
