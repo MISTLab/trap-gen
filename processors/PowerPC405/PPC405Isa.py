@@ -1157,7 +1157,7 @@ opCode = cxx_writer.writer_code.Code("""
 //prod0:63 ← (RA) × (RB) unsigned
 //(RT) ← prod0:31
 long long prod = ((int)ra) * ((unsigned int)rb)
-int rt = prod & 0x00000000ffffffff
+int rt = prod & 0xffffffff
 """)
 mulhwu_Instr = trap.Instruction('MULHWU', True)
 mulhwu_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,1,1,1,1,1], 'xo': [0,0,0,0,0,1,0,1,1]}, ('mulhwu r', '%rt', ' r', '%ra', ' r', '%rb'))
@@ -1192,7 +1192,9 @@ isa.addInstruction(mullhwu_Instr)
 
 #MULLI
 opCode = cxx_writer.writer_code.Code("""
-rt = (int)ra * exts(im); 
+//long long prod = (int)ra *  
+//TODO Unable to understand how to do EXTS function
+long long rt = (prod & 0x0000ffffff) >> 16
 //prod0:47 ← (RA) × EXTS(IM) signed
 //(RT) ← prod16:47
 """)
@@ -1205,7 +1207,8 @@ isa.addInstruction(mulli_Instr)
 
 #MULLW
 opCode = cxx_writer.writer_code.Code("""
-rt = (int)ra * (int)(signed)rb; 
+long long prod = (int)ra * (signed int) rb
+long long rt = ((prod & 0x00000000ffffffff) >> 32)
 //prod0:63 ← (RA) × (RB) signed
 //(RT) ← prod32:63
 """)
@@ -1218,7 +1221,7 @@ isa.addInstruction(mullw_Instr)
 
 #NAND
 opCode = cxx_writer.writer_code.Code("""
-ra = !((int)rs && (int)rb); 
+ra = ~((int)rs & (int)rb)
 //(RA) ← ¬((RS) ∧ (RB))
 """)
 nand_Instr = trap.Instruction('NAND', True)
@@ -1230,7 +1233,7 @@ isa.addInstruction(nand_Instr)
 
 #NEG
 opCode = cxx_writer.writer_code.Code("""
-rt = !((int)ra) + 1; 
+rt = ~((int)ra) + 1 //TODO Re-check
 //(RT) ← ¬(RA) + 1
 """)
 neg_Instr = trap.Instruction('NEG', True)
@@ -1245,6 +1248,9 @@ opCode = cxx_writer.writer_code.Code("""
 //nprod0:31 ← –((RA)16:31 x (RB)0:15) signed
 //temp0:32 ← nprod0:31 + (RT)
 //(RT) ← temp1:32
+long int nprod = ~(((int)ra & 0xffff0000) >> 16) * (((int)rb & 0x0000ffff) >> 0)
+unsigned long long temp = nprod + rt;
+rt = temp >> 1
 """)
 nmacchw_Instr = trap.Instruction('NMACCHW', True)
 nmacchw_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [0,1,0,1,0,1,1,1,0]}, ('nmacchw r', '%rt', ' r', '%ra', ' r', '%rb'))
@@ -1259,6 +1265,14 @@ opCode = cxx_writer.writer_code.Code("""
 //temp0:32 ← nprod0:31 + (RT)
 //if ((nprod0 = RT0) ∧ (RT0 ≠ temp1)) then (RT) ← (RT0 || 31(¬RT0))
 //else (RT) ← temp1:32
+long int nprod = ~(((int)ra & 0xffff0000) >> 16) * (((int)rb & 0x0000ffff) >> 0)
+unsigned long long temp = nprod + rt;
+//if(((nprod & 1) == (rt & 1)) & (rt & 1 != temp & 1)){
+//	rt = 
+//}
+//else{
+//	rt = temp >> 1
+//}TODO
 """)
 nmacchws_Instr = trap.Instruction('NMACCHWS', True)
 nmacchws_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [0,1,1,1,0,1,1,1,0]}, ('nmacchws r', '%rt', ' r', '%ra', ' r', '%rb'))
@@ -1272,6 +1286,9 @@ opCode = cxx_writer.writer_code.Code("""
 //nprod0:31 ← –((RA)0:15 x (RB)0:15) signed
 //temp0:32 ← nprod0:31 + (RT)
 //(RT) ← temp1:32
+long int nprod = ~(((int)ra & 0x0000ffff) >> 0) * (((int)rb & 0x0000ffff) >> 0)
+unsigned long long temp = nprod + rt;
+rt = temp >> 1
 """)
 nmachhw_Instr = trap.Instruction('NMACHHW', True)
 nmachhw_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [0,0,0,1,0,1,1,1,0]}, ('nmacchws r', '%rt', ' r', '%ra', ' r', '%rb'))
@@ -1286,6 +1303,10 @@ opCode = cxx_writer.writer_code.Code("""
 //temp0:32 ← nprod0:31 + (RT)
 //if ((nprod0 = RT0) ∧ (RT0 ≠ temp1)) then (RT) ← (RT0 || 31(¬RT0))
 //else (RT) ← temp1:32
+long int nprod = ~(((int)ra & 0xffff0000) >> 16) * (((int)rb & 0x0000ffff) >> 0)
+unsigned long long temp = nprod + rt;
+//TODO Implement the IF logic
+rt = temp >> 1
 """)
 nmachhws_Instr = trap.Instruction('NMACHHWS', True)
 nmachhws_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [0,0,1,1,0,1,1,1,0]}, ('nmacchws r', '%rt', ' r', '%ra', ' r', '%rb'))
@@ -1299,6 +1320,9 @@ opCode = cxx_writer.writer_code.Code("""
 //nprod0:31 ← –((RA)16:31 x (RB)16:31) signed
 //temp0:32 ← nprod0:31 + (RT)
 //(RT) ← temp1:32
+long int nprod = ~(((int)ra & 0xffff0000) >> 16) * (((int)rb & 0xffff0000) >> 16)
+unsigned long long temp = nprod + rt;
+rt = temp >> 1
 """)
 nmaclhw_Instr = trap.Instruction('NMACLHW', True)
 nmaclhw_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [1,1,0,1,0,1,1,1,0]}, ('nmaclhw r', '%rt', ' r', '%ra', ' r', '%rb'))
@@ -1313,6 +1337,11 @@ opCode = cxx_writer.writer_code.Code("""
 //temp0:32 ← nprod0:31 + (RT)
 //if ((nprod0 = RT0) ∧ (RT0 ≠ temp1)) then (RT) ← (RT0 || 31(¬RT0))
 //else (RT) ← temp1:32
+long int nprod = ~(((int)ra & 0xffff0000) >> 16) * (((int)rb & 0xffff0000) >> 16)
+unsigned long long temp = nprod + rt;
+//Need to implement the IF Code
+rt = temp >> 1
+
 """)
 nmaclhws_Instr = trap.Instruction('NMACLHWS', True)
 nmaclhws_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [1,1,1,1,0,1,1,1,0]}, ('nmaclhws r', '%rt', ' r', '%ra', ' r', '%rb'))
@@ -1323,7 +1352,7 @@ isa.addInstruction(nmaclhws_Instr)
 
 #NOR
 opCode = cxx_writer.writer_code.Code("""
-ra = !((int)rs || (int)rb)
+ra = ~((int)rs | (int)rb)
 //(RA) ← ¬((RS) ∨ (RB))
 """)
 nor_Instr = trap.Instruction('NOR', True)
@@ -1335,7 +1364,7 @@ isa.addInstruction(nor_Instr)
 
 #OR
 opCode = cxx_writer.writer_code.Code("""
-ra = ((int)rs || (int)rb)
+ra = ((int)rs | (int)rb)
 //(RA) ← (RS) ∨ (RB)
 """)
 or_Instr = trap.Instruction('OR', True)
@@ -1347,7 +1376,7 @@ isa.addInstruction(or_Instr)
 
 #ORC
 opCode = cxx_writer.writer_code.Code("""
-ra = ((int)rs || !(int)rb)
+ra = ((int)rs | ~(int)rb)
 //(RA) ← (RS) ∨ ¬(RB)
 """)
 orc_Instr = trap.Instruction('ORC', True)
