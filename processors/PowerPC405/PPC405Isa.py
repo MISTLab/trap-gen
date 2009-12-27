@@ -1089,9 +1089,11 @@ mtspr_Instr.setCode(opCode,'execute')
 mtspr_Instr.addBehavior(IncrementPC, 'execute')
 #mtspr_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
 isa.addInstruction(mtspr_Instr)
+
 #MULCHW
 opCode = cxx_writer.writer_code.Code("""
-rt = (int)ra * (int)(signed)rb; //rb is signed
+//(RT)0:31 ← (RA)16:31 x (RB)0:15 signed
+int rt = (((int)ra & 0xffff0000) >> 16) * (((int)rb & 0x0000ffff) >> 0)
 """)
 mulchw_Instr = trap.Instruction('MULCHW', True)
 mulchw_Instr.setMachineCode(oper_Xform_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [0,1,0,1,0,1,0,0,0]}, ('mulchw r', '%rt', ' r', '%ra', ' r', '%rb'))
@@ -1099,9 +1101,11 @@ mulchw_Instr.setCode(opCode,'execute')
 mulchw_Instr.addBehavior(IncrementPC, 'execute')
 #mulchw_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
 isa.addInstruction(mulchw_Instr)
+
 #MULCHWU
 opCode = cxx_writer.writer_code.Code("""
-rt = (int)ra * (int)(unsigned)rb; //rb is unsigned
+//(RT)0:31 ← (RA)16:31 x (RB)0:15 unsigned
+int rt = (((int)ra & 0xffff0000) >> 16) * (((unsigned int)rb & 0x0000ffff) >> 0)
 """)
 mulchwu_Instr = trap.Instruction('MULCHWU', True)
 mulchwu_Instr.setMachineCode(oper_Xform_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [0,1,0,0,0,1,0,0,0]}, ('mulchwu r', '%rt', ' r', '%ra', ' r', '%rb'))
@@ -1112,7 +1116,8 @@ isa.addInstruction(mulchwu_Instr)
 
 #MULHHW
 opCode = cxx_writer.writer_code.Code("""
-rt = (int)ra * (int)(signed)rb; //rb is signed
+//(RT)0:31 ← (RA)0:15 x (RB)0:15 signed
+int rt = (((int)ra & 0x0000ffff) >> 0) * (((int)rb & 0x0000ffff) >> 0)
 """)
 mulhhw_Instr = trap.Instruction('MULHHW', True)
 mulhhw_Instr.setMachineCode(oper_Xform_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [0,0,0,1,0,1,0,0,0]}, ('mulhhw r', '%rt', ' r', '%ra', ' r', '%rb'))
@@ -1123,7 +1128,8 @@ isa.addInstruction(mulhhw_Instr)
 
 #MULHHWU
 opCode = cxx_writer.writer_code.Code("""
-rt = (int)ra * (int)(unsigned)rb; //rb is unsigned
+//(RT)0:31 ← (RA)0:15 x (RB)0:15 unsigned
+int rt = (((int)ra & 0x0000ffff) >> 0) * (((unsigned int)rb & 0x0000ffff) >> 0)
 """)
 mulhhwu_Instr = trap.Instruction('MULHHWU', True)
 mulhhwu_Instr.setMachineCode(oper_Xform_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [0,0,0,0,0,1,0,0,0]}, ('mulhhwu r', '%rt', ' r', '%ra', ' r', '%rb'))
@@ -1134,9 +1140,10 @@ isa.addInstruction(mulhhwu_Instr)
 
 #MULHW
 opCode = cxx_writer.writer_code.Code("""
-rt = (int)ra * (int)(signed)rb; //rb is signed
 //prod0:63 ← (RA) × (RB) signed
 //(RT) ← prod0:31
+long long prod = ((int)ra) * ((int)rb)
+int rt = prod & 0x00000000ffffffff
 """)
 mulhw_Instr = trap.Instruction('MULHW', True)
 mulhw_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,1,1,1,1,1], 'xo': [0,0,1,0,0,1,0,1,1]}, ('mulhw r', '%rt', ' r', '%ra', ' r', '%rb'))
@@ -1147,9 +1154,10 @@ isa.addInstruction(mulhw_Instr)
 
 #MULHWU
 opCode = cxx_writer.writer_code.Code("""
-rt = (int)ra * (int)(unsigned)rb; //rb is unsigned
 //prod0:63 ← (RA) × (RB) unsigned
 //(RT) ← prod0:31
+long long prod = ((int)ra) * ((unsigned int)rb)
+int rt = prod & 0x00000000ffffffff
 """)
 mulhwu_Instr = trap.Instruction('MULHWU', True)
 mulhwu_Instr.setMachineCode(oper_X0form_1, {'primary_opcode': [0,1,1,1,1,1], 'xo': [0,0,0,0,0,1,0,1,1]}, ('mulhwu r', '%rt', ' r', '%ra', ' r', '%rb'))
@@ -1160,8 +1168,8 @@ isa.addInstruction(mulhwu_Instr)
 
 #MULLHW
 opCode = cxx_writer.writer_code.Code("""
-rt = (int)ra * (int)(signed)rb; //rb is signed
 //(RT)0:31 ← (RA)16:31 x (RB)16:31 signed
+int rt = ((int)ra & 0xffff0000) * ((int)rb & 0xffff0000) 
 """)
 mullhw_Instr = trap.Instruction('MULLHW', True)
 mullhw_Instr.setMachineCode(oper_Xform_1, {'primary_opcode': [0,0,0,1,0,0], 'xo': [1,1,0,1,0,1,0,0,0]}, ('mullhw r', '%rt', ' r', '%ra', ' r', '%rb'))
@@ -1172,7 +1180,7 @@ isa.addInstruction(mullhw_Instr)
 
 #MULLHWU
 opCode = cxx_writer.writer_code.Code("""
-rt = (int)ra * (int)(signed)rb; //rb is signed
+int rt = ((int)ra & 0xffff0000) * ((unsigned int)rb & 0xffff0000)
 //(RT)0:31 ← (RA)16:31 x (RB)16:31 unsigned
 """)
 mullhwu_Instr = trap.Instruction('MULLHWU', True)
@@ -1181,6 +1189,7 @@ mullhwu_Instr.setCode(opCode,'execute')
 mullhwu_Instr.addBehavior(IncrementPC, 'execute')
 #mullhwu_Instr.addTest({'rt': 3, 'ra': 1, 'rb': 2}, {'GPR[1]': 4, 'GPR[2]': 6, 'GPR[3]': 0xfffff, 'PC':0x0, 'GPR[4]':0x00000000, 'GPR[5]':0xffffffff}, {'GPR[3]': 10, 'PC':0x4, 'GPR[4]':0x00000000})
 isa.addInstruction(mullhwu_Instr)
+
 #MULLI
 opCode = cxx_writer.writer_code.Code("""
 rt = (int)ra * exts(im); 
