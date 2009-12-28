@@ -1,4 +1,3 @@
-#Defining the instructions by family. Alphabetical order (according to the instructions) is being used.
 # -*- coding: iso-8859-1 -*-
 ####################################################################################
 #         ___        ___           ___           ___
@@ -122,14 +121,27 @@ isa.addDefines("""
 #
 
 opCode = cxx_writer.writer_code.Code("""
-signed long temp = rs + rt;
-signed long long temp1 = (signed long long)rs+ (signed long long)rt;
-signed long long temp2 = rs + rt;
-if (temp1 - temp2 != 0){
-	rd = 0x33333333;	//Eliminar cuando se hayan agregado las excepciones
+long long opr1 = (rs & 0x80000000);
+//    std::cout << "opr1: " << opr1 << std::endl;
+opr1 = opr1<<1 |rs;
+//    std::cout << "opr1: " << opr1 << std::endl;
+long long opr2 = (rt & 0x80000000);
+//    std::cout << "opr2: " << opr2 << std::endl;
+opr2 = opr2<<1 |rt;
+//    std::cout << "opr2: " << opr2 << std::endl;
+long long temp32 = opr1+opr2;
+long long temp31 = rs + rt;
+//    std::cout << "temp32: " << temp32 << ". temp31: "<< temp31 << "." << std::endl;
+//long long tempo1=(temp32 & 0x100000000)>>32;
+//long long tempo2=(temp31 & 0x80000000)>>31;
+//    std::cout << "bit32: " << tempo1 << ". bit31: "<< tempo2 << "." << std::endl;
+
+if (((temp32 & 0x100000000)>>32) != ((temp31 & 0x80000000)>>31)){
+//    std::cout << "Exception Entered." << std::endl;
 	RaiseException(OV);
 }else{
-	rd = (int)temp;
+//    std::cout << "Exception not Entered."<< std::endl;
+	rd = temp31;
 }
 """)
 add_reg_Instr = trap.Instruction('ADD', True)
@@ -140,14 +152,17 @@ isa.addInstruction(add_reg_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
-signed long long temp = rs + SignExtend(immediate,16);
-signed long long temp1 = (signed long long)rs+ (signed long long)rt;
-signed long long temp2 = rs + rt;
-if (temp1 - temp2 != 0){
-	rt = 0x00000001;	//Eliminar cuando se hayan agregado las excepciones
+long long opr1 = (rs & 0x80000000);
+opr1 = opr1<<1 |rs;
+long long opr2 = (SignExtend(immediate,16) & 0x80000000);
+opr2 = opr2<<1 |SignExtend(immediate,16);
+long long temp32 = opr1+opr2;
+long long temp31 = rs + SignExtend(immediate,16);
+
+if (((temp32 & 0x100000000)>>32) != ((temp31 & 0x80000000)>>31)){
 	RaiseException(OV);
 }else{
-	rt = temp;
+	rt = temp31;
 }
 """)
 addi_imm_Instr = trap.Instruction('ADDI', True)
@@ -209,9 +224,9 @@ isa.addInstruction(andi_imm_Instr)
 opCode = cxx_writer.writer_code.Code("""
 bool br = ( (rs == rt && op4 == 0) || (rs != rt && op4 == 0x1) );
 	if (op2 == 0){
-		PC = SimpleBranch(br,(int)SignExtend(immediate,16));
+		PC = SimpleBranch(br,(int)SignExtend(immediate<<2,18));
 	}else{
-		PC = LikelyBranch(br,(int)SignExtend(immediate,16));
+		PC = LikelyBranch(br,(int)SignExtend(immediate<<2,18));
 	}
 """)	#Specify correctly the jump instruction
 b2r_imm_Instr = trap.Instruction('BRANCH2REGISTERS', True)
@@ -219,16 +234,16 @@ b2r_imm_Instr.setMachineCode(b_format1,{'op3': [0,1,0]},
 ('b', ('%op4', {int('1',2):'ne', int('0',2):'eq'}), ('%op2', {int('1',2):'l'}),
  ' r', '%rs', ',', ' r', '%rt', ',', ' r', '%immediate'))
 b2r_imm_Instr.setCode(opCode, 'execution')
-#b2r_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
+b2r_imm_Instr.addBehavior(NoIncrementPC,'execution')	#Check if more behaviors need to be added
 isa.addInstruction(b2r_imm_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
 bool br = ( ((int)rs<=0 && op4 == 0) || ((int)rs>0 && op4 == 0x1) );
 	if (op2 == 0){
-		PC = SimpleBranch(br,(int)SignExtend(immediate,16));
+		PC = SimpleBranch(br,(int)SignExtend(immediate<<2,18));
 	}else{
-		PC = LikelyBranch(br,(int)SignExtend(immediate,16));
+		PC = LikelyBranch(br,(int)SignExtend(immediate<<2,18));
 	}
 """)
 bz_imm_Instr = trap.Instruction('BRANCHZ', True)
@@ -236,7 +251,7 @@ bz_imm_Instr.setMachineCode(b_format1,{'op3': [0,1,1]},
 ('b', ('%op4', {int('1',2):'gtz', int('0',2):'lez'}), ('%op2', {int('1',2):'l'}),
  ' r', '%rs', ',', ' r', '%immediate'))
 bz_imm_Instr.setCode(opCode, 'execution')
-#bz_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
+bz_imm_Instr.addBehavior(NoIncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(bz_imm_Instr)
 
 
@@ -246,9 +261,9 @@ bool br = ( ((int)rs<0 && (rt3 == 0x0 || rt3 == 0x2)) || ((int)rs>=0 && (rt3 == 
 		GPR[31] = PC+8;
 	}
 	if (rt3 == 0x0 || rt3 == 0x1){
-		PC = SimpleBranch(br,(int)SignExtend(immediate,16));
+		PC = SimpleBranch(br,(int)SignExtend(immediate<<2,18));
 	}else{
-		PC = LikelyBranch(br,(int)SignExtend(immediate,16));
+		PC = LikelyBranch(br,(int)SignExtend(immediate<<2,18));
 	}
 """)
 breg_imm_Instr = trap.Instruction('BRANCHREGIMM', True)
@@ -258,7 +273,7 @@ breg_imm_Instr.setMachineCode(b_format2,{},
  ('%rt3', {int('10', 2):'l', int('11', 2):'l'}),
  ' r', '%rs', ',', ' r', '%immediate'))
 breg_imm_Instr.setCode(opCode, 'execution')
-#breg_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
+breg_imm_Instr.addBehavior(NoIncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(breg_imm_Instr)
 
 
@@ -385,78 +400,92 @@ isa.addInstruction(divu_reg_Instr)
 #JUMP Instruction Family
 #
 
-#Revisar estas funciones de la familia jump
+#Revisar estas funciones de la familia jump -- hay que configurar los aliases, entonces la forma de acceder al registro AC puede ser que cambie
 
 opCode = cxx_writer.writer_code.Code("""
-//if (op2 == 0b1){
-//GPR[31] = PC+8;
-//}
-//NPC = (PC[31:28]<<28) + (target<<2);
+if (op2 == 1){
+	GPR[31] = PC+8;
+}
+PC = (PC&0xF0000000) + (target<<2);
 """)
 j_jump_Instr = trap.Instruction('JUMP', True)
 j_jump_Instr.setMachineCode(jump_format,{},('j', ('%op2',{int('1',2):'al'}), ' r', '%target'))
 j_jump_Instr.setCode(opCode, 'execution')
-j_jump_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
+j_jump_Instr.addBehavior(NoIncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(j_jump_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
-//if (function == 0b001001){
-//rd = PC+8;
-//}
-//if (CA == 0){
-//	NPC = rs;
-//} else {
-//	NPC = rs<<1;
-//}
+if (CONFIG1[key_CA] == 0){
+	PC = rs;
+} else {
+	PC = rs<<1;
+}
 """)
 jr_jump_Instr = trap.Instruction('JUMPR', True)
 jr_jump_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function': [0, 0, 1, 0, 0, 0]},('jr', ' r', '%rs'))
 jr_jump_Instr.setCode(opCode, 'execution')
-jr_jump_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
+jr_jump_Instr.addBehavior(NoIncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(jr_jump_Instr)
 
 
+opCode = cxx_writer.writer_code.Code("""
+rd = PC+8;
+if (CONFIG1[key_CA] == 0){
+	PC = rs;
+} else {
+	PC = rs<<1;
+}
+""")
 jlr_jump_Instr = trap.Instruction('JUMPLR', True)
 jlr_jump_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function': [0, 0, 1, 0, 0, 1]},('jalr', ' r', '%rs', ',', ' r', '%rd'))
 jlr_jump_Instr.setCode(opCode, 'execution')
-jlr_jump_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
+jlr_jump_Instr.addBehavior(NoIncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(jlr_jump_Instr)
-
 
 
 #
 #LOAD Instruction Family
 #
 
-opCode = cxx_writer.writer_code.Code("""	//ASK HOW DOES DATAMEM READS, ACCORDING TO ENDIANESS
+opCode = cxx_writer.writer_code.Code("""
 long result;
 long address = SignExtend(immediate,16)+rs;
+if (address >= 2048000000 || address < 0)
+	RaiseException(ADEL_FETCH);
 if ( ((address%2) != 0 ) && op3 == 0x01)
 	RaiseException(ADEL);
-if (op3 == 0)
+if ( ((address%4) != 0 ) && op3 == 0x03)
+	RaiseException(ADEL);
+if (op3 == 0){
 	result = dataMem.read_byte(address);
-if (op3 == 0b01)
+	result = SignExtend(result,8);
+}
+if (op3 == 0b01){
 	result = dataMem.read_half(address);
-if (op3 == 0b11)
-	result = dataMem.read_word(address);
-if (op3 != 0b10)
 	result = SignExtend(result,16);
+}
+if (op3 == 0b11){
+	result = dataMem.read_word(address);
+}
 if (op3 == 0b10){
-	short bytes = address & 0x0003;	//This change was made much after the coding was done
-	address = address & 0xFFFC;
+	short bytes = address & 0x00000003;
+	address = address & 0xFFFFFFFC;
 	long aux1;
 	long aux2 = rt;
-		aux1 = dataMem.read_word(address)<<bytes;
+		aux1 = dataMem.read_word(address)<<(bytes*8);
 		switch(bytes){
+			case 0x0:{
+				aux2 = aux2 & 0x00000000;
+			break;}
 			case 0x1:{
-				aux2 = aux2 & 0x0FFF;
+				aux2 = aux2 & 0x00000FF;
 			break;}
 			case 0x2:{
-				aux2 = aux2 & 0x00FF;
+				aux2 = aux2 & 0x0000FFFF;
 			break;}
 			case 0x3:{
-				aux2 = aux2 & 0x000F;
+				aux2 = aux2 & 0x00FFFFFF;
 			break;}
 			default:{
 			break;}
@@ -471,13 +500,15 @@ load_imm_Instr.setMachineCode(s_format,{'op': [1, 0, 0], 'op2': [0]},
  ' r', '%rt', ',', ' r', '%immediate', '(', 'r', '%rs', ')'))
 load_imm_Instr.setCode(opCode, 'execution')
 load_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
-							#Throw exceptions (Address error, for LH also bus error.)
+							#Throw exceptions (for LH also bus error.)
 isa.addInstruction(load_imm_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""	//ASK HOW DOES DATAMEM READS, ACCORDING TO ENDIANESS
 long result;
 long address = SignExtend(immediate,16)+rs;
+if (address >= 2048000000 || address < 0)
+	RaiseException(ADEL_FETCH);
 if ( ((address%2) != 0 ) && op3 == 0x01)
 	RaiseException(ADEL);
 if (op3 == 0)
@@ -486,23 +517,24 @@ if (op3 == 0b01)
 	result = dataMem.read_half(address);
 if (op3 == 0b11)
 	result = dataMem.read_word(address);
-if (op3 != 0b10)
-	result = (unsigned)result;
 if (op3 == 0b10){
-	short bytes = address & 0x0003;	//This change was made much after the coding was done
-	address = address & 0xFFFC;
+	short bytes = address & 0x0003;
+	address = address & 0xFFFFFFFC;
 	long aux1;
 	long aux2 = rt;
-		aux1 = dataMem.read_word(address)>>(bytes^0x3);
+		aux1 = dataMem.read_word(address)>>((3-bytes)*8);
 		switch(bytes){
+			case 0x0:{
+				aux2 = aux2 & 0xFFFFFF00;
+			break;}
 			case 0x1:{
-				aux2 = aux2 & 0xFFF0;
+				aux2 = aux2 & 0xFFFF0000;
 			break;}
 			case 0x2:{
-				aux2 = aux2 & 0xFF00;
+				aux2 = aux2 & 0xFF000000;
 			break;}
 			case 0x3:{
-				aux2 = aux2 & 0xFFF0;
+				aux2 = aux2 & 0x00000000;
 			break;}
 			default:{
 			break;}
@@ -523,6 +555,8 @@ isa.addInstruction(load2_imm_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
 long address = SignExtend(immediate,16)+rs;
+if (address >= 2048000000 || address < 0)
+	RaiseException(ADEL_FETCH);
 if ((address%4) != 0)
 	RaiseException(ADEL);
 rt = dataMem.read_word(address);
@@ -770,7 +804,7 @@ isa.addInstruction(or_reg_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
-	rs = immediate | rt;
+	rt = immediate | rs;
 """)
 or_imm_Instr = trap.Instruction('ORI', True)
 or_imm_Instr.setMachineCode(immediate_format,{'opcode': [0, 0, 1, 1, 0, 1]},
@@ -794,6 +828,8 @@ isa.addInstruction(or_imm_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
 long address = SignExtend(immediate,16) + rs;
+if (address >= 2048000000 || address < 0)
+	RaiseException(ADES);
 dataMem.write_byte(address, rt);
 """)
 sb_imm_Instr = trap.Instruction('SB', True)
@@ -807,11 +843,14 @@ isa.addInstruction(sb_imm_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
 long address = SignExtend(immediate,16) + rs;
+if (address >= 2048000000 || address < 0)
+	RaiseException(ADES);
 if ( (address%4) != 0 )
 	RaiseException(ADES);
 if (LLbit)
 	dataMem.write_word(address, rt);
-rt = 0x0000 | LLbit;
+rt = 0x0 | LLbit;
+LLbit= 0;
 """)
 sc_imm_Instr = trap.Instruction('SC', True)
 sc_imm_Instr.setMachineCode(immediate_format,{'opcode': [1, 1, 1, 0, 0, 0]},
@@ -825,6 +864,8 @@ isa.addInstruction(sc_imm_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
 long address = SignExtend(immediate,16) + rs;
+if (address >= 2048000000 || address < 0)
+	RaiseException(ADES);
 if ( (address%2) != 0 )
 	RaiseException(ADES);
 dataMem.write_half(address, rt);
@@ -839,6 +880,8 @@ isa.addInstruction(sh_imm_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
 long address = SignExtend(immediate,16) + rs;
+if (address >= 2048000000 || address < 0)
+	RaiseException(ADES);
 if ( (address%4) != 0 )
 	RaiseException(ADES);
 dataMem.write_word(address, rt);
@@ -853,33 +896,31 @@ isa.addInstruction(sw_imm_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
 long address = SignExtend(immediate,16) + rs;
-short bytes = address & 0x0003;	//verificar esta función, le agregué el & luego después sin estar segura
-address = address & 0xFFFC;
+if (address >= 2048000000 || address < 0)
+	RaiseException(ADES);
+short bytes = address & 0x3;
+address = address & 0xFFFFFFFC;
 long aux1 = dataMem.read_word(address);
 long result;
-
+	rt = rt>>(bytes*8);
 	switch(bytes){
 		case 0x0:{
-			rt = 0x0000;
+			aux1 = 0x0;
 		break;}
 		case 0x1:{
-			rt = rt & 0x0FFF;
-			aux1 = aux1 & 0xF000;
+			aux1 = aux1 & 0xFF000000;
 		break;}
 		case 0x2:{
-			rt = rt & 0x00FF;
-			aux1 = aux1 & 0xFF00;
+			aux1 = aux1 & 0xFFFF0000;
 		break;}
 		case 0x3:{
-			rt = rt & 0x000F;
-			aux1 = aux1 & 0xFFF0;
+			aux1 = aux1 & 0xFFFFFF00;
 		break;}
 		default:{
 		break;}
 	}
 
-	result = rt | aux1;
-	
+	result = rt | aux1;	
 dataMem.write_word(address, result);
 """)
 swl_imm_Instr = trap.Instruction('SWL', True)
@@ -893,26 +934,26 @@ isa.addInstruction(swl_imm_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
 long address = SignExtend(immediate,16) + rs;
-short bytes = address & 0x0003; //verificar esta función, le agregué el & luego después sin estar segura
+if (address >= 2048000000 || address < 0)
+	RaiseException(ADES);
+short bytes = address & 0x0003;
 address = address & 0xFFFC;
 long aux1 = dataMem.read_word(address);
 long result;
+	rt = rt<<((3-bytes)*8);
 
 	switch(bytes){
 		case 0x0:{
-			rt = (rt & 0x000F) << 24;
-			aux1 = aux1 & 0x0FFF;
+			aux1 = aux1 & 0x00FFFFFF;
 		break;}
 		case 0x1:{
-			rt = (rt & 0x00FF) << 16;
-			aux1 = aux1 & 0x00FF;
+			aux1 = aux1 & 0x0000FFFF;
 		break;}
 		case 0x2:{
-			rt = (rt & 0x0FFF) << 8;
-			aux1 = aux1 & 0x000F;
+			aux1 = aux1 & 0x000000FF;
 		break;}
 		case 0x3:{
-			aux1 = 0x0000;
+			aux1 = 0x00000000;
 		break;}
 		default:{
 		break;}
@@ -984,8 +1025,8 @@ isa.addInstruction(sllv_reg_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
-long temp = 0x0000;
-long sign = 0x8000;
+long temp = 0x0;
+long sign = (0x80000000 & rt);
 for (int x=0; x<sa; x++ ){
 	temp = temp | sign;
 	sign = sign>>1;
@@ -1003,7 +1044,7 @@ isa.addInstruction(sra_reg_Instr)
 opCode = cxx_writer.writer_code.Code("""
 short shift = rs & 0x001F;
 long temp = 0x0000;
-long sign = 0x8000;
+long sign = (0x80000000 & rt);
 for (int x=0; x<shift; x++ ){
 	temp = temp | sign;
 	sign = sign>>1;
@@ -1048,7 +1089,7 @@ isa.addInstruction(srlv_reg_Instr)
 #
 
 opCode = cxx_writer.writer_code.Code("""
-if (rs < rt ){
+if ((int)rs < (int)rt ){
 	rd = 0x0001;
 }else{
 	rd = 0x0000;
@@ -1063,7 +1104,7 @@ isa.addInstruction(slt_reg_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
-if (rs < SignExtend(immediate,16) ){
+if ((int)rs < (int)(SignExtend(immediate,16)) ){
 	rt = 0x0001;
 }else{
 	rt = 0x0000;
@@ -1078,7 +1119,7 @@ isa.addInstruction(slti_imm_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
-if ((unsigned)rs < (unsigned)SignExtend(immediate,16) ){
+if ((unsigned) ((int)rs) < (unsigned int)(SignExtend(immediate,16)) ){
 	rt = 0x0001;
 }else{
 	rt = 0x0000;
@@ -1093,7 +1134,7 @@ isa.addInstruction(sltiu_imm_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
-if ((unsigned)rs < (unsigned)rt ){
+if ((unsigned int)rs < (unsigned int)rt ){
 	rd = 0x0001;
 }else{
 	rd = 0x0000;
@@ -1113,11 +1154,26 @@ isa.addInstruction(sltu_reg_Instr)
 #
 
 opCode = cxx_writer.writer_code.Code("""
-long long temp32 = (((rs | 0x8000) << 1) | rs) - (((rt | 0x8000) << 1) | rt) ;
-long temp31 = rs - rt;
-if (temp32 != temp31){
+long long opr1 = (rs & 0x80000000);
+//    std::cout << "opr1: " << opr1 << std::endl;
+opr1 = opr1<<1 |rs;
+//    std::cout << "opr1: " << opr1 << std::endl;
+long long opr2 = (rt & 0x80000000);
+//    std::cout << "opr2: " << opr2 << std::endl;
+opr2 = opr2<<1 |rt;
+//    std::cout << "opr2: " << opr2 << std::endl;
+long long temp32 = opr1-opr2;
+long long temp31 = rs - rt;
+//    std::cout << "temp32: " << temp32 << ". temp31: "<< temp31 << "." << std::endl;
+//long long tempo1=(temp32 & 0x100000000)>>32;
+//long long tempo2=(temp31 & 0x80000000)>>31;
+//    std::cout << "bit32: " << tempo1 << ". bit31: "<< tempo2 << "." << std::endl;
+
+if (((temp32 & 0x100000000)>>32) != ((temp31 & 0x80000000)>>31)){
+//    std::cout << "Exception Entered." << std::endl;
 	RaiseException(OV);
 }else{
+//    std::cout << "Exception not Entered."<< std::endl;
 	rd = temp31;
 }
 """)
@@ -1176,16 +1232,8 @@ opCodeOperandsI = cxx_writer.writer_code.Code("""
 opr1 = rs;
 opr2 = SignExtend(immediate,16);
 """)
-opCodeOperandsU = cxx_writer.writer_code.Code("""
-opr1 = (unsigned)rs;
-opr2 = (unsigned)rt;
-""")
-opCodeOperandsIU = cxx_writer.writer_code.Code("""
-opr1 = (unsigned)rs;
-opr2 = (unsigned)SignExtend(immediate,16);
-""")
 opCodeCondition = cxx_writer.writer_code.Code("""
-cond = (opr1==opr2);
+cond = ((signed int)opr1==(signed int)opr2);
 """)
 opCodeCompare = cxx_writer.writer_code.Code("""
 if (cond)
@@ -1217,7 +1265,7 @@ isa.addInstruction(teqi_reg_Instr)
 
 
 opCodeCondition = cxx_writer.writer_code.Code("""
-cond = (opr1>=opr2);
+cond = ((signed int)opr1 >= (signed int)opr2);
 """)
 tge_reg_Instr = trap.Instruction('TGE', True)
 tge_reg_Instr.setMachineCode(trap_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[1, 1, 0, 0, 0, 0]},
@@ -1243,10 +1291,13 @@ tgei_reg_Instr.addVariable(('opr2', 'BIT<32>'))
 tgei_reg_Instr.addVariable(('cond', 'BIT<1>'))
 isa.addInstruction(tgei_reg_Instr)
 
+opCodeCondition = cxx_writer.writer_code.Code("""
+cond = ((unsigned int)opr1 >= (unsigned int)opr2);
+""")
 tgeiu_reg_Instr = trap.Instruction('TGEIU', True)
 tgeiu_reg_Instr.setMachineCode(immediate_trap_format,{'opcode': [0, 0, 0, 0, 0, 1], 'rt': [0, 1, 0, 0, 1]},
 ('tgeiu', ' r', '%rs', ',', ' r', '%immediate'))
-tgeiu_reg_Instr.setCode(opCodeOperandsIU, 'execution1')
+tgeiu_reg_Instr.setCode(opCodeOperandsI, 'execution1')
 tgeiu_reg_Instr.setCode(opCodeCondition, 'execution2')
 tgeiu_reg_Instr.setCode(opCodeCompare, 'execution')
 tgeiu_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
@@ -1258,7 +1309,7 @@ isa.addInstruction(tgeiu_reg_Instr)
 tgeu_reg_Instr = trap.Instruction('TGEU', True)
 tgeu_reg_Instr.setMachineCode(trap_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[1, 1, 0, 0, 0, 1]},
 ('tgeu', ' r', '%rs', ',', ' r', '%rt'))
-tgeu_reg_Instr.setCode(opCodeOperandsU, 'execution1')
+tgeu_reg_Instr.setCode(opCodeOperands, 'execution1')
 tgeu_reg_Instr.setCode(opCodeCondition, 'execution2')
 tgeu_reg_Instr.setCode(opCodeCompare, 'execution')
 tgeu_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
@@ -1268,7 +1319,7 @@ tgeu_reg_Instr.addVariable(('cond', 'BIT<1>'))
 isa.addInstruction(tgeu_reg_Instr)
 
 opCodeCondition = cxx_writer.writer_code.Code("""
-cond = (opr1<opr2);
+cond = ((signed int)opr1<(signed int)opr2);
 """)
 tlt_reg_Instr = trap.Instruction('TLT', True)
 tlt_reg_Instr.setMachineCode(trap_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[1, 1, 0, 0, 1, 0]},
@@ -1294,10 +1345,13 @@ tlti_reg_Instr.addVariable(('opr2', 'BIT<32>'))
 tlti_reg_Instr.addVariable(('cond', 'BIT<1>'))
 isa.addInstruction(tlti_reg_Instr)
 
+opCodeCondition = cxx_writer.writer_code.Code("""
+cond = ((unsigned int)opr1<(unsigned int)opr2);
+""")
 tltiu_reg_Instr = trap.Instruction('TLTIU', True)
 tltiu_reg_Instr.setMachineCode(immediate_trap_format,{'opcode': [0, 0, 0, 0, 0, 1], 'rt': [0, 1, 0, 1, 1]},
 ('tltiu', ' r', '%rs', ',', ' r', '%immediate'))
-tltiu_reg_Instr.setCode(opCodeOperandsIU, 'execution1')
+tltiu_reg_Instr.setCode(opCodeOperandsI, 'execution1')
 tltiu_reg_Instr.setCode(opCodeCondition, 'execution2')
 tltiu_reg_Instr.setCode(opCodeCompare, 'execution')
 tltiu_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
@@ -1309,7 +1363,7 @@ isa.addInstruction(tltiu_reg_Instr)
 tltu_reg_Instr = trap.Instruction('TLTU', True)
 tltu_reg_Instr.setMachineCode(trap_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[1, 1, 0, 0, 1, 1]},
 ('tltu', ' r', '%rs', ',', ' r', '%rt'))
-tltu_reg_Instr.setCode(opCodeOperandsU, 'execution1')
+tltu_reg_Instr.setCode(opCodeOperands, 'execution1')
 tltu_reg_Instr.setCode(opCodeCondition, 'execution2')
 tltu_reg_Instr.setCode(opCodeCompare, 'execution')
 tltu_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added

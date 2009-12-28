@@ -75,7 +75,7 @@ if (br == 1){	//This should be done while the next instruction is being fetch, b
 	PC += offset;
 }else{
 	PC += 4;
-	//anull(); //Not to execute the branch slot. As we are not working with pipeline, this makes no difference.
+	annull(); //Not to execute the branch slot. As we are not working with pipeline, this makes no difference.
 }
 return PC;
 """)
@@ -85,9 +85,9 @@ LikelyBranch_method.setSignature(('BIT<32>'), [('br', 'BIT<1>'),('offset', 'BIT<
 # Exceptions
 raiseExcCode =  """
 long vectorOffset = 0;
+    //std::cout << "Exception Entered " << exceptionId << std::endl;
 
-printf("Error");
-
+LLbit = 0;
 
 annull();
 
@@ -102,6 +102,11 @@ opCode = cxx_writer.writer_code.Code("""
 PC += 4;
 """)
 IncrementPC = trap.HelperOperation('IncrementPC', opCode, exception = False)
+
+#No Increment PC
+opCode = cxx_writer.writer_code.Code("""
+""")
+NoIncrementPC = trap.HelperOperation('NoIncrementPC', opCode, exception = False)
 
 
 

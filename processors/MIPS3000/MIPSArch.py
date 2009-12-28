@@ -163,6 +163,7 @@ processor.addRegister(DESAVE)
 #processor.addAliasReg(LowOrderCache)
 #LLbit
 LLbit = trap.Register('LLbit',1)
+LLbit.setDefaultValue(0)
 processor.addRegister(LLbit)
 
 #
@@ -263,7 +264,12 @@ irq.setOperation("""//Basically, what I have to do when
 # Now it is time to add the pipeline stages
 executionStage = trap.PipeStage('execution1')
 executionStage.setCheckTools()
+executionStage.setCheckUnknownInstr()
 processor.addPipeStage(executionStage)
+execution2Stage = trap.PipeStage('execution2')
+execution2Stage.setCheckTools()
+execution2Stage.setCheckUnknownInstr()
+processor.addPipeStage(execution2Stage)
 executeStage = trap.PipeStage('execution')
 executeStage.setHazard()
 executeStage.setCheckUnknownInstr()
