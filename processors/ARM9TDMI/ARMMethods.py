@@ -97,7 +97,7 @@ CPSR[key_C] = (((operand1 ^ operand2 ^ ((unsigned int)(resultSign >> 1))) & 0x80
 CPSR[key_V] = ((((unsigned int)(resultSign >> 1)) ^ ((unsigned int)resultSign)) & 0x80000000) != 0;
 """)
 UpdatePSRAdd_method = trap.HelperMethod('UpdatePSRAddInner', opCode, 'execute')
-UpdatePSRAdd_method.setSignature(parameters = [('operand1', 'BIT<32>'), ('operand2', 'BIT<32>'), ('carry', 'BIT<1>')])
+UpdatePSRAdd_method.setSignature(parameters=[('operand1', 'BIT<32>'), ('operand2', 'BIT<32>'), ('carry', 'BIT<1>')])
 
 opCode = cxx_writer.writer_code.Code("""
 long long resultSign = (long long)((long long)((int)operand1) - (long long)((int)operand2)) - (long long)((int)carry);
@@ -113,7 +113,7 @@ CPSR[key_C] = (((operand1 ^ operand2 ^ ((unsigned int)(resultSign >> 1))) & 0x80
 CPSR[key_V] = ((((unsigned int)(resultSign >> 1)) ^ ((unsigned int)resultSign)) & 0x80000000) != 0;
 """)
 UpdatePSRSub_method = trap.HelperMethod('UpdatePSRSubInner', opCode, 'execute')
-UpdatePSRSub_method.setSignature(parameters = [('operand1', 'BIT<32>'), ('operand2', 'BIT<32>'), ('carry', 'BIT<1>')])
+UpdatePSRSub_method.setSignature(parameters=[('operand1', 'BIT<32>'), ('operand2', 'BIT<32>'), ('carry', 'BIT<1>')])
 
 opCode = cxx_writer.writer_code.Code("""
 // N flag if the results is negative
@@ -125,7 +125,7 @@ CPSR[key_C] = (carry != 0);
 //No updates performed to the V flag.
 """)
 UpdatePSRBitM_method = trap.HelperMethod('UpdatePSRBitM', opCode, 'execute')
-UpdatePSRBitM_method.setSignature(parameters = [('result', 'BIT<32>'), ('carry', 'BIT<1>')])
+UpdatePSRBitM_method.setSignature(parameters=[('result', 'BIT<32>'), ('carry', 'BIT<1>')])
 
 opCode = cxx_writer.writer_code.Code("""
 //Case on the type of shift
@@ -262,7 +262,7 @@ if(fromMode == 0x1 && toMode != 0x1){
 }
 """)
 updateAlias_method = trap.HelperMethod('updateAliases', opCode, 'execute')
-updateAlias_method.setSignature(parameters = [cxx_writer.writer_code.Parameter('fromMode', cxx_writer.writer_code.uintType), cxx_writer.writer_code.Parameter('toMode', cxx_writer.writer_code.uintType)])
+updateAlias_method.setSignature(parameters=[cxx_writer.writer_code.Parameter('fromMode', cxx_writer.writer_code.uintType), cxx_writer.writer_code.Parameter('toMode', cxx_writer.writer_code.uintType)])
 
 # Behavior that checks for the condition code and consiquently flushes
 # the current instruction or procedes with its execution
@@ -743,13 +743,15 @@ if(rd_bit == 15){
     flush();
 }
 """)
-UpdatePC = trap.HelperOperation('UpdatePC', opCode, inline = False)
+UpdatePC = trap.HelperOperation('UpdatePC', opCode, inline=False)
 UpdatePC.addUserInstructionElement('rd')
 # Normal PC increment
 opCode = cxx_writer.writer_code.Code("""
 PC += 4;
 """)
-IncrementPC = trap.HelperOperation('IncrementPC', opCode, inline = False)
+IncrementPC = trap.HelperOperation('IncrementPC', opCode, inline=False)
+
+
 # Now I define the behavior for the Load/Store with immediate offset/index
 opCode = cxx_writer.writer_code.Code("""
 address = 0;
@@ -796,9 +798,29 @@ ls_imm_Op.addUserInstructionElement('w')
 ls_imm_Op.addUserInstructionElement('u')
 ls_imm_Op.addUserInstructionElement('rn')
 ls_imm_Op.addUserInstructionElement('immediate')
+
+# Now I define the behavior for the Load/Store with immediate post-index
+opCode = cxx_writer.writer_code.Code("""
+// immediate post-indexed
+//Post-index means that the address calculated doesn't include the
+//offset
+address = rn;
+if(u == 1){
+   rn += immediate;
+}
+else{
+   rn -= immediate;
+}
+""")
+ls_imm_Op_PI = trap.HelperOperation('ls_imm_PI', opCode)
+ls_imm_Op_PI.addInstuctionVar(('address', 'BIT<32>'))
+ls_imm_Op_PI.addUserInstructionElement('u')
+ls_imm_Op_PI.addUserInstructionElement('rn')
+ls_imm_Op_PI.addUserInstructionElement('immediate')
+
+
 # Now I define the behavior for the Load/Store with register offset/index
 opCode = cxx_writer.writer_code.Code("""
-address = 0;
 if ((p == 1) && (w == 0)) {
     // offset
     if(u == 1){
@@ -841,6 +863,28 @@ ls_reg_Op.addUserInstructionElement('rn')
 ls_reg_Op.addUserInstructionElement('rm')
 ls_reg_Op.addUserInstructionElement('shift_amm')
 ls_reg_Op.addUserInstructionElement('shift_op')
+
+
+# Now I define the behavior for the Load/Store with register post-index
+opCode = cxx_writer.writer_code.Code("""
+//post-indexed
+address = rn;
+if(u == 1){
+    rn += LSRegShift(shift_op, shift_amm, rm);
+}
+else{
+    rn -= LSRegShift(shift_op, shift_amm, rm);
+}
+""")
+ls_reg_Op_PI = trap.HelperOperation('LS_reg_PI', opCode)
+ls_reg_Op_PI.addInstuctionVar(('address', 'BIT<32>'))
+ls_reg_Op_PI.addUserInstructionElement('u')
+ls_reg_Op_PI.addUserInstructionElement('rn')
+ls_reg_Op_PI.addUserInstructionElement('rm')
+ls_reg_Op_PI.addUserInstructionElement('shift_amm')
+ls_reg_Op_PI.addUserInstructionElement('shift_op')
+
+
 # Now I define the behavior for the Load/Store of multiple registers
 opCode = cxx_writer.writer_code.Code("""
 //Now I calculate the start and end addresses of the

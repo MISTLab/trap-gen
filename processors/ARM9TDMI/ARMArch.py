@@ -54,11 +54,11 @@ except ImportError:
 import ARMIsa
 
 # Lets now start building the processor
-processor = trap.Processor('ARM7TDMI', version = '0.1', systemc = False, instructionCache = True, fastFetch = True)
+processor = trap.Processor('ARM9TDMI', version = '0.1', systemc = False, instructionCache = True, fastFetch = True)
 processor.setLittleEndian() #little endian
 processor.setWordsize(4, 8) #4 bytes per word, 8 bits per byte
 processor.setISA(ARMIsa.isa) #lets set the instruction set
-processor.systemc= True
+processor.systemc = True
 
 # Ok, now we move to the description of more complicated processor
 # resources
@@ -106,6 +106,16 @@ SP = trap.AliasRegister('SPTR', 'REGS[13]')
 processor.addAliasReg(SP)
 LR = trap.AliasRegister('LINKR', 'REGS[14]')
 processor.addAliasReg(LR)
+
+SP_SVC= trap.AliasRegister('SP_SVC', 'RB[15]')
+processor.addAliasReg(SP_SVC)
+LR_SVC = trap.AliasRegister('LR_SVC', 'RB[16]')
+processor.addAliasReg(LR_SVC)
+SP_ABT = trap.AliasRegister('SP_ABT', 'RB[17]')
+processor.addAliasReg(SP_ABT)
+LR_ABT = trap.AliasRegister('LR_ABT', 'RB[18]')
+processor.addAliasReg(LR_ABT)
+
 SP_IRQ = trap.AliasRegister('SP_IRQ', 'RB[21]')
 processor.addAliasReg(SP_IRQ)
 LR_IRQ = trap.AliasRegister('LR_IRQ', 'RB[22]')
@@ -133,7 +143,6 @@ if processor.systemc:
     processor.addTLMPort('instrMem', True)
     processor.addTLMPort('dataMem')
 else:
-    #processor.setMemory('dataMem', 10*1024*1024, True, 'PC')
     processor.setMemory('dataMem', 10*1024*1024)
 # Now lets add the interrupt ports
 irq = trap.Interrupt('IRQ', 1, priority = 0)
