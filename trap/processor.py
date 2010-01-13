@@ -1072,11 +1072,13 @@ class Processor:
                 pipeClass = self.getGetPipelineStages(trace, combinedTrace, model, namespace)
             MemClass = self.getCPPMemoryIf(model, namespace)
             ExternalIf = self.getCPPExternalPorts(model, namespace)
+            PINClasses = []
             if self.pins:
-                PINClasses = self.getGetPINPorts(namespace)
+                PINClasses += self.getGetPINPorts(namespace)
             ISAClasses = self.isa.getCPPClasses(self, model, trace, combinedTrace, namespace)
+            IRQClasses = []
             if self.irqs:
-                IRQClasses = self.getGetIRQPorts(namespace)
+                IRQClasses += self.getGetIRQPorts(namespace)
                 ISAClasses += self.getGetIRQInstr(model, trace, combinedTrace, namespace)
             # Ok, now that we have all the classes it is time to write
             # them to file
