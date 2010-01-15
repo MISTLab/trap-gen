@@ -864,7 +864,7 @@ def getCPPRegisters(self, trace, combinedTrace, model, namespace):
                 resourceType[reg.name] = resourceType[reg.name].makePointer()
     realRegClasses = []
     for regType in regTypes:
-        realRegClasses.append(regType.getCPPClass(model, resourceType[regType.name], namespace))
+        realRegClasses.append(regType.getCPPClass(model, resourceType[regType.name].makeNormal(), namespace))
     ################ End of part where we determine the different register types which have to be declared ##################
 
     registerDecl = cxx_writer.writer_code.ClassDeclaration('Register', registerElements, namespaces = [namespace])
