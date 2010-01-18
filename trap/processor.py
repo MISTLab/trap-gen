@@ -1047,6 +1047,11 @@ class Processor:
             defString += '#define ' + model[-2:].upper() + '_IF\n'
             defCode = cxx_writer.writer_code.Define(defString)
 
+            # Now I also set the processor class name: note that even if each model has a
+            # separate namespace, some buggy dynamic linkers complain, so we must also
+            # use separate names for the processor class
+            procWriter.processor_name = 'Processor_' + self.name.lower() + '_' + model.lower()
+
             print ('\t\tCreating the implementation for model ' + model)
             if not model in validModels:
                 raise Exception(model + ' is not a valid model type')
