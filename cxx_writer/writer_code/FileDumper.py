@@ -247,7 +247,7 @@ class Folder:
                         printOnFile('        ' + codeFile.name, wscriptFile)
                 printOnFile('    \"\"\"', wscriptFile)
                 if tests:
-                    printOnFile('    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM BOOST_SYSTEM BOOST_THREAD SYSTEMC TLM TRAP BFD LIBERTY\'', wscriptFile)
+                    printOnFile('    obj.uselib = \'TRAP BFD LIBERTY BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM BOOST_SYSTEM BOOST_THREAD SYSTEMC TLM\'', wscriptFile)
                 else:
                     printOnFile('    obj.uselib = \'BOOST BOOST_FILESYSTEM BOOST_SYSTEM BOOST_THREAD SYSTEMC TLM TRAP\'', wscriptFile)
 
@@ -266,9 +266,9 @@ class Folder:
                 printOnFile('    obj.source=\'' + self.mainFile + '\'', wscriptFile)
                 printOnFile('    obj.includes = \'.\'', wscriptFile)
                 if tests:
-                    printOnFile('    obj.uselib = \'BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_THREAD BOOST_SYSTEM SYSTEMC TLM TRAP BFD LIBERTY\'', wscriptFile)
+                    printOnFile('    obj.uselib = \'TRAP BFD LIBERTY BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_THREAD BOOST_SYSTEM SYSTEMC TLM\'', wscriptFile)
                 else:
-                    printOnFile('    obj.uselib = \'BOOST BOOST_PROGRAM_OPTIONS BOOST_THREAD BOOST_FILESYSTEM BOOST_SYSTEM SYSTEMC TLM TRAP BFD LIBERTY\'', wscriptFile)
+                    printOnFile('    obj.uselib = \'TRAP BFD LIBERTY BOOST BOOST_PROGRAM_OPTIONS BOOST_THREAD BOOST_FILESYSTEM BOOST_SYSTEM SYSTEMC TLM\'', wscriptFile)
                 printOnFile('    import sys', wscriptFile)
                 printOnFile('    if sys.platform == \'cygwin\':', wscriptFile)
                 printOnFile('        obj.env.append_unique(\'CPPFLAGS\', \'-D__USE_W32_SOCKETS\')', wscriptFile)
@@ -511,6 +511,42 @@ class Folder:
         conf.check_cc(lib='msvcr90', uselib_store='BFD', mandatory=1, libpath=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'lib'))))])
         conf.check_cc(header_name='bfd.h', uselib_store='BFD', mandatory=1, includes=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'include'))))])
 
+    ###########################################################
+    # Check for Binutils version
+    ###########################################################
+    if not usingMsvc:
+        # mandatory version checks
+        binutilsVerCheck = '''
+            #include <cstdlib>
+            extern "C" {
+                #include <bfd.h>
+            }
+
+            int main(int argc, char** argv) {
+                bfd_section *p = NULL;
+                #ifndef bfd_is_target_special_symbol
+                #error "too old BFD library"
+                #endif
+                return 0;
+            };
+        '''
+        conf.check_cxx(fragment=binutilsVerCheck, msg='Check for Binutils Version', uselib='BFD', mandatory=1, errmsg='Not supported version, use at least 2.16')
+
+        # bfd_demangle only appears in 2.18
+        binutilsDemangleCheck = '''
+            #include <cstdlib>
+            extern "C" {
+                #include <bfd.h>
+            }
+
+            int main(int argc, char** argv) {
+                char * tempRet = bfd_demangle(NULL, NULL, 0);
+                return 0;
+            };
+        '''
+        if not conf.check_cxx(fragment=binutilsDemangleCheck, msg='Check for bfd_demangle', uselib='BFD', mandatory=0, okmsg='ok >= 2.18', errmsg='fail, reverting to cplus_demangle'):
+            conf.env.append_unique('CPPFLAGS', '-DOLD_BFD')
+
     #########################################################
     # Check for the winsock library
     #########################################################
@@ -630,14 +666,17 @@ class Folder:
     ##################################################
     trapDirLib = ''
     trapDirInc = ''
+    trapLibErrmsg = 'not found, use --with-trap option. It might also be that the trap library is compiled '
+    trapLibErrmsg += 'against libraries (bfd, boost, etc.) different from the ones being used now; in case '
+    trapLibErrmsg += 'try recompiling trap library.'
     if Options.options.trapdir:
         trapDirLib = os.path.abspath(os.path.expandvars(os.path.expanduser(os.path.join(Options.options.trapdir, 'lib'))))
         trapDirInc = os.path.abspath(os.path.expandvars(os.path.expanduser(os.path.join(Options.options.trapdir, 'include'))))
-        conf.check_cxx(lib='trap', uselib='BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM BFD SYSTEMC', uselib_store='TRAP', mandatory=1, libpath=trapDirLib, errmsg='not found, use --with-trap option')
+        conf.check_cxx(lib='trap', uselib='BFD LIBERTY BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', uselib_store='TRAP', mandatory=1, libpath=trapDirLib, errmsg=trapLibErrmsg)
         foundShared = glob.glob(os.path.join(trapDirLib, conf.env['shlib_PATTERN'].split('%s')[0] + 'trap' + conf.env['shlib_PATTERN'].split('%s')[1]))
         if foundShared:
             conf.env.append_unique('RPATH', conf.env['LIBPATH_TRAP'])
-        conf.check_cxx(header_name='trap.hpp', uselib='TRAP BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM BFD SYSTEMC', uselib_store='TRAP', mandatory=1, includes=trapDirInc)
+        conf.check_cxx(header_name='trap.hpp', uselib='TRAP BFD LIBERTY BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', uselib_store='TRAP', mandatory=1, includes=trapDirInc)
         conf.check_cxx(fragment='''
             #include "trap.hpp"
 
@@ -649,10 +688,10 @@ class Folder:
             #error Wrong version of the TRAP runtime: too old
             #endif
             int main(int argc, char * argv[]){return 0;}
-        ''', msg='Check for TRAP version', uselib='TRAP BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM BFD SYSTEMC', mandatory=1, includes=trapDirInc, errmsg='Error, at least revision 420 required')
+        ''', msg='Check for TRAP version', uselib='TRAP BFD LIBERTY BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', mandatory=1, includes=trapDirInc, errmsg='Error, at least revision 420 required')
     else:
-        conf.check_cxx(lib='trap', uselib='BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM BFD SYSTEMC', uselib_store='TRAP', mandatory=1, errmsg='not found, use --with-trap option')
-        conf.check_cxx(header_name='trap.hpp', uselib='BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM BFD SYSTEMC TRAP', uselib_store='TRAP', mandatory=1)
+        conf.check_cxx(lib='trap', uselib='BFD LIBERTY BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', uselib_store='TRAP', mandatory=1, errmsg=trapLibErrmsg)
+        conf.check_cxx(header_name='trap.hpp', uselib='TRAP BFD LIBERTY BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', uselib_store='TRAP', mandatory=1)
         conf.check_cxx(fragment='''
             #include "trap.hpp"
 
@@ -664,7 +703,7 @@ class Folder:
             #error Wrong version of the TRAP runtime: too old
             #endif
             int main(int argc, char * argv[]){return 0;}
-        ''', msg='Check for TRAP version', uselib='TRAP BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM BFD SYSTEMC', mandatory=1, errmsg='Error, at least revision 420 required')
+        ''', msg='Check for TRAP version', uselib='TRAP BFD LIBERTY BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', mandatory=1, errmsg='Error, at least revision 420 required')
 
 """, wscriptFile)
             # Finally now I can add the options

@@ -74,12 +74,12 @@ def configure(conf):
         conf.env.append_unique('CPPFLAGS','/D_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1')
         conf.env.append_unique('CPPFLAGS','/D_CRT_SECURE_NO_WARNINGS=1')
     else:
-        conf.env.append_unique('CXXFLAGS', '-fstrict-aliasing' )
-        conf.env.append_unique('CCFLAGS', '-fstrict-aliasing' )
-        conf.env.append_unique('CXXFLAGS', '-fPIC' )
-        conf.env.append_unique('CCFLAGS', '-fPIC' )
-        conf.env.append_unique('CPPFLAGS', '-DPIC' )
-        conf.env.append_unique('LINKFLAGS', '-fPIC' )
+        conf.env.append_unique('CXXFLAGS', '-fstrict-aliasing')
+        conf.env.append_unique('CCFLAGS', '-fstrict-aliasing')
+        conf.env.append_unique('CXXFLAGS', '-fPIC')
+        conf.env.append_unique('CCFLAGS', '-fPIC')
+        conf.env.append_unique('CPPFLAGS', '-DPIC')
+        conf.env.append_unique('LINKFLAGS', '-fPIC')
         if sys.platform != 'darwin':
             conf.env.append_unique('LINKFLAGS', '-Wl,-E')
         else:
@@ -238,6 +238,42 @@ def configure(conf):
                 searchPaths = staticPaths
 
         conf.check_cc(lib=iberty_lib_name, uselib_store='BFD', mandatory=1, libpath=searchPaths, errmsg='not found, use --with-bfd option', okmsg='ok ' + iberty_lib_name)
+
+    ###########################################################
+    # Check for Binutils version
+    ###########################################################
+    if not usingMsvc:
+        # mandatory version checks
+        binutilsVerCheck = """
+            #include <cstdlib>
+            extern "C" {
+                #include <bfd.h>
+            }
+
+            int main(int argc, char** argv) {
+                bfd_section *p = NULL;
+                #ifndef bfd_is_target_special_symbol
+                #error "too old BFD library"
+                #endif
+                return 0;
+            };
+        """
+        conf.check_cxx(fragment=binutilsVerCheck, msg='Check for Binutils Version', uselib='BFD', mandatory=1, errmsg='Not supported version, use at least 2.16')
+
+        # bfd_demangle only appears in 2.18
+        binutilsDemangleCheck = """
+            #include <cstdlib>
+            extern "C" {
+                #include <bfd.h>
+            }
+
+            int main(int argc, char** argv) {
+                char * tempRet = bfd_demangle(NULL, NULL, 0);
+                return 0;
+            };
+        """
+        if not conf.check_cxx(fragment=binutilsDemangleCheck, msg='Check for bfd_demangle', uselib='BFD', mandatory=0, okmsg='ok >= 2.18', errmsg='fail, reverting to cplus_demangle'):
+            conf.env.append_unique('CPPFLAGS', '-DOLD_BFD')            
 
     #########################################################
     # Check for zlib and libintl, needed by binutils under

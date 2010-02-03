@@ -98,6 +98,15 @@ extern "C" {
 #define DMGL_GNU_V3      (1 << 14)
 #define DMGL_GNAT        (1 << 15)
 
+//binutils versions older than 2.18 do use cplus_demangle instead of the bfd_demangle
+//function; note how this function is only internally used by binutils, so it
+//is not available in any header file and it needs to be declared as external
+#ifdef OLD_BFD
+extern "C" {
+extern char * cplus_demangle (const char *mangled, int options);
+}
+#endif
+
 trap::BFDFrontend * trap::BFDFrontend::curInstance = NULL;
 
 trap::BFDFrontend & trap::BFDFrontend::getInstance(std::string fileName){
@@ -255,7 +264,7 @@ unsigned int trap::BFDFrontend::getSymAddr(const std::string &symbol, bool &vali
 ///Accesses the BFD internal structures in order to get the dissassbly of the symbols
 void trap::BFDFrontend::readSyms(){
     //make sure there are symbols in the file
-    if ((bfd_get_file_flags (execImage) & HAS_SYMS) == 0)
+    if ((bfd_get_file_flags (this->execImage) & HAS_SYMS) == 0)
         return;
 
     long symcount = 0;
@@ -316,7 +325,11 @@ void trap::BFDFrontend::readSrc(){
                 functionname = NULL;
 
             if (functionname != NULL && this->addrToFunction.find(i + sectionsIter->startAddr) == this->addrToFunction.end()){
+                #ifdef OLD_BFD
+                char *name = cplus_demangle(functionname, DMGL_ANSI | DMGL_PARAMS);
+                #else
                 char *name = bfd_demangle (this->execImage, functionname, DMGL_ANSI | DMGL_PARAMS);
+                #endif
                 if(name == NULL)
                     name = (char *)functionname;
                 this->addrToFunction[i + sectionsIter->startAddr] = name;
