@@ -663,6 +663,9 @@ unsigned int trap::GDBConnectionManager::toIntNum(std::string &toConvert){
     for(hexIter = toConvTemp.rbegin(), hexIterEnd = toConvTemp.rend();
                     hexIter != hexIterEnd; hexIter++){
         std::map<char, unsigned int>::iterator mapIter = this->HexMap.find(*hexIter);
+        if(mapIter == this->HexMap.end()){
+            THROW_ERROR(toConvert << " is not a valid hexadecimal number");
+        }
         result |= (mapIter->second << pos);
         pos += 4;
     }

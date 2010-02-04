@@ -2992,6 +2992,17 @@ bool icc_n = PSR_execute[key_ICC_n];
 bool icc_v = PSR_execute[key_ICC_v];
 bool icc_c = PSR_execute[key_ICC_c];
 #endif
+
+//While TRAP normally stops simulation when the _exit routine is encountered, TSIM stops simulation
+//when a TA instruction is encountered (no matter what the argument of TA is)
+#ifdef TSIM_COMPATIBILITY
+if(cond == 0x8){
+    std::cerr << std::endl << "Simulation stopped by a TA instruction" << std::endl << std::endl;
+    sc_stop();
+    wait(SC_ZERO_TIME);
+}
+#endif
+
 raiseException = (cond == 0x8) ||
             ((cond == 0x9) && !icc_z) ||
             ((cond == 0x1) && icc_z) ||

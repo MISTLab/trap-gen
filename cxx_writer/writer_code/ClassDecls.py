@@ -42,9 +42,9 @@ class ClassMember:
     """Base class for all the elements which can be members of a
     class, i.e. attributes and methods"""
 
-    def __init__(self, visibility):
+    def __init__(self, visibility, name):
         if not visibility in ['pri', 'pro', 'pu']:
-            raise Exception(str(visibility) + ' is not a valid visibility attribute')
+            raise Exception(str(visibility) + ' is not a valid visibility attribute for member ' + name)
         self.visibility = visibility
 
 # TODO: add the possibility of defining templated methods as done for
@@ -55,7 +55,7 @@ class Method(ClassMember, Function):
 
     def __init__(self, name, body, retType, visibility, parameters = [],
                  static = False, inline = False, noException = False, virtual = False, pure = False, const = False):
-        ClassMember.__init__(self, visibility)
+        ClassMember.__init__(self, visibility, name)
         Function.__init__(self, name, body, retType, parameters, static, inline, [], noException)
         self.virtual = virtual
         self.pure = pure
@@ -98,7 +98,7 @@ class MemberOperator(ClassMember, Operator):
 
     def __init__(self, name, body, retType, visibility, parameters = [], static = False,
                  inline = False, noException = False, virtual = False, pure = False, const = False):
-        ClassMember.__init__(self, visibility)
+        ClassMember.__init__(self, visibility, name)
         Operator.__init__(self, name, body, retType, parameters, static, inline, [], noException)
         self.virtual = virtual
         self.pure = pure
@@ -137,7 +137,7 @@ class MemberOperator(ClassMember, Operator):
 
 class Constructor(ClassMember, Function):
     def __init__(self, body, visibility, parameters = [], initList = []):
-        ClassMember.__init__(self, visibility)
+        ClassMember.__init__(self, visibility, 'constructor')
         Function.__init__(self, '', body, Type(''), parameters)
         self.initList = initList
 
@@ -170,7 +170,7 @@ class Constructor(ClassMember, Function):
 
 class Destructor(ClassMember, Function):
     def __init__(self, body, visibility, virtual = False):
-        ClassMember.__init__(self, visibility)
+        ClassMember.__init__(self, visibility, 'destructor')
         Function.__init__(self, '', body, Type(''), [])
         self.virtual = virtual
 
@@ -190,7 +190,7 @@ class Attribute(ClassMember, Variable):
     it is simply a normal variable"""
 
     def __init__(self, name, varType, visibility, static = False, initValue = ''):
-        ClassMember.__init__(self, visibility)
+        ClassMember.__init__(self, visibility, name)
         Variable.__init__(self, name, varType, static, initValue)
 
     def writeDeclaration(self, writer):

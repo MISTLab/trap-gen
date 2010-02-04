@@ -372,6 +372,10 @@ class Processor:
         self.instructionCache = instructionCache
         self.fastFetch = fastFetch
         self.externalClock = externalClock
+        self.preProcMacros = []
+
+    def setPreProcMacro(self, wafOption, macro):
+        self.preProcMacros.append( (wafOption, macro) )
 
     def setISA(self, isa):
         self.isa = isa
@@ -1281,7 +1285,7 @@ class Processor:
             namespace = ''
         # We create and print the main folder and also add a configuration
         # part to the wscript
-        mainFolder.create(configure = True, projectName = self.name, version = self.version)
+        mainFolder.create(configure = True, projectName = self.name, version = self.version, customOptions = self.preProcMacros)
         if forceDecoderCreation:
             try:
                 import pickle

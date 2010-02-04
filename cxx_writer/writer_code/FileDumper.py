@@ -190,7 +190,7 @@ class Folder:
         if subfolder and not subfolder in self.subfolders:
             self.subfolders.append(subfolder)
 
-    def create(self, configure = False, tests = False, projectName = '', version = ''):
+    def create(self, configure = False, tests = False, projectName = '', version = '', customOptions = []):
         # Creates the folder and populates it with files.
         # it also creates the appropriate wscript for the
         # compilation
@@ -207,14 +207,14 @@ class Folder:
         # Now I can finally create the wscript for the compilation
         # of the current folder; note that event though the project is
         # small we need to create the configure part
-        self.createWscript(configure, tests, projectName, version)
+        self.createWscript(configure, tests, projectName, version, customOptions)
         if configure:
             import shutil, sys
             wafPath = os.path.abspath(os.path.join(os.path.dirname(sys.modules['cxx_writer'].__file__), 'waf'))
             shutil.copy(wafPath, os.path.abspath(os.path.join('.', 'waf')))
         os.chdir(curDir)
 
-    def createWscript(self, configure, tests, projectName, version):
+    def createWscript(self, configure, tests, projectName, version, customOptions):
         wscriptFile = open('wscript', 'wt')
         printOnFile('#!/usr/bin/env python', wscriptFile)
         printOnFile('# -*- coding: iso-8859-1 -*-\n', wscriptFile)
@@ -441,13 +441,24 @@ class Folder:
         conf.check_message_custom('endianness', '', 'big')
 
     ########################################
-    # Pasring command options
+    # Parsing command options
     ########################################
     if not Options.options.enable_tools:
         conf.env.append_unique('CPPFLAGS','-DDISABLE_TOOLS')
     if Options.options.static_build:
         conf.env['FULLSTATIC'] = True
 
+    ########################################
+    # Adding the custom preprocessor macros
+    ########################################
+    """, wscriptFile)
+
+    # Now I have to add the necessary definitions for each custon option
+            for option in customOptions:
+                printOnFile("    if Options.options.define_" + option[1].lower() + ":", wscriptFile)
+                printOnFile("        conf.env.append_unique('CPPFLAGS', '-D" + option[1] + "')", wscriptFile)
+
+            printOnFile("""
     ########################################
     # Check for boost libraries
     ########################################
@@ -726,9 +737,15 @@ class Folder:
     # Specify if OS emulation support should be compiled inside processor models
     opt.add_option('-T', '--disable-tools', default=True, action="store_false", help='Disables support for support tools (debuger, os-emulator, etc.) (switch)', dest='enable_tools')
     # Specify support for the profilers: gprof, vprof
-    opt.add_option('-P', '--gprof', default=False, action="store_true", help='Enables profiling with gprof profiler', dest='enable_gprof')
-    opt.add_option('-V', '--vprof', default=False, action="store_true", help='Enables profiling with vprof profiler', dest='enable_vprof')
+    opt.add_option('-P', '--gprof', default=False, action='store_true', help='Enables profiling with gprof profiler', dest='enable_gprof')
+    opt.add_option('-V', '--vprof', default=False, action='store_true', help='Enables profiling with vprof profiler', dest='enable_vprof')
     opt.add_option('--with-vprof', type='string', help='vprof installation folder', dest='vprofdir')
-    opt.add_option('--with-papi', type='string', help='papi installation folder', dest='papidir')
-""", wscriptFile)
+    opt.add_option('--with-papi', type='string', help='papi installation folder', dest='papidir')""", wscriptFile)
+
+            # Now I add the custom options, in case there are any
+            if customOptions:
+                printOnFile("    # Custom Options", wscriptFile)
+            for option in customOptions:
+                printOnFile("    opt.add_option('--" + option[0] + "', default=False, action='store_true', help='Defines the " + option[1] + " directive', dest='define_" + option[1].lower() + "')", wscriptFile)
+
         wscriptFile.close()

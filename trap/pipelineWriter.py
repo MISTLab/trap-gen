@@ -192,8 +192,9 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
         if pipeStage == self.pipes[0]:
             # This is the fetch pipeline stage, I have to fetch instructions
             codeString += 'unsigned int numNOPS = 0;\n'
+            codeString += 'bool startMet = false;\n'
             if self.instructionCache:
-                codeString += 'template_map< ' + str(self.bitSizes[1]) + ', CacheElem >::iterator instrCacheEnd = this->instrCache.end();\n'
+                codeString += 'template_map< ' + str(self.bitSizes[1]) + ', CacheElem >::iterator instrCacheEnd = this->instrCache.end();\n\n'
             codeString += 'while(true){\n'
 
             # Here is the code to notify start of the instruction execution
@@ -214,6 +215,15 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             # computes the address from which the next instruction shall be fetched
             fetchAddress = computeCurrentPC(self, model)
             codeString += str(self.bitSizes[1]) + ' curPC = ' + fetchAddress + ';\n'
+
+            # Here is the code for updating cycle counts
+            codeString += """if(curPC == this->profStartAddr && !startMet){
+                this->profTimeStart = sc_time_stamp();
+            }
+            if(curPC == this->profEndAddr){
+                this->profTimeEnd = sc_time_stamp();
+            }
+            """
 
             # Now lets start with the code necessary to check the tools, to see if they need
             # the pipeline to be empty before being able to procede with execution
@@ -685,6 +695,23 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             curPipeElements.append(toolManagerAttribute)
             constructorParams = [cxx_writer.writer_code.Parameter('toolManager', ToolsManagerType.makeRef())] + constructorParams
             constructorInit.append('toolManager(toolManager)')
+            # Lets finally declare the attributes and constructor parameters for counting the cycles in a specified time
+            # frame
+            profilingTimeStartAttribute = cxx_writer.writer_code.Attribute('profTimeStart', cxx_writer.writer_code.sc_timeRefType, 'pu')
+            curPipeElements.append(profilingTimeStartAttribute)
+            constructorParams = [cxx_writer.writer_code.Parameter('profTimeStart', cxx_writer.writer_code.sc_timeRefType)] + constructorParams
+            constructorInit.append('profTimeStart(profTimeStart)')
+            profilingTimeEndAttribute = cxx_writer.writer_code.Attribute('profTimeEnd', cxx_writer.writer_code.sc_timeRefType, 'pu')
+            curPipeElements.append(profilingTimeEndAttribute)
+            constructorParams = [cxx_writer.writer_code.Parameter('profTimeEnd', cxx_writer.writer_code.sc_timeRefType)] + constructorParams
+            constructorInit.append('profTimeEnd(profTimeEnd)')
+            profilingAddrStartAttribute = cxx_writer.writer_code.Attribute('profStartAddr', self.bitSizes[1], 'pu')
+            curPipeElements.append(profilingAddrStartAttribute)
+            constructorCode += 'this->profStartAddr = (' + str(self.bitSizes[1]) + ')-1;\n'
+            profilingAddrEndAttribute = cxx_writer.writer_code.Attribute('profEndAddr', self.bitSizes[1], 'pu')
+            constructorCode += 'this->profEndAddr = (' + str(self.bitSizes[1]) + ')-1;\n'
+            curPipeElements.append(profilingAddrEndAttribute)
+
 
         constructorInit = ['sc_module(pipeName)', 'BasePipeStage(' + baseConstructorInit[:-2] + ')'] + constructorInit
         curPipeDecl = cxx_writer.writer_code.SCModule(pipeStage.name.upper() + '_PipeStage', curPipeElements, [pipeType], namespaces = [namespace])

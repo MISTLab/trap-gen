@@ -396,7 +396,7 @@ def createPipeStage(self, processorElements, initElements):
             for irq in self.irqs:
                 curPipeInit = ['this->' + irq.name] + curPipeInit
         if pipeStage == self.pipes[0]:
-            curPipeInit = ['toolManager'] + curPipeInit
+            curPipeInit = ['profTimeEnd', 'profTimeStart', 'toolManager'] + curPipeInit
         initElements.append('\n' + pipeStage.name + '_stage(' + ', '.join(curPipeInit)  + ')')
     NOPIntructionType = cxx_writer.writer_code.Type('NOPInstruction', 'instructions.hpp')
     NOPinstructionsAttribute = cxx_writer.writer_code.Attribute('NOPInstrInstance', NOPIntructionType.makePointer(), 'pu', True)
@@ -892,9 +892,11 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
     ###############################################
     # An here I start declaring the real processor content
     if not model.startswith('acc'):
+        if self.systemc:
+            codeString += 'bool startMet = false;\n'
         if self.instructionCache:
             # Declaration of the instruction buffer for speeding up decoding
-            codeString += 'template_map< ' + str(self.bitSizes[1]) + ', CacheElem >::iterator instrCacheEnd = this->instrCache.end();'
+            codeString += 'template_map< ' + str(self.bitSizes[1]) + ', CacheElem >::iterator instrCacheEnd = this->instrCache.end();\n\n'
 
         codeString += 'while(true){\n'
         codeString += 'unsigned int numCycles = 0;\n'
@@ -902,13 +904,22 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         # Here is the code to notify start of the instruction execution
         codeString += 'this->instrExecuting = true;\n'
 
-        #Here is the code to deal with interrupts
+        # Here is the code to deal with interrupts
         codeString += getInterruptCode(self, trace)
         # computes the correct memory and/or memory port from which fetching the instruction stream
         fetchCode = computeFetchCode(self)
-        # computes the address from which the nest instruction shall be fetched
+        # computes the address from which the next instruction shall be fetched
         fetchAddress = computeCurrentPC(self, model)
         codeString += str(fetchWordType) + ' curPC = ' + fetchAddress + ';\n'
+        # Lets insert the code to keep statistics
+        if self.systemc:
+            codeString += """if(curPC == this->profStartAddr && !startMet){
+                this->profTimeStart = sc_time_stamp();
+            }
+            if(curPC == this->profEndAddr){
+                this->profTimeEnd = sc_time_stamp();
+            }
+            """
         # We need to fetch the instruction ... only if the cache is not used or if
         # the index of the cache is the current instruction
         if not (self.instructionCache and self.fastFetch):
@@ -1076,6 +1087,24 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         totCyclesAttribute = cxx_writer.writer_code.Attribute('totalCycles', cxx_writer.writer_code.uintType, 'pu')
         processorElements.append(totCyclesAttribute)
         bodyInits += 'this->totalCycles = 0;\n'
+
+    # Some variables for profiling: they enable measuring the number of cycles spent among two program portions
+    # (they actually count SystemC time and then divide it by the processor frequency)
+    if self.systemc or model.startswith('acc') or model.endswith('AT'):
+        profilingTimeStartAttribute = cxx_writer.writer_code.Attribute('profTimeStart', cxx_writer.writer_code.sc_timeType, 'pu')
+        processorElements.append(profilingTimeStartAttribute)
+        bodyInits += 'this->profTimeStart = SC_ZERO_TIME;\n'
+        profilingTimeEndAttribute = cxx_writer.writer_code.Attribute('profTimeEnd', cxx_writer.writer_code.sc_timeType, 'pu')
+        processorElements.append(profilingTimeEndAttribute)
+        bodyInits += 'this->profTimeEnd = SC_ZERO_TIME;\n'
+    if self.systemc and model.startswith('func'):
+        profilingAddrStartAttribute = cxx_writer.writer_code.Attribute('profStartAddr', fetchWordType, 'pri')
+        processorElements.append(profilingAddrStartAttribute)
+        bodyInits += 'this->profStartAddr = (' + str(fetchWordType) + ')-1;\n'
+        profilingAddrEndAttribute = cxx_writer.writer_code.Attribute('profEndAddr', fetchWordType, 'pri')
+        bodyInits += 'this->profEndAddr = (' + str(fetchWordType) + ')-1;\n'
+        processorElements.append(profilingAddrEndAttribute)
+
     numInstructions = cxx_writer.writer_code.Attribute('numInstructions', cxx_writer.writer_code.uintType, 'pu')
     processorElements.append(numInstructions)
     bodyInits += 'this->numInstructions = 0;\n'
@@ -1144,6 +1173,20 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         pinPortAttr = cxx_writer.writer_code.Attribute(pinPort.name, pinPortType, 'pu')
         processorElements.append(pinPortAttr)
         initElements.append(pinPort.name + '(\"' + pinPort.name + '_PIN\")')
+
+    ####################################################################
+    # Method for initializing the profiling start and end addresses
+    ####################################################################
+    if self.systemc and model.startswith('func'):
+        setProfilingRangeCode = cxx_writer.writer_code.Code('this->profStartAddr = startAddr;\nthis->profEndAddr = endAddr;')
+        parameters = [cxx_writer.writer_code.Parameter('startAddr', fetchWordType), cxx_writer.writer_code.Parameter('endAddr', fetchWordType)]
+        setProfilingRangeFunction = cxx_writer.writer_code.Method('setProfilingRange', setProfilingRangeCode, cxx_writer.writer_code.voidType, 'pu', parameters)
+        processorElements.append(setProfilingRangeFunction)
+    elif model.startswith('acc'):    
+        setProfilingRangeCode = cxx_writer.writer_code.Code('this->' + self.pipes[0].name + '_stage.profStartAddr = startAddr;\nthis->' + self.pipes[0].name + '_stage.profEndAddr = endAddr;')
+        parameters = [cxx_writer.writer_code.Parameter('startAddr', fetchWordType), cxx_writer.writer_code.Parameter('endAddr', fetchWordType)]
+        setProfilingRangeFunction = cxx_writer.writer_code.Method('setProfilingRange', setProfilingRangeCode, cxx_writer.writer_code.voidType, 'pu', parameters)
+        processorElements.append(setProfilingRangeFunction)
 
     ####################################################################
     # Cycle accurate model, lets proceed with the declaration of the
@@ -1270,6 +1313,8 @@ def getMainCode(self, model, namespace):
     if self.systemc or model.startswith('acc') or model.endswith('AT'):
         code += """("frequency,f", boost::program_options::value<double>(),
                     "processor clock frequency specified in MHz [Default 1MHz]")
+                    ("cycles_range,c", boost::program_options::value<std::string>(),
+                    "start-end addresses between which computing the execution cycles")
         """
     code += """("application,a", boost::program_options::value<std::string>(),
                                     "application to be executed on the simulator")
@@ -1375,6 +1420,60 @@ def getMainCode(self, model, namespace):
     procInst.PROGRAM_LIMIT = loader.getProgDim() + loader.getDataStart();
     procInst.PROGRAM_START = loader.getDataStart();
     """
+    if self.systemc or model.startswith('acc') or model.endswith('AT'):
+        code += """// Now I check if the count of the cycles among two locations (addresses or symbols) is required
+        """ + str(wordType) + """ startProfAddr = (""" + str(wordType) + """)-1, endProfAddr = (""" + str(wordType) + """)-1;
+        if(vm.count("cycles_range") != 0){
+            // Now, the range is in the form start-end, where start and end can be both integer numbers
+            // (both normal and hex) or symbols of the binary file
+            std::string cycles_range = vm["cycles_range"].as<std::string>();
+            std::size_t foundSep = cycles_range.find('-');
+            if(foundSep == std::string::npos){
+                std::cerr << "ERROR: specified address range " << cycles_range << " is not valid, it has to be in the form start-end" << std::endl;
+                return -1;
+            }
+            std::string start = cycles_range.substr(0, foundSep);
+            std::string end = cycles_range.substr(foundSep + 1);
+            // I first try standard numbers, then hex, then, if none of them, I check if a corresponding
+            // symbol exists; if none I return an error.
+            try{
+                startProfAddr = boost::lexical_cast<""" + str(wordType) + """>(start);
+            }
+            catch(...){
+                try{
+                    startProfAddr = toIntNum(start);
+                }
+                catch(...){
+                    trap::BFDFrontend &bfdFE = trap::BFDFrontend::getInstance();
+                    bool valid = true;
+                    startProfAddr = bfdFE.getSymAddr(start, valid);
+                    if(!valid){
+                        std::cerr << "ERROR: start address range " << start << " does not specify a valid address or a valid symbol" << std::endl;
+                        return -1;
+                    }
+                }
+            }
+            try{
+                endProfAddr = boost::lexical_cast<""" + str(wordType) + """>(end);
+            }
+            catch(...){
+                try{
+                    endProfAddr = toIntNum(end);
+                }
+                catch(...){
+                    trap::BFDFrontend &bfdFE = trap::BFDFrontend::getInstance();
+                    bool valid = true;
+                    endProfAddr = bfdFE.getSymAddr(end, valid);
+                    if(!valid){
+                        std::cerr << "ERROR: end address range " << end << " does not specify a valid address or a valid symbol" << std::endl;
+                        return -1;
+                    }
+                }
+            }
+            // Finally now I can initialize the processor with the given address range values
+            procInst.setProfilingRange(startProfAddr, endProfAddr);
+        }
+        """
     if self.abi:
         code += """
         //Now I initialize the tools (i.e. debugger, os emulator, ...)
@@ -1494,12 +1593,19 @@ def getMainCode(self, model, namespace):
     }
     std::cout << "Elapsed " << elapsedSec << " sec." << std::endl;
     std::cout << "Executed " << procInst.numInstructions << " instructions" << std::endl;
-    std::cout << "Execution Speed " << (double)procInst.numInstructions/(elapsedSec*1e6) << " MIPS" << std::endl;
+    std::cout << "Execution Speed: " << (double)procInst.numInstructions/(elapsedSec*1e6) << " MIPS" << std::endl;
     """
     if self.systemc or model.startswith('acc') or model.endswith('AT'):
-        code += 'std::cout << \"Simulated time \" << ((sc_time_stamp().to_default_time_units())/(sc_time(1, SC_US).to_default_time_units())) << " us" << std::endl;\n'
+        code += 'std::cout << \"Simulated time: \" << ((sc_time_stamp().to_default_time_units())/(sc_time(1, SC_US).to_default_time_units())) << " us" << std::endl;\n'
+        code += 'std::cout << \"Elapsed \" << std::dec << (unsigned int)(sc_time_stamp()/sc_time(latency, SC_US)) << \" cycles\" << std::endl;\n'
+        code += """if(startProfAddr != (""" + str(wordType) + """)-1 || endProfAddr != (""" + str(wordType) + """)-1){
+                    if(procInst.profTimeEnd == SC_ZERO_TIME){
+                        procInst.profTimeEnd = sc_time_stamp();
+                    }
+                    std::cout << "Cycles between addressed " << std::hex << std::showbase << startProfAddr << " - " << endProfAddr << std::dec << (unsigned int)((procInst.profTimeEnd - procInst.profTimeStart)/sc_time(latency, SC_US)) << std::endl;
+                }"""
     else:
-        code += 'std::cout << \"Elapsed \" << procInst.totalCycles << \" cycles\" << std::endl;\n'
+        code += 'std::cout << \"Elapsed \" << std::dec << procInst.totalCycles << \" cycles\" << std::endl;\n'
     if self.endOp:
         code += '//Ok, simulation has ended: lets call cleanup methods\nprocInst.endOp();\n'
     code += """
@@ -1530,7 +1636,9 @@ def getMainCode(self, model, namespace):
     mainCode.addInclude('instructions.hpp')
     mainCode.addInclude('trap_utils.hpp')
     mainCode.addInclude('systemc.h')
+    mainCode.addInclude('bfdFrontend.hpp')
     mainCode.addInclude('execLoader.hpp')
+    mainCode.addInclude('stdexcept')
     if self.abi:
         mainCode.addInclude('GDBStub.hpp')
         mainCode.addInclude('profiler.hpp')
@@ -1545,4 +1653,52 @@ def getMainCode(self, model, namespace):
     parameters = [cxx_writer.writer_code.Parameter('sig', cxx_writer.writer_code.intType)]
     signalFunction = cxx_writer.writer_code.Function('stopSimFunction', stopSimFunction, cxx_writer.writer_code.voidType, parameters)
 
-    return [signalFunction, mainFunction]
+    if self.systemc or model.startswith('acc') or model.endswith('AT'):
+        hexToIntCode = cxx_writer.writer_code.Code("""std::map<char, unsigned int> hexMap;
+        hexMap['0'] = 0;
+        hexMap['1'] = 1;
+        hexMap['2'] = 2;
+        hexMap['3'] = 3;
+        hexMap['4'] = 4;
+        hexMap['5'] = 5;
+        hexMap['6'] = 6;
+        hexMap['7'] = 7;
+        hexMap['8'] = 8;
+        hexMap['9'] = 9;
+        hexMap['A'] = 10;
+        hexMap['B'] = 11;
+        hexMap['C'] = 12;
+        hexMap['D'] = 13;
+        hexMap['E'] = 14;
+        hexMap['F'] = 15;
+        hexMap['a'] = 10;
+        hexMap['b'] = 11;
+        hexMap['c'] = 12;
+        hexMap['d'] = 13;
+        hexMap['e'] = 14;
+        hexMap['f'] = 15;
+
+        std::string toConvTemp = toConvert;
+        if(toConvTemp.size() >= 2 && toConvTemp[0] == '0' && (toConvTemp[1] == 'X' || toConvTemp[1] == 'x'))
+            toConvTemp = toConvTemp.substr(2);
+
+        """ + str(wordType) + """ result = 0;
+        unsigned int pos = 0;
+        std::string::reverse_iterator hexIter, hexIterEnd;
+        for(hexIter = toConvTemp.rbegin(), hexIterEnd = toConvTemp.rend();
+                        hexIter != hexIterEnd; hexIter++){
+            std::map<char, unsigned int>::iterator mapIter = hexMap.find(*hexIter);
+            if(mapIter == hexMap.end()){
+                throw std::runtime_error(toConvert + ": wrong hex number");
+            }
+            result |= (mapIter->second << pos);
+            pos += 4;
+        }
+        return result;""")
+        parameters = [cxx_writer.writer_code.Parameter('toConvert', cxx_writer.writer_code.stringRefType)]
+        hexToIntFunction = cxx_writer.writer_code.Function('toIntNum', hexToIntCode, wordType, parameters)
+
+        return [signalFunction, hexToIntFunction, mainFunction]
+
+    else:
+        return [signalFunction, mainFunction]

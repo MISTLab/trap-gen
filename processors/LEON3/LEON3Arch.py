@@ -61,10 +61,15 @@ from LEON3Methods import updateAliasCode_exception
 from LEON3Methods import updateAliasCode_abi
 
 # Lets now start building the processor
-processor = trap.Processor('LEON3', version = '0.2.0', systemc = False, instructionCache = True, cacheLimit = 256)
+processor = trap.Processor('LEON3', version = '0.2.1', systemc = True, instructionCache = True, cacheLimit = 256)
 processor.setBigEndian() # big endian
 processor.setWordsize(4, 8) # 4 bytes per word, 8 bits per byte
 processor.setISA(LEON3Isa.isa) # lets set the instruction set
+
+# Lets customize the compilation options: actually it is possible only to define pre-processor macros;
+# For example the following directive means that if the tsim-comp compilation option is activated,
+# the TSIM_COMPATIBILITY macro will be defined
+processor.setPreProcMacro('tsim-comp', 'TSIM_COMPATIBILITY')
 
 # Ok, now we move to the description of more complicated processor
 # resources
@@ -193,9 +198,9 @@ processor.setFetchRegister('PC')
 
 # Lets now add details about the processor interconnection (i.e. memory ports,
 # interrupt ports, pins, etc.)
-#processor.addTLMPort('instrMem', True)
-#processor.addTLMPort('dataMem')
-processor.setMemory('dataMem', 10*1024*1024)
+processor.addTLMPort('instrMem', True)
+processor.addTLMPort('dataMem')
+#processor.setMemory('dataMem', 10*1024*1024)
 #processor.setMemory('dataMem', 10*1024*1024, True, 'PC')
 
 # It PSR[ET] == 0 I do not do anything; else
@@ -295,11 +300,11 @@ processor.setABI(abi)
 # Finally we can dump the processor on file
 #processor.write(folder = 'processor', models = ['funcLT'], dumpDecoderName = 'decoder.dot')
 #processor.write(folder = 'processor', models = ['funcLT'], trace = True)
-processor.write(folder = 'processor', models = ['funcLT'], tests = False)
+#processor.write(folder = 'processor', models = ['funcLT'], tests = False)
 #processor.write(folder = 'processor', models = ['funcLT'], trace = True, tests = False)
 #processor.write(folder = 'processor', models = ['funcAT'], trace = False)
 #processor.write(folder = 'processor', models = ['funcAT'])
-#processor.write(folder = 'processor', models = ['funcAT', 'funcLT'], tests = False)
+processor.write(folder = 'processor', models = ['accLT', 'funcLT'], tests = False)
 #processor.write(folder = 'processor', models = ['accLT'], trace = True)
 #processor.write(folder = 'processor', models = ['accLT', 'funcAT', 'accAT', 'funcLT'], trace = False)
 #processor.write(folder = 'processor', models = ['accLT', 'funcLT'], trace = True, combinedTrace = True)
