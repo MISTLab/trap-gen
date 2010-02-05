@@ -250,6 +250,16 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
                     //to be empty: I can procede with the execution
             """
 
+            # Lets start with the code for the instruction queue
+            codeString += """#ifdef ENABLE_HISTORY
+            HistoryInstrType instrQueueElem;
+            if(this->historyEnabled){
+                instrQueueElem.cycle = (unsigned int)(sc_time_stamp()/this->latency);
+                instrQueueElem.address = curPC;
+            }
+            #endif
+            """
+
             # We need to fetch the instruction ... only if the cache is not used or if
             # the index of the cache is the current instruction
             if not (self.instructionCache and self.fastFetch):
@@ -263,6 +273,27 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
                 codeString += fetchWithCacheCode(self, fetchCode, trace, combinedTrace, getInstrIssueCodePipe, hasCheckHazard, pipeStage)
             else:
                 codeString += standardInstrFetch(self, trace, combinedTrace, getInstrIssueCodePipe, hasCheckHazard, pipeStage)
+
+            # Lets finish with the code for the instruction queue: I just still have to
+            # check if it is time to save to file the instruction queue
+            codeString += """#ifdef ENABLE_HISTORY
+            if(this->historyEnabled){
+                // First I add the new element to the queue
+                this->instHistoryQueue.push_back(instrQueueElem);
+                //Now, in case the queue dump file has been specified, I have to check if I need to save it
+                if(this->histFile){
+                    this->undumpedHistElems++;
+                    if(undumpedHistElems == this->instHistoryQueue.capacity()){
+                        boost::circular_buffer<HistoryInstrType>::const_iterator beg, end;
+                        for(beg = this->instHistoryQueue.begin(), end = this->instHistoryQueue.end(); beg != end; beg++){
+                            this->histFile << beg->toStr() << std::endl;
+                        }
+                        this->undumpedHistElems = 0;
+                    }
+                }
+            }
+            #endif
+            """
 
             # Finally we have completed waiting for the other cycles in order to be able to go on
             # with this cycle.
@@ -722,13 +753,24 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             instHistoryQueueAttribute = cxx_writer.writer_code.Attribute('instHistoryQueue', histQueueType, 'pu')
             curPipeElements.append(instHistoryQueueAttribute)
             constructorCode += 'this->instHistoryQueue.set_capacity(1000);\n'
-
-
+            undumpedHistElemsAttribute = cxx_writer.writer_code.Attribute('undumpedHistElems', cxx_writer.writer_code.uintType, 'pu')
+            curPipeElements.append(undumpedHistElemsAttribute)
+            constructorCode += 'this->undumpedHistElems = 0;\n'
+            # Now, before the processor elements is destructed I have to make sure that the history dump file is correctly closed
+            destrCode = """if(this->histFile){
+                this->histFile.flush();
+                this->histFile.close();
+                }
+            """
+            destructorBody = cxx_writer.writer_code.Code(destrCode)
+            publicDestr = cxx_writer.writer_code.Destructor(destructorBody, 'pu')
 
         constructorInit = ['sc_module(pipeName)', 'BasePipeStage(' + baseConstructorInit[:-2] + ')'] + constructorInit
         curPipeDecl = cxx_writer.writer_code.SCModule(pipeStage.name.upper() + '_PipeStage', curPipeElements, [pipeType], namespaces = [namespace])
         constructorBody = cxx_writer.writer_code.Code(constructorCode + 'end_module();')
         publicCurPipeConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, constructorInit)
+        if pipeStage == self.pipes[0]:
+            curPipeDecl.addDestructor(publicDestr)
         curPipeDecl.addConstructor(publicCurPipeConstr)
         pipeCodeElements.append(curPipeDecl)
 

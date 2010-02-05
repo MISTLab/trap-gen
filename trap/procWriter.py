@@ -277,6 +277,15 @@ def standardInstrFetch(self, trace, combinedTrace, issueCodeGenerator, hasCheckH
         codeString += 'Instruction * instr = ' + processor_name + '::INSTRUCTIONS[instrId];\n'
     codeString += 'instr->setParams(bitString);\n'
 
+    # Here we add the details about the instruction to the current history element
+    codeString += """#ifdef ENABLE_HISTORY
+    if(this->historyEnabled){
+        instrQueueElem.name = instr->getInstructionName();
+        instrQueueElem.mnemonic = instr->getMnemonic();
+    }
+    #endif
+    """
+
     codeString += issueCodeGenerator(self, trace, combinedTrace, 'instr', hasCheckHazard, pipeStage, checkDestroyCode)
     return codeString
 
@@ -294,6 +303,16 @@ def fetchWithCacheCode(self, fetchCode, trace, combinedTrace, issueCodeGenerator
         // I can call the instruction, I have found it
         if(curInstrPtr != NULL){
     """
+
+    # Here we add the details about the instruction to the current history element
+    codeString += """#ifdef ENABLE_HISTORY
+    if(this->historyEnabled){
+        instrQueueElem.name = curInstrPtr->getInstructionName();
+        instrQueueElem.mnemonic = curInstrPtr->getMnemonic();
+    }
+    #endif
+    """
+
     if pipeStage:
         codeString += 'if(curInstrPtr->inPipeline){\n'
         codeString += 'curInstrPtr = curInstrPtr->replicate();\n'
@@ -923,7 +942,7 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         # Lets start with the code for the instruction queue
         codeString += """#ifdef ENABLE_HISTORY
         HistoryInstrType instrQueueElem;
-        if(this->enableHistory){
+        if(this->historyEnabled){
             instrQueueElem.cycle = (unsigned int)(sc_time_stamp()/this->latency);
             instrQueueElem.address = curPC;
         }
@@ -947,13 +966,20 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         # Lets finish with the code for the instruction queue: I just still have to
         # check if it is time to save to file the instruction queue
         codeString += """#ifdef ENABLE_HISTORY
-        if(this->enableHistory){
-        }
-        """
-        codeString += """#ifdef ENABLE_HISTORY
-        if(this->enableHistory){
-            instrQueueElem.name = ;
-            instrQueueElem.mnemonic = ;
+        if(this->historyEnabled){
+            // First I add the new element to the queue
+            this->instHistoryQueue.push_back(instrQueueElem);
+            //Now, in case the queue dump file has been specified, I have to check if I need to save it
+            if(this->histFile){
+                this->undumpedHistElems++;
+                if(undumpedHistElems == this->instHistoryQueue.capacity()){
+                    boost::circular_buffer<HistoryInstrType>::const_iterator beg, end;
+                    for(beg = this->instHistoryQueue.begin(), end = this->instHistoryQueue.end(); beg != end; beg++){
+                        this->histFile << beg->toStr() << std::endl;
+                    }
+                    this->undumpedHistElems = 0;
+                }
+            }
         }
         #endif
         """
@@ -1014,6 +1040,7 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         resetOpTemp.appendCode('//user-defined initialization\nthis->beginOp();\n')
     resetOpMethod = cxx_writer.writer_code.Method('resetOp', resetOpTemp, cxx_writer.writer_code.voidType, 'pu')
     processorElements.append(resetOpMethod)
+
     # Now I declare the end of elaboration method, called by systemc just before starting the simulation
     endElabCode = cxx_writer.writer_code.Code('this->resetOp();')
     endElabMethod = cxx_writer.writer_code.Method('end_of_elaboration', endElabCode, cxx_writer.writer_code.voidType, 'pu')
@@ -1141,6 +1168,9 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         instHistoryQueueAttribute = cxx_writer.writer_code.Attribute('instHistoryQueue', histQueueType, 'pu')
         processorElements.append(instHistoryQueueAttribute)
         bodyInits += 'this->instHistoryQueue.set_capacity(1000);\n'
+        undumpedHistElemsAttribute = cxx_writer.writer_code.Attribute('undumpedHistElems', cxx_writer.writer_code.uintType, 'pu')
+        processorElements.append(undumpedHistElemsAttribute)
+        bodyInits += 'this->undumpedHistElems = 0;\n'
 
     numInstructions = cxx_writer.writer_code.Attribute('numInstructions', cxx_writer.writer_code.uintType, 'pu')
     processorElements.append(numInstructions)
@@ -1167,6 +1197,10 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         processorElements.append(attribute)
         if self.abi:
             abiIfInit += ', this->instrEndEvent'
+    if model.startswith('func'):
+        abiIfInit += ', this->instHistoryQueue'
+    else:
+        abiIfInit += ', this->' + self.pipes[0].name + '_stage.instHistoryQueue'
     if self.abi:
         bodyInits += 'this->abiIf = new ' + str(interfaceType) + '(' + abiIfInit + ');\n'
 
@@ -1312,6 +1346,13 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         destrCode += 'delete this->abiIf;\n'
     for irq in self.irqs:
         destrCode += 'delete this->' + irqPort.name + '_irqInstr;\n'
+    # Now, before the processor elements is destructed I have to make sure that the history dump file is correctly closed
+    if model.startswith('func'):
+        destrCode += """if(this->histFile){
+            this->histFile.flush();
+            this->histFile.close();
+            }
+        """
     destrCode += bodyDestructor
     destructorBody = cxx_writer.writer_code.Code(destrCode)
     publicDestr = cxx_writer.writer_code.Destructor(destructorBody, 'pu')
@@ -1536,7 +1577,7 @@ def getMainCode(self, model, namespace):
     }
     if(vm.count("history") > 0){
         #ifndef ENABLE_HISTORY
-        std::cout << std::endl << "Unable to initialize instruction history as it has been disabled at compilation time" << std::endl << std::endl;
+        std::cout << std::endl << "Unable to initialize instruction history as it has been " << "disabled at compilation time" << std::endl << std::endl;
         #endif
         procInst.enableHistory(vm["history"].as<std::string>());
     }

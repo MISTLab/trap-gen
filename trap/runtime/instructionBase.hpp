@@ -43,7 +43,10 @@
 #ifndef INSTRUCTIONBASE_HPP
 #define INSTRUCTIONBASE_HPP
 
+#include <ostream>
 #include <string>
+
+#include <boost/lexical_cast.hpp>
 
 namespace trap{
 
@@ -66,6 +69,17 @@ struct HistoryInstrType{
     std::string name;
     std::string mnemonic;
     unsigned int cycle;
+
+    ///Creates a string representation of the current history element
+    std::string toStr() const{
+        return boost::lexical_cast<std::string>(this->address) + "\t" + this->name + "\t" + this->mnemonic + "\t" + boost::lexical_cast<std::string>(this->cycle);
+    }
+
+    ///Prints the string representation of the current instruction on a stream
+    std::ostream & operator <<( std::ostream & other ) const{
+        other << this->toStr();
+        return other;
+    }
 };
 
 }

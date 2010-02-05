@@ -863,9 +863,10 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
                 // Lets now print the history
                 resp.message += "Address\tname\tmnemonic\tcycle\n";
                 boost::circular_buffer<HistoryInstrType> & historyQueue = processorInstance.getInstructionHistory();
-                boost::circular_buffer<HistoryInstrType>::const_reverse_iterator beg, end;
-                for(beg = historyQueue.rbegin(), end = historyQueue.rend(), unsigned int histRead = 0; beg != end && histRead < histLen; beg++, histRead++){
-                    resp.message += boost::lexical_cast<std::string>(beg->address) + "\t" + beg->name + "\t" + beg->mnemonic + "\t" + boost::lexical_cast<std::string>(beg->cycle) + "\n"
+                boost::circular_buffer<HistoryInstrType>::const_iterator beg, end;
+                unsigned int histRead = 0;
+                for(histRead = 0, beg = historyQueue.begin(), end = historyQueue.end(); beg != end && histRead < histLen; beg++, histRead++){
+                    resp.message += beg->toStr() + "\n";
                 }
                 this->connManager.sendResponse(resp);
                 resp.type = GDBResponse::OK_rsp;

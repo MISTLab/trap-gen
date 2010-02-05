@@ -55,10 +55,18 @@ def getCPPIf(self, model, namespace):
     includes = wordType.getIncludes()
     pipeRegisterType = cxx_writer.writer_code.Type('PipelineRegister', 'registers.hpp')
 
+    instrHistType = cxx_writer.writer_code.Type('HistoryInstrType', 'instructionBase.hpp')
+    histQueueType = cxx_writer.writer_code.TemplateType('boost::circular_buffer', [instrHistType], 'boost/circular_buffer.hpp')
+
     ifClassElements = []
     initElements = []
     baseInstrConstrParams = []
-    # Lets first of all decalre the variables
+
+    ####################################################
+    # Lets first of all decalre the variables and the attributes;
+    # they are mainly references to the corresponding elements
+    # of the processor or of the pipeline stage
+    ####################################################
     progLimitAttr = cxx_writer.writer_code.Attribute('PROGRAM_LIMIT', wordType.makeRef(), 'pri')
     ifClassElements.append(progLimitAttr)
     baseInstrConstrParams.append(cxx_writer.writer_code.Parameter('PROGRAM_LIMIT', wordType.makeRef()))
@@ -102,7 +110,24 @@ def getCPPIf(self, model, namespace):
         baseInstrConstrParams.append(cxx_writer.writer_code.Parameter(aliasB.name, resourceType[aliasB.name].makePointer()))
         initElements.append(aliasB.name + '(' + aliasB.name + ')')
         ifClassElements.append(attribute)
+    attribute = cxx_writer.writer_code.Attribute('instrExecuting', cxx_writer.writer_code.boolType.makeRef(), 'pri')
+    baseInstrConstrParams.append(cxx_writer.writer_code.Parameter('instrExecuting', cxx_writer.writer_code.boolType.makeRef()))
+    initElements.append('instrExecuting(instrExecuting)')
+    ifClassElements.append(attribute)
+    if self.systemc:
+        attribute = cxx_writer.writer_code.Attribute('instrEndEvent', cxx_writer.writer_code.sc_eventType.makeRef(), 'pri')
+        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter('instrEndEvent', cxx_writer.writer_code.sc_eventType.makeRef()))
+        initElements.append('instrEndEvent(instrEndEvent)')
+        ifClassElements.append(attribute)
+    instHistoryQueueAttr = cxx_writer.writer_code.Attribute('instHistoryQueue', histQueueType.makeRef(), 'pri')
+    ifClassElements.append(instHistoryQueueAttr)
+    baseInstrConstrParams.append(cxx_writer.writer_code.Parameter('instHistoryQueue', histQueueType.makeRef()))
+    initElements.append('instHistoryQueue(instHistoryQueue)')
 
+    ###############################################################
+    # Now lets move to the actual implementation of the methods which
+    # enable communication of the interface with the processor
+    ###############################################################
     if self.isBigEndian:
         endianessCode = cxx_writer.writer_code.Code('return false;')
     else:
@@ -111,10 +136,6 @@ def getCPPIf(self, model, namespace):
     ifClassElements.append(endianessMethod)
 
     # Here are the methods used to discriminate when an instruction is executing or not
-    attribute = cxx_writer.writer_code.Attribute('instrExecuting', cxx_writer.writer_code.boolType.makeRef(), 'pri')
-    baseInstrConstrParams.append(cxx_writer.writer_code.Parameter('instrExecuting', cxx_writer.writer_code.boolType.makeRef()))
-    initElements.append('instrExecuting(instrExecuting)')
-    ifClassElements.append(attribute)
     if self.abi.procIdCode:
         processorIDCode = cxx_writer.writer_code.Code('return (' + self.abi.procIdCode + ');\n')
         processorIDMethod = cxx_writer.writer_code.Method('getProcessorID', processorIDCode, cxx_writer.writer_code.intType, 'pu', noException = True, const = True)
@@ -123,10 +144,6 @@ def getCPPIf(self, model, namespace):
     instrExecutingMethod = cxx_writer.writer_code.Method('isInstrExecuting', instrExecutingCode, cxx_writer.writer_code.boolType, 'pu', noException = True, const = True)
     ifClassElements.append(instrExecutingMethod)
     if self.systemc:
-        attribute = cxx_writer.writer_code.Attribute('instrEndEvent', cxx_writer.writer_code.sc_eventType.makeRef(), 'pri')
-        baseInstrConstrParams.append(cxx_writer.writer_code.Parameter('instrEndEvent', cxx_writer.writer_code.sc_eventType.makeRef()))
-        initElements.append('instrEndEvent(instrEndEvent)')
-        ifClassElements.append(attribute)
         waitInstrEndCode = cxx_writer.writer_code.Code('if(this->instrExecuting){\nwait(this->instrEndEvent);\n}\n')
         waitInstrEndCode.addInclude('systemc.h')
     else:
@@ -399,6 +416,10 @@ def getCPPIf(self, model, namespace):
     writeMemParam2 = cxx_writer.writer_code.Parameter('datum', cxx_writer.writer_code.ucharType)
     writeMemMethod = cxx_writer.writer_code.Method('writeCharMem', writeMemCode, cxx_writer.writer_code.voidType, 'pu', [writeMemParam1, writeMemParam2])
     ifClassElements.append(writeMemMethod)
+
+    getInstructionHistoryCode = cxx_writer.writer_code.Code('return this->instHistoryQueue;')
+    getInstructionHistoryMethod = cxx_writer.writer_code.Method('getInstructionHistory', getInstructionHistoryCode, histQueueType.makeRef(), 'pu')
+    ifClassElements.append(getInstructionHistoryMethod)
 
     ABIIfType = cxx_writer.writer_code.TemplateType('ABIIf', [wordType], 'ABIIf.hpp')
     ifClassDecl = cxx_writer.writer_code.ClassDeclaration(self.name + '_ABIIf', ifClassElements, [ABIIfType], namespaces = [namespace])
