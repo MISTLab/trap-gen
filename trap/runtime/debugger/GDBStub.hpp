@@ -85,6 +85,7 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/circular_buffer.hpp>
 
 namespace trap{
 
@@ -790,11 +791,14 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
         return true;
     }
 
+    //Note that to add additional custom commands you simply have to extend the following chain of
+    //if clauses
     bool genericQuery(GDBRequest &req){
         //I have to determine the query packet; in case it is Rcmd I deal with it
         GDBResponse resp;
-        if(req.command != "Rcmd")
+        if(req.command != "Rcmd"){
             resp.type = GDBResponse::NOT_SUPPORTED_rsp;
+        }
         else{
             //lets see which is the custom command being sent
             std::string::size_type spacePos = req.extension.find(' ');
@@ -806,7 +810,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
             if(custComm == "go"){
                 //Ok,  finally I got the right command: lets see for
                 //how many nanoseconds I have to execute the continue
-                this->timeToGo = atof(req.extension.substr(spacePos + 1).c_str())*1e3;
+                this->timeToGo = boost::lexical_cast<double>(req.extension.substr(spacePos + 1))*1e3;
                 if(this->timeToGo < 0){
                     resp.type = GDBResponse::OUTPUT_rsp;
                     resp.message = "Please specify a positive offset";
@@ -819,7 +823,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
             }
             else if(custComm == "go_abs"){
                 //This command specify to go up to a specified simulation time; the time is specified in nanoseconds
-                this->timeToGo = atof(req.extension.substr(spacePos + 1).c_str())*1e3 - sc_time_stamp().to_double();
+                this->timeToGo = boost::lexical_cast<double>(req.extension.substr(spacePos + 1))*1e3 - sc_time_stamp().to_double();
                 if(this->timeToGo < 0){
                     resp.type = GDBResponse::OUTPUT_rsp;
                     resp.message = "Please specify a positive offset";
@@ -849,6 +853,23 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
                  this->connManager.sendResponse(resp);
                  resp.type = GDBResponse::OK_rsp;
             }
+            else if(custComm == "hist"){
+                //Now I have to print the last n executed instructions; lets first get such number n
+                unsigned int histLen = boost::lexical_cast<unsigned int>(req.extension.substr(spacePos + 1));
+                resp.type = GDBResponse::OUTPUT_rsp;
+                if(histLen > 1000){
+                    resp.message = "At maximum 1000 instructions are kept in the history\n\n";
+                }
+                // Lets now print the history
+                resp.message += "Address\tname\tmnemonic\tcycle\n";
+                boost::circular_buffer<HistoryInstrType> & historyQueue = processorInstance.getInstructionHistory();
+                boost::circular_buffer<HistoryInstrType>::const_reverse_iterator beg, end;
+                for(beg = historyQueue.rbegin(), end = historyQueue.rend(), unsigned int histRead = 0; beg != end && histRead < histLen; beg++, histRead++){
+                    resp.message += boost::lexical_cast<std::string>(beg->address) + "\t" + beg->name + "\t" + beg->mnemonic + "\t" + boost::lexical_cast<std::string>(beg->cycle) + "\n"
+                }
+                this->connManager.sendResponse(resp);
+                resp.type = GDBResponse::OK_rsp;
+            }
             else if(custComm == "help"){
                 //This command is simply a query to know the current simulation time
                 resp.type = GDBResponse::OUTPUT_rsp;
@@ -856,6 +877,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
                  resp.message += "   monitor help:       prints the current message\n";
                  resp.message += "   monitor time:       returns the current simulation time\n";
                  resp.message += "   monitor status:     returns the status of the simulation\n";
+                 resp.message += "   monitor hist n:     prints the last n (up to a maximum of 1000) instructions\n";
                  resp.message += "   monitor go n:       after the \'continue\' command is given, it simulates for n (ns) starting from the current time\n";
                  resp.message += "   monitor go_abs n:   after the \'continue\' command is given, it simulates up to instant n (ns)\n";
                  this->connManager.sendResponse(resp);

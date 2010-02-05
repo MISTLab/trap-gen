@@ -913,13 +913,23 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         codeString += str(fetchWordType) + ' curPC = ' + fetchAddress + ';\n'
         # Lets insert the code to keep statistics
         if self.systemc:
-            codeString += """if(curPC == this->profStartAddr && !startMet){
+            codeString += """if(!startMet && curPC == this->profStartAddr){
                 this->profTimeStart = sc_time_stamp();
             }
-            if(curPC == this->profEndAddr){
+            if(startMet && curPC == this->profEndAddr){
                 this->profTimeEnd = sc_time_stamp();
             }
             """
+        # Lets start with the code for the instruction queue
+        codeString += """#ifdef ENABLE_HISTORY
+        HistoryInstrType instrQueueElem;
+        if(this->enableHistory){
+            instrQueueElem.cycle = (unsigned int)(sc_time_stamp()/this->latency);
+            instrQueueElem.address = curPC;
+        }
+        #endif
+        """
+
         # We need to fetch the instruction ... only if the cache is not used or if
         # the index of the cache is the current instruction
         if not (self.instructionCache and self.fastFetch):
@@ -933,6 +943,20 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
             codeString += fetchWithCacheCode(self, fetchCode, trace, combinedTrace, getInstrIssueCode)
         else:
             codeString += standardInstrFetch(self, trace, combinedTrace, getInstrIssueCode)
+
+        # Lets finish with the code for the instruction queue: I just still have to
+        # check if it is time to save to file the instruction queue
+        codeString += """#ifdef ENABLE_HISTORY
+        if(this->enableHistory){
+        }
+        """
+        codeString += """#ifdef ENABLE_HISTORY
+        if(this->enableHistory){
+            instrQueueElem.name = ;
+            instrQueueElem.mnemonic = ;
+        }
+        #endif
+        """
 
         if self.irqs:
             codeString += '}\n'
@@ -1105,6 +1129,19 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         bodyInits += 'this->profEndAddr = (' + str(fetchWordType) + ')-1;\n'
         processorElements.append(profilingAddrEndAttribute)
 
+    # Here are the variables used to manage the instruction history queue
+    if model.startswith('func'):
+        instrQueueFileAttribute = cxx_writer.writer_code.Attribute('histFile', cxx_writer.writer_code.ofstreamType, 'pri')
+        processorElements.append(instrQueueFileAttribute)
+        historyEnabledAttribute = cxx_writer.writer_code.Attribute('historyEnabled', cxx_writer.writer_code.boolType, 'pri')
+        processorElements.append(historyEnabledAttribute)
+        bodyInits += 'this->historyEnabled = false;\n'
+        instrHistType = cxx_writer.writer_code.Type('HistoryInstrType', 'instructionBase.hpp')
+        histQueueType = cxx_writer.writer_code.TemplateType('boost::circular_buffer', [instrHistType], 'boost/circular_buffer.hpp')
+        instHistoryQueueAttribute = cxx_writer.writer_code.Attribute('instHistoryQueue', histQueueType, 'pu')
+        processorElements.append(instHistoryQueueAttribute)
+        bodyInits += 'this->instHistoryQueue.set_capacity(1000);\n'
+
     numInstructions = cxx_writer.writer_code.Attribute('numInstructions', cxx_writer.writer_code.uintType, 'pu')
     processorElements.append(numInstructions)
     bodyInits += 'this->numInstructions = 0;\n'
@@ -1182,11 +1219,25 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         parameters = [cxx_writer.writer_code.Parameter('startAddr', fetchWordType), cxx_writer.writer_code.Parameter('endAddr', fetchWordType)]
         setProfilingRangeFunction = cxx_writer.writer_code.Method('setProfilingRange', setProfilingRangeCode, cxx_writer.writer_code.voidType, 'pu', parameters)
         processorElements.append(setProfilingRangeFunction)
-    elif model.startswith('acc'):    
+    elif model.startswith('acc'):
         setProfilingRangeCode = cxx_writer.writer_code.Code('this->' + self.pipes[0].name + '_stage.profStartAddr = startAddr;\nthis->' + self.pipes[0].name + '_stage.profEndAddr = endAddr;')
         parameters = [cxx_writer.writer_code.Parameter('startAddr', fetchWordType), cxx_writer.writer_code.Parameter('endAddr', fetchWordType)]
         setProfilingRangeFunction = cxx_writer.writer_code.Method('setProfilingRange', setProfilingRangeCode, cxx_writer.writer_code.voidType, 'pu', parameters)
         processorElements.append(setProfilingRangeFunction)
+
+    ####################################################################
+    # Method for initializing history management
+    ####################################################################
+    if model.startswith('acc'):
+        enableHistoryCode = cxx_writer.writer_code.Code('this->' + self.pipes[0].name + '_stage.historyEnabled = true;\nthis->' + self.pipes[0].name + '_stage.histFile.open(fileName.c_str(), ios::out | ios::ate);')
+        parameters = [cxx_writer.writer_code.Parameter('fileName', cxx_writer.writer_code.stringType, initValue = '""')]
+        enableHistoryMethod = cxx_writer.writer_code.Method('enableHistory', enableHistoryCode, cxx_writer.writer_code.voidType, 'pu', parameters)
+        processorElements.append(enableHistoryMethod)
+    else:
+        enableHistoryCode = cxx_writer.writer_code.Code('this->historyEnabled = true;\nthis->histFile.open(fileName.c_str(), ios::out | ios::ate);')
+        parameters = [cxx_writer.writer_code.Parameter('fileName', cxx_writer.writer_code.stringType, initValue = '""')]
+        enableHistoryMethod = cxx_writer.writer_code.Method('enableHistory', enableHistoryCode, cxx_writer.writer_code.voidType, 'pu', parameters)
+        processorElements.append(enableHistoryMethod)
 
     ####################################################################
     # Cycle accurate model, lets proceed with the declaration of the
@@ -1319,6 +1370,8 @@ def getMainCode(self, model, namespace):
     code += """("application,a", boost::program_options::value<std::string>(),
                                     "application to be executed on the simulator")
                ("disassembler,i", "prints the disassembly of the application")
+               ("history,y", boost::program_options::value<std::string>(),
+                            "prints on the specified file the instruction history")
             """
     if self.abi:
         code += """("arguments,r", boost::program_options::value<std::string>(),
@@ -1444,11 +1497,12 @@ def getMainCode(self, model, namespace):
                     startProfAddr = toIntNum(start);
                 }
                 catch(...){
-                    trap::BFDFrontend &bfdFE = trap::BFDFrontend::getInstance();
+                    trap::BFDFrontend &bfdFE = trap::BFDFrontend::getInstance(vm["application"].as<std::string>());
                     bool valid = true;
                     startProfAddr = bfdFE.getSymAddr(start, valid);
                     if(!valid){
-                        std::cerr << "ERROR: start address range " << start << " does not specify a valid address or a valid symbol" << std::endl;
+                        std::cerr << "ERROR: start address range " << start << " does not specify a valid ";
+                        std::cerr << "address or a valid symbol" << std::endl << std::endl;
                         return -1;
                     }
                 }
@@ -1461,11 +1515,12 @@ def getMainCode(self, model, namespace):
                     endProfAddr = toIntNum(end);
                 }
                 catch(...){
-                    trap::BFDFrontend &bfdFE = trap::BFDFrontend::getInstance();
+                    trap::BFDFrontend &bfdFE = trap::BFDFrontend::getInstance(vm["application"].as<std::string>());
                     bool valid = true;
                     endProfAddr = bfdFE.getSymAddr(end, valid);
                     if(!valid){
-                        std::cerr << "ERROR: end address range " << end << " does not specify a valid address or a valid symbol" << std::endl;
+                        std::cerr << "ERROR: end address range " << end << " does not specify a valid ";
+                        std::cerr << "address or a valid symbol" << std::endl << std::endl;
                         return -1;
                     }
                 }
@@ -1474,6 +1529,18 @@ def getMainCode(self, model, namespace):
             procInst.setProfilingRange(startProfAddr, endProfAddr);
         }
         """
+    code += """
+    //Initialization of the instruction history management
+    if(vm.count("debugger") > 0){
+        procInst.enableHistory();
+    }
+    if(vm.count("history") > 0){
+        #ifndef ENABLE_HISTORY
+        std::cout << std::endl << "Unable to initialize instruction history as it has been disabled at compilation time" << std::endl << std::endl;
+        #endif
+        procInst.enableHistory(vm["history"].as<std::string>());
+    }
+    """
     if self.abi:
         code += """
         //Now I initialize the tools (i.e. debugger, os emulator, ...)
@@ -1591,7 +1658,7 @@ def getMainCode(self, model, namespace):
     if(vm.count("profiler") != 0){
         profiler.printCsvStats(vm["profiler"].as<std::string>());
     }
-    std::cout << "Elapsed " << elapsedSec << " sec." << std::endl;
+    std::cout << std::endl << "Elapsed " << elapsedSec << " sec. (real time)" << std::endl;
     std::cout << "Executed " << procInst.numInstructions << " instructions" << std::endl;
     std::cout << "Execution Speed: " << (double)procInst.numInstructions/(elapsedSec*1e6) << " MIPS" << std::endl;
     """
@@ -1601,11 +1668,13 @@ def getMainCode(self, model, namespace):
         code += """if(startProfAddr != (""" + str(wordType) + """)-1 || endProfAddr != (""" + str(wordType) + """)-1){
                     if(procInst.profTimeEnd == SC_ZERO_TIME){
                         procInst.profTimeEnd = sc_time_stamp();
+                        std::cout << "End address " << std::hex << std::showbase << endProfAddr << " not found, counting until the end" << std::endl;
                     }
-                    std::cout << "Cycles between addressed " << std::hex << std::showbase << startProfAddr << " - " << endProfAddr << std::dec << (unsigned int)((procInst.profTimeEnd - procInst.profTimeStart)/sc_time(latency, SC_US)) << std::endl;
+                    std::cout << "Cycles between addresses " << std::hex << std::showbase << startProfAddr << " - " << endProfAddr << ": " << std::dec << (unsigned int)((procInst.profTimeEnd - procInst.profTimeStart)/sc_time(latency, SC_US)) << std::endl;
                 }"""
     else:
         code += 'std::cout << \"Elapsed \" << std::dec << procInst.totalCycles << \" cycles\" << std::endl;\n'
+    code += 'std::cout << std::endl;\n'
     if self.endOp:
         code += '//Ok, simulation has ended: lets call cleanup methods\nprocInst.endOp();\n'
     code += """

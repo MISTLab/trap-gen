@@ -60,6 +60,14 @@ class InstructionBase{
         virtual unsigned int getId() const throw() = 0;
 };
 
+///Type representing a single entry in the instruction history queue
+struct HistoryInstrType{
+    unsigned int address;
+    std::string name;
+    std::string mnemonic;
+    unsigned int cycle;
+};
+
 }
 
 #endif

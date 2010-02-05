@@ -217,10 +217,10 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             codeString += str(self.bitSizes[1]) + ' curPC = ' + fetchAddress + ';\n'
 
             # Here is the code for updating cycle counts
-            codeString += """if(curPC == this->profStartAddr && !startMet){
+            codeString += """if(!startMet && curPC == this->profStartAddr){
                 this->profTimeStart = sc_time_stamp();
             }
-            if(curPC == this->profEndAddr){
+            if(startMet && curPC == this->profEndAddr){
                 this->profTimeEnd = sc_time_stamp();
             }
             """
@@ -711,6 +711,18 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             profilingAddrEndAttribute = cxx_writer.writer_code.Attribute('profEndAddr', self.bitSizes[1], 'pu')
             constructorCode += 'this->profEndAddr = (' + str(self.bitSizes[1]) + ')-1;\n'
             curPipeElements.append(profilingAddrEndAttribute)
+            # Here are the attributes for the instruction history queue
+            instrQueueFileAttribute = cxx_writer.writer_code.Attribute('histFile', cxx_writer.writer_code.ofstreamType, 'pu')
+            curPipeElements.append(instrQueueFileAttribute)
+            historyEnabledAttribute = cxx_writer.writer_code.Attribute('historyEnabled', cxx_writer.writer_code.boolType, 'pu')
+            curPipeElements.append(historyEnabledAttribute)
+            constructorCode += 'this->historyEnabled = false;\n'
+            instrHistType = cxx_writer.writer_code.Type('HistoryInstrType', 'instructionBase.hpp')
+            histQueueType = cxx_writer.writer_code.TemplateType('boost::circular_buffer', [instrHistType], 'boost/circular_buffer.hpp')
+            instHistoryQueueAttribute = cxx_writer.writer_code.Attribute('instHistoryQueue', histQueueType, 'pu')
+            curPipeElements.append(instHistoryQueueAttribute)
+            constructorCode += 'this->instHistoryQueue.set_capacity(1000);\n'
+
 
 
         constructorInit = ['sc_module(pipeName)', 'BasePipeStage(' + baseConstructorInit[:-2] + ')'] + constructorInit

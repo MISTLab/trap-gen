@@ -105,7 +105,7 @@ def configure(conf):
     ########################################
     conf.check_tool('boost')
     boostLibs = 'regex thread program_options filesystem system'
-    conf.check_boost(lib=boostLibs, static='both', min_version='1.35.0', mandatory = 1, errmsg = 'Unable to find ' + boostLibs + ' boost libraries of at least version 1.35, please install them and specify their location with the --boost-includes and --boost-libs configuration options')
+    conf.check_boost(lib=boostLibs, static='both', min_version='1.35.0', mandatory = 1, errmsg = 'Unable to find ' + boostLibs + ' boost libraries of at least version 1.35, please install them and/or specify their location with the --boost-includes and --boost-libs configuration options')
 
     #######################################################
     # Determining gcc search dirs

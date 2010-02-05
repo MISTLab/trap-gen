@@ -447,6 +447,8 @@ class Folder:
         conf.env.append_unique('CPPFLAGS','-DDISABLE_TOOLS')
     if Options.options.static_build:
         conf.env['FULLSTATIC'] = True
+    if Options.options.enable_history:
+        conf.env.append_unique('CPPFLAGS','-DENABLE_HISTORY')
 
     ########################################
     # Adding the custom preprocessor macros
@@ -463,7 +465,7 @@ class Folder:
     # Check for boost libraries
     ########################################
     conf.check_tool('boost')
-    conf.check_boost(lib='thread regex date_time program_options filesystem unit_test_framework system', static='both', min_version='1.35.0', mandatory = 1, errmsg = 'Unable to find boost libraries boost of at least version 1.35, please install them and specify their location with the --boost-includes and --boost-libs configuration options')
+    conf.check_boost(lib='thread regex date_time program_options filesystem unit_test_framework system', static='both', min_version='1.35.0', mandatory = 1, errmsg = 'Unable to find boost libraries boost of at least version 1.35, please install them and/or specify their location with the --boost-includes and --boost-libs configuration options')
     if not Options.options.static_build:
         conf.env.append_unique('RPATH', conf.env['LIBPATH_BOOST_THREAD'])
 
@@ -675,6 +677,7 @@ class Folder:
     ##################################################
     # Check for TRAP runtime libraries and headers
     ##################################################
+    trapRevisionNum = 714
     trapDirLib = ''
     trapDirInc = ''
     trapLibErrmsg = 'not found, use --with-trap option. It might also be that the trap library is compiled '
@@ -695,11 +698,12 @@ class Folder:
             #error TRAP_REVISION not defined in file trap.hpp
             #endif
 
-            #if TRAP_REVISION < 420
+            #if TRAP_REVISION < ''' + str(trapRevisionNum) + '''
             #error Wrong version of the TRAP runtime: too old
             #endif
+
             int main(int argc, char * argv[]){return 0;}
-        ''', msg='Check for TRAP version', uselib='TRAP BFD LIBERTY BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', mandatory=1, includes=trapDirInc, errmsg='Error, at least revision 420 required')
+        ''', msg='Check for TRAP version', uselib='TRAP BFD LIBERTY BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', mandatory=1, includes=trapDirInc, errmsg='Error, at least revision ' + str(trapRevisionNum) + ' required')
     else:
         conf.check_cxx(lib='trap', uselib='BFD LIBERTY BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', uselib_store='TRAP', mandatory=1, errmsg=trapLibErrmsg)
         conf.check_cxx(header_name='trap.hpp', uselib='TRAP BFD LIBERTY BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', uselib_store='TRAP', mandatory=1)
@@ -710,11 +714,12 @@ class Folder:
             #error TRAP_REVISION not defined in file trap.hpp
             #endif
 
-            #if TRAP_REVISION < 420
+            #if TRAP_REVISION < ''' + str(trapRevisionNum) + '''
             #error Wrong version of the TRAP runtime: too old
             #endif
+
             int main(int argc, char * argv[]){return 0;}
-        ''', msg='Check for TRAP version', uselib='TRAP BFD LIBERTY BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', mandatory=1, errmsg='Error, at least revision 420 required')
+        ''', msg='Check for TRAP version', uselib='TRAP BFD LIBERTY BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', mandatory=1, errmsg='Error, at least revision ' + str(trapRevisionNum) + ' required')
 
 """, wscriptFile)
             # Finally now I can add the options
@@ -740,7 +745,8 @@ class Folder:
     opt.add_option('-P', '--gprof', default=False, action='store_true', help='Enables profiling with gprof profiler', dest='enable_gprof')
     opt.add_option('-V', '--vprof', default=False, action='store_true', help='Enables profiling with vprof profiler', dest='enable_vprof')
     opt.add_option('--with-vprof', type='string', help='vprof installation folder', dest='vprofdir')
-    opt.add_option('--with-papi', type='string', help='papi installation folder', dest='papidir')""", wscriptFile)
+    opt.add_option('--with-papi', type='string', help='papi installation folder', dest='papidir')
+    opt.add_option('-s', '--enable-history', default=False, action='store_true', help='Enables the history of executed instructions', dest='enable_history')""", wscriptFile)
 
             # Now I add the custom options, in case there are any
             if customOptions:
