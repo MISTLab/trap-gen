@@ -943,7 +943,10 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         codeString += """#ifdef ENABLE_HISTORY
         HistoryInstrType instrQueueElem;
         if(this->historyEnabled){
-            instrQueueElem.cycle = (unsigned int)(sc_time_stamp()/this->latency);
+        """
+        if self.systemc:
+            codeString += 'instrQueueElem.cycle = (unsigned int)(this->quantKeeper.get_current_time()/this->latency);'
+        codeString += """
             instrQueueElem.address = curPC;
         }
         #endif
@@ -1006,6 +1009,8 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         for reg in self.regBanks:
             for regNum in reg.delay.keys():
                 codeString += reg.name + '[' + str(regNum) + '].clockCycle();\n'
+        if self.systemc:
+            codeString += 'this->quantKeeper.sync();\n'
         if not self.externalClock:
             codeString += '}'
         mainLoopCode = cxx_writer.writer_code.Code(codeString)
@@ -1100,7 +1105,7 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         quantumKeeperType = cxx_writer.writer_code.Type('tlm_utils::tlm_quantumkeeper', 'tlm_utils/tlm_quantumkeeper.h')
         quantumKeeperAttribute = cxx_writer.writer_code.Attribute('quantKeeper', quantumKeeperType, 'pri')
         processorElements.append(quantumKeeperAttribute)
-        bodyInits += 'quantKeeper.set_global_quantum( this->latency*100 );\nquantKeeper.reset();\n'
+        bodyInits += 'this->quantKeeper.set_global_quantum( this->latency*100 );\nthis->quantKeeper.reset();\n'
     # Lets now add the registers, the reg banks, the aliases, etc.
     (bodyInits, bodyDestructor, abiIfInit) = createRegsAttributes(self, model, processorElements, initElements, bodyAliasInit, aliasInit, bodyInits)
 
@@ -1348,10 +1353,21 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         destrCode += 'delete this->' + irqPort.name + '_irqInstr;\n'
     # Now, before the processor elements is destructed I have to make sure that the history dump file is correctly closed
     if model.startswith('func'):
-        destrCode += """if(this->histFile){
-            this->histFile.flush();
-            this->histFile.close();
+        destrCode += """#ifdef ENABLE_HISTORY
+        if(this->historyEnabled){
+            //Now, in case the queue dump file has been specified, I have to check if I need to save it
+            if(this->histFile){
+                if(this->undumpedHistElems > 0){
+                    boost::circular_buffer<HistoryInstrType>::const_iterator beg, end;
+                    for(beg = this->instHistoryQueue.begin(), end = this->instHistoryQueue.end(); beg != end; beg++){
+                        this->histFile << beg->toStr() << std::endl;
+                    }
+                }
+                this->histFile.flush();
+                this->histFile.close();
             }
+        }
+        #endif
         """
     destrCode += bodyDestructor
     destructorBody = cxx_writer.writer_code.Code(destrCode)

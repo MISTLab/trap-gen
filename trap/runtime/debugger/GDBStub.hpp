@@ -855,13 +855,19 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
             }
             else if(custComm == "hist"){
                 //Now I have to print the last n executed instructions; lets first get such number n
-                unsigned int histLen = boost::lexical_cast<unsigned int>(req.extension.substr(spacePos + 1));
+                unsigned int histLen = 0;
+                try{
+                    histLen = boost::lexical_cast<unsigned int>(req.extension.substr(spacePos + 1));
+                }
+                catch(...){
+                    resp.message = "Please specify a correct history length\n\n";
+                }
                 resp.type = GDBResponse::OUTPUT_rsp;
                 if(histLen > 1000){
                     resp.message = "At maximum 1000 instructions are kept in the history\n\n";
                 }
                 // Lets now print the history
-                resp.message += "Address\tname\tmnemonic\tcycle\n";
+                resp.message += "\nAddress\t\tname\t\t\tmnemonic\t\tcycle\n\n";
                 boost::circular_buffer<HistoryInstrType> & historyQueue = processorInstance.getInstructionHistory();
                 boost::circular_buffer<HistoryInstrType>::const_iterator beg, end;
                 unsigned int histRead = 0;

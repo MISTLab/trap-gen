@@ -757,10 +757,21 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             curPipeElements.append(undumpedHistElemsAttribute)
             constructorCode += 'this->undumpedHistElems = 0;\n'
             # Now, before the processor elements is destructed I have to make sure that the history dump file is correctly closed
-            destrCode = """if(this->histFile){
-                this->histFile.flush();
-                this->histFile.close();
+            destrCode = """#ifdef ENABLE_HISTORY
+            if(this->historyEnabled){
+                //Now, in case the queue dump file has been specified, I have to check if I need to save it
+                if(this->histFile){
+                    if(this->undumpedHistElems > 0){
+                        boost::circular_buffer<HistoryInstrType>::const_iterator beg, end;
+                        for(beg = this->instHistoryQueue.begin(), end = this->instHistoryQueue.end(); beg != end; beg++){
+                            this->histFile << beg->toStr() << std::endl;
+                        }
+                    }
+                    this->histFile.flush();
+                    this->histFile.close();
                 }
+            }
+            #endif
             """
             destructorBody = cxx_writer.writer_code.Code(destrCode)
             publicDestr = cxx_writer.writer_code.Destructor(destructorBody, 'pu')

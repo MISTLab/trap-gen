@@ -44,6 +44,7 @@
 #define INSTRUCTIONBASE_HPP
 
 #include <ostream>
+#include <sstream>
 #include <string>
 
 #include <boost/lexical_cast.hpp>
@@ -70,9 +71,16 @@ struct HistoryInstrType{
     std::string mnemonic;
     unsigned int cycle;
 
+    HistoryInstrType(){
+        this->address = 0;
+        this->cycle = 0;
+    }
+    
     ///Creates a string representation of the current history element
     std::string toStr() const{
-        return boost::lexical_cast<std::string>(this->address) + "\t" + this->name + "\t" + this->mnemonic + "\t" + boost::lexical_cast<std::string>(this->cycle);
+        std::stringstream outStr;
+        outStr << std::hex << std::showbase << this->address << "\t\t" << this->name << "\t\t\t" << this->mnemonic << "\t\t" << std::dec << this->cycle;
+        return outStr.str();
     }
 
     ///Prints the string representation of the current instruction on a stream
