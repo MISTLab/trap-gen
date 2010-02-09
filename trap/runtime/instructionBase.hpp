@@ -71,7 +71,7 @@ struct HistoryInstrType{
     std::string mnemonic;
     unsigned int cycle;
 
-    HistoryInstrType(){
+    HistoryInstrType() : name("--"), mnemonic("--"){
         this->address = 0;
         this->cycle = 0;
     }
@@ -79,7 +79,19 @@ struct HistoryInstrType{
     ///Creates a string representation of the current history element
     std::string toStr() const{
         std::stringstream outStr;
-        outStr << std::hex << std::showbase << this->address << "\t\t" << this->name << "\t\t\t" << this->mnemonic << "\t\t" << std::dec << this->cycle;
+        outStr << std::hex << std::showbase << this->address << "\t\t" << this->name;
+        if(this->name.size() > 7)
+            outStr << "\t\t";
+        else
+            outStr << "\t\t\t";
+        outStr << this->mnemonic;
+        if(this->mnemonic.size() < 8)
+            outStr << "\t\t\t";
+        else if(this->mnemonic.size() > 15)
+            outStr << "\t";
+        else
+            outStr << "\t\t";
+        outStr << std::dec << this->cycle;
         return outStr.str();
     }
 

@@ -112,7 +112,7 @@ void trap::GDBConnectionManager::initialize(unsigned int port){
         this->socket = new boost::asio::ip::tcp::socket(io_service);
         std::cerr << "GDB: waiting for connections on port " << port << std::endl;
         acceptor.accept(*this->socket);
-        std::cerr << "GDB: connection accepted on port " << port << std::endl;
+        std::cerr << "GDB: connection accepted on port " << port << std::endl << std::endl;
     }
     catch(...){
         this->killed = true;

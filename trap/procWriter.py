@@ -1355,12 +1355,18 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
     if model.startswith('func'):
         destrCode += """#ifdef ENABLE_HISTORY
         if(this->historyEnabled){
-            //Now, in case the queue dump file has been specified, I have to check if I need to save it
+            //Now, in case the queue dump file has been specified, I have to check if I need to save the yet undumped elements
             if(this->histFile){
                 if(this->undumpedHistElems > 0){
-                    boost::circular_buffer<HistoryInstrType>::const_iterator beg, end;
-                    for(beg = this->instHistoryQueue.begin(), end = this->instHistoryQueue.end(); beg != end; beg++){
-                        this->histFile << beg->toStr() << std::endl;
+                    std::vector<std::string> histVec;
+                    boost::circular_buffer<HistoryInstrType>::const_reverse_iterator beg, end;
+                    unsigned int histRead = 0;
+                    for(histRead = 0, beg = this->instHistoryQueue.rbegin(), end = this->instHistoryQueue.rend(); beg != end && histRead < this->undumpedHistElems; beg++, histRead++){
+                        histVec.push_back(beg->toStr());
+                    }
+                    std::vector<std::string>::const_reverse_iterator histVecBeg, histVecEnd;
+                    for(histVecBeg = histVec.rbegin(), histVecEnd = histVec.rend(); histVecBeg != histVecEnd; histVecBeg++){
+                        this->histFile <<  *histVecBeg << std::endl;
                     }
                 }
                 this->histFile.flush();
@@ -1446,8 +1452,9 @@ def getMainCode(self, model, namespace):
     try{
         boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
     }
-    catch(...){
+    catch(boost::program_options::invalid_command_line_syntax &e){
         std::cerr << "ERROR in parsing the command line parametrs" << std::endl << std::endl;
+        std::cerr << e.what() << std::endl << std::endl;
         std::cerr << desc << std::endl;
         return -1;
     }
@@ -1593,7 +1600,7 @@ def getMainCode(self, model, namespace):
     }
     if(vm.count("history") > 0){
         #ifndef ENABLE_HISTORY
-        std::cout << std::endl << "Unable to initialize instruction history as it has been " << "disabled at compilation time" << std::endl << std::endl;
+        std::cout << std::endl << "Unable to initialize instruction history as it has " << "been disabled at compilation time" << std::endl << std::endl;
         #endif
         procInst.enableHistory(vm["history"].as<std::string>());
     }

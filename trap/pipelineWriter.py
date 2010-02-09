@@ -762,9 +762,15 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
                 //Now, in case the queue dump file has been specified, I have to check if I need to save it
                 if(this->histFile){
                     if(this->undumpedHistElems > 0){
-                        boost::circular_buffer<HistoryInstrType>::const_iterator beg, end;
-                        for(beg = this->instHistoryQueue.begin(), end = this->instHistoryQueue.end(); beg != end; beg++){
-                            this->histFile << beg->toStr() << std::endl;
+                        std::vector<std::string> histVec;
+                        boost::circular_buffer<HistoryInstrType>::const_reverse_iterator beg, end;
+                        unsigned int histRead = 0;
+                        for(histRead = 0, beg = this->instHistoryQueue.rbegin(), end = this->instHistoryQueue.rend(); beg != end && histRead < this->undumpedHistElems; beg++, histRead++){
+                            histVec.push_back(beg->toStr());
+                        }
+                        std::vector<std::string>::const_reverse_iterator histVecBeg, histVecEnd;
+                        for(histVecBeg = histVec.rbegin(), histVecEnd = histVec.rend(); histVecBeg != histVecEnd; histVecBeg++){
+                            this->histFile <<  *histVecBeg << std::endl;
                         }
                     }
                     this->histFile.flush();
