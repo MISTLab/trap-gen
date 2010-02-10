@@ -373,6 +373,11 @@ class Processor:
         self.fastFetch = fastFetch
         self.externalClock = externalClock
         self.preProcMacros = []
+        self.tlmFakeMemProperties = ()
+
+    def setTLMMem(self, memSize, memLatency):
+        # the memory latency is exrepssed in us
+        self.tlmFakeMemProperties = (memSize, memLatency)
 
     def setPreProcMacro(self, wafOption, macro):
         self.preProcMacros.append( (wafOption, macro) )

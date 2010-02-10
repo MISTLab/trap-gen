@@ -200,6 +200,11 @@ processor.setFetchRegister('PC')
 # interrupt ports, pins, etc.)
 processor.addTLMPort('instrMem', True)
 processor.addTLMPort('dataMem')
+# Here I set the properties of the TLM memory: note that they are only used
+# to instantiate a fake memory in the simulator main file, but they do not
+# affect at all the processor core: i.e. once the processor is plugged in a
+# system-level simulator, they have no effect at all
+processor.setTLMMem(10*1024*1024, 0)
 #processor.setMemory('dataMem', 10*1024*1024)
 #processor.setMemory('dataMem', 10*1024*1024, True, 'PC')
 

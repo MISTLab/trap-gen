@@ -1458,6 +1458,18 @@ def getMainCode(self, model, namespace):
         std::cerr << desc << std::endl;
         return -1;
     }
+    catch(boost::program_options::validation_error &e){
+        std::cerr << "ERROR in parsing the command line parametrs" << std::endl << std::endl;
+        std::cerr << e.what() << std::endl << std::endl;
+        std::cerr << desc << std::endl;
+        return -1;
+    }
+    catch(boost::program_options::error &e){
+        std::cerr << "ERROR in parsing the command line parametrs" << std::endl << std::endl;
+        std::cerr << e.what() << std::endl << std::endl;
+        std::cerr << desc << std::endl;
+        return -1;
+    }
     boost::program_options::notify(vm);
 
     // Checking that the parameters are correctly specified
@@ -1491,10 +1503,14 @@ def getMainCode(self, model, namespace):
         //wtih the processor
         """
         if model.endswith('LT'):
-            code += """MemoryLT<""" + str(len(self.tlmPorts)) + """, """ + str(self.wordSize*self.byteSize) + """> mem("procMem", 1024*1024*10, sc_time(latency*2, SC_US));
-            """
+            code += 'MemoryLT'
         else:
-            code += """MemoryAT<""" + str(len(self.tlmPorts)) + """, """ + str(self.wordSize*self.byteSize) + """> mem("procMem", 1024*1024*10, sc_time(latency*2, SC_US));
+            code += 'MemoryAT'
+        code += '<' + str(len(self.tlmPorts)) + """, """ + str(self.wordSize*self.byteSize) + """> mem("procMem", """
+        if self.tlmFakeMemProperties:
+            code += str(self.tlmFakeMemProperties[0]) + ', sc_time(latency*' + str(self.tlmFakeMemProperties[1]) + ', SC_US));\n'
+        else:
+            code += """1024*1024*10, sc_time(latency*2, SC_US));
             """
         numPort = 0
         for tlmPortName, fetch in self.tlmPorts.items():
