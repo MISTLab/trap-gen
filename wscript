@@ -156,7 +156,7 @@ def configure(conf):
             foundShared += glob.glob(os.path.join(directory, conf.env['shlib_PATTERN'].split('%s')[0] + 'bfd*' + conf.env['shlib_PATTERN'].split('%s')[1]))
             foundStatic += glob.glob(os.path.join(directory, conf.env['staticlib_PATTERN'].split('%s')[0] + 'bfd*' + conf.env['staticlib_PATTERN'].split('%s')[1]))
         if not foundStatic and not foundShared:
-            conf.fatal('BFD library not found, install binutils development package for your distribution')
+            conf.fatal('BFD library not found, install binutils development package for your distribution and/or specify its localtion with the --with-bfd option')
         staticPaths = []
         tempLibs = []
         for bfdlib in foundStatic:
@@ -207,7 +207,7 @@ def configure(conf):
             foundShared += glob.glob(os.path.join(directory, conf.env['shlib_PATTERN'].split('%s')[0] + 'iberty*' + conf.env['shlib_PATTERN'].split('%s')[1]))
             foundStatic += glob.glob(os.path.join(directory, conf.env['staticlib_PATTERN'].split('%s')[0] + 'iberty*' + conf.env['staticlib_PATTERN'].split('%s')[1]))
         if not foundStatic and not foundShared:
-            conf.fatal('IBERTY library not found, install binutils development package for your distribution')
+            conf.fatal('IBERTY library not found, install binutils development package for your distribution and/or specify its localtion with the --with-bfd option')
         tempLibs = []
         staticPaths = []
         for ibertylib in foundStatic:
