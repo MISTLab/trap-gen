@@ -194,6 +194,7 @@ abi.addVarRegsCorrespondence({'REGS[0-15]': (0, 15), 'CPSR': 16})
 abi.setOffset('PC', -4)
 abi.setOffset('REGS[15]', -4)
 abi.addMemory('dataMem')
+abi.processorID('MP_ID')
 processor.setABI(abi)
 
 # Finally we can dump the processor on file

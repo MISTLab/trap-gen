@@ -1300,7 +1300,7 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
     global baseInstrInitElement
     baseInstrInitElement = createInstrInitCode(self, model, trace)
 
-    constrCode = processor_name + '::numInstances++;\nif(' + processor_name + '::INSTRUCTIONS == NULL){\n'
+    constrCode = processor_name + '::numInstances++;\n'
     constrCode += '// Initialization of the array holding the initial instance of the instructions\n'
     maxInstrId = max([instr.id for instr in self.isa.instructions.values()]) + 1
     constrCode += processor_name + '::INSTRUCTIONS = new Instruction *[' + str(maxInstrId + 1) + '];\n'
@@ -1311,7 +1311,6 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         constrCode += processor_name + '::NOPInstrInstance = new NOPInstruction(' + baseInstrInitElement + ');\n'
         for pipeStage in self.pipes:
             constrCode += pipeStage.name + '_stage.NOPInstrInstance = ' + processor_name + '::NOPInstrInstance;\n'
-    constrCode += '}\n'
     for irq in self.irqs:
         constrCode += 'this->' + irqPort.name + '_irqInstr = new IRQ_' + irq.name + '_Instruction(' + baseInstrInitElement + ', this->' + irqPort.name + ');\n'
         if model.startswith('acc'):
