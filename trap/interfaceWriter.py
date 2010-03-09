@@ -250,26 +250,52 @@ def getCPPIf(self, model, namespace):
         totalStateSize += (regB.bitWidth*regB.numRegs)/self.byteSize
     getStateBody = 'unsigned char * curState = new unsigned char[' + str(totalStateSize) + '];\n'
     getStateBody += 'unsigned char * curStateTemp = curState;\n'
+
+    from processor import extractRegInterval
+    stateIgnoreRegs = {}
+    for reg in self.abi.stateIgnoreRegs:
+        index = extractRegInterval(reg)
+        if index:
+            refName = reg[:reg.find('[')]
+            if not refName in stateIgnoreRegs.keys():
+                stateIgnoreRegs[refName] = []
+            for i in range(index[0], index[1] + 1):
+                stateIgnoreRegs[refName].append(i)
+        else:
+            stateIgnoreRegs[reg] = None
+
     from isa import resolveBitType
     for reg in self.regs:
-        regWType = resolveBitType('BIT<' + str(reg.bitWidth) + '>')
-        getStateBody += '*((' + str(regWType.makePointer()) + ')curStateTemp) = this->' + reg.name + regReadCode + ';\ncurStateTemp += ' + str(reg.bitWidth/self.byteSize) + ';\n'
+        if not reg.name in stateIgnoreRegs.keys():
+            regWType = resolveBitType('BIT<' + str(reg.bitWidth) + '>')
+            getStateBody += '*((' + str(regWType.makePointer()) + ')curStateTemp) = this->' + reg.name + regReadCode + ';\ncurStateTemp += ' + str(reg.bitWidth/self.byteSize) + ';\n'
     for regB in self.regBanks:
         regWType = resolveBitType('BIT<' + str(regB.bitWidth) + '>')
-        for i in range(0, regB.numRegs):
-            getStateBody += '*((' + str(regWType.makePointer()) + ')curStateTemp) = this->' + regB.name + '[' + str(i) + ']' + regReadCode + ';\ncurStateTemp += ' + str(regB.bitWidth/self.byteSize) + ';\n'
+        if not regB.name in stateIgnoreRegs.keys():
+            for i in range(0, regB.numRegs):
+                getStateBody += '*((' + str(regWType.makePointer()) + ')curStateTemp) = this->' + regB.name + '[' + str(i) + ']' + regReadCode + ';\ncurStateTemp += ' + str(regB.bitWidth/self.byteSize) + ';\n'
+        else:
+            for i in range(0, regB.numRegs):
+                if i not in stateIgnoreRegs[regB.name]:
+                    getStateBody += '*((' + str(regWType.makePointer()) + ')curStateTemp) = this->' + regB.name + '[' + str(i) + ']' + regReadCode + ';\ncurStateTemp += ' + str(regB.bitWidth/self.byteSize) + ';\n'
     getStateBody += 'return curState;'
     getStateCode = cxx_writer.writer_code.Code(getStateBody)
     getStateMethod = cxx_writer.writer_code.Method('getState', getStateCode, cxx_writer.writer_code.ucharPtrType, 'pu', noException = True, const = True)
     ifClassElements.append(getStateMethod)
     setStateBody = 'unsigned char * curStateTemp = state;\n'
     for reg in self.regs:
-        regWType = resolveBitType('BIT<' + str(reg.bitWidth) + '>')
-        setStateBody += 'this->' + reg.name + regWriteCode + '(*((' + str(regWType.makePointer()) + ')curStateTemp));\ncurStateTemp += ' + str(reg.bitWidth/self.byteSize) + ';\n'
+        if not reg.name in self.abi.stateIgnoreRegs:
+            regWType = resolveBitType('BIT<' + str(reg.bitWidth) + '>')
+            setStateBody += 'this->' + reg.name + regWriteCode + '(*((' + str(regWType.makePointer()) + ')curStateTemp));\ncurStateTemp += ' + str(reg.bitWidth/self.byteSize) + ';\n'
     for regB in self.regBanks:
         regWType = resolveBitType('BIT<' + str(regB.bitWidth) + '>')
-        for i in range(0, regB.numRegs):
-            setStateBody += 'this->' + regB.name + '[' + str(i) + ']' + regWriteCode + '(*((' + str(regWType.makePointer()) + ')curStateTemp));\ncurStateTemp += ' + str(regB.bitWidth/self.byteSize) + ';\n'
+        if not regB.name in stateIgnoreRegs.keys():
+            for i in range(0, regB.numRegs):
+                setStateBody += 'this->' + regB.name + '[' + str(i) + ']' + regWriteCode + '(*((' + str(regWType.makePointer()) + ')curStateTemp));\ncurStateTemp += ' + str(regB.bitWidth/self.byteSize) + ';\n'
+        else:
+            for i in range(0, regB.numRegs):
+                if i not in stateIgnoreRegs[regB.name]:
+                    setStateBody += 'this->' + regB.name + '[' + str(i) + ']' + regWriteCode + '(*((' + str(regWType.makePointer()) + ')curStateTemp));\ncurStateTemp += ' + str(regB.bitWidth/self.byteSize) + ';\n'
     setStateCode = cxx_writer.writer_code.Code(setStateBody)
     stateParam = cxx_writer.writer_code.Parameter('state', cxx_writer.writer_code.ucharPtrType)
     setStateMethod = cxx_writer.writer_code.Method('setState', setStateCode, cxx_writer.writer_code.voidType, 'pu', [stateParam], noException = True)

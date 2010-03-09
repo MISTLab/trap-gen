@@ -93,6 +93,7 @@ processor.addRegister(cpsr)
 # the processor ID: it is necessary in a multi-processor
 # system
 mp_id = trap.Register('MP_ID', 32)
+mp_id.setDefaultValue('MPROC_ID')
 processor.addRegister(mp_id)
 # Now I set the alias: they can (and will) be used by the instructions
 # to access the registers more easily. Note that, in general, it is
@@ -195,6 +196,7 @@ abi.setOffset('PC', -4)
 abi.setOffset('REGS[15]', -4)
 abi.addMemory('dataMem')
 abi.processorID('MP_ID')
+abi.addIgnoreStateReg('MP_ID')
 processor.setABI(abi)
 
 # Finally we can dump the processor on file

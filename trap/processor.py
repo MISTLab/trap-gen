@@ -861,6 +861,8 @@ class Processor:
             toCheck.append(self.abi.FP)
         if self.abi.SP:
             toCheck.append(self.abi.SP)
+        for reg in self.abi.stateIgnoreRegs:
+            toCheck.append(reg)
         if isinstance(self.abi.args, type('')):
             toCheck.append(self.abi.args)
         else:
@@ -1525,6 +1527,12 @@ class ABI:
         self.returnCallInstr = []
         # Code used to determine the processor ID in a multi-processor environment
         self.procIdCode = None
+        # Registers which do not need to be included when saving and restoring the
+        # state
+        self.stateIgnoreRegs = []
+
+    def addIgnoreStateReg(self, toIgnore):
+        self.stateIgnoreRegs.append(toIgnore)
 
     def processorID(self, procIdCode):
         self.procIdCode = procIdCode

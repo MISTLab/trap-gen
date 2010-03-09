@@ -134,7 +134,7 @@ processor.addRegister(npcReg)
 asrRegs = trap.RegisterBank('ASR', 32, 32)
 # here I set the default value for the processor configuration register
 # (see page 24 of LEON3 preliminary datasheed)
-asrRegs.setDefaultValue(0x00000300 + numRegWindows, 17)
+asrRegs.setDefaultValue(('MPROC_ID', 0x00000300 + numRegWindows), 17)
 #asrRegs.setGlobalDelay(3)
 processor.addRegBank(asrRegs)
 
@@ -300,6 +300,7 @@ abi.addMemory('dataMem')
 #abi.setCallInstr([LEON3Isa.call_Instr, None, (LEON3Isa.save_imm_Instr, LEON3Isa.save_reg_Instr)])
 abi.setCallInstr([LEON3Isa.call_Instr, None, None])
 abi.setReturnCallInstr([(LEON3Isa.restore_imm_Instr, LEON3Isa.restore_reg_Instr, LEON3Isa.jump_imm_Instr, LEON3Isa.jump_reg_Instr), (LEON3Isa.jump_imm_Instr, LEON3Isa.jump_reg_Instr, LEON3Isa.restore_imm_Instr, LEON3Isa.restore_reg_Instr)])
+abi.addIgnoreStateReg('ASR[17]')
 processor.setABI(abi)
 
 # Finally we can dump the processor on file

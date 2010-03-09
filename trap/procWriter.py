@@ -266,7 +266,7 @@ def getInterruptCode(self, trace, pipeStage = None):
 def standardInstrFetch(self, trace, combinedTrace, issueCodeGenerator, hasCheckHazard = False, pipeStage = None, checkDestroyCode = ''):
     codeString = 'int instrId = this->decoder.decode(bitString);\n'
     if pipeStage:
-        codeString += 'Instruction * instr = ' + pipeStage.name.upper() + '_PipeStage::INSTRUCTIONS[instrId];\n'
+        codeString += 'Instruction * instr = this->INSTRUCTIONS[instrId];\n'
         codeString += 'if(instr->inPipeline){\n'
         codeString += 'instr = instr->replicate();\n'
         codeString += 'instr->toDestroy = true;\n'
@@ -274,7 +274,7 @@ def standardInstrFetch(self, trace, combinedTrace, issueCodeGenerator, hasCheckH
         codeString += 'instr->inPipeline = true;\n'
         codeString += 'instr->fetchPC = curPC;\n'
     else:
-        codeString += 'Instruction * instr = ' + processor_name + '::INSTRUCTIONS[instrId];\n'
+        codeString += 'Instruction * instr = this->INSTRUCTIONS[instrId];\n'
     codeString += 'instr->setParams(bitString);\n'
 
     # Here we add the details about the instruction to the current history element
@@ -342,10 +342,10 @@ def fetchWithCacheCode(self, fetchCode, trace, combinedTrace, issueCodeGenerator
             }
             else{
             """
-        codeString += pipeStage.name.upper() + '_PipeStage::INSTRUCTIONS[instrId] = instr->replicate();\n'
+        codeString += 'this->INSTRUCTIONS[instrId] = instr->replicate();\n'
         codeString += '}\n'
     else:
-        codeString += processor_name + '::INSTRUCTIONS[instrId] = instr->replicate();\n'
+        codeString += 'this->INSTRUCTIONS[instrId] = instr->replicate();\n'
     codeString += '}\n'
 
     # and now finally I have found nothing and I have to add everything
@@ -406,9 +406,9 @@ def createPipeStage(self, processorElements, initElements):
                     if isFetch:
                         memName = name
             if self.fetchReg[0] in regsNames:
-                curPipeInit = [self.fetchReg[0] + '_pipe', processor_name + '::INSTRUCTIONS', memName] + curPipeInit
+                curPipeInit = [self.fetchReg[0] + '_pipe', 'this->INSTRUCTIONS', memName] + curPipeInit
             else:
-                curPipeInit = [self.fetchReg[0], processor_name + '::INSTRUCTIONS', memName] + curPipeInit
+                curPipeInit = [self.fetchReg[0], 'this->INSTRUCTIONS', memName] + curPipeInit
             curPipeInit = ['numInstructions'] + curPipeInit
             curPipeInit = ['instrExecuting'] + curPipeInit
             curPipeInit = ['instrEndEvent'] + curPipeInit
@@ -457,7 +457,15 @@ def procInitCode(self, model):
                                 initString += ' = '
                             else:
                                 initString += '.immediateWrite('
-                            initString += str(defValue[0]) + ' + ' + str(defValue[1])
+                            try:
+                                initString += hex(defValue[0])
+                            except TypeError:
+                                initString += str(defValue[0])
+                            initString += ' + '
+                            try:
+                                initString += hex(defValue[1])
+                            except TypeError:
+                                initString += str(defValue[1])
                             if model.startswith('acc'):
                                 initString += ';\n'
                             else:
@@ -496,7 +504,15 @@ def procInitCode(self, model):
                         initString += ' = '
                     else:
                         initString += '.immediateWrite('
-                    initString += str(elem.defValue[0]) + ' + ' + str(elem.defValue[1])
+                    try:
+                        initString += hex(elem.defValue[0])
+                    except TypeError:
+                        initString += str(elem.defValue[0])
+                    initString += ' + '
+                    try:
+                        initString += hex(elem.defValue[1])
+                    except TypeError:
+                        initString += str(elem.defValue[1])
                     if model.startswith('acc'):
                         initString += ';\n'
                     else:
@@ -1009,7 +1025,7 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         for reg in self.regBanks:
             for regNum in reg.delay.keys():
                 codeString += reg.name + '[' + str(regNum) + '].clockCycle();\n'
-        if self.systemc:
+        if len(self.tlmPorts) > 0 and model.endswith('LT'):
             codeString += 'this->quantKeeper.sync();\n'
         if not self.externalClock:
             codeString += '}'
@@ -1063,7 +1079,7 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
     else:
         decodeBody = 'int instrId = this->decoder.decode(bitString);\n'
     decodeBody += """if(instrId >= 0){
-                Instruction * instr = """ + processor_name + """::INSTRUCTIONS[instrId];
+                Instruction * instr = this->INSTRUCTIONS[instrId];
                 instr->setParams(bitString);
                 return instr;
             }
@@ -1184,6 +1200,9 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
     entryPointAttr = cxx_writer.writer_code.Attribute('ENTRY_POINT', fetchWordType, 'pu')
     processorElements.append(entryPointAttr)
     bodyInits += 'this->ENTRY_POINT = 0;\n'
+    mpIDAttr = cxx_writer.writer_code.Attribute('MPROC_ID', fetchWordType, 'pu')
+    processorElements.append(mpIDAttr)
+    bodyInits += 'this->MPROC_ID = 0;\n'
     progLimitAttr = cxx_writer.writer_code.Attribute('PROGRAM_LIMIT', fetchWordType, 'pu')
     processorElements.append(progLimitAttr)
     bodyInits += 'this->PROGRAM_LIMIT = 0;\n'
@@ -1210,7 +1229,7 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         bodyInits += 'this->abiIf = new ' + str(interfaceType) + '(' + abiIfInit + ');\n'
 
     instructionsAttribute = cxx_writer.writer_code.Attribute('INSTRUCTIONS',
-                            IntructionTypePtr.makePointer(), 'pri', True, 'NULL')
+                            IntructionTypePtr.makePointer(), 'pri')
     processorElements.append(instructionsAttribute)
     if self.instructionCache:
         cacheAttribute = cxx_writer.writer_code.Attribute('instrCache',
@@ -1303,14 +1322,16 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
     constrCode = processor_name + '::numInstances++;\n'
     constrCode += '// Initialization of the array holding the initial instance of the instructions\n'
     maxInstrId = max([instr.id for instr in self.isa.instructions.values()]) + 1
-    constrCode += processor_name + '::INSTRUCTIONS = new Instruction *[' + str(maxInstrId + 1) + '];\n'
+    constrCode += 'this->INSTRUCTIONS = new Instruction *[' + str(maxInstrId + 1) + '];\n'
     for name, instr in self.isa.instructions.items():
-        constrCode += processor_name + '::INSTRUCTIONS[' + str(instr.id) + '] = new ' + name + '(' + baseInstrInitElement +');\n'
-    constrCode += processor_name + '::INSTRUCTIONS[' + str(maxInstrId) + '] = new InvalidInstr(' + baseInstrInitElement + ');\n'
+        constrCode += 'this->INSTRUCTIONS[' + str(instr.id) + '] = new ' + name + '(' + baseInstrInitElement +');\n'
+    constrCode += 'this->INSTRUCTIONS[' + str(maxInstrId) + '] = new InvalidInstr(' + baseInstrInitElement + ');\n'
     if model.startswith('acc'):
+        constrCode += 'if(' + processor_name + '::numInstances == 1){\n'
         constrCode += processor_name + '::NOPInstrInstance = new NOPInstruction(' + baseInstrInitElement + ');\n'
         for pipeStage in self.pipes:
             constrCode += pipeStage.name + '_stage.NOPInstrInstance = ' + processor_name + '::NOPInstrInstance;\n'
+        constrCode += '}\n'
     for irq in self.irqs:
         constrCode += 'this->' + irqPort.name + '_irqInstr = new IRQ_' + irq.name + '_Instruction(' + baseInstrInitElement + ', this->' + irqPort.name + ');\n'
         if model.startswith('acc'):
@@ -1330,16 +1351,15 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         constructorInit.append('latency(latency)')
     publicConstr = cxx_writer.writer_code.Constructor(constructorBody, 'pu', constructorParams, constructorInit + initElements)
     destrCode = processor_name + """::numInstances--;
-    if(""" + processor_name + """::numInstances == 0){
-        for(int i = 0; i < """ + str(maxInstrId + 1) + """; i++){
-            delete """ + processor_name + """::INSTRUCTIONS[i];
-        }
-        delete [] """ + processor_name + """::INSTRUCTIONS;
-        """ + processor_name + """::INSTRUCTIONS = NULL;
+    for(int i = 0; i < """ + str(maxInstrId + 1) + """; i++){
+        delete this->INSTRUCTIONS[i];
+    }
+    delete [] this->INSTRUCTIONS;
     """
     if model.startswith('acc'):
+        destrCode += 'if(' + processor_name + '::numInstances == 0){\n'
         destrCode += 'delete ' + processor_name + '::NOPInstrInstance;\n'
-    destrCode += '}\n'
+        destrCode += '}\n'
     if self.instructionCache and not model.startswith('acc'):
         destrCode += """template_map< """ + str(fetchWordType) + """, CacheElem >::const_iterator cacheIter, cacheEnd;
         for(cacheIter = this->instrCache.begin(), cacheEnd = this->instrCache.end(); cacheIter != cacheEnd; cacheIter++){
