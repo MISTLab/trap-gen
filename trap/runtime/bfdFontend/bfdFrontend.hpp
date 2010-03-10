@@ -85,6 +85,7 @@ struct Section{
     bfd_vma startAddr;
     bfd_size_type datasize;
     std::string name;
+    int type;
 };
 
 class BFDFrontend{
@@ -128,17 +129,17 @@ class BFDFrontend{
     ///symbol can be mapped to an address). Note
     ///That if address is in the middle of a function, the symbol
     ///returned refers to the function itself
-    std::list<std::string> symbolsAt(unsigned int address) const;
+    std::list<std::string> symbolsAt(unsigned int address) const throw();
     ///Given an address, it returns the first symbol found there
     ///"" if no symbol is found at the specified address; note
     ///That if address is in the middle of a function, the symbol
     ///returned refers to the function itself
-    std::string symbolAt(unsigned int address) const;
+    std::string symbolAt(unsigned int address) const throw();
     ///Given the name of a symbol it returns its value
     ///(which usually is its address);
     ///valid is set to false if no symbol with the specified
     ///name is found
-    unsigned int getSymAddr(const std::string &symbol, bool &valid) const;
+    unsigned int getSymAddr(const std::string &symbol, bool &valid) const throw();
     ///Returns the name of the executable file
     std::string getExecName() const;
     ///Specifies whether the address is the first one of a rountine

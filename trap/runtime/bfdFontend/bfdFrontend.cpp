@@ -147,7 +147,7 @@ trap::BFDFrontend::BFDFrontend(std::string binaryName){
             bfd_size_type datasize = bfd_section_size(this->execImage, p);
             bfd_vma vma = bfd_get_section_vma(this->execImage, p);
 /*            #ifndef NDEBUG
-            std::cerr << "Section " << p->name << " Start Address " << std::hex << vma << " Size " << std::hex << datasize << " End Address " << std::hex << datasize + vma << std::dec << std::endl;
+            std::cerr << "Section " << p->name << " Start Address " << std::hex << vma << " Size " << std::hex << datasize << " End Address " << std::hex << datasize + vma << " flags " << std::hex << std::showbase << flags << std::dec << std::endl;
             #endif*/
             if((datasize + vma) > gblEndAddr)
                 gblEndAddr = datasize + vma;
@@ -156,6 +156,7 @@ trap::BFDFrontend::BFDFrontend(std::string binaryName){
              if((flags & SEC_HAS_CONTENTS) != 0){
                 Section sec;
                 sec.datasize = datasize;
+                sec.type = flags;
                 sec.startAddr = vma;
                 sec.data = new bfd_byte[sec.datasize];
                 sec.descriptor = p;
@@ -214,7 +215,7 @@ trap::BFDFrontend::~BFDFrontend(){
 ///symbol can be mapped to an address). Note
 ///That if address is in the middle of a function, the symbol
 ///returned refers to the function itself
-std::list<std::string> trap::BFDFrontend::symbolsAt(unsigned int address) const{
+std::list<std::string> trap::BFDFrontend::symbolsAt(unsigned int address) const throw(){
     template_map<unsigned int, std::list<std::string> >::const_iterator symMap1 = this->addrToSym.find(address);
     if(symMap1 == this->addrToSym.end()){
         template_map<unsigned int, std::string>::const_iterator symMap2 = this->addrToFunction.find(address);
@@ -223,7 +224,6 @@ std::list<std::string> trap::BFDFrontend::symbolsAt(unsigned int address) const{
             functionsList.push_back(symMap2->second);
         return functionsList;
     }
-
     return symMap1->second;
 }
 
@@ -231,7 +231,7 @@ std::list<std::string> trap::BFDFrontend::symbolsAt(unsigned int address) const{
 ///"" if no symbol is found at the specified address; note
 ///That if address is in the middle of a function, the symbol
 ///returned refers to the function itself
-std::string trap::BFDFrontend::symbolAt(unsigned int address) const{
+std::string trap::BFDFrontend::symbolAt(unsigned int address) const throw(){
     template_map<unsigned int, std::list<std::string> >::const_iterator symMap1 = this->addrToSym.find(address);
     if(symMap1 == this->addrToSym.end()){
         template_map<unsigned int, std::string>::const_iterator symMap2 = this->addrToFunction.find(address);
@@ -249,7 +249,7 @@ std::string trap::BFDFrontend::symbolAt(unsigned int address) const{
 ///(which usually is its address);
 ///valid is set to false if no symbol with the specified
 ///name is found
-unsigned int trap::BFDFrontend::getSymAddr(const std::string &symbol, bool &valid) const{
+unsigned int trap::BFDFrontend::getSymAddr(const std::string &symbol, bool &valid) const throw(){
     std::map<std::string, unsigned int>::const_iterator addrMap = this->symToAddr.find(symbol);
     if(addrMap == this->symToAddr.end()){
         valid = false;
@@ -309,33 +309,34 @@ void trap::BFDFrontend::readSyms(){
 void trap::BFDFrontend::readSrc(){
     std::vector<Section>::iterator sectionsIter, sectionsEnd;
     for(sectionsIter = this->secList.begin(), sectionsEnd = this->secList.end(); sectionsIter != sectionsEnd; sectionsIter++){
-        for(bfd_vma i = 0; i < sectionsIter->datasize; i += this->wordsize){
-            const char *filename = NULL;
-            const char *functionname = NULL;
-            unsigned int line = 0;
+        if((sectionsIter->type & SEC_DATA) == 0){
+            // I skip DATA sections as they do not contain usefull information
+            for(bfd_vma i = 0; i < sectionsIter->datasize; i += this->wordsize){
+                const char *filename = NULL;
+                const char *functionname = NULL;
+                unsigned int line = 0;
 
-            if(!bfd_find_nearest_line (this->execImage, sectionsIter->descriptor, this->sy, i, &filename,
-                        &functionname, &line)){
-                continue;
+                if(!bfd_find_nearest_line(this->execImage, sectionsIter->descriptor, this->sy, i, &filename, &functionname, &line)){
+                    continue;
+                }
+
+                if (filename != NULL && *filename == '\0')
+                    filename = NULL;
+                if (functionname != NULL && *functionname == '\0')
+                    functionname = NULL;
+
+                if (functionname != NULL && this->addrToFunction.find(i + sectionsIter->startAddr) == this->addrToFunction.end()){
+                    #ifdef OLD_BFD
+                    char *name = cplus_demangle(functionname, DMGL_ANSI | DMGL_PARAMS);
+                    #else
+                    char *name = bfd_demangle (this->execImage, functionname, DMGL_ANSI | DMGL_PARAMS);
+                    #endif
+                    if(name == NULL)
+                        name = (char *)functionname;
+                }
+                if (line > 0 && this->addrToSrc.find(i + sectionsIter->startAddr) == this->addrToSrc.end())
+                    this->addrToSrc[i + sectionsIter->startAddr] = std::pair<std::string, unsigned int>(filename == NULL ? "???" : filename, line);
             }
-
-            if (filename != NULL && *filename == '\0')
-                filename = NULL;
-            if (functionname != NULL && *functionname == '\0')
-                functionname = NULL;
-
-            if (functionname != NULL && this->addrToFunction.find(i + sectionsIter->startAddr) == this->addrToFunction.end()){
-                #ifdef OLD_BFD
-                char *name = cplus_demangle(functionname, DMGL_ANSI | DMGL_PARAMS);
-                #else
-                char *name = bfd_demangle (this->execImage, functionname, DMGL_ANSI | DMGL_PARAMS);
-                #endif
-                if(name == NULL)
-                    name = (char *)functionname;
-                this->addrToFunction[i + sectionsIter->startAddr] = name;
-            }
-            if (line > 0 && this->addrToSrc.find(i + sectionsIter->startAddr) == this->addrToSrc.end())
-                this->addrToSrc[i + sectionsIter->startAddr] = std::pair<std::string, unsigned int>(filename == NULL ? "???" : filename, line);
         }
     }
 }

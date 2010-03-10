@@ -470,6 +470,7 @@ def procInitCode(self, model):
                                 initString += ';\n'
                             else:
                                 initString += ');\n'
+                            curId += 1
                             continue
                     except TypeError:
                         pass
@@ -1044,6 +1045,8 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
     # Start declaration of begin, end, and reset operations (to be performed
     # at begin or end of simulation or to reset it)
     ##########################################################################
+    resetCalledAttribute = cxx_writer.writer_code.Attribute('resetCalled', cxx_writer.writer_code.boolType, 'pri')
+    processorElements.append(resetCalledAttribute)
     if self.beginOp:
         beginOpMethod = cxx_writer.writer_code.Method('beginOp', self.beginOp, cxx_writer.writer_code.voidType, 'pri')
         processorElements.append(beginOpMethod)
@@ -1059,11 +1062,12 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
     resetOpTemp.prependCode(initString)
     if self.beginOp:
         resetOpTemp.appendCode('//user-defined initialization\nthis->beginOp();\n')
+    resetOpTemp.appendCode('this->resetCalled = true;')
     resetOpMethod = cxx_writer.writer_code.Method('resetOp', resetOpTemp, cxx_writer.writer_code.voidType, 'pu')
     processorElements.append(resetOpMethod)
 
     # Now I declare the end of elaboration method, called by systemc just before starting the simulation
-    endElabCode = cxx_writer.writer_code.Code('this->resetOp();')
+    endElabCode = cxx_writer.writer_code.Code('if(!this->resetCalled){\nthis->resetOp();\n}\nthis->resetCalled = false;')
     endElabMethod = cxx_writer.writer_code.Method('end_of_elaboration', endElabCode, cxx_writer.writer_code.voidType, 'pu')
     processorElements.append(endElabMethod)
     ##########################################################################
@@ -1319,7 +1323,7 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
     global baseInstrInitElement
     baseInstrInitElement = createInstrInitCode(self, model, trace)
 
-    constrCode = processor_name + '::numInstances++;\n'
+    constrCode = 'this->resetCalled = false;\n' + processor_name + '::numInstances++;\n'
     constrCode += '// Initialization of the array holding the initial instance of the instructions\n'
     maxInstrId = max([instr.id for instr in self.isa.instructions.values()]) + 1
     constrCode += 'this->INSTRUCTIONS = new Instruction *[' + str(maxInstrId + 1) + '];\n'
@@ -1543,6 +1547,7 @@ def getMainCode(self, model, namespace):
         instrDissassName = instrMemName
 
     code += """
+    std::cout << "Loading the application code and initializing the tools" << std::endl;
     //And with the loading of the executable code
     boost::filesystem::path applicationPath = boost::filesystem::system_complete(boost::filesystem::path(vm["application"].as<std::string>(), boost::filesystem::native));
     if ( !boost::filesystem::exists( applicationPath ) ){
@@ -1750,6 +1755,8 @@ def getMainCode(self, model, namespace):
     (void) signal(SIGTERM, stopSimFunction);
     (void) signal(10, stopSimFunction);
 
+    std::cout << "Tool Initialized" << std::endl << std::endl;
+
     //Now we can start the execution
     boost::timer t;
     sc_start();
@@ -1770,7 +1777,8 @@ def getMainCode(self, model, namespace):
                         std::cout << "End address " << std::hex << std::showbase << endProfAddr << " not found, counting until the end" << std::endl;
                     }
                     std::cout << "Cycles between addresses " << std::hex << std::showbase << startProfAddr << " - " << endProfAddr << ": " << std::dec << (unsigned int)((procInst.profTimeEnd - procInst.profTimeStart)/sc_time(latency, SC_US)) << std::endl;
-                }"""
+                }
+                """
     else:
         code += 'std::cout << \"Elapsed \" << std::dec << procInst.totalCycles << \" cycles\" << std::endl;\n'
     code += 'std::cout << std::endl;\n'

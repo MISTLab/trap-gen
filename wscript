@@ -8,7 +8,7 @@ import sys, Options
 # these variables are mandatory
 srcdir = '.'
 blddir = '_build_'
-VERSION = '0.3'
+VERSION = '0.4'
 APPNAME = 'trap'
 import os
 
@@ -46,6 +46,61 @@ def configure(conf):
         conf.env['LINKFLAGS'] = conf.env['LINKFLAGS'].split(' ')
     if type(conf.env['STLINKFLAGS']) == type(''):
         conf.env['STLINKFLAGS'] = conf.env['STLINKFLAGS'].split(' ')
+
+    #############################################################
+    # Check support for profilers
+    #############################################################
+    if usingMsvc and (Options.options.enable_gprof or Options.options.enable_vprof):
+        conf.fatal('vprof and gprof profilers can be enabled only under unix environments')
+    if Options.options.enable_gprof and Options.options.enable_vprof:
+        conf.fatal('Only one profiler among gprof and vprof can be enabled')
+    if Options.options.enable_gprof:
+        if not '-g' in conf.env['CCFLAGS']:
+            conf.env.append_unique('CCFLAGS', '-g')
+        if not '-g' in conf.env['CXXFLAGS']:
+            conf.env.append_unique('CXXFLAGS', '-g')
+        if '-fomit-frame-pointer' in conf.env['CCFLAGS']:
+            conf.env['CCFLAGS'].remove('-fomit-frame-pointer')
+        if '-fomit-frame-pointer' in conf.env['CXXFLAGS']:
+            conf.env['CXXFLAGS'].remove('-fomit-frame-pointer')
+        conf.env.append_unique('CCFLAGS', '-pg')
+        conf.env.append_unique('CXXFLAGS', '-pg')
+        conf.env.append_unique('LINKFLAGS', '-pg')
+        conf.env.append_unique('STLINKFLAGS', '-pg')
+    if Options.options.enable_vprof:
+        if not '-g' in conf.env['CCFLAGS']:
+            conf.env.append_unique('CCFLAGS', '-g')
+        if not '-g' in conf.env['CXXFLAGS']:
+            conf.env.append_unique('CXXFLAGS', '-g')
+        # I have to check for the vprof and papi libraries and for the
+        # vmonauto_gcc.o object file
+        vmonautoPath = ''
+        if not Options.options.vprofdir:
+            conf.check_cxx(lib='vmon', uselib_store='VPROF', mandatory=1)
+            for directory in searchDirs:
+                if 'vmonauto_gcc.o' in os.listdir(directory):
+                    vmonautoPath = os.path.abspath(os.path.expanduser(os.path.expandvars(directory)))
+                    break;
+        else:
+            conf.check_cxx(lib='vmon', uselib_store='VPROF', mandatory=1, libpath = os.path.abspath(os.path.expanduser(os.path.expandvars(Options.options.vprofdir))))
+            conf.env.append_unique('RPATH', conf.env['LIBPATH_VPROF'])
+            conf.env.append_unique('LIBPATH', conf.env['LIBPATH_VPROF'])
+            vmonautoPath = conf.env['LIBPATH_VPROF'][0]
+        conf.env.append_unique('LIB', 'vmon')
+
+        if not Options.options.papidir:
+            conf.check_cxx(lib='papi', uselib_store='PAPI', mandatory=1)
+        else:
+            conf.check_cxx(lib='papi', uselib_store='PAPI', mandatory=1, libpath = os.path.abspath(os.path.expanduser(os.path.expandvars(Options.options.papidir))))
+            conf.env.append_unique('RPATH', conf.env['LIBPATH_PAPI'])
+            conf.env.append_unique('LIBPATH', conf.env['LIBPATH_PAPI'])
+        conf.env.append_unique('LIB', 'papi')
+
+        # now I check for the vmonauto_gcc.o object file
+        taskEnv = conf.env.copy()
+        taskEnv.append_unique('LINKFLAGS', os.path.join(vmonautoPath, 'vmonauto_gcc.o'))
+        conf.check_cxx(fragment='int main(){return 0;}', uselib='VPROF', mandatory=1, env=taskEnv)
+        conf.env.append_unique('LINKFLAGS', os.path.join(vmonautoPath, 'vmonauto_gcc.o'))
 
     ##############################################################
     # Since I want to build fast simulators, if the user didn't
@@ -383,3 +438,8 @@ def set_options(opt):
     opt.add_option('--with-systemc', type='string', help='SystemC installation directory', dest='systemcdir' )
     # Specify BFD library path
     opt.add_option('--with-bfd', type='string', help='BFD installation directory', dest='bfddir' )
+    # Specify support for profilers
+    opt.add_option('-P', '--gprof', default=False, action='store_true', help='Enables profiling with gprof profiler', dest='enable_gprof')
+    opt.add_option('-V', '--vprof', default=False, action='store_true', help='Enables profiling with vprof profiler', dest='enable_vprof')
+    opt.add_option('--with-vprof', type='string', help='vprof installation folder', dest='vprofdir')
+    opt.add_option('--with-papi', type='string', help='papi installation folder', dest='papidir')

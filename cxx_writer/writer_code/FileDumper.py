@@ -741,12 +741,13 @@ class Folder:
     opt.add_option('--static', default=False, action="store_true", help='Triggers a static build, with no dependences from any dynamic library', dest='static_build')
     # Specify if OS emulation support should be compiled inside processor models
     opt.add_option('-T', '--disable-tools', default=True, action="store_false", help='Disables support for support tools (debuger, os-emulator, etc.) (switch)', dest='enable_tools')
+    # Specify if instruction history has to be kept
+    opt.add_option('-s', '--enable-history', default=False, action='store_true', help='Enables the history of executed instructions', dest='enable_history')
     # Specify support for the profilers: gprof, vprof
     opt.add_option('-P', '--gprof', default=False, action='store_true', help='Enables profiling with gprof profiler', dest='enable_gprof')
     opt.add_option('-V', '--vprof', default=False, action='store_true', help='Enables profiling with vprof profiler', dest='enable_vprof')
     opt.add_option('--with-vprof', type='string', help='vprof installation folder', dest='vprofdir')
-    opt.add_option('--with-papi', type='string', help='papi installation folder', dest='papidir')
-    opt.add_option('-s', '--enable-history', default=False, action='store_true', help='Enables the history of executed instructions', dest='enable_history')""", wscriptFile)
+    opt.add_option('--with-papi', type='string', help='papi installation folder', dest='papidir')""", wscriptFile)
 
             # Now I add the custom options, in case there are any
             if customOptions:
