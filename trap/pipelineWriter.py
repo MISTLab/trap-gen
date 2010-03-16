@@ -246,6 +246,7 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
                 else{
                     numNOPS = 0;
                 #endif
+                    wait(this->latency);
                     //Ok, either the pipeline is empty or there is not tool which needs the pipeline
                     //to be empty: I can procede with the execution
             """
@@ -304,7 +305,7 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             """
             if self.irqs:
                 codeString += '}\n'
-            codeString += """wait((numCycles + 1)*this->latency);
+            codeString += """wait(numCycles*this->latency);
             // HERE WAIT FOR END OF ALL STAGES
             this->waitPipeEnd();
 
@@ -402,7 +403,7 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
 
             if hasCheckHazard and not checkHazardsMet:
                 codeString += 'if(!this->chStalled){\n'
-
+            codeString += 'wait((' + str(1 - float(seenStages - 1)/(len(self.pipes) - 1)) + ')*this->latency);\n'
             if trace and not combinedTrace:
                 codeString += 'std::cerr << \"Stage ' + pipeStage.name + ' instruction at PC = \" << std::hex << std::showbase << this->curInstruction->fetchPC << std::endl;\n'
 
@@ -417,7 +418,7 @@ def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
             # Now we issue the instruction, i.e. we execute its behavior related to this pipeline stage
             codeString += getInstrIssueCodePipe(self, trace, combinedTrace, 'this->curInstruction', hasCheckHazard, pipeStage)
             # Finally I finalize the pipeline stage by synchrnonizing with the others
-            codeString += 'wait((numCycles + 1)*this->latency);\n'
+            codeString += 'wait((numCycles + ' + str(float(seenStages - 1)/(len(self.pipes) - 1)) + ')*this->latency);\n'
             codeString += """// flushing current stage
             if(this->curInstruction->flushPipeline || flushAnnulled){
                 this->curInstruction->flushPipeline = false;

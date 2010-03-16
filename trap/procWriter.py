@@ -1547,7 +1547,7 @@ def getMainCode(self, model, namespace):
         instrDissassName = instrMemName
 
     code += """
-    std::cout << "Loading the application code and initializing the tools" << std::endl;
+    std::cout << std::endl << "Loading the application and initializing the tools ..." << std::endl;
     //And with the loading of the executable code
     boost::filesystem::path applicationPath = boost::filesystem::system_complete(boost::filesystem::path(vm["application"].as<std::string>(), boost::filesystem::native));
     if ( !boost::filesystem::exists( applicationPath ) ){
@@ -1755,7 +1755,7 @@ def getMainCode(self, model, namespace):
     (void) signal(SIGTERM, stopSimFunction);
     (void) signal(10, stopSimFunction);
 
-    std::cout << "Tool Initialized" << std::endl << std::endl;
+    std::cout << "... tools initialized" << std::endl << std::endl;
 
     //Now we can start the execution
     boost::timer t;
