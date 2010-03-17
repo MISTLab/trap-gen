@@ -325,7 +325,8 @@ void trap::BFDFrontend::readSrc(){
                 if (functionname != NULL && *functionname == '\0')
                     functionname = NULL;
 
-                if (functionname != NULL && this->addrToFunction.find(i + sectionsIter->startAddr) == this->addrToFunction.end()){
+                //if (functionname != NULL && this->addrToFunction.find(i + sectionsIter->startAddr) == this->addrToFunction.end()){
+                if (functionname != NULL){
                     #ifdef OLD_BFD
                     char *name = cplus_demangle(functionname, DMGL_ANSI | DMGL_PARAMS);
                     #else
@@ -333,8 +334,10 @@ void trap::BFDFrontend::readSrc(){
                     #endif
                     if(name == NULL)
                         name = (char *)functionname;
+                    this->addrToFunction[i + sectionsIter->startAddr] = name;
                 }
-                if (line > 0 && this->addrToSrc.find(i + sectionsIter->startAddr) == this->addrToSrc.end())
+                //if (line > 0 && this->addrToSrc.find(i + sectionsIter->startAddr) == this->addrToSrc.end())
+                if (line > 0)
                     this->addrToSrc[i + sectionsIter->startAddr] = std::pair<std::string, unsigned int>(filename == NULL ? "???" : filename, line);
             }
         }
