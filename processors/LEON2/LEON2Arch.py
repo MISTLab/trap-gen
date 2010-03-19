@@ -66,6 +66,11 @@ processor.setBigEndian() # big endian
 processor.setWordsize(4, 8) # 4 bytes per word, 8 bits per byte
 processor.setISA(LEON2Isa.isa) # lets set the instruction set
 
+# Lets customize the compilation options: actually it is possible only to define pre-processor macros;
+# For example the following directive means that if the tsim-comp compilation option is activated,
+# the TSIM_COMPATIBILITY macro will be defined
+processor.setPreProcMacro('tsim-comp', 'TSIM_COMPATIBILITY')
+
 # Ok, now we move to the description of more complicated processor
 # resources
 
