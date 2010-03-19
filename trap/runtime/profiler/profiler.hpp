@@ -66,6 +66,10 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
     //entry or exit
     std::set<std::string> ignored;
     bool exited;
+    //address range inside which the instruction statistics are updated
+    issueWidth lowerAddr;
+    issueWidth higherAddr;
+    bool statsRunning;
 
     ///Based on the new instruction just issued, the statistics on the instructions
     ///are updated
@@ -218,8 +222,8 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
         //this->prevPC = curPC;
     }
   public:
-    Profiler(ABIIf<issueWidth> &processorInstance, std::string execName) : processorInstance(processorInstance),
-                                                                    bfdInstance(BFDFrontend::getInstance(execName)){
+    Profiler(ABIIf<issueWidth> &processorInstance, std::string execName) :
+                processorInstance(processorInstance), bfdInstance(BFDFrontend::getInstance(execName)){
         this->oldInstruction = NULL;
         this->oldInstrTime = SC_ZERO_TIME;
         this->instructionsEnd = this->instructions.end();
@@ -227,6 +231,9 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
         this->functionsEnd = this->functions.end();
         this->oldFunInstructions = 0;
         this->exited = false;
+        this->lowerAddr = 0;
+        this->higherAddr = (issueWidth)-1;
+        this->statsRunning = false;
     }
 
     ~Profiler(){
@@ -256,7 +263,16 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
 
     ///Function called by the processor at every new instruction issue.
     bool newIssue(const issueWidth &curPC, const InstructionBase *curInstr) throw(){
-        this->updateInstructionStats(curPC, curInstr);
+        //I perform the update of the statistics only if they are included in the
+        //predefined range
+        if(!this->statsRunning && curPC == this->lowerAddr)
+            this->statsRunning = true;
+        else if(this->statsRunning && curPC == this->higherAddr)
+            this->statsRunning = false;
+
+        if(this->statsRunning)
+            this->updateInstructionStats(curPC, curInstr);
+        
         this->updateFunctionStats(curPC, curInstr);
 
         return false;
@@ -274,6 +290,11 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
     }
     void addIgnoredFunctions(const std::set<std::string> &toIgnore){
         this->ignored.insert(toIgnore.begin(), toIgnore.end());
+    }
+
+    void setProfilingRange(const issueWidth &lowerAddr, const issueWidth &higherAddr){
+        this->lowerAddr = lowerAddr;
+        this->higherAddr = higherAddr;
     }
 };
 

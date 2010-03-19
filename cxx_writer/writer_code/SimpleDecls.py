@@ -165,13 +165,15 @@ class TemplateType(Type):
         self.modifiers = []
         Type.writeDeclaration(self, writer)
         if self.template:
+            writtenTempl = 0
             writer.write('< ')
             for i in self.template:
+                writtenTempl += 1
                 try:
                     i.writeDeclaration(writer)
                 except AttributeError:
                     writer.write(str(i))
-                if i != self.template[-1]:
+                if writtenTempl < len(self.template):
                     writer.write(', ')
             writer.write(' >')
         for i in currentModifiers:

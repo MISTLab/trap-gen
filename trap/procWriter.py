@@ -1446,6 +1446,8 @@ def getMainCode(self, model, namespace):
         code += """("debugger,d", "activates the use of the software debugger")
         ("profiler,p", boost::program_options::value<std::string>(),
             "activates the use of the software profiler, specifying the name of the output file")
+        ("prof_range,g", boost::program_options::value<std::string>(),
+            "specifies the range of addresses restricting the profiler instruction statistics")
         """
     if self.systemc or model.startswith('acc') or model.endswith('AT'):
         code += """("frequency,f", boost::program_options::value<double>(),
@@ -1579,58 +1581,14 @@ def getMainCode(self, model, namespace):
     """
     if self.systemc or model.startswith('acc') or model.endswith('AT'):
         code += """// Now I check if the count of the cycles among two locations (addresses or symbols) is required
-        """ + str(wordType) + """ startProfAddr = (""" + str(wordType) + """)-1, endProfAddr = (""" + str(wordType) + """)-1;
+        std::pair<""" + str(wordType) + ', ' + str(wordType) + """> decodedRange((""" + str(wordType) + """)-1, (""" + str(wordType) + """)-1);
         if(vm.count("cycles_range") != 0){
             // Now, the range is in the form start-end, where start and end can be both integer numbers
             // (both normal and hex) or symbols of the binary file
             std::string cycles_range = vm["cycles_range"].as<std::string>();
-            std::size_t foundSep = cycles_range.find('-');
-            if(foundSep == std::string::npos){
-                std::cerr << "ERROR: specified address range " << cycles_range << " is not valid, it has to be in the form start-end" << std::endl;
-                return -1;
-            }
-            std::string start = cycles_range.substr(0, foundSep);
-            std::string end = cycles_range.substr(foundSep + 1);
-            // I first try standard numbers, then hex, then, if none of them, I check if a corresponding
-            // symbol exists; if none I return an error.
-            try{
-                startProfAddr = boost::lexical_cast<""" + str(wordType) + """>(start);
-            }
-            catch(...){
-                try{
-                    startProfAddr = toIntNum(start);
-                }
-                catch(...){
-                    trap::BFDFrontend &bfdFE = trap::BFDFrontend::getInstance(vm["application"].as<std::string>());
-                    bool valid = true;
-                    startProfAddr = bfdFE.getSymAddr(start, valid);
-                    if(!valid){
-                        std::cerr << "ERROR: start address range " << start << " does not specify a valid ";
-                        std::cerr << "address or a valid symbol" << std::endl << std::endl;
-                        return -1;
-                    }
-                }
-            }
-            try{
-                endProfAddr = boost::lexical_cast<""" + str(wordType) + """>(end);
-            }
-            catch(...){
-                try{
-                    endProfAddr = toIntNum(end);
-                }
-                catch(...){
-                    trap::BFDFrontend &bfdFE = trap::BFDFrontend::getInstance(vm["application"].as<std::string>());
-                    bool valid = true;
-                    endProfAddr = bfdFE.getSymAddr(end, valid);
-                    if(!valid){
-                        std::cerr << "ERROR: end address range " << end << " does not specify a valid ";
-                        std::cerr << "address or a valid symbol" << std::endl << std::endl;
-                        return -1;
-                    }
-                }
-            }
+            decodedRange = getCycleRange(cycles_range, vm["application"].as<std::string>());
             // Finally now I can initialize the processor with the given address range values
-            procInst.setProfilingRange(startProfAddr, endProfAddr);
+            procInst.setProfilingRange(decodedRange.first, decodedRange.second);
         }
         """
     code += """
@@ -1747,6 +1705,14 @@ def getMainCode(self, model, namespace):
                 std::set<std::string> toIgnoreFuns = osEmu.getRegisteredFunctions();
                 toIgnoreFuns.erase("main");
                 profiler.addIgnoredFunctions(toIgnoreFuns);
+                // Now I check if there is the need to restrict the use of the profiler in a specific
+                // cycles range
+                if(vm.count("prof_range") != 0){
+                    std::pair<""" + str(wordType) + ', ' + str(wordType) + """> decodedProfRange = getCycleRange(vm["prof_range"].as<std::string>(), vm["application"].as<std::string>());
+                    // Now, the range is in the form start-end, where start and end can be both integer numbers
+                    // (both normal and hex) or symbols of the binary file
+                    profiler.setProfilingRange(decodedProfRange.first, decodedProfRange.second);
+                }
                 procInst.toolManager.addTool(profiler);
             }
 
@@ -1771,12 +1737,12 @@ def getMainCode(self, model, namespace):
     if self.systemc or model.startswith('acc') or model.endswith('AT'):
         code += 'std::cout << \"Simulated time: \" << ((sc_time_stamp().to_default_time_units())/(sc_time(1, SC_US).to_default_time_units())) << " us" << std::endl;\n'
         code += 'std::cout << \"Elapsed \" << std::dec << (unsigned int)(sc_time_stamp()/sc_time(latency, SC_US)) << \" cycles\" << std::endl;\n'
-        code += """if(startProfAddr != (""" + str(wordType) + """)-1 || endProfAddr != (""" + str(wordType) + """)-1){
+        code += """if(decodedRange.first != (""" + str(wordType) + """)-1 || decodedRange.second != (""" + str(wordType) + """)-1){
                     if(procInst.profTimeEnd == SC_ZERO_TIME){
                         procInst.profTimeEnd = sc_time_stamp();
-                        std::cout << "End address " << std::hex << std::showbase << endProfAddr << " not found, counting until the end" << std::endl;
+                        std::cout << "End address " << std::hex << std::showbase << decodedRange.second << " not found, counting until the end" << std::endl;
                     }
-                    std::cout << "Cycles between addresses " << std::hex << std::showbase << startProfAddr << " - " << endProfAddr << ": " << std::dec << (unsigned int)((procInst.profTimeEnd - procInst.profTimeStart)/sc_time(latency, SC_US)) << std::endl;
+                    std::cout << "Cycles between addresses " << std::hex << std::showbase << decodedRange.first << " - " << decodedRange.second << ": " << std::dec << (unsigned int)((procInst.profTimeEnd - procInst.profTimeStart)/sc_time(latency, SC_US)) << std::endl;
                 }
                 """
     else:
@@ -1874,7 +1840,56 @@ def getMainCode(self, model, namespace):
         parameters = [cxx_writer.writer_code.Parameter('toConvert', cxx_writer.writer_code.stringRefType)]
         hexToIntFunction = cxx_writer.writer_code.Function('toIntNum', hexToIntCode, wordType, parameters)
 
-        return [signalFunction, hexToIntFunction, mainFunction]
+        getCycleRangeCode = cxx_writer.writer_code.Code("""std::pair<""" + str(wordType) + ', ' + str(wordType) + """> decodedRange;
+            std::size_t foundSep = cycles_range.find('-');
+            if(foundSep == std::string::npos){
+                THROW_EXCEPTION("ERROR: specified address range " << cycles_range << " is not valid, it has to be in the form start-end");
+            }
+            std::string start = cycles_range.substr(0, foundSep);
+            std::string end = cycles_range.substr(foundSep + 1);
+            // I first try standard numbers, then hex, then, if none of them, I check if a corresponding
+            // symbol exists; if none I return an error.
+            try{
+                decodedRange.first = boost::lexical_cast<""" + str(wordType) + """>(start);
+            }
+            catch(...){
+                try{
+                    decodedRange.first = toIntNum(start);
+                }
+                catch(...){
+                    trap::BFDFrontend &bfdFE = trap::BFDFrontend::getInstance(application);
+                    bool valid = true;
+                    decodedRange.first = bfdFE.getSymAddr(start, valid);
+                    if(!valid){
+                        THROW_EXCEPTION("ERROR: start address range " << start << " does not specify a valid address or a valid symbol");
+                    }
+                }
+            }
+            try{
+                decodedRange.second = boost::lexical_cast<""" + str(wordType) + """>(end);
+            }
+            catch(...){
+                try{
+                    decodedRange.second = toIntNum(end);
+                }
+                catch(...){
+                    trap::BFDFrontend &bfdFE = trap::BFDFrontend::getInstance(application);
+                    bool valid = true;
+                    decodedRange.second = bfdFE.getSymAddr(end, valid);
+                    if(!valid){
+                        THROW_EXCEPTION("ERROR: end address range " << end << " does not specify a valid address or a valid symbol");
+                    }
+                }
+            }
+
+            return decodedRange;
+        """)
+        parameters = [cxx_writer.writer_code.Parameter('cycles_range', cxx_writer.writer_code.stringRefType.makeConst()),
+                cxx_writer.writer_code.Parameter('application', cxx_writer.writer_code.stringRefType.makeConst())]
+        wordPairType = cxx_writer.writer_code.TemplateType('std::pair', [wordType, wordType])
+        cycleRangeFunction = cxx_writer.writer_code.Function('getCycleRange', getCycleRangeCode, wordPairType, parameters)
+
+        return [signalFunction, hexToIntFunction, cycleRangeFunction, mainFunction]
 
     else:
         return [signalFunction, mainFunction]
