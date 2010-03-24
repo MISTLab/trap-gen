@@ -164,35 +164,7 @@
 **
 */
 
-/***************************************************************/
-/* Timer options. You MUST uncomment one of the options below  */
-/* or compile, for example, with the '-DUNIX' option.          */
-/***************************************************************/
-/* #define Amiga       */
-/* #define UNIX        */
-/* #define UNIX_Old    */
-/* #define VMS         */
-/* #define BORLAND_C   */
-/* #define MSC         */
-/* #define MAC         */
-/* #define IPSC        */
-/* #define FORTRAN_SEC */
-/* #define GTODay      */
-/* #define CTimer      */
-/* #define UXPM        */
-/* #define MAC_TMgr    */
-/* #define PARIX       */
-/* #define POSIX       */
-/* #define WIN32       */
-/* #define POSIX1      */
-/***********************/
-
-#include <stdio.h>                              /* Need standard I/O functions */
-#include <stdlib.h>                             /* Need exit() routine interface */
-#include <string.h>                             /* Need strcmp() interface */
-#ifdef  MPW                                     /* Macintosh MPW ONLY */
-#include <CursorCtl.h>                          /* Need cursor control interfaces */
-#endif
+#include <stdlib.h>
 
 #ifdef SHORT_BENCH
 #define MAXQUEENS   16                          /* Maximum number of queens */
@@ -209,7 +181,6 @@
 int             queens;                         /* Number of queens to place */
 int             ranks;                          /* Number of ranks (rows) */
 int             files;                          /* Number of files (columns) */
-int             printing = 0;                   /* TRUE if printing positions */
 int             findall = 0;                    /* TRUE if finding all solutions */
 
 unsigned long   solutions = 0;                  /* Number of solutions found */
@@ -227,10 +198,6 @@ int             bakdiag[MAXDIAGS];              /* Which queen 'owns' reverse di
 
 /* Internal prototypes */
 void    find(int level);                        /* Algorithm to find solutions */
-void    pboard(void);                           /* Print a solution */
-
-
-
 
 /*---------------------- main() ---------------------------
 **  MAIN program.  The main purpose of this routine is
@@ -240,22 +207,22 @@ void    pboard(void);                           /* Print a solution */
 */
 
 int main(int argc,char **argv){
+    #ifdef TSIM_DISABLE_CACHE
+    /*Now I can disable the caches*/
+    asm("sethi %hi(0xfd810000), %g1");
+    asm("or %g1,%lo(0xfd810000),%g1");
+    asm("sethi %hi(0x80000014), %g2");
+    asm("or %g2,%lo(0x80000014),%g2");
+    asm("st %g1, [%g2]");
+    #endif
+
     register int    i;                          /* Loop variable */
     register char   *p;                         /* Pointer to argument */
-    double starttime, benchtime;
-
-#ifdef  MPW                                     /* Macintosh MPW ONLY */
-    InitCursorCtl(0);                           /* Enable cursor control */
-#endif
 
     findall = 1;                /* Also forces findall option */
     queens = MAXQUEENS/2;
 
     ranks = files = queens;                     /* NxN board for N queens */
-    printf("%d queen%s on a %dx%d board...\n",
-        queens, queens>1? "s" : "", ranks, files);
-    fflush(stdout);
-
 
     /*  Initialization  */
     solutions = 0;                              /* No solutions yet */
@@ -264,14 +231,6 @@ int main(int argc,char **argv){
 
     /* Find all solutions (begin recursion) */
     find(0);
-    if (printing && solutions) putchar('\n');
-
-    /* Report results */
-    if (solutions == 1) {
-    printf("...there is 1 solution\n");
-    } else {
-    printf("...there are %ld solutions\n", solutions);
-    }
 
     return 0;
 }                                               /* End of main() */
@@ -293,19 +252,10 @@ void find(register int level){
     register int    f;                          /* Indexes through files */
     register int    *fp,*fdp,*bdp;              /* Ptrs to file/diagonal entries */
 
-#ifdef  MPW                                     /* Macintosh MPW ONLY */
-    if (level & 7 == 0) {                       /* Periodically break for... */
-    SpinCursor(1);                          /* background processing */
-    }
-#endif
-
     if (level == queens) {                      /* Placed all queens?  Stop. */
     ++solutions;                            /* Congrats, this is a solution! */
-    if (printing) pboard();                 /* Print board if printing */
+
     if (!findall) exit(0);                  /* May stop after first solution */
-#ifdef  MPW                                     /* Macintosh MPW ONLY */
-    SpinCursor(1);                          /* Allow background processing */
-#endif
     } else {                                    /* Not at final level yet */
 
     for (                                   /* MOVE QUEEN THROUGH ALL FILES */
@@ -330,29 +280,3 @@ void find(register int level){
     }                                       /* End of file loop */
     }                                           /* End if (level == queens) */
 }                                               /* End of find() */
-
-
-
-
-/*------------------------- pboard() -----------------------
-**  This routines prints the board for a particular solution.
-**  The output is sent to stdout.
-*/
-
-void pboard(void){
-    register int    i,j;                        /* Rank/File indices */
-
-    if (findall) {                              /* Only if searching for all */
-    printf("\nSolution #%lu:\n",solutions); /* Print solution number */
-    }
-    for (i=0; i<ranks; ++i) {                   /* Loop through all ranks */
-    for (j=0; j<files; ++j) {               /* Loop through all files */
-        putchar(' ');                       /* Output a space */
-        if (j==queen[i]) putchar('Q');      /* Output Q for queen... */
-        else putchar('-');                  /* or '-' if empty */
-    }
-    putchar('\n');                          /* Break line */
-    }
-    fflush(stdout);                             /* Flush solution to output */
-}                                               /* End of pboard() */
-

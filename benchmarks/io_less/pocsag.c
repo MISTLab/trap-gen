@@ -1,7 +1,6 @@
 /******* PowerStone Benchmark *******/
 
-#include <math.h>
-#include <stdio.h>
+#include <stdlib.h>
 
 /* PERSONAL ALIASES */
 
@@ -1029,6 +1028,15 @@ unsigned long numeric_data[] = {
 int main()
 
 {
+    #ifdef TSIM_DISABLE_CACHE
+    /*Now I can disable the caches*/
+    asm("sethi %hi(0xfd810000), %g1");
+    asm("or %g1,%lo(0xfd810000),%g1");
+    asm("sethi %hi(0x80000014), %g2");
+    asm("or %g2,%lo(0x80000014),%g2");
+    asm("st %g1, [%g2]");
+    #endif
+
     d32 *dptr;                     /* data pointer to SPI */
     dx  msg_length;                /* length of message processed */
     dx  i;                         /* message array index */
@@ -1056,35 +1064,9 @@ int main()
             {
                 msg_length = msg_proc(sync_find(dptr));  /* return length of message */
 
-                if (func == 0)                           /* if numeric message */
-                {
-                }
-                else if (func == 3)                       /* alphanumeric message */
-                {
-                }
-                else
-                {
-                    puts("pocsag: failed\n");
-                    return -1;
-                }
             }
-            else {
-
-                puts("pocsag: failed\n");
-                return -1;
-            }
-
         }
     }
 
-    if( strncmp((char*)msg, "Dear fellow ACP benchmarker", 27) == 0 &&
-        msg_length == 88 ) {
-        puts("pocsag: success\n");
-        return 0;
-    }
-    else {
-        puts("pocsag: failed\n");
-        return -1;
-    }
     return 0;
 }
