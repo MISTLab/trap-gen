@@ -250,6 +250,7 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
         for(instrIter = this->instructions.begin(), instrEnd = this->instructions.end(); instrIter != instrEnd; instrIter++){
             instructionFile << instrIter->second.printCsv() << std::endl;
         }
+        instructionFile << ProfInstruction::printCsvSummary() << std::endl;
         instructionFile.close();
 
         std::ofstream functionFile((fileName + "_fun.csv").c_str());

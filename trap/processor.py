@@ -375,9 +375,9 @@ class Processor:
         self.preProcMacros = []
         self.tlmFakeMemProperties = ()
 
-    def setTLMMem(self, memSize, memLatency):
+    def setTLMMem(self, memSize, memLatency, sparse = False):
         # the memory latency is exrepssed in us
-        self.tlmFakeMemProperties = (memSize, memLatency)
+        self.tlmFakeMemProperties = (memSize, memLatency, sparse)
 
     def setPreProcMacro(self, wafOption, macro):
         self.preProcMacros.append( (wafOption, macro) )

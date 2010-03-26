@@ -1528,7 +1528,10 @@ def getMainCode(self, model, namespace):
         //wtih the processor
         """
         if model.endswith('LT'):
-            code += 'MemoryLT'
+            if self.tlmFakeMemProperties and self.tlmFakeMemProperties[2]:
+                code += 'SparseMemoryLT'
+            else:
+                code += 'MemoryLT'
         else:
             code += 'MemoryAT'
         code += '<' + str(len(self.tlmPorts)) + """, """ + str(self.wordSize*self.byteSize) + """> mem("procMem", """
@@ -1771,7 +1774,10 @@ def getMainCode(self, model, namespace):
     mainCode.addInclude('boost/filesystem.hpp')
 
     if model.endswith('LT'):
-        mainCode.addInclude('MemoryLT.hpp')
+        if self.tlmFakeMemProperties and self.tlmFakeMemProperties[2]:
+            mainCode.addInclude('SparseMemoryLT.hpp')
+        else:
+            mainCode.addInclude('MemoryLT.hpp')
     else:
         mainCode.addInclude('MemoryAT.hpp')
     mainCode.addInclude('processor.hpp')
@@ -1795,101 +1801,97 @@ def getMainCode(self, model, namespace):
     parameters = [cxx_writer.writer_code.Parameter('sig', cxx_writer.writer_code.intType)]
     signalFunction = cxx_writer.writer_code.Function('stopSimFunction', stopSimFunction, cxx_writer.writer_code.voidType, parameters)
 
-    if self.systemc or model.startswith('acc') or model.endswith('AT'):
-        hexToIntCode = cxx_writer.writer_code.Code("""std::map<char, unsigned int> hexMap;
-        hexMap['0'] = 0;
-        hexMap['1'] = 1;
-        hexMap['2'] = 2;
-        hexMap['3'] = 3;
-        hexMap['4'] = 4;
-        hexMap['5'] = 5;
-        hexMap['6'] = 6;
-        hexMap['7'] = 7;
-        hexMap['8'] = 8;
-        hexMap['9'] = 9;
-        hexMap['A'] = 10;
-        hexMap['B'] = 11;
-        hexMap['C'] = 12;
-        hexMap['D'] = 13;
-        hexMap['E'] = 14;
-        hexMap['F'] = 15;
-        hexMap['a'] = 10;
-        hexMap['b'] = 11;
-        hexMap['c'] = 12;
-        hexMap['d'] = 13;
-        hexMap['e'] = 14;
-        hexMap['f'] = 15;
+    hexToIntCode = cxx_writer.writer_code.Code("""std::map<char, unsigned int> hexMap;
+    hexMap['0'] = 0;
+    hexMap['1'] = 1;
+    hexMap['2'] = 2;
+    hexMap['3'] = 3;
+    hexMap['4'] = 4;
+    hexMap['5'] = 5;
+    hexMap['6'] = 6;
+    hexMap['7'] = 7;
+    hexMap['8'] = 8;
+    hexMap['9'] = 9;
+    hexMap['A'] = 10;
+    hexMap['B'] = 11;
+    hexMap['C'] = 12;
+    hexMap['D'] = 13;
+    hexMap['E'] = 14;
+    hexMap['F'] = 15;
+    hexMap['a'] = 10;
+    hexMap['b'] = 11;
+    hexMap['c'] = 12;
+    hexMap['d'] = 13;
+    hexMap['e'] = 14;
+    hexMap['f'] = 15;
 
-        std::string toConvTemp = toConvert;
-        if(toConvTemp.size() >= 2 && toConvTemp[0] == '0' && (toConvTemp[1] == 'X' || toConvTemp[1] == 'x'))
-            toConvTemp = toConvTemp.substr(2);
+    std::string toConvTemp = toConvert;
+    if(toConvTemp.size() >= 2 && toConvTemp[0] == '0' && (toConvTemp[1] == 'X' || toConvTemp[1] == 'x'))
+        toConvTemp = toConvTemp.substr(2);
 
-        """ + str(wordType) + """ result = 0;
-        unsigned int pos = 0;
-        std::string::reverse_iterator hexIter, hexIterEnd;
-        for(hexIter = toConvTemp.rbegin(), hexIterEnd = toConvTemp.rend();
-                        hexIter != hexIterEnd; hexIter++){
-            std::map<char, unsigned int>::iterator mapIter = hexMap.find(*hexIter);
-            if(mapIter == hexMap.end()){
-                throw std::runtime_error(toConvert + ": wrong hex number");
-            }
-            result |= (mapIter->second << pos);
-            pos += 4;
+    """ + str(wordType) + """ result = 0;
+    unsigned int pos = 0;
+    std::string::reverse_iterator hexIter, hexIterEnd;
+    for(hexIter = toConvTemp.rbegin(), hexIterEnd = toConvTemp.rend();
+                    hexIter != hexIterEnd; hexIter++){
+        std::map<char, unsigned int>::iterator mapIter = hexMap.find(*hexIter);
+        if(mapIter == hexMap.end()){
+            throw std::runtime_error(toConvert + ": wrong hex number");
         }
-        return result;""")
-        parameters = [cxx_writer.writer_code.Parameter('toConvert', cxx_writer.writer_code.stringRefType)]
-        hexToIntFunction = cxx_writer.writer_code.Function('toIntNum', hexToIntCode, wordType, parameters)
+        result |= (mapIter->second << pos);
+        pos += 4;
+    }
+    return result;""")
+    parameters = [cxx_writer.writer_code.Parameter('toConvert', cxx_writer.writer_code.stringRefType)]
+    hexToIntFunction = cxx_writer.writer_code.Function('toIntNum', hexToIntCode, wordType, parameters)
 
-        getCycleRangeCode = cxx_writer.writer_code.Code("""std::pair<""" + str(wordType) + ', ' + str(wordType) + """> decodedRange;
-            std::size_t foundSep = cycles_range.find('-');
-            if(foundSep == std::string::npos){
-                THROW_EXCEPTION("ERROR: specified address range " << cycles_range << " is not valid, it has to be in the form start-end");
-            }
-            std::string start = cycles_range.substr(0, foundSep);
-            std::string end = cycles_range.substr(foundSep + 1);
-            // I first try standard numbers, then hex, then, if none of them, I check if a corresponding
-            // symbol exists; if none I return an error.
+    getCycleRangeCode = cxx_writer.writer_code.Code("""std::pair<""" + str(wordType) + ', ' + str(wordType) + """> decodedRange;
+        std::size_t foundSep = cycles_range.find('-');
+        if(foundSep == std::string::npos){
+            THROW_EXCEPTION("ERROR: specified address range " << cycles_range << " is not valid, it has to be in the form start-end");
+        }
+        std::string start = cycles_range.substr(0, foundSep);
+        std::string end = cycles_range.substr(foundSep + 1);
+        // I first try standard numbers, then hex, then, if none of them, I check if a corresponding
+        // symbol exists; if none I return an error.
+        try{
+            decodedRange.first = boost::lexical_cast<""" + str(wordType) + """>(start);
+        }
+        catch(...){
             try{
-                decodedRange.first = boost::lexical_cast<""" + str(wordType) + """>(start);
+                decodedRange.first = toIntNum(start);
             }
             catch(...){
-                try{
-                    decodedRange.first = toIntNum(start);
-                }
-                catch(...){
-                    trap::BFDFrontend &bfdFE = trap::BFDFrontend::getInstance(application);
-                    bool valid = true;
-                    decodedRange.first = bfdFE.getSymAddr(start, valid);
-                    if(!valid){
-                        THROW_EXCEPTION("ERROR: start address range " << start << " does not specify a valid address or a valid symbol");
-                    }
+                trap::BFDFrontend &bfdFE = trap::BFDFrontend::getInstance(application);
+                bool valid = true;
+                decodedRange.first = bfdFE.getSymAddr(start, valid);
+                if(!valid){
+                    THROW_EXCEPTION("ERROR: start address range " << start << " does not specify a valid address or a valid symbol");
                 }
             }
+        }
+        try{
+            decodedRange.second = boost::lexical_cast<""" + str(wordType) + """>(end);
+        }
+        catch(...){
             try{
-                decodedRange.second = boost::lexical_cast<""" + str(wordType) + """>(end);
+                decodedRange.second = toIntNum(end);
             }
             catch(...){
-                try{
-                    decodedRange.second = toIntNum(end);
-                }
-                catch(...){
-                    trap::BFDFrontend &bfdFE = trap::BFDFrontend::getInstance(application);
-                    bool valid = true;
-                    decodedRange.second = bfdFE.getSymAddr(end, valid);
-                    if(!valid){
-                        THROW_EXCEPTION("ERROR: end address range " << end << " does not specify a valid address or a valid symbol");
-                    }
+                trap::BFDFrontend &bfdFE = trap::BFDFrontend::getInstance(application);
+                bool valid = true;
+                decodedRange.second = bfdFE.getSymAddr(end, valid);
+                if(!valid){
+                    THROW_EXCEPTION("ERROR: end address range " << end << " does not specify a valid address or a valid symbol");
                 }
             }
+        }
 
-            return decodedRange;
-        """)
-        parameters = [cxx_writer.writer_code.Parameter('cycles_range', cxx_writer.writer_code.stringRefType.makeConst()),
-                cxx_writer.writer_code.Parameter('application', cxx_writer.writer_code.stringRefType.makeConst())]
-        wordPairType = cxx_writer.writer_code.TemplateType('std::pair', [wordType, wordType])
-        cycleRangeFunction = cxx_writer.writer_code.Function('getCycleRange', getCycleRangeCode, wordPairType, parameters)
+        return decodedRange;
+    """)
+    parameters = [cxx_writer.writer_code.Parameter('cycles_range', cxx_writer.writer_code.stringRefType.makeConst()),
+            cxx_writer.writer_code.Parameter('application', cxx_writer.writer_code.stringRefType.makeConst())]
+    wordPairType = cxx_writer.writer_code.TemplateType('std::pair', [wordType, wordType])
+    cycleRangeFunction = cxx_writer.writer_code.Function('getCycleRange', getCycleRangeCode, wordPairType, parameters)
 
-        return [signalFunction, hexToIntFunction, cycleRangeFunction, mainFunction]
-
-    else:
-        return [signalFunction, mainFunction]
+    return [signalFunction, hexToIntFunction, cycleRangeFunction, mainFunction]

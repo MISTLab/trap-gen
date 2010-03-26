@@ -1,11 +1,11 @@
 /******* PowerStone Benchmark *******/
 
 #ifdef STATIC_SIZE
-unsigned char   poptab[] = {0, 1};
-unsigned long   src[] = {  0x00005678,0x12340000 };
-unsigned long   dst[2];
+unsigned char poptab[] = {0, 1};
+unsigned long src[] = {  0x00005678,0x12340000 };
+unsigned long dst[2];
 #else
-unsigned char   poptab[256] =
+volatile unsigned char poptab[256] =
 {
     0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4,
         1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
@@ -25,7 +25,7 @@ unsigned char   poptab[256] =
         4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8,
 };
 
-unsigned long   src[1024] =
+volatile unsigned long src[1024] =
 {
     0x00005678,0x12340000,0x02040608,0x00000001,
         0x12345678,0x12345678,0x12345678,0x12345678,
@@ -46,7 +46,7 @@ unsigned long   src[1024] =
         0
 };
 
-unsigned long   dst[1024];
+volatile unsigned long dst[1024];
 #endif
 
 int main()
@@ -60,9 +60,9 @@ int main()
     asm("st %g1, [%g2]");
     #endif
 
-    unsigned long   *s, *d;
-    unsigned long   x;
-    int k, t=0;
+    volatile unsigned long   *s, *d;
+    volatile unsigned long   x;
+    volatile int k, t=0;
     int i = 0;
 
     #ifdef SHORT_BENCH

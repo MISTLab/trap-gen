@@ -67,6 +67,10 @@ std::string trap::ProfInstruction::printCsv(){
 std::string trap::ProfInstruction::printCsvHeader(){
     return "name;numCalls;numCalls %;time;Time per call";
 }
+///Prints the summary of all the executed instructions, in the command separated values (CVS) format
+std::string trap::ProfInstruction::printCsvSummary(){
+    return "Total calls;;" + boost::lexical_cast<std::string>(ProfInstruction::numTotalCalls);
+}
 ///Empty constructor, performs the initialization of the statistics
 trap::ProfInstruction::ProfInstruction(){
     this->numCalls = 1;

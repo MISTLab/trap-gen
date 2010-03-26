@@ -21,7 +21,8 @@ int main()
     asm("st %g1, [%g2]");
     #endif
 
- register unsigned long IMax,value;
+ unsigned long IMax;
+ volatile unsigned long value;
 
  #ifdef SHORT_BENCH
  IMax = 20;//IMax = 40;

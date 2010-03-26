@@ -59,10 +59,12 @@ struct ProfInstruction{
     static unsigned long long numTotalCalls;
     ///Total time spent in executing the instruction
     sc_time time;
-    ///dump these information to a string,  in the command separated values (CVS) format
+    ///dump these information to a string, in the command separated values (CVS) format
     std::string printCsv();
-    ///Prints the description of the informations which describe an instruction,  in the command separated values (CVS) format
+    ///Prints the description of the informations which describe an instruction, in the command separated values (CVS) format
     static std::string printCsvHeader();
+    ///Prints the summary of all the executed instructions, in the command separated values (CVS) format
+    static std::string printCsvSummary();
     ///Empty constructor, performs the initialization of the statistics
     ProfInstruction();
 };
