@@ -35,7 +35,7 @@
 ####################################################################################
 
 import cxx_writer
-import procWriter, registerWriter, memWriter, interfaceWriter, portsWriter, pipelineWriter, irqWriter
+import procWriter, registerWriter, memWriter, interfaceWriter, portsWriter, pipelineWriter, irqWriter, licenses
 
 validModels = ['funcLT', 'funcAT', 'accLT', 'accAT']
 
@@ -374,6 +374,25 @@ class Processor:
         self.externalClock = externalClock
         self.preProcMacros = []
         self.tlmFakeMemProperties = ()
+        self.license_text = ''
+        self.developer_name = ''
+        self.developer_email = ''
+        self.banner = ''
+
+    def setIpRights(self, license, developer_name = '', developer_email = '', banner = '', license_text = ''):
+        validLicense = ['gpl', 'lgpl', 'esa', 'custom']
+        if not license.lower() in validLicense:
+            raise Exception('Unknown license ' + license + '; please use one of ' + ' '.join(validLicense))
+        if license.lower() == 'custom':
+            if not license_text:
+                raise Exception('A custom license has been specified, but no text has been given with the license_text parameter')
+            else:
+                self.license_text = license_text
+        else:
+            self.license_text = getattr(licenses, 'create_' + license.lower() + '_license')(self.name)
+        self.developer_name = developer_name
+        self.developer_email = developer_email
+        self.banner = banner
 
     def setTLMMem(self, memSize, memLatency, sparse = False):
         # the memory latency is exrepssed in us
@@ -1007,6 +1026,11 @@ class Processor:
                         resolveBitType('BIT<' + str(self.wordSize*self.byteSize) + '>'),
                         resolveBitType('BIT<' + str(self.wordSize*self.byteSize/2) + '>'),
                         resolveBitType('BIT<' + str(self.byteSize) + '>')]
+
+        cxx_writer.writer_code.FileDumper.license = self.license_text
+        cxx_writer.writer_code.FileDumper.developer_name = self.developer_name
+        cxx_writer.writer_code.FileDumper.developer_email = self.developer_email
+        cxx_writer.writer_code.FileDumper.banner = self.banner
 
         # Here we check if the decoder signature changed; in case it hasn't we create the decoder,
         # otherwise we load it from file

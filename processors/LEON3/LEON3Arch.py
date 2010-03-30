@@ -34,6 +34,14 @@
 #
 ####################################################################################
 
+# Nice ascii art banner for the header of the generated files
+banner = r"""
+      _/        _/_/_/_/    _/_/    _/      _/  _/_/_/
+     _/        _/        _/    _/  _/_/    _/        _/
+    _/        _/_/_/    _/    _/  _/  _/  _/    _/_/
+   _/        _/        _/    _/  _/    _/_/        _/
+  _/_/_/_/  _/_/_/_/    _/_/    _/      _/  _/_/_/
+"""
 
 
 # Lets first of all import the necessary files for the
@@ -62,6 +70,7 @@ from LEON3Methods import updateAliasCode_abi
 
 # Lets now start building the processor
 processor = trap.Processor('LEON3', version = '0.2.1', systemc = True, instructionCache = True, cacheLimit = 256)
+processor.setIpRights('lgpl', 'Luca Fossati', 'fossati@elet.polimi.it', banner)
 processor.setBigEndian() # big endian
 processor.setWordsize(4, 8) # 4 bytes per word, 8 bits per byte
 processor.setISA(LEON3Isa.isa) # lets set the instruction set

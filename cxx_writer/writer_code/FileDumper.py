@@ -34,43 +34,6 @@
 #
 ####################################################################################
 
-
-banner = r"""
-         ___        ___           ___           ___
-        /  /\      /  /\         /  /\         /  /\
-       /  /:/     /  /::\       /  /::\       /  /::\
-      /  /:/     /  /:/\:\     /  /:/\:\     /  /:/\:\
-     /  /:/     /  /:/~/:/    /  /:/~/::\   /  /:/~/:/
-    /  /::\    /__/:/ /:/___ /__/:/ /:/\:\ /__/:/ /:/
-   /__/:/\:\   \  \:\/:::::/ \  \:\/:/__\/ \  \:\/:/
-   \__\/  \:\   \  \::/~~~~   \  \::/       \  \::/
-        \  \:\   \  \:\        \  \:\        \  \:\
-         \  \ \   \  \:\        \  \:\        \  \:\
-          \__\/    \__\/         \__\/         \__\/
-"""
-
-license = r"""
-This file is part of TRAP.
-
-TRAP is free software; you can redistribute it and/or modify
-it under the terms of the GNU Lesser General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Lesser General Public License for more details.
-
-You should have received a copy of the GNU Lesser General Public License
-along with this program; if not, write to the
-Free Software Foundation, Inc.,
-51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-or see <http://www.gnu.org/licenses/>.
-"""
-
-copyright = """(c) Luca Fossati, fossati@elet.polimi.it"""
-
 import os
 import Writer
 from Writer import printOnFile
@@ -78,6 +41,11 @@ from Writer import printOnFile
 class FileDumper:
     """Dumps a file; a file is composed of members which are the ones described
     in SimpleDecls and ClassDecls"""
+    license = ''
+    developer_name = ''
+    developer_email = ''
+    banner = ''
+
     def __init__(self, name, isHeader):
         self.name = name
         self.members = []
@@ -99,14 +67,20 @@ class FileDumper:
         #then the includes and finally the members,
         #in the same order in which they are contained
         #inside self.members
+
+        if FileDumper.developer_name or FileDumper.developer_email:
+            copyright = '(c) ' + FileDumper.developer_name + ', ' + FileDumper.developer_email
+        else:
+            copyright = ''
+
         fileHnd = open(self.name, 'wt')
         printOnFile('/***************************************************************************\\', fileHnd)
         printOnFile(' *', fileHnd)
-        for line in banner.split('\n'):
+        for line in FileDumper.banner.split('\n'):
             printOnFile(' *   ' + line, fileHnd)
         printOnFile(' *', fileHnd)
         printOnFile(' *', fileHnd)
-        for line in license.split('\n'):
+        for line in FileDumper.license.split('\n'):
             printOnFile(' *   ' + line, fileHnd)
         printOnFile(' *', fileHnd)
         printOnFile(' *', fileHnd)

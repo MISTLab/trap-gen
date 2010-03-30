@@ -34,7 +34,14 @@
 #
 ####################################################################################
 
-
+# Nice ascii art banner for the header of the generated files
+banner = r"""
+      _/        _/_/_/_/    _/_/    _/      _/    _/_/
+     _/        _/        _/    _/  _/_/    _/  _/    _/
+    _/        _/_/_/    _/    _/  _/  _/  _/      _/
+   _/        _/        _/    _/  _/    _/_/    _/
+  _/_/_/_/  _/_/_/_/    _/_/    _/      _/  _/_/_/_/   
+"""
 
 # Lets first of all import the necessary files for the
 # creation of the processor; note that if the trap modules are
@@ -61,7 +68,8 @@ from LEON2Methods import updateAliasCode_exception
 from LEON2Methods import updateAliasCode_abi
 
 # Lets now start building the processor
-processor = trap.Processor('LEON2', version = '0.2.0', systemc = True, instructionCache = True, cacheLimit = 256)
+processor = trap.Processor('LEON2', version = '0.2.1', systemc = True, instructionCache = True, cacheLimit = 256)
+processor.setIpRights('lgpl', 'Luca Fossati', 'fossati@elet.polimi.it', banner)
 processor.setBigEndian() # big endian
 processor.setWordsize(4, 8) # 4 bytes per word, 8 bits per byte
 processor.setISA(LEON2Isa.isa) # lets set the instruction set
