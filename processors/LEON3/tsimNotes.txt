@@ -1,6 +1,9 @@
-Command Line for TSIM with no floating point unit, with 8 MB of normal memory, with hardware breakpoints, with no ROM
+Command Line for TSIM with no floating point unit, with 8 MB of SDRAM memory, with hardware breakpoints, with no ROM
+tsim-leon -fast_uart -hwbp -logfile +tsimOutLog -nfp -nosram -ram 0 -nouart -sdram 8192
 
-tsim-leon -fast_uart -hwbp -logfile +tsimOutLog -nfp -nosram -nouart -ram 8192
+If instead of SDRAM we want only SRAM
+tsim-leon -fast_uart -hwbp -logfile +tsimOutLog -nfp -sdram 0 -nouart -ram 8192
+
 To start simulation go 0x40000000 0
 
 Using the BCC compiler, the compiltion options are
