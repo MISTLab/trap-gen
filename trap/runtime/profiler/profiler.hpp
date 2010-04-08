@@ -148,7 +148,7 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
                 curFun->address = curPC;
             }
 
-//             std::cerr << "entering in " << curFun->name << " " << std::hex << std::showbase << curPC << " function at curPC " << funName << std::endl;
+             //std::cerr << "entering in " << curFun->name << " " << std::hex << std::showbase << curPC << " function at curPC " << funName << std::endl;
 
             //Now I have to update the statistics on the number of instructions executed on the
             //instruction stack so far
@@ -187,7 +187,7 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
             //function on the top of the stack and pop it from
             //the stack
             if(this->currentStack.size() == 0){
-                THROW_ERROR("We are exiting from a routine at address " << std::hex << std::showbase << curPC << " name: " << funName << " but the stack is empty");
+                THROW_ERROR("We are exiting from a routine at address " << std::hex << std::showbase << curPC << " name: -" << funName << "- but the stack is empty");
             }
             //Lets update the statistics for the current instruction
             ProfFunction * curFun = this->currentStack.back();
@@ -195,7 +195,7 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
             sc_time curTimeDelta = sc_time_stamp() - this->oldFunTime;
             curFun->exclTime += curTimeDelta;
 
-//             std::cerr << "exiting from " << curFun->name << " " << std::hex << std::showbase << curPC << " I am in " << funName << std::endl;
+             //std::cerr << "exiting from " << curFun->name << " " << std::hex << std::showbase << curPC << " I am in " << funName << std::endl;
 
             //Now I have to update the statistics on the number of instructions executed on the
             //instruction stack

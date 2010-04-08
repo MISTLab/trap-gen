@@ -434,7 +434,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
                 return this->writeRegister(req);
             break;
             case GDBRequest::q_req:
-                //P request: register write
+                //q request: generic query
                 return this->genericQuery(req);
             break;
             case GDBRequest::s_req:
@@ -879,8 +879,15 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
                 }
                 resp.message += "\nAddress\t\tname\t\t\tmnemonic\t\tcycle\n\n";
                 std::vector<std::string>::const_reverse_iterator histVecBeg, histVecEnd;
+                unsigned int sentLines = 0;
                 for(histVecBeg = histVec.rbegin(), histVecEnd = histVec.rend(); histVecBeg != histVecEnd; histVecBeg++){
                     resp.message += *histVecBeg + "\n";
+                    sentLines++;
+                    if(sentLines == 5){
+                        sentLines = 0;
+                        this->connManager.sendResponse(resp);
+                        resp.message = "";
+                    }
                 }
                 #endif
                 this->connManager.sendResponse(resp);
@@ -889,15 +896,16 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
             else if(custComm == "help"){
                 //This command is simply a query to know the current simulation time
                 resp.type = GDBResponse::OUTPUT_rsp;
-                 resp.message = "Help about the custom GDB commands available for TRAP generated simulators:\n";
-                 resp.message += "   monitor help:       prints the current message\n";
-                 resp.message += "   monitor time:       returns the current simulation time\n";
-                 resp.message += "   monitor status:     returns the status of the simulation\n";
-                 resp.message += "   monitor hist n:     prints the last n (up to a maximum of 1000) instructions\n";
-                 resp.message += "   monitor go n:       after the \'continue\' command is given, it simulates for n (ns) starting from the current time\n";
-                 resp.message += "   monitor go_abs n:   after the \'continue\' command is given, it simulates up to instant n (ns)\n";
-                 this->connManager.sendResponse(resp);
-                 resp.type = GDBResponse::OK_rsp;
+                resp.message = "Help about the custom GDB commands available for TRAP generated simulators:\n";
+                resp.message += "   monitor help:       prints the current message\n";
+                resp.message += "   monitor time:       returns the current simulation time\n";
+                resp.message += "   monitor status:     returns the status of the simulation\n";
+                this->connManager.sendResponse(resp);
+                resp.message = "   monitor hist n:     prints the last n (up to a maximum of 1000) instructions\n";
+                resp.message += "   monitor go n:       after the \'continue\' command is given, it simulates for n (ns) starting from the current time\n";
+                resp.message += "   monitor go_abs n:   after the \'continue\' command is given, it simulates up to instant n (ns)\n";
+                this->connManager.sendResponse(resp);
+                resp.type = GDBResponse::OK_rsp;
             }
             else{
                 resp.type = GDBResponse::NOT_SUPPORTED_rsp;

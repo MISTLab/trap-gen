@@ -47,13 +47,12 @@ int main()
 
     int disk, Loops = 0, i = 0;
 
-    disk    = 4;
-
     #ifdef SHORT_BENCH
-    for(i = 0; i < 50000; i++){
+    for(i = 0; i < 500; i++){
     #else
-    for(i = 0; i < 5000000; i++){
+    for(i = 0; i < 5000; i++){
     #endif
+        disk    = 4;
         while ( disk < 6 )
         {
         disk++;
