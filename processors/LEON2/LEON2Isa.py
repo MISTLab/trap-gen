@@ -3188,14 +3188,14 @@ isa.addInstruction(writeASR_imm_Instr)
 opCodeXorR = cxx_writer.writer_code.Code(ReadNPCDecode + """
 // Note how we filter writes to EF and EC fields since we do not
 // have neither a co-processor nor the FPU
-result = ((rs1 ^ rs2) & 0x00FFCFFF) | 0xF3000000;
+result = ((rs1 ^ rs2) & 0x00FFCFFF) | 0xF2000000;
 supervisorException = (PSR[key_S] == 0);
 illegalCWP = (result & 0x0000001f) >= NUM_REG_WIN;
 """)
 opCodeXorI = cxx_writer.writer_code.Code(ReadNPCDecode + """
 // Note how we filter writes to EF and EC fields since we do not
 // have neither a co-processor nor the FPU
-result = ((rs1 ^ SignExtend(simm13, 13)) & 0x00FFCFFF) | 0xF3000000;
+result = ((rs1 ^ SignExtend(simm13, 13)) & 0x00FFCFFF) | 0xF2000000;
 supervisorException = (PSR[key_S] == 0);
 illegalCWP = (result & 0x0000001f) >= NUM_REG_WIN;
 """)

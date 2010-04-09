@@ -80,6 +80,14 @@ processor.setISA(LEON3Isa.isa) # lets set the instruction set
 # the TSIM_COMPATIBILITY macro will be defined
 processor.setPreProcMacro('tsim-comp', 'TSIM_COMPATIBILITY')
 
+# Also we need to initialize the processor status to default values when TSIM
+# compatibility mode is used, as this is not done by software (i.e. not done by
+# the BSP contained in the BCC compiler)
+processor.setBeginOperation("""#ifdef TSIM_COMPATIBILITY
+PSR.immediateWrite(0xf30000E0L);
+WIM.immediateWrite(2);
+#endif""")
+
 # Ok, now we move to the description of more complicated processor
 # resources
 

@@ -70,6 +70,7 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
     issueWidth lowerAddr;
     issueWidth higherAddr;
     bool statsRunning;
+    bool disableFunctionProfiling;
 
     ///Based on the new instruction just issued, the statistics on the instructions
     ///are updated
@@ -222,8 +223,9 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
         //this->prevPC = curPC;
     }
   public:
-    Profiler(ABIIf<issueWidth> &processorInstance, std::string execName) :
-                processorInstance(processorInstance), bfdInstance(BFDFrontend::getInstance(execName)){
+    Profiler(ABIIf<issueWidth> &processorInstance, std::string execName, bool disableFunctionProfiling) :
+                processorInstance(processorInstance), disableFunctionProfiling(disableFunctionProfiling),
+                                                            bfdInstance(BFDFrontend::getInstance(execName)){
         this->oldInstruction = NULL;
         this->oldInstrTime = SC_ZERO_TIME;
         this->instructionsEnd = this->instructions.end();
@@ -253,13 +255,15 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
         instructionFile << ProfInstruction::printCsvSummary() << std::endl;
         instructionFile.close();
 
-        std::ofstream functionFile((fileName + "_fun.csv").c_str());
-        functionFile << ProfFunction::printCsvHeader() << std::endl;
-        typename template_map<issueWidth, ProfFunction>::iterator funIter, funEnd;
-        for(funIter = this->functions.begin(), funEnd = this->functions.end(); funIter != funEnd; funIter++){
-            functionFile << funIter->second.printCsv() << std::endl;
+        if(!this->disableFunctionProfiling){
+            std::ofstream functionFile((fileName + "_fun.csv").c_str());
+            functionFile << ProfFunction::printCsvHeader() << std::endl;
+            typename template_map<issueWidth, ProfFunction>::iterator funIter, funEnd;
+            for(funIter = this->functions.begin(), funEnd = this->functions.end(); funIter != funEnd; funIter++){
+                functionFile << funIter->second.printCsv() << std::endl;
+            }
+            functionFile.close();
         }
-        functionFile.close();
     }
 
     ///Function called by the processor at every new instruction issue.
@@ -273,8 +277,9 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
 
         if(this->statsRunning)
             this->updateInstructionStats(curPC, curInstr);
-        
-        this->updateFunctionStats(curPC, curInstr);
+
+        if(!this->disableFunctionProfiling)
+            this->updateFunctionStats(curPC, curInstr);
 
         return false;
     }

@@ -1048,18 +1048,18 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
     resetCalledAttribute = cxx_writer.writer_code.Attribute('resetCalled', cxx_writer.writer_code.boolType, 'pri')
     processorElements.append(resetCalledAttribute)
     if self.beginOp:
-        beginOpMethod = cxx_writer.writer_code.Method('beginOp', self.beginOp, cxx_writer.writer_code.voidType, 'pri')
+        beginOpMethod = cxx_writer.writer_code.Method('beginOp', cxx_writer.writer_code.Code(self.beginOp), cxx_writer.writer_code.voidType, 'pri')
         processorElements.append(beginOpMethod)
     if self.endOp:
-        endOpMethod = cxx_writer.writer_code.Method('endOp', self.endOp, cxx_writer.writer_code.voidType, 'pri')
+        endOpMethod = cxx_writer.writer_code.Method('endOp', cxx_writer.writer_code.Code(self.endOp), cxx_writer.writer_code.voidType, 'pri')
         processorElements.append(endOpMethod)
     if not self.resetOp:
         resetOpTemp = cxx_writer.writer_code.Code('')
     else:
         import copy
-        resetOpTemp = copy.deepcopy(self.resetOp)
+        resetOpTemp = cxx_writer.writer_code.Code(copy.deepcopy(self.resetOp))
     initString = procInitCode(self, model)
-    resetOpTemp.prependCode(initString)
+    resetOpTemp.prependCode(initString + '\n')
     if self.beginOp:
         resetOpTemp.appendCode('//user-defined initialization\nthis->beginOp();\n')
     resetOpTemp.appendCode('this->resetCalled = true;')
@@ -1448,6 +1448,7 @@ def getMainCode(self, model, namespace):
             "activates the use of the software profiler, specifying the name of the output file")
         ("prof_range,g", boost::program_options::value<std::string>(),
             "specifies the range of addresses restricting the profiler instruction statistics")
+        ("disable_fun_prof,n", "disables profiling statistics for the application routines")
         """
     if self.systemc or model.startswith('acc') or model.endswith('AT'):
         code += """("frequency,f", boost::program_options::value<double>(),
@@ -1616,7 +1617,7 @@ def getMainCode(self, model, namespace):
         #else:
         code += 'OSEmulator< ' + str(wordType) + '> osEmu(*(procInst.abiIf));\n'
         code += """GDBStub< """ + str(wordType) + """ > gdbStub(*(procInst.abiIf));
-        Profiler< """ + str(wordType) + """ > profiler(*(procInst.abiIf), vm["application"].as<std::string>());
+        Profiler< """ + str(wordType) + """ > profiler(*(procInst.abiIf), vm["application"].as<std::string>(), vm.count("disable_fun_prof") > 0);
 
         osEmu.initSysCalls(vm["application"].as<std::string>());
         std::vector<std::string> options;
