@@ -133,8 +133,6 @@ def getCPPMemoryIf(self, model, namespace):
     # Now I finally create an instance of the local memory
     ############################################################
     memoryElements = []
-    readMemAliasCode = ''
-    writeMemAliasCode = ''
     aliasAttrs = []
     aliasParams = []
     aliasInit = []
@@ -143,17 +141,21 @@ def getCPPMemoryIf(self, model, namespace):
         aliasAttrs.append(cxx_writer.writer_code.Attribute(alias.alias, resourceType[alias.alias].makeRef(), 'pri'))
         aliasParams.append(cxx_writer.writer_code.Parameter(alias.alias, resourceType[alias.alias].makeRef()))
         aliasInit.append(alias.alias + '(' + alias.alias + ')')
-        readMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\nreturn this->' + alias.alias + ';\n}\n'
-        writeMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n this->' + alias.alias + ' = datum;\nreturn;\n}\n'
 
     checkAddressCode = 'if(address >= this->size){\nTHROW_ERROR("Address " << std::hex << std::showbase << address << " out of memory");\n}\n'
     checkAddressCodeException = 'if(address >= this->size){\nTHROW_EXCEPTION("Address " << std::hex << std::showbase << address << " out of memory");\n}\n'
 
+    swapEndianessCode = """//Now the code for endianess conversion: the processor is always modeled
+            //with the host endianess; in case they are different, the endianess
+            //is turned
+            """
     if self.isBigEndian:
-        swapEndianessCode = '#ifdef LITTLE_ENDIAN_BO\n'
+        swapEndianessDefine = '#ifdef LITTLE_ENDIAN_BO\n'
     else:
-        swapEndianessCode = '#ifdef BIG_ENDIAN_BO\n'
-    swapEndianessCode += 'this->swapEndianess(datum);\n#endif\n'
+        swapEndianessDefine = '#ifdef BIG_ENDIAN_BO\n'
+
+    swapEndianessCode += swapEndianessDefine + 'this->swapEndianess(datum);\n#endif\n'
+
     if self.isBigEndian:
         swapDEndianessCode = '#ifdef LITTLE_ENDIAN_BO\n'
     else:
@@ -173,6 +175,62 @@ def getCPPMemoryIf(self, model, namespace):
                 'read_dword_dbg': swapDEndianessCode, 'read_word_dbg': swapEndianessCode, 'read_half_dbg': swapEndianessCode, 'read_byte_dbg': '',
                 'write_dword': swapDEndianessCode, 'write_word': swapEndianessCode, 'write_half': swapEndianessCode, 'write_byte': '',
                 'write_dword_dbg': swapDEndianessCode, 'write_word_dbg': swapEndianessCode, 'write_half_dbg': swapEndianessCode, 'write_byte_dbg': ''}
+    readAliasCode = {}
+    readMemAliasCode = ''
+    for alias in self.memAlias:
+        readMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\nreturn this->' + alias.alias + ';\n}\n'
+    readAliasCode['read_dword'] = readMemAliasCode
+    readAliasCode['read_word'] = readMemAliasCode
+    readAliasCode['read_dword_dbg'] = readMemAliasCode
+    readAliasCode['read_word_dbg'] = readMemAliasCode
+    readMemAliasCode = ''
+    for alias in self.memAlias:
+        readMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n' + swapEndianessDefine + 'this->swapEndianess(' + alias.alias + '_temp);\n#endif\nreturn (' + str(archHWordType) + ')' + alias.alias + '_temp;\n}\n'
+        readMemAliasCode += 'if(address == ' + hex(long(alias.address) + self.wordSize/2) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n' + swapEndianessDefine + 'this->swapEndianess(' + alias.alias + '_temp);\n#endif\nreturn *(((' + str(archHWordType) + ' *)&(' + alias.alias + '_temp)) + 1);\n}\n'
+    readAliasCode['read_half_dbg'] = readMemAliasCode
+    readAliasCode['read_half'] = readMemAliasCode
+    readMemAliasCode = ''
+    for alias in self.memAlias:
+        readMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n' + swapEndianessDefine + 'this->swapEndianess(' + alias.alias + '_temp);\n#endif\nreturn (' + str(archByteType) + ')' + alias.alias + '_temp;\n}\n'
+        readMemAliasCode += 'if(address == ' + hex(long(alias.address) + 1) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n' + swapEndianessDefine + 'this->swapEndianess(' + alias.alias + '_temp);\n#endif\nreturn *(((' + str(archByteType) + ' *)&(' + alias.alias + '_temp)) + 1);\n}\n'
+        readMemAliasCode += 'if(address == ' + hex(long(alias.address) + 2) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n' + swapEndianessDefine + 'this->swapEndianess(' + alias.alias + '_temp);\n#endif\nreturn *(((' + str(archByteType) + ' *)&(' + alias.alias + '_temp)) + 2);\n}\n'
+        readMemAliasCode += 'if(address == ' + hex(long(alias.address) + 3) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n' + swapEndianessDefine + 'this->swapEndianess(' + alias.alias + '_temp);\n#endif\nreturn *(((' + str(archByteType) + ' *)&(' + alias.alias + '_temp)) + 3);\n}\n'
+    readAliasCode['read_byte_dbg'] = readMemAliasCode
+    readAliasCode['read_byte'] = readMemAliasCode
+    writeAliasCode = {}
+    writeMemAliasCode = ''
+    for alias in self.memAlias:
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n this->' + alias.alias + ' = datum;\nreturn;\n}\n'
+    writeAliasCode['write_dword'] = writeMemAliasCode
+    writeAliasCode['write_word'] = writeMemAliasCode
+    writeAliasCode['write_dword_dbg'] = writeMemAliasCode
+    writeAliasCode['write_word_dbg'] = writeMemAliasCode
+    writeMemAliasCode = swapEndianessDefine
+    for alias in self.memAlias:
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address) + self.wordSize/2) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*((' + str(archHWordType) + ' *)&' + alias.alias + '_temp) = (' + str(archHWordType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*(((' + str(archHWordType) + ' *)&' + alias.alias + '_temp) + 1) = (' + str(archHWordType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+    writeMemAliasCode += '#else\n'
+    for alias in self.memAlias:
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*((' + str(archHWordType) + ' *)&' + alias.alias + '_temp) = (' + str(archHWordType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address) + self.wordSize/2) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*(((' + str(archHWordType) + ' *)&' + alias.alias + '_temp) + 1) = (' + str(archHWordType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+    writeMemAliasCode += '#endif\n'
+    writeAliasCode['write_half'] = writeMemAliasCode
+    writeAliasCode['write_half_dbg'] = writeMemAliasCode
+    writeMemAliasCode = swapEndianessDefine
+    for alias in self.memAlias:
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address) + 3) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*((' + str(archByteType) + '* )&' + alias.alias + '_temp) = (' + str(archByteType) + ')datum;\nreturn;\n}\n'
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address) + 2) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*(((' + str(archByteType) + '* )&' + alias.alias + '_temp) + 1) = (' + str(archByteType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address) + 1) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*(((' + str(archByteType) + '* )&' + alias.alias + '_temp) + 2) = (' + str(archByteType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*(((' + str(archByteType) + '* )&' + alias.alias + '_temp) + 3) = (' + str(archByteType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+    writeMemAliasCode += '#else\n'
+    for alias in self.memAlias:
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*((' + str(archByteType) + '* )&' + alias.alias + '_temp) = (' + str(archByteType) + ')datum;\nreturn;\n}\n'
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address) + 1) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*(((' + str(archByteType) + '* )&' + alias.alias + '_temp) + 1) = (' + str(archByteType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address) + 2) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*(((' + str(archByteType) + '* )&' + alias.alias + '_temp) + 2) = (' + str(archByteType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address) + 3) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*(((' + str(archByteType) + '* )&' + alias.alias + '_temp) + 3) = (' + str(archByteType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+    writeMemAliasCode += '#endif\n'
+    writeAliasCode['write_byte'] = writeMemAliasCode
+    writeAliasCode['write_byte_dbg'] = writeMemAliasCode
 
     # If there is no memory or there is a memory and this has debugging disabled
     if not self.memory or not self.memory[2]:
@@ -181,10 +239,10 @@ def getCPPMemoryIf(self, model, namespace):
         for methName in readMethodNames + readMethodNames_dbg:
             methodsAttrs[methName] = []
             if methName.endswith('_gdb'):
-                readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCodeException + '\n' + str(methodTypes[methName]) + ' datum = *(' + str(methodTypes[methName].makePointer()) + ')(this->memory + (unsigned long)address);\n' + endianessCode[methName] + '\nreturn datum;')
+                readBody = cxx_writer.writer_code.Code(readAliasCode[methName] + checkAddressCodeException + '\n' + str(methodTypes[methName]) + ' datum = *(' + str(methodTypes[methName].makePointer()) + ')(this->memory + (unsigned long)address);\n' + endianessCode[methName] + '\nreturn datum;')
             else:
                 methodsAttrs[methName].append('noexc')
-                readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + '\n' + str(methodTypes[methName]) + ' datum = *(' + str(methodTypes[methName].makePointer()) + ')(this->memory + (unsigned long)address);\n' + endianessCode[methName] + '\nreturn datum;')
+                readBody = cxx_writer.writer_code.Code(readAliasCode[methName] + checkAddressCode + '\n' + str(methodTypes[methName]) + ' datum = *(' + str(methodTypes[methName].makePointer()) + ')(this->memory + (unsigned long)address);\n' + endianessCode[methName] + '\nreturn datum;')
                 if methName == 'read_word':
                     methodsAttrs[methName].append('inline')
             readBody.addInclude('trap_utils.hpp')
@@ -192,10 +250,10 @@ def getCPPMemoryIf(self, model, namespace):
         for methName in writeMethodNames + writeMethodNames_dbg:
             methodsAttrs[methName] = []
             if methName.endswith('_gdb'):
-                methodsCode[methName] = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCodeException + checkWatchPointCode + '\n' + endianessCode[methName] + '\n*(' + str(methodTypes[methName].makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
+                methodsCode[methName] = cxx_writer.writer_code.Code(writeAliasCode[methName] + checkAddressCodeException + checkWatchPointCode + '\n' + endianessCode[methName] + '\n*(' + str(methodTypes[methName].makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
             else:
                 methodsAttrs[methName].append('noexc')
-                methodsCode[methName] = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + checkWatchPointCode + '\n' + endianessCode[methName] + '\n*(' + str(methodTypes[methName].makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
+                methodsCode[methName] = cxx_writer.writer_code.Code(writeAliasCode[methName] + checkAddressCode + checkWatchPointCode + '\n' + endianessCode[methName] + '\n*(' + str(methodTypes[methName].makePointer()) + ')(this->memory + (unsigned long)address) = datum;')
                 if methName == 'write_word':
                     methodsAttrs[methName].append('inline')
         for methName in genericMethodNames:
@@ -241,9 +299,9 @@ def getCPPMemoryIf(self, model, namespace):
         for methName in readMethodNames + readMethodNames_dbg:
             methodsAttrs[methName] = ['noexc']
             if methName.endswith('_gdb'):
-                readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCodeException + '\n' + str(methodTypes[methName]) + ' datum = *(' + str(methodTypes[methName].makePointer()) + ')(this->memory + (unsigned long)address);\n' + endianessCode[methName] + '\nreturn datum;')
+                readBody = cxx_writer.writer_code.Code(readAliasCode[methName] + checkAddressCodeException + '\n' + str(methodTypes[methName]) + ' datum = *(' + str(methodTypes[methName].makePointer()) + ')(this->memory + (unsigned long)address);\n' + endianessCode[methName] + '\nreturn datum;')
             else:
-                readBody = cxx_writer.writer_code.Code(readMemAliasCode + checkAddressCode + '\n' + str(methodTypes[methName]) + ' datum = *(' + str(methodTypes[methName].makePointer()) + ')(this->memory + (unsigned long)address);\n' + endianessCode[methName] + '\nreturn datum;')
+                readBody = cxx_writer.writer_code.Code(readAliasCode[methName] + checkAddressCode + '\n' + str(methodTypes[methName]) + ' datum = *(' + str(methodTypes[methName].makePointer()) + ')(this->memory + (unsigned long)address);\n' + endianessCode[methName] + '\nreturn datum;')
                 if methName == 'read_word':
                     methodsAttrs[methName].append('inline')
             readBody.addInclude('trap_utils.hpp')
@@ -252,10 +310,10 @@ def getCPPMemoryIf(self, model, namespace):
         for methName in writeMethodNames + writeMethodNames_dbg:
             methodsAttrs[methName] = []
             if methName.endswith('_gdb'):
-                methodsCode[methName] = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCodeException + checkWatchPointCode + '\n' + endianessCode[methName] + '\n*(' + str(methodTypes[methName].makePointer()) + ')(this->memory + (unsigned long)address) = datum;' + dumpCode1 + str(methodTypeLen[methName]) + dumpCode2)
+                methodsCode[methName] = cxx_writer.writer_code.Code(writeAliasCode[methName] + checkAddressCodeException + checkWatchPointCode + '\n' + endianessCode[methName] + '\n*(' + str(methodTypes[methName].makePointer()) + ')(this->memory + (unsigned long)address) = datum;' + dumpCode1 + str(methodTypeLen[methName]) + dumpCode2)
             else:
                 methodsAttrs[methName].append('noexc')
-                methodsCode[methName] = cxx_writer.writer_code.Code(writeMemAliasCode + checkAddressCode + checkWatchPointCode + '\n' + endianessCode[methName] + '\n*(' + str(methodTypes[methName].makePointer()) + ')(this->memory + (unsigned long)address) = datum;' + dumpCode1 + str(methodTypeLen[methName]) + dumpCode2)
+                methodsCode[methName] = cxx_writer.writer_code.Code(writeAliasCode[methName] + checkAddressCode + checkWatchPointCode + '\n' + endianessCode[methName] + '\n*(' + str(methodTypes[methName].makePointer()) + ')(this->memory + (unsigned long)address) = datum;' + dumpCode1 + str(methodTypeLen[methName]) + dumpCode2)
                 if methName == 'write_word':
                     methodsAttrs[methName].append('inline')
         for methName in genericMethodNames:

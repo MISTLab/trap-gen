@@ -2264,11 +2264,7 @@ rs2_op = rs2;
 """)
 opCodeExecS = cxx_writer.writer_code.Code("""
 int resultTemp = ((int)SignExtend(rs1_op & 0x0000ffff, 16))*((int)SignExtend(rs2_op & 0x0000ffff, 16));
-#ifndef ACC_MODEL
 long long resultAcc = ((((long long)(Y & 0x000000ff)) << 32) | (int)ASR[18]) + resultTemp;
-#else
-long long resultAcc = ((((long long)(Y_execute & 0x000000ff)) << 32) | (int)ASR_execute[18]) + resultTemp;
-#endif
 Y = (resultAcc & 0x000000ff00000000LL) >> 32;
 ASR[18] = resultAcc & 0x00000000FFFFFFFFLL;
 result = resultAcc & 0x00000000FFFFFFFFLL;
@@ -2276,11 +2272,7 @@ stall(1);
 """)
 opCodeExecU = cxx_writer.writer_code.Code("""
 unsigned int resultTemp = ((unsigned int)rs1_op & 0x0000ffff)*((unsigned int)rs2_op & 0x0000ffff);
-#ifndef ACC_MODEL
 unsigned long long resultAcc = ((((unsigned long long)(Y & 0x000000ff)) << 32) | (unsigned int)ASR[18]) + resultTemp;
-#else
-unsigned long long resultAcc = ((((unsigned long long)(Y_execute & 0x000000ff)) << 32) | (unsigned int)ASR_execute[18]) + resultTemp;
-#endif
 Y = (resultAcc & 0x000000ff00000000LL) >> 32;
 ASR[18] = resultAcc & 0x00000000FFFFFFFFLL;
 result = resultAcc & 0x00000000FFFFFFFFLL;

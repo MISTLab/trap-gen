@@ -176,29 +176,6 @@ LEON3Isa.isa.addTraceRegister(regs)
 LEON3Isa.isa.addTraceRegister(tbrReg)
 LEON3Isa.isa.addTraceRegister(wimReg)
 
-# Memory alias: registers which are memory mapped; we
-# loose a lot of performance, should we really use them?? CHECK
-#for j in range(0, 8):
-#    regMap = trap.MemoryAlias(0x300000 + j, 'GLOBAL[' + str(j) + ']')
-#    processor.addMemAlias(regMap)
-#for i in range(0, numRegWindows):
-#    for j in range(0, 16):
-#        regMap = trap.MemoryAlias(0x300008 + i*16 + j, 'WINREGS[' + str(i*16 + j) + ']')
-#        processor.addMemAlias(regMap)
-#regMap = trap.MemoryAlias(0x400000, 'Y')
-#processor.addMemAlias(regMap)
-#regMap = trap.MemoryAlias(0x400004, 'PSR')
-#processor.addMemAlias(regMap)
-#regMap = trap.MemoryAlias(0x40000C, 'WIM')
-#processor.addMemAlias(regMap)
-#regMap = trap.MemoryAlias(0x400010, 'PC')
-#processor.addMemAlias(regMap)
-#regMap = trap.MemoryAlias(0x400014, 'NPC')
-#processor.addMemAlias(regMap)
-#for j in range(16, 32):
-#    regMap = trap.MemoryAlias(0x400040 + j, 'ASR[' + str(j) + ']')
-#    processor.addMemAlias(regMap)
-
 # Register from which the instructions are fetched; note that in the
 # functional model there is an offset between the PC and the actual
 # fetch address (all of this is to take into account the fact that we do

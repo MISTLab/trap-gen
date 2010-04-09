@@ -90,6 +90,8 @@
 namespace trap{
 
 template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public MemoryToolsIf<issueWidth>, public sc_module{
+  public:
+    bool simulationPaused;
   private:
     enum stopType {BREAK_stop=0, WATCH_stop, STEP_stop, SEG_stop, TIMEOUT_stop, PAUSED_stop, UNK_stop};
     ///Thread used to send and receive responses with the GDB debugger
@@ -102,7 +104,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
                     gdbStub.step = 2;
                 }
                 else{
-                    //Error: First of all I have to perform some cleanup
+                    //An Error happened: First of all I have to perform some cleanup
                     if(!gdbStub.isKilled){
                         boost::mutex::scoped_lock lk(gdbStub.cleanupMutex);
                         gdbStub.breakManager.clearAllBreaks();
@@ -366,7 +368,9 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     ///has been received, it routes it to the appropriate handler
     ///Returns whether we must be listening for other incoming data or not
     bool waitForRequest(){
+        this->simulationPaused = true;
         GDBRequest req = connManager.processRequest();
+        this->simulationPaused = false;
         switch(req.type){
             case GDBRequest::QUEST_req:
                 //? request: it asks the target the reason why it halted
@@ -946,7 +950,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
     GDBStub(ABIIf<issueWidth> &processorInstance) :
                     sc_module("debugger"), connManager(processorInstance.matchEndian()), processorInstance(processorInstance),
                 step(0), breakReached(NULL), breakEnabled(true), watchEnabled(true), isKilled(false), timeout(false), isConnected(false),
-                timeToGo(0), timeToJump(0), simStartTime(0), firstRun(true){
+                timeToGo(0), timeToJump(0), simStartTime(0), firstRun(true), simulationPaused(false){
         SC_METHOD(pauseMethod);
         sensitive << this->pauseEvent;
         dont_initialize();

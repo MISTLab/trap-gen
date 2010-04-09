@@ -2239,6 +2239,80 @@ else:
     smulcc_reg_Instr.setWbDelay('rd', 2)
 isa.addInstruction(smulcc_reg_Instr)
 
+# Multiply Accumulate Instructions
+opCodeRegsImm = cxx_writer.writer_code.Code("""
+rs1_op = rs1;
+rs2_op = SignExtend(simm13, 13);
+""")
+opCodeRegsRegs = cxx_writer.writer_code.Code("""
+rs1_op = rs1;
+rs2_op = rs2;
+""")
+opCodeExecS = cxx_writer.writer_code.Code("""
+int resultTemp = ((int)SignExtend(rs1_op & 0x0000ffff, 16))*((int)SignExtend(rs2_op & 0x0000ffff, 16));
+long long resultAcc = ((((long long)(Y & 0x000000ff)) << 32) | (int)ASR[18]) + resultTemp;
+Y = (resultAcc & 0x000000ff00000000LL) >> 32;
+ASR[18] = resultAcc & 0x00000000FFFFFFFFLL;
+result = resultAcc & 0x00000000FFFFFFFFLL;
+stall(1);
+""")
+opCodeExecU = cxx_writer.writer_code.Code("""
+unsigned int resultTemp = ((unsigned int)rs1_op & 0x0000ffff)*((unsigned int)rs2_op & 0x0000ffff);
+unsigned long long resultAcc = ((((unsigned long long)(Y & 0x000000ff)) << 32) | (unsigned int)ASR[18]) + resultTemp;
+Y = (resultAcc & 0x000000ff00000000LL) >> 32;
+ASR[18] = resultAcc & 0x00000000FFFFFFFFLL;
+result = resultAcc & 0x00000000FFFFFFFFLL;
+stall(1);
+""")
+umac_imm_Instr = trap.Instruction('UMAC_imm', True, frequency = 1)
+umac_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 1, 1, 0]}, ('umac r', '%rs1', ' ', '%simm13', ' r', '%rd'))
+umac_imm_Instr.setCode(opCodeRegsImm, 'decode')
+umac_imm_Instr.setCode(opCodeExecU, 'execute')
+umac_imm_Instr.addBehavior(WB_plain, 'wb')
+umac_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+umac_imm_Instr.addVariable(('result', 'BIT<32>'))
+umac_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
+umac_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
+umac_imm_Instr.addSpecialRegister('Y', 'inout', 'execute')
+umac_imm_Instr.addSpecialRegister('ASR[18]', 'inout', 'execute')
+isa.addInstruction(umac_imm_Instr)
+umac_reg_Instr = trap.Instruction('UMAC_reg', True, frequency = 1)
+umac_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 1, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('umac r', '%rs1', ' r', '%rs2', ' r', '%rd'))
+umac_reg_Instr.setCode(opCodeRegsRegs, 'decode')
+umac_reg_Instr.setCode(opCodeExecU, 'execute')
+umac_reg_Instr.addBehavior(WB_plain, 'wb')
+umac_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+umac_reg_Instr.addVariable(('result', 'BIT<32>'))
+umac_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
+umac_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
+umac_reg_Instr.addSpecialRegister('Y', 'inout', 'execute')
+umac_reg_Instr.addSpecialRegister('ASR[18]', 'inout', 'execute')
+isa.addInstruction(umac_reg_Instr)
+smac_imm_Instr = trap.Instruction('SMAC_imm', True, frequency = 1)
+smac_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 1, 1, 1]}, ('smac r', '%rs1', ' ', '%simm13', ' r', '%rd'))
+smac_imm_Instr.setCode(opCodeRegsImm, 'decode')
+smac_imm_Instr.setCode(opCodeExecS, 'execute')
+smac_imm_Instr.addBehavior(WB_plain, 'wb')
+smac_imm_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+smac_imm_Instr.addVariable(('result', 'BIT<32>'))
+smac_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
+smac_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
+smac_imm_Instr.addSpecialRegister('Y', 'inout', 'execute')
+smac_imm_Instr.addSpecialRegister('ASR[18]', 'inout', 'execute')
+isa.addInstruction(smac_imm_Instr)
+smac_reg_Instr = trap.Instruction('SMAC_reg', True, frequency = 1)
+smac_reg_Instr.setMachineCode(dpi_format1, {'op3': [1, 1, 1, 1, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('smac r', '%rs1', ' r', '%rs2', ' r', '%rd'))
+smac_reg_Instr.setCode(opCodeRegsRegs, 'decode')
+smac_reg_Instr.setCode(opCodeExecS, 'execute')
+smac_reg_Instr.addBehavior(WB_plain, 'wb')
+smac_reg_Instr.addBehavior(IncrementPC, 'fetch', pre = False)
+smac_reg_Instr.addVariable(('result', 'BIT<32>'))
+smac_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
+smac_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
+smac_reg_Instr.addSpecialRegister('Y', 'inout', 'execute')
+smac_reg_Instr.addSpecialRegister('ASR[18]', 'inout', 'execute')
+isa.addInstruction(smac_reg_Instr)
+
 # Divide
 opCodeRegsImm = cxx_writer.writer_code.Code(ReadNPCDecode + """
 rs1_op = rs1;

@@ -61,12 +61,21 @@ def getCPPExternalPorts(self, model, namespace):
             //is turned
             """
     if self.isBigEndian:
-        swapEndianessCode += '#ifdef LITTLE_ENDIAN_BO\n'
+        swapEndianessDefine = '#ifdef LITTLE_ENDIAN_BO\n'
     else:
-        swapEndianessCode += '#ifdef BIG_ENDIAN_BO\n'
-    swapEndianessCode += 'this->swapEndianess(datum);\n#endif\n'
+        swapEndianessDefine = '#ifdef BIG_ENDIAN_BO\n'
+
+    swapEndianessCode += swapEndianessDefine + 'this->swapEndianess(datum);\n#endif\n'
 
     tlmPortElements = []
+
+    aliasAttrs = []
+    aliasParams = []
+    aliasInit = []
+    for alias in self.memAlias:
+        aliasAttrs.append(cxx_writer.writer_code.Attribute(alias.alias, resourceType[alias.alias].makeRef(), 'pri'))
+        aliasParams.append(cxx_writer.writer_code.Parameter(alias.alias, resourceType[alias.alias].makeRef()))
+        aliasInit.append(alias.alias + '(' + alias.alias + ')')
 
     MemoryToolsIfType = cxx_writer.writer_code.TemplateType('MemoryToolsIf', [str(archWordType)], 'ToolsIf.hpp')
     tlmPortElements.append(cxx_writer.writer_code.Attribute('debugger', MemoryToolsIfType.makePointer(), 'pri'))
@@ -86,18 +95,6 @@ def getCPPExternalPorts(self, model, namespace):
     sync_enumType = cxx_writer.writer_code.Type('tlm::tlm_sync_enum', 'tlm.h')
     tlmPortInit = []
     constructorParams = []
-
-    readMemAliasCode = ''
-    writeMemAliasCode = ''
-    aliasAttrs = []
-    aliasParams = []
-    aliasInit = []
-    for alias in self.memAlias:
-        aliasAttrs.append(cxx_writer.writer_code.Attribute(alias.alias, resourceType[alias.alias].makeRef(), 'pri'))
-        aliasParams.append(cxx_writer.writer_code.Parameter(alias.alias, resourceType[alias.alias].makeRef()))
-        aliasInit.append(alias.alias + '(' + alias.alias + ')')
-        readMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\nreturn this->' + alias.alias + ';\n}\n'
-        writeMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n this->' + alias.alias + ' = datum;\nreturn;\n}\n'
 
     emptyBody = cxx_writer.writer_code.Code('')
 
@@ -239,6 +236,10 @@ def getCPPExternalPorts(self, model, namespace):
         }
         wait(this->end_response_event);
         """
+
+    readMemAliasCode = ''
+    for alias in self.memAlias:
+        readMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\nreturn this->' + alias.alias + ';\n}\n'
     addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
     readBody = cxx_writer.writer_code.Code(readMemAliasCode + str(archDWordType) + readCode + swapDEndianessCode + '\nreturn datum;')
     readBody.addInclude('trap_utils.hpp')
@@ -248,9 +249,19 @@ def getCPPExternalPorts(self, model, namespace):
     readBody = cxx_writer.writer_code.Code(readMemAliasCode + str(archWordType) + readCode + swapEndianessCode + '\nreturn datum;')
     readDecl = cxx_writer.writer_code.Method('read_word', readBody, archWordType, 'pu', [addressParam], inline = True, noException = True)
     tlmPortElements.append(readDecl)
+    readMemAliasCode = ''
+    for alias in self.memAlias:
+        readMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n' + swapEndianessDefine + 'this->swapEndianess(' + alias.alias + '_temp);\n#endif\nreturn (' + str(archHWordType) + ')' + alias.alias + '_temp;\n}\n'
+        readMemAliasCode += 'if(address == ' + hex(long(alias.address) + self.wordSize/2) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n' + swapEndianessDefine + 'this->swapEndianess(' + alias.alias + '_temp);\n#endif\nreturn *(((' + str(archHWordType) + ' *)&(' + alias.alias + '_temp)) + 1);\n}\n'
     readBody = cxx_writer.writer_code.Code(readMemAliasCode + str(archHWordType) + readCode + swapEndianessCode + '\nreturn datum;')
     readDecl = cxx_writer.writer_code.Method('read_half', readBody, archHWordType, 'pu', [addressParam], noException = True)
     tlmPortElements.append(readDecl)
+    readMemAliasCode = ''
+    for alias in self.memAlias:
+        readMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n' + swapEndianessDefine + 'this->swapEndianess(' + alias.alias + '_temp);\n#endif\nreturn (' + str(archByteType) + ')' + alias.alias + '_temp;\n}\n'
+        readMemAliasCode += 'if(address == ' + hex(long(alias.address) + 1) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n' + swapEndianessDefine + 'this->swapEndianess(' + alias.alias + '_temp);\n#endif\nreturn *(((' + str(archByteType) + ' *)&(' + alias.alias + '_temp)) + 1);\n}\n'
+        readMemAliasCode += 'if(address == ' + hex(long(alias.address) + 2) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n' + swapEndianessDefine + 'this->swapEndianess(' + alias.alias + '_temp);\n#endif\nreturn *(((' + str(archByteType) + ' *)&(' + alias.alias + '_temp)) + 2);\n}\n'
+        readMemAliasCode += 'if(address == ' + hex(long(alias.address) + 3) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n' + swapEndianessDefine + 'this->swapEndianess(' + alias.alias + '_temp);\n#endif\nreturn *(((' + str(archByteType) + ' *)&(' + alias.alias + '_temp)) + 3);\n}\n'
     readBody = cxx_writer.writer_code.Code(readMemAliasCode + str(archByteType) + readCode + '\nreturn datum;')
     readDecl = cxx_writer.writer_code.Method('read_byte', readBody, archByteType, 'pu', [addressParam], noException = True)
     tlmPortElements.append(readDecl)
@@ -341,6 +352,9 @@ def getCPPExternalPorts(self, model, namespace):
         }
         wait(this->end_response_event);
         """
+    writeMemAliasCode = ''
+    for alias in self.memAlias:
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n this->' + alias.alias + ' = datum;\nreturn;\n}\n'
     writeBody = cxx_writer.writer_code.Code(swapDEndianessCode + writeMemAliasCode + checkWatchPointCode + writeCode)
     datumParam = cxx_writer.writer_code.Parameter('datum', archDWordType)
     writeDecl = cxx_writer.writer_code.Method('write_dword', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
@@ -350,10 +364,32 @@ def getCPPExternalPorts(self, model, namespace):
     writeDecl = cxx_writer.writer_code.Method('write_word', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], inline = True, noException = True)
     tlmPortElements.append(writeDecl)
     datumParam = cxx_writer.writer_code.Parameter('datum', archHWordType)
+    writeMemAliasCode = swapEndianessDefine
+    for alias in self.memAlias:
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address) + self.wordSize/2) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*((' + str(archHWordType) + ' *)&' + alias.alias + '_temp) = (' + str(archHWordType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*(((' + str(archHWordType) + ' *)&' + alias.alias + '_temp) + 1) = (' + str(archHWordType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+    writeMemAliasCode += '#else\n'
+    for alias in self.memAlias:
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*((' + str(archHWordType) + ' *)&' + alias.alias + '_temp) = (' + str(archHWordType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address) + self.wordSize/2) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*(((' + str(archHWordType) + ' *)&' + alias.alias + '_temp) + 1) = (' + str(archHWordType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+    writeMemAliasCode += '#endif\n'
     writeBody = cxx_writer.writer_code.Code(swapEndianessCode + writeMemAliasCode + checkWatchPointCode + writeCode)
     writeDecl = cxx_writer.writer_code.Method('write_half', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
     tlmPortElements.append(writeDecl)
     datumParam = cxx_writer.writer_code.Parameter('datum', archByteType)
+    writeMemAliasCode = swapEndianessDefine
+    for alias in self.memAlias:
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address) + 3) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*((' + str(archByteType) + '* )&' + alias.alias + '_temp) = (' + str(archByteType) + ')datum;\nreturn;\n}\n'
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address) + 2) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*(((' + str(archByteType) + '* )&' + alias.alias + '_temp) + 1) = (' + str(archByteType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address) + 1) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*(((' + str(archByteType) + '* )&' + alias.alias + '_temp) + 2) = (' + str(archByteType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*(((' + str(archByteType) + '* )&' + alias.alias + '_temp) + 3) = (' + str(archByteType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+    writeMemAliasCode += '#else\n'
+    for alias in self.memAlias:
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*((' + str(archByteType) + '* )&' + alias.alias + '_temp) = (' + str(archByteType) + ')datum;\nreturn;\n}\n'
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address) + 1) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*(((' + str(archByteType) + '* )&' + alias.alias + '_temp) + 1) = (' + str(archByteType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address) + 2) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*(((' + str(archByteType) + '* )&' + alias.alias + '_temp) + 2) = (' + str(archByteType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address) + 3) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*(((' + str(archByteType) + '* )&' + alias.alias + '_temp) + 3) = (' + str(archByteType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+    writeMemAliasCode += '#endif\n'
     writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + checkWatchPointCode + writeCode)
     writeDecl = cxx_writer.writer_code.Method('write_byte', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
     tlmPortElements.append(writeDecl)
@@ -365,6 +401,9 @@ def getCPPExternalPorts(self, model, namespace):
     readCode2 = """trans.set_data_ptr(reinterpret_cast<unsigned char *>(&datum));
         this->initSocket->transport_dbg(trans);
         """
+    readMemAliasCode = ''
+    for alias in self.memAlias:
+        readMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\nreturn this->' + alias.alias + ';\n}\n'
     addressParam = cxx_writer.writer_code.Parameter('address', archWordType.makeRef().makeConst())
     readBody = cxx_writer.writer_code.Code(readMemAliasCode + readCode1 + 'trans.set_data_length(' + str(self.wordSize*2) + ');\n' + str(archDWordType) + ' datum = 0;\n' + readCode2 + swapDEndianessCode + 'return datum;')
     readBody.addInclude('trap_utils.hpp')
@@ -374,9 +413,19 @@ def getCPPExternalPorts(self, model, namespace):
     readBody = cxx_writer.writer_code.Code(readMemAliasCode + readCode1 + 'trans.set_data_length(' + str(self.wordSize) + ');\n' + str(archWordType) + ' datum = 0;\n' + readCode2 + swapEndianessCode + 'return datum;')
     readDecl = cxx_writer.writer_code.Method('read_word_dbg', readBody, archWordType, 'pu', [addressParam], noException = True)
     tlmPortElements.append(readDecl)
+    readMemAliasCode = ''
+    for alias in self.memAlias:
+        readMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n' + swapEndianessDefine + 'this->swapEndianess(' + alias.alias + '_temp);\n#endif\nreturn (' + str(archHWordType) + ')' + alias.alias + '_temp;\n}\n'
+        readMemAliasCode += 'if(address == ' + hex(long(alias.address) + self.wordSize/2) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n' + swapEndianessDefine + 'this->swapEndianess(' + alias.alias + '_temp);\n#endif\nreturn *(((' + str(archHWordType) + ' *)&(' + alias.alias + '_temp)) + 1);\n}\n'
     readBody = cxx_writer.writer_code.Code(readMemAliasCode + readCode1 + 'trans.set_data_length(' + str(self.wordSize/2) + ');\n' + str(archHWordType) + ' datum = 0;\n' + readCode2 + swapEndianessCode + 'return datum;')
     readDecl = cxx_writer.writer_code.Method('read_half_dbg', readBody, archHWordType, 'pu', [addressParam], noException = True)
     tlmPortElements.append(readDecl)
+    readMemAliasCode = ''
+    for alias in self.memAlias:
+        readMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n' + swapEndianessDefine + 'this->swapEndianess(' + alias.alias + '_temp);\n#endif\nreturn (' + str(archByteType) + ')' + alias.alias + '_temp;\n}\n'
+        readMemAliasCode += 'if(address == ' + hex(long(alias.address) + 1) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n' + swapEndianessDefine + 'this->swapEndianess(' + alias.alias + '_temp);\n#endif\nreturn *(((' + str(archByteType) + ' *)&(' + alias.alias + '_temp)) + 1);\n}\n'
+        readMemAliasCode += 'if(address == ' + hex(long(alias.address) + 2) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n' + swapEndianessDefine + 'this->swapEndianess(' + alias.alias + '_temp);\n#endif\nreturn *(((' + str(archByteType) + ' *)&(' + alias.alias + '_temp)) + 2);\n}\n'
+        readMemAliasCode += 'if(address == ' + hex(long(alias.address) + 3) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n' + swapEndianessDefine + 'this->swapEndianess(' + alias.alias + '_temp);\n#endif\nreturn *(((' + str(archByteType) + ' *)&(' + alias.alias + '_temp)) + 3);\n}\n'
     readBody = cxx_writer.writer_code.Code(readMemAliasCode + readCode1 + 'trans.set_data_length(1);\n' + str(archByteType) + ' datum = 0;\n' + readCode2 + 'return datum;')
     readDecl = cxx_writer.writer_code.Method('read_byte_dbg', readBody, archByteType, 'pu', [addressParam], noException = True)
     tlmPortElements.append(readDecl)
@@ -387,6 +436,9 @@ def getCPPExternalPorts(self, model, namespace):
     writeCode2 = """trans.set_data_ptr((unsigned char *)&datum);
         this->initSocket->transport_dbg(trans);
         """
+    writeMemAliasCode = ''
+    for alias in self.memAlias:
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n this->' + alias.alias + ' = datum;\nreturn;\n}\n'
     writeBody = cxx_writer.writer_code.Code(swapDEndianessCode + writeMemAliasCode + writeCode1 + 'trans.set_data_length(' + str(self.wordSize*2) + ');\n' + writeCode2)
     datumParam = cxx_writer.writer_code.Parameter('datum', archDWordType)
     writeDecl = cxx_writer.writer_code.Method('write_dword_dbg', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
@@ -395,10 +447,32 @@ def getCPPExternalPorts(self, model, namespace):
     datumParam = cxx_writer.writer_code.Parameter('datum', archWordType)
     writeDecl = cxx_writer.writer_code.Method('write_word_dbg', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
     tlmPortElements.append(writeDecl)
+    writeMemAliasCode = swapEndianessDefine
+    for alias in self.memAlias:
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address) + self.wordSize/2) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*((' + str(archHWordType) + ' *)' + alias.alias + '_temp) = (' + str(archHWordType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*(((' + str(archHWordType) + ' *)&' + alias.alias + '_temp) + 1) = (' + str(archHWordType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+    writeMemAliasCode += '#else\n'
+    for alias in self.memAlias:
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*((' + str(archHWordType) + ' *)' + alias.alias + '_temp) = (' + str(archHWordType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address) + self.wordSize/2) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*(((' + str(archHWordType) + ' *)&' + alias.alias + '_temp) + 1) = (' + str(archHWordType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+    writeMemAliasCode += '#endif\n'
     datumParam = cxx_writer.writer_code.Parameter('datum', archHWordType)
     writeBody = cxx_writer.writer_code.Code(swapEndianessCode + writeMemAliasCode + writeCode1 + 'trans.set_data_length(' + str(self.wordSize/2) + ');\n' + writeCode2)
     writeDecl = cxx_writer.writer_code.Method('write_half_dbg', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)
     tlmPortElements.append(writeDecl)
+    writeMemAliasCode = swapEndianessDefine
+    for alias in self.memAlias:
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address) + 3) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*((' + str(archByteType) + ' *)&' + alias.alias + '_temp) = (' + str(archByteType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address) + 2) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*(((' + str(archByteType) + ' *)&' + alias.alias + '_temp) + 1) = (' + str(archByteType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address) + 1) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*(((' + str(archByteType) + ' *)&' + alias.alias + '_temp) + 2) = (' + str(archByteType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*(((' + str(archByteType) + ' *)&' + alias.alias + '_temp) + 3) = (' + str(archByteType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+    writeMemAliasCode += '#else\n'
+    for alias in self.memAlias:
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address)) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*((' + str(archByteType) + ' *)&' + alias.alias + '_temp) = (' + str(archByteType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address) + 1) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*(((' + str(archByteType) + ' *)&' + alias.alias + '_temp) + 1) = (' + str(archByteType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address) + 2) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*(((' + str(archByteType) + ' *)&' + alias.alias + '_temp) + 2) = (' + str(archByteType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+        writeMemAliasCode += 'if(address == ' + hex(long(alias.address) + 3) + '){\n' + str(archWordType) + ' ' + alias.alias + '_temp = this->' + alias.alias + ';\n*(((' + str(archByteType) + ' *)&' + alias.alias + '_temp) + 3) = (' + str(archByteType) + ')datum;\nthis->' + alias.alias + '= ' + alias.alias + '_temp;\nreturn;\n}\n'
+    writeMemAliasCode += '#endif\n'
     datumParam = cxx_writer.writer_code.Parameter('datum', archByteType)
     writeBody = cxx_writer.writer_code.Code(writeMemAliasCode + writeCode1 + 'trans.set_data_length(1);\n' + writeCode2)
     writeDecl = cxx_writer.writer_code.Method('write_byte_dbg', writeBody, cxx_writer.writer_code.voidType, 'pu', [addressParam, datumParam], noException = True)

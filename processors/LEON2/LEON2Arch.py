@@ -132,14 +132,16 @@ npcReg = trap.Register('NPC', 32)
 npcReg.setDefaultValue(('ENTRY_POINT', 4))
 npcReg.setWbStageOrder(['wb', 'decode', 'fetch'])
 processor.addRegister(npcReg)
+# Processor Configuration Register: contains informations on the processor
+# configuration (num reg win, etc.)
+PCR = trap.Register('PCR', 32)
+PCR.setDefaultValue(0x02700300)
+processor.addRegister(PCR)
 # Ancillary State Registers
 # in the LEON2 processor some of them have a special meaning:
 # 24-31 are used for hardware breakpoints
 # 17 is the processor configuration register
 asrRegs = trap.RegisterBank('ASR', 32, 32)
-# here I set the default value for the processor configuration register
-# (see page 24 of LEON2 preliminary datasheed)
-asrRegs.setDefaultValue(0x00000300 + numRegWindows, 17)
 processor.addRegBank(asrRegs)
 
 # Now I set the alias: they can (and will) be used by the instructions
@@ -158,9 +160,6 @@ processor.addAliasReg(LR)
 SP = trap.AliasRegister('SP', 'REGS[14]')
 SP.setFixed()
 processor.addAliasReg(SP)
-PCR = trap.AliasRegister('PCR', 'ASR[17]')
-PCR.setFixed()
-processor.addAliasReg(PCR)
 
 # Now I add the registers which I want to see printed in the instruction trace
 # COMMENT FOR COMPARISON
@@ -170,6 +169,12 @@ LEON2Isa.isa.addTraceRegister(psrReg)
 LEON2Isa.isa.addTraceRegister(regs)
 LEON2Isa.isa.addTraceRegister(tbrReg)
 LEON2Isa.isa.addTraceRegister(wimReg)
+
+
+# Memory alias: registers which are memory mapped; we
+# loose a lot of performance, should we really use them?? CHECK
+regMap = trap.MemoryAlias(0x80000024, 'PCR')
+processor.addMemAlias(regMap)
 
 # Register from which the instructions are fetched; note that in the
 # functional model there is an offset between the PC and the actual

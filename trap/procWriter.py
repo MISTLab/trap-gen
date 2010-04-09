@@ -1595,7 +1595,8 @@ def getMainCode(self, model, namespace):
         }
         """
     code += """
-    //Initialization of the instruction history management
+    //Initialization of the instruction history management; note that I need to enable both if the debugger is being used
+    //and/or if history needs to be dumped on an output file
     if(vm.count("debugger") > 0){
         procInst.enableHistory();
     }
@@ -1703,7 +1704,7 @@ def getMainCode(self, model, namespace):
             code += 'procInst.' + tlmPortName + '.setDebugger(&gdbStub);\n'
         if self.memory:
             code += 'procInst.' + self.memory[0] + '.setDebugger(&gdbStub);\n'
-        code += '}\n'
+        code += 'gdbStub_ref = &gdbStub;\n}\n'
     code += """if(vm.count("profiler") != 0){
                 std::set<std::string> toIgnoreFuns = osEmu.getRegisteredFunctions();
                 toIgnoreFuns.erase("main");
@@ -1797,7 +1798,15 @@ def getMainCode(self, model, namespace):
     parameters = [cxx_writer.writer_code.Parameter('argc', cxx_writer.writer_code.intType), cxx_writer.writer_code.Parameter('argv', cxx_writer.writer_code.charPtrType.makePointer())]
     mainFunction = cxx_writer.writer_code.Function('sc_main', mainCode, cxx_writer.writer_code.intType, parameters)
 
-    stopSimFunction = cxx_writer.writer_code.Code('std::cerr << std::endl << "Interrupted the simulation" << std::endl << std::endl;\nsc_stop();\nwait(SC_ZERO_TIME);')
+    stopSimFunction = cxx_writer.writer_code.Code("""if(gdbStub_ref != NULL && gdbStub_ref->simulationPaused){
+        std::cerr << std::endl << "Simulation is already paused; ";
+        std::cerr << "please use the connected GDB debugger to controll it" << std::endl << std::endl;
+    }
+    else{
+        std::cerr << std::endl << "Interrupted the simulation" << std::endl << std::endl;
+        sc_stop();
+        wait(SC_ZERO_TIME);
+    }""")
     parameters = [cxx_writer.writer_code.Parameter('sig', cxx_writer.writer_code.intType)]
     signalFunction = cxx_writer.writer_code.Function('stopSimFunction', stopSimFunction, cxx_writer.writer_code.voidType, parameters)
 
@@ -1894,4 +1903,8 @@ def getMainCode(self, model, namespace):
     wordPairType = cxx_writer.writer_code.TemplateType('std::pair', [wordType, wordType])
     cycleRangeFunction = cxx_writer.writer_code.Function('getCycleRange', getCycleRangeCode, wordPairType, parameters)
 
-    return [signalFunction, hexToIntFunction, cycleRangeFunction, mainFunction]
+    # Finally here lets declare the variable holding the global reference to the debugger
+    debuggerType = cxx_writer.writer_code.TemplateType('GDBStub', [wordType])
+    debuggerVariable = cxx_writer.writer_code.Variable('gdbStub_ref', debuggerType.makePointer(), initValue = 'NULL')
+
+    return [debuggerVariable, signalFunction, hexToIntFunction, cycleRangeFunction, mainFunction]

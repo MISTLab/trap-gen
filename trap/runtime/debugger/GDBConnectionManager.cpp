@@ -559,12 +559,14 @@ bool trap::GDBConnectionManager::checkInterrupt(){
     do{
         this->socket->read_some(boost::asio::buffer(&recivedChar, 1), asioError);
         if(asioError == boost::asio::error::eof){
+            boost::mutex::scoped_lock lock(this->queueMutex);
             this->recvdChars.push_back('\x0');
             this->emptyQueueCond.notify_all();
             this->killed = true;
             return false;
         }
         if((recivedChar & 0x7f) != 0x03 && !this->killed){
+            boost::mutex::scoped_lock lock(this->queueMutex);
             this->recvdChars.push_back(recivedChar);
             this->emptyQueueCond.notify_all();
         }
@@ -582,8 +584,9 @@ bool trap::GDBConnectionManager::checkInterrupt(){
 ///Reads a character from the queue of ready characters
 unsigned char trap::GDBConnectionManager::readQueueChar(){
     boost::mutex::scoped_lock lock(this->queueMutex);
-    while(this->recvdChars.empty())
+    while(this->recvdChars.empty()){
         this->emptyQueueCond.wait(lock);
+    }
     unsigned char recvd = this->recvdChars.front();
     this->recvdChars.pop_front();
     return recvd;
@@ -628,7 +631,7 @@ bool trap::GDBConnectionManager::checkChecksum(std::string &data, char checkSum[
 }
 
 ///Converts a generic numeric value into a string of hex numbers;
-///each hew number of the string is in the same order of the endianess
+///each hex number of the string is in the same order of the endianess
 ///of the processor linked to this stub
 std::string trap::GDBConnectionManager::toHexString(unsigned int value, int numChars){
     std::ostringstream os;

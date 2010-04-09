@@ -801,6 +801,39 @@ smulcc_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0xffffffff,
 smulcc_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x0fff, 'REGS[10]' : 0xffffffff, 'PSR': 0}, {'Y': 0xffffffff, 'REGS[1]': 0xFFFFF001, 'PSR': 0x00800000})
 smulcc_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x0, 'REGS[10]' : 0xffffffff, 'PSR': 0}, {'Y': 0x0, 'REGS[1]': 0x0, 'PSR': 0x00400000})
 
+# Multiply Accumulate Instructions
+umac_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {'ASR[18]': 0x04, 'Y': 0x08, 'REGS[10]' : 0x04}, {'ASR[18]': 0x0c, 'Y': 0x08, 'REGS[0]': 0x0})
+umac_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {'ASR[18]': 0xfffffffe, 'Y': 0x08, 'REGS[10]' : 0x7fffffff}, {'ASR[18]': 0x1fffc, 'Y': 0x09, 'REGS[0]': 0x0})
+umac_imm_Instr.addTest({'rd': 10, 'rs1': 10, 'simm13': 2}, {'ASR[18]': 0x04, 'Y': 0x08, 'REGS[10]' : 0x04}, {'ASR[18]': 0x0c, 'Y': 0x08, 'REGS[10]': 0x0c})
+umac_imm_Instr.addTest({'rd': 10, 'rs1': 10, 'simm13': 2}, {'ASR[18]': 0xfffffffe, 'Y': 0x08, 'REGS[10]' : 0x7fffffff}, {'ASR[18]': 0x1fffc, 'Y': 0x09, 'REGS[10]': 0x1fffc})
+umac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'ASR[18]': 0x04, 'Y': 0xff, 'REGS[10]' : 0x2}, {'ASR[18]': 0x20002, 'Y': 0xff, 'REGS[1]': 0x20002})
+umac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'ASR[18]': 0x04, 'Y': 0x0f, 'REGS[10]' : 0xffffffff}, {'ASR[18]': 0xFFFE0005, 'Y': 0x0f, 'REGS[1]': 0xFFFE0005})
+umac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0xfff}, {'ASR[18]': 0x04, 'Y': 0x0f, 'REGS[10]' : 0xffffffff}, {'ASR[18]': 0xFFEF005, 'Y': 0x0f, 'REGS[1]': 0xFFEF005})
+
+umac_reg_Instr.addTest({'rd': 0, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'ASR[18]': 0x04, 'Y': 0x08, 'REGS[10]': 0x04}, {'ASR[18]': 0x0c, 'Y': 0x08, 'REGS[0]': 0x0})
+umac_reg_Instr.addTest({'rd': 0, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'ASR[18]': 0xfffffffe, 'Y': 0x08, 'REGS[10]' : 0x7fffffff}, {'ASR[18]': 0x1fffc, 'Y': 0x09, 'REGS[0]': 0x0})
+umac_reg_Instr.addTest({'rd': 10, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'ASR[18]': 0x04, 'Y': 0x08, 'REGS[10]' : 0x04}, {'ASR[18]': 0x0c, 'Y': 0x08, 'REGS[10]': 0x0c})
+umac_reg_Instr.addTest({'rd': 10, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'ASR[18]': 0xfffffffe, 'Y': 0x08, 'REGS[10]' : 0x7fffffff}, {'ASR[18]': 0x1fffc, 'Y': 0x09, 'REGS[10]': 0x1fffc})
+umac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0xffffffff, 'ASR[18]': 0x04, 'Y': 0xff, 'REGS[10]' : 0x2}, {'ASR[18]': 0x20002, 'Y': 0xff, 'REGS[1]': 0x20002})
+umac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0xffffffff, 'ASR[18]': 0x04, 'Y': 0x0f, 'REGS[10]' : 0xffffffff}, {'ASR[18]': 0xFFFE0005, 'Y': 0x0f, 'REGS[1]': 0xFFFE0005})
+umac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x00000fff, 'ASR[18]': 0x04, 'Y': 0x0f, 'REGS[10]' : 0xffffffff}, {'ASR[18]': 0xFFEF005, 'Y': 0x0f, 'REGS[1]': 0xFFEF005})
+
+smac_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {'ASR[18]': 0x04, 'Y': 0x08, 'REGS[10]': 0x04}, {'ASR[18]': 0x0c, 'Y': 0x08, 'REGS[0]': 0x0})
+smac_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {'ASR[18]': 0xfffffffe, 'Y': 0x08, 'REGS[10]': 0x7fffffff}, {'ASR[18]': 0xfffffffc, 'Y': 0xff, 'REGS[0]': 0x0})
+smac_imm_Instr.addTest({'rd': 10, 'rs1': 10, 'simm13': 2}, {'ASR[18]': 0x04, 'Y': 0x08, 'REGS[10]': 0x04}, {'ASR[18]': 0x0c, 'Y': 0x08, 'REGS[10]': 0x0c})
+smac_imm_Instr.addTest({'rd': 10, 'rs1': 10, 'simm13': 2}, {'ASR[18]': 0xfffffffe, 'Y': 0x08, 'REGS[10]': 0x7fffffff}, {'ASR[18]': 0xfffffffc, 'Y': 0xff, 'REGS[10]': 0xfffffffc})
+smac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'ASR[18]': 0x04, 'Y': 0xff, 'REGS[10]': 0x2}, {'ASR[18]': 0x02, 'Y': 0xff, 'REGS[1]': 0x02})
+smac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0x1fff}, {'ASR[18]': 0x04, 'Y': 0x0f, 'REGS[10]': 0xffffffff}, {'ASR[18]': 0x5, 'Y': 0x0f, 'REGS[1]': 0x5})
+smac_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 0xfff}, {'ASR[18]': 0x04, 'Y': 0x0f, 'REGS[10]': 0xffffffff}, {'ASR[18]': 0xFFFFF005, 'Y': 0x0e, 'REGS[1]': 0xFFFFF005})
+
+smac_reg_Instr.addTest({'rd': 0, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'ASR[18]': 0x04, 'Y': 0x08, 'REGS[10]': 0x04}, {'ASR[18]': 0x0c, 'Y': 0x08, 'REGS[0]': 0x0})
+smac_reg_Instr.addTest({'rd': 0, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'ASR[18]': 0xfffffffe, 'Y': 0x08, 'REGS[10]': 0x7fffffff}, {'ASR[18]': 0xfffffffc, 'Y': 0xff, 'REGS[0]': 0x0})
+smac_reg_Instr.addTest({'rd': 10, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'ASR[18]': 0x04, 'Y': 0x08, 'REGS[10]': 0x04}, {'ASR[18]': 0x0c, 'Y': 0x08, 'REGS[10]': 0x0c})
+smac_reg_Instr.addTest({'rd': 10, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x02, 'ASR[18]': 0xfffffffe, 'Y': 0x08, 'REGS[10]': 0x7fffffff}, {'ASR[18]': 0xfffffffc, 'Y': 0xff, 'REGS[10]': 0xfffffffc})
+smac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0xffffffff, 'ASR[18]': 0x04, 'Y': 0xff, 'REGS[10]': 0x2}, {'ASR[18]': 0x02, 'Y': 0xff, 'REGS[1]': 0x02})
+smac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0xffffffff, 'ASR[18]': 0x04, 'Y': 0x0f, 'REGS[10]': 0xffffffff}, {'ASR[18]': 0x5, 'Y': 0x0f, 'REGS[1]': 0x5})
+smac_reg_Instr.addTest({'rd': 1, 'rs1': 10, 'rs2': 2}, {'REGS[2]': 0x00000fff, 'ASR[18]': 0x04, 'Y': 0x0f, 'REGS[10]': 0xffffffff}, {'ASR[18]': 0xFFFFF005, 'Y': 0x0e, 'REGS[1]': 0xFFFFF005})
+
 # Divide
 udiv_imm_Instr.addTest({'rd': 0, 'rs1': 10, 'simm13': 2}, {'Y': 0x0, 'REGS[10]': 0x02}, {'REGS[0]': 0})
 udiv_imm_Instr.addTest({'rd': 1, 'rs1': 10, 'simm13': 2}, {'Y': 0x0, 'REGS[10]': 0x02}, {'REGS[1]': 1})
