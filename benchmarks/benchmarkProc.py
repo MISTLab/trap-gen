@@ -5,7 +5,7 @@ import csv, os, sys, numpy
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:
-        raise Exception('Error, the command line for the benchmarking program is: processorExecurtable numRuns benchmark1 benchmark2 ...')
+        raise Exception('Error, the command line for the benchmarking program is: processorExecutable numRuns benchmark1 benchmark2 ...')
 
     maxSpeed = 0
     fastBench = ''
