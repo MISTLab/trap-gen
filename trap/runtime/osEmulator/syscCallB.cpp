@@ -92,7 +92,7 @@ void trap::OSEmulatorBase::correct_flags(int &val){
         flags |= CORRECT_O_NONBLOCK;
 
     val = flags;
-}
+} 
 
 void trap::OSEmulatorBase::set_environ(std::string name, std::string value){
     OSEmulatorBase::env[name] = value;
@@ -105,6 +105,15 @@ void trap::OSEmulatorBase::set_sysconf(std::string name, int value){
 void trap::OSEmulatorBase::set_program_args(std::vector<std::string> args){
     OSEmulatorBase::programArgs = args;
 }
+
+void trap::OSEmulatorBase::reset(){
+    OSEmulatorBase::programArgs.clear();    
+    OSEmulatorBase::sysconfmap.clear();    
+    OSEmulatorBase::programArgs.clear();    
+    OSEmulatorBase::heapPointer.clear();    
+    BFDFrontend::reset();
+}
+
 
 std::map<std::string,  std::string> trap::OSEmulatorBase::env;
 std::map<std::string, int> trap::OSEmulatorBase::sysconfmap;

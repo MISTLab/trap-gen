@@ -86,6 +86,9 @@ extern int errno;
 #endif
 #include <ctime>
 
+#include "bfdFrontend.hpp"
+
+
 namespace trap{
 
 class OSEmulatorBase{
@@ -95,6 +98,7 @@ class OSEmulatorBase{
     static void set_environ(std::string name,  std::string value);
     static void set_sysconf(std::string name,  int value);
     static void set_program_args(std::vector<std::string> args);
+    static void reset();
 
     static std::map<std::string,  std::string> env;
     static std::map<std::string, int> sysconfmap;

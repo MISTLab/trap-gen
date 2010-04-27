@@ -125,6 +125,7 @@ class BFDFrontend{
   public:
     ~BFDFrontend();
     static BFDFrontend & getInstance(std::string fileName = "");
+    static void reset();
     ///Given an address, it returns the symbols found there,(more than one
     ///symbol can be mapped to an address). Note
     ///That if address is in the middle of a function, the symbol

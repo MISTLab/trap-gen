@@ -119,6 +119,11 @@ trap::BFDFrontend & trap::BFDFrontend::getInstance(std::string fileName){
     return *BFDFrontend::curInstance;
 }
 
+void trap::BFDFrontend::reset(){
+    delete BFDFrontend::curInstance;
+    BFDFrontend::curInstance = NULL;
+}
+
 trap::BFDFrontend::BFDFrontend(std::string binaryName){
     char ** matching = NULL;
     this->sy = NULL;
