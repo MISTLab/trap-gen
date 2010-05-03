@@ -100,6 +100,8 @@ if pipelinedMult:
     LEON3Isa.isa.addConstant(cxx_writer.writer_code.boolType, 'PIPELINED_MULT', 'true')
 else:
     LEON3Isa.isa.addConstant(cxx_writer.writer_code.boolType, 'PIPELINED_MULT', 'false')
+if multiplier_size == 16:
+    LEON3Isa.isa.addDefines('#define MULT_SIZE_16')
 
 # There are 8 global register, and a variable number of
 # of 16-registers set; this number depends on the number of

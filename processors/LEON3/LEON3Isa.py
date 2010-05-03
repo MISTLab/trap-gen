@@ -2116,13 +2116,17 @@ opCodeExecS = cxx_writer.writer_code.Code("""
 long long resultTemp = (long long)(((long long)((int)rs1_op))*((long long)((int)rs2_op)));
 Y = ((unsigned long long)resultTemp) >> 32;
 result = resultTemp & 0x00000000FFFFFFFF;
-stall(2);
+#ifdef MULT_SIZE_16
+stall(3);
+#endif
 """)
 opCodeExecU = cxx_writer.writer_code.Code("""
 unsigned long long resultTemp = (unsigned long long)(((unsigned long long)((unsigned int)rs1_op))*((unsigned long long)((unsigned int)rs2_op)));
 Y = resultTemp >> 32;
 result = resultTemp & 0x00000000FFFFFFFF;
-stall(2);
+#ifdef MULT_SIZE_16
+stall(3);
+#endif
 """)
 umul_imm_Instr = trap.Instruction('UMUL_imm', True, frequency = 2)
 umul_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 1, 0, 1, 0]}, ('umul r', '%rs1', ' ', '%simm13', ' r', '%rd'))
@@ -2134,10 +2138,10 @@ umul_imm_Instr.addVariable(('result', 'BIT<32>'))
 umul_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 umul_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
 umul_imm_Instr.addSpecialRegister('Y', 'out', 'execute')
-if pipelinedMult:
-    umul_imm_Instr.setWbDelay('rd', 3)
-else:
-    umul_imm_Instr.setWbDelay('rd', 2)
+#if pipelinedMult:
+    #umul_imm_Instr.setWbDelay('rd', 3)
+#else:
+    #umul_imm_Instr.setWbDelay('rd', 2)
 isa.addInstruction(umul_imm_Instr)
 umul_reg_Instr = trap.Instruction('UMUL_reg', True, frequency = 2)
 umul_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 1, 0, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('umul r', '%rs1', ' r', '%rs2', ' r', '%rd'))
@@ -2149,10 +2153,10 @@ umul_reg_Instr.addVariable(('result', 'BIT<32>'))
 umul_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 umul_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
 umul_reg_Instr.addSpecialRegister('Y', 'out', 'execute')
-if pipelinedMult:
-    umul_reg_Instr.setWbDelay('rd', 3)
-else:
-    umul_reg_Instr.setWbDelay('rd', 2)
+#if pipelinedMult:
+    #umul_reg_Instr.setWbDelay('rd', 3)
+#else:
+    #umul_reg_Instr.setWbDelay('rd', 2)
 isa.addInstruction(umul_reg_Instr)
 smul_imm_Instr = trap.Instruction('SMUL_imm', True, frequency = 3)
 smul_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 0, 1, 0, 1, 1]}, ('smul r', '%rs1', ' ', '%simm13', ' r', '%rd'))
@@ -2164,10 +2168,10 @@ smul_imm_Instr.addVariable(('result', 'BIT<32>'))
 smul_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 smul_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
 smul_imm_Instr.addSpecialRegister('Y', 'out', 'execute')
-if pipelinedMult:
-    smul_imm_Instr.setWbDelay('rd', 3)
-else:
-    smul_imm_Instr.setWbDelay('rd', 2)
+#if pipelinedMult:
+    #smul_imm_Instr.setWbDelay('rd', 3)
+#else:
+    #smul_imm_Instr.setWbDelay('rd', 2)
 isa.addInstruction(smul_imm_Instr)
 smul_reg_Instr = trap.Instruction('SMUL_reg', True, frequency = 4)
 smul_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 0, 1, 0, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('smul r', '%rs1', ' r', '%rs2', ' r', '%rd'))
@@ -2179,10 +2183,10 @@ smul_reg_Instr.addVariable(('result', 'BIT<32>'))
 smul_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 smul_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
 smul_reg_Instr.addSpecialRegister('Y', 'out', 'execute')
-if pipelinedMult:
-    smul_reg_Instr.setWbDelay('rd', 3)
-else:
-    smul_reg_Instr.setWbDelay('rd', 2)
+#if pipelinedMult:
+    #smul_reg_Instr.setWbDelay('rd', 3)
+#else:
+    #smul_reg_Instr.setWbDelay('rd', 2)
 isa.addInstruction(smul_reg_Instr)
 umulcc_imm_Instr = trap.Instruction('UMULcc_imm', True, frequency = 2)
 umulcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 1, 0, 1, 0]}, ('umulcc r', '%rs1', ' ', '%simm13', ' r', '%rd'))
@@ -2196,10 +2200,10 @@ umulcc_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 umulcc_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
 umulcc_imm_Instr.addSpecialRegister('Y', 'out', 'execute')
 umulcc_imm_Instr.addSpecialRegister('PSR', 'out', 'execute')
-if pipelinedMult:
-    umulcc_imm_Instr.setWbDelay('rd', 3)
-else:
-    umulcc_imm_Instr.setWbDelay('rd', 2)
+#if pipelinedMult:
+    #umulcc_imm_Instr.setWbDelay('rd', 3)
+#else:
+    #umulcc_imm_Instr.setWbDelay('rd', 2)
 isa.addInstruction(umulcc_imm_Instr)
 umulcc_reg_Instr = trap.Instruction('UMULcc_reg', True, frequency = 2)
 umulcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 1, 0, 1, 0], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('umulcc r', '%rs1', ' r', '%rs2', ' r', '%rd'))
@@ -2213,10 +2217,10 @@ umulcc_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 umulcc_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
 umulcc_reg_Instr.addSpecialRegister('Y', 'out', 'execute')
 umulcc_reg_Instr.addSpecialRegister('PSR', 'out', 'execute')
-if pipelinedMult:
-    umulcc_reg_Instr.setWbDelay('rd', 3)
-else:
-    umulcc_reg_Instr.setWbDelay('rd', 2)
+#if pipelinedMult:
+    #umulcc_reg_Instr.setWbDelay('rd', 3)
+#else:
+    #umulcc_reg_Instr.setWbDelay('rd', 2)
 isa.addInstruction(umulcc_reg_Instr)
 smulcc_imm_Instr = trap.Instruction('SMULcc_imm', True, frequency = 2)
 smulcc_imm_Instr.setMachineCode(dpi_format2, {'op3': [0, 1, 1, 0, 1, 1]}, ('smulcc r', '%rs1', ' ', '%simm13', ' r', '%rd'))
@@ -2230,10 +2234,10 @@ smulcc_imm_Instr.addVariable(('rs1_op', 'BIT<32>'))
 smulcc_imm_Instr.addVariable(('rs2_op', 'BIT<32>'))
 smulcc_imm_Instr.addSpecialRegister('Y', 'out', 'execute')
 smulcc_imm_Instr.addSpecialRegister('PSR', 'out', 'execute')
-if pipelinedMult:
-    smulcc_imm_Instr.setWbDelay('rd', 3)
-else:
-    smulcc_imm_Instr.setWbDelay('rd', 2)
+#if pipelinedMult:
+    #smulcc_imm_Instr.setWbDelay('rd', 3)
+#else:
+    #smulcc_imm_Instr.setWbDelay('rd', 2)
 isa.addInstruction(smulcc_imm_Instr)
 smulcc_reg_Instr = trap.Instruction('SMULcc_reg', True, frequency = 2)
 smulcc_reg_Instr.setMachineCode(dpi_format1, {'op3': [0, 1, 1, 0, 1, 1], 'asi' : [0, 0, 0, 0, 0, 0, 0, 0]}, ('smulcc r', '%rs1', ' r', '%rs2', ' r', '%rd'))
@@ -2247,10 +2251,10 @@ smulcc_reg_Instr.addVariable(('rs1_op', 'BIT<32>'))
 smulcc_reg_Instr.addVariable(('rs2_op', 'BIT<32>'))
 smulcc_reg_Instr.addSpecialRegister('Y', 'out', 'execute')
 smulcc_reg_Instr.addSpecialRegister('PSR', 'out', 'execute')
-if pipelinedMult:
-    smulcc_reg_Instr.setWbDelay('rd', 3)
-else:
-    smulcc_reg_Instr.setWbDelay('rd', 2)
+#if pipelinedMult:
+    #smulcc_reg_Instr.setWbDelay('rd', 3)
+#else:
+    #smulcc_reg_Instr.setWbDelay('rd', 2)
 isa.addInstruction(smulcc_reg_Instr)
 
 # Multiply Accumulate Instructions
