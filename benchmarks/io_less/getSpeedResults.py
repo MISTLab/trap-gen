@@ -25,7 +25,8 @@ if __name__ == "__main__":
         raise Exception('Error, processorExecutable ' + sys.argv[1] + ' not existing')
 
     fileHandle = open('timeValidation.txt', 'w')
-    for benchmark in sys.argv[2:]:
+    orderedBenchmarks = sorted(sys.argv[2:])
+    for benchmark in orderedBenchmarks:
         if not os.path.exists(benchmark):
             raise Exception('Error, benchmark ' + benchmark + ' not existing')
         print('Executing benchmark ' + benchmark)

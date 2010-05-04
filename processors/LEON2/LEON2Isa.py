@@ -2342,7 +2342,9 @@ if(!exception){
         result = (unsigned int)(res64 & 0x00000000FFFFFFFFLL);
     }
 }
-stall(35);
+#ifndef GRSIM_VALIDATION
+stall(34);
+#endif
 """)
 opCodeExecS = cxx_writer.writer_code.Code("""
 exception = rs2_op == 0;
@@ -2365,7 +2367,9 @@ if(!exception){
         result = (unsigned int)(res64 & 0x00000000FFFFFFFFLL);
     }
 }
-stall(2);
+#ifndef GRSIM_VALIDATION
+stall(34);
+#endif
 """)
 opCodeTrap = cxx_writer.writer_code.Code("""
 if(exception){
@@ -2824,7 +2828,9 @@ opCodeDecodeRegs = cxx_writer.writer_code.Code(ReadNPCDecode + """
 unsigned int jumpAddr = rs1 + rs2;
 """ + actualJumpCode)
 opCodeExec = cxx_writer.writer_code.Code("""
-stall(2);
+#ifndef GRSIM_VALIDATION
+stall(1);
+#endif
 """)
 jump_imm_Instr = trap.Instruction('JUMP_imm', True, frequency = 7)
 jump_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 0, 0, 0]}, ('jmpl', ' r', '%rs1', '+', '%simm13', ' r', '%rd'))
@@ -2876,7 +2882,7 @@ if(exceptionEnabled || !supervisor || invalidWin || notAligned){
 }
 else{
     PSR.immediateWrite((PSR & 0xFFFFFF40) | (newCwp | 0x20 | (PSR[key_PS] << 7)));
-    stall(2);
+    stall(1);
 }
 """)
 TrapCode = """
@@ -2985,7 +2991,7 @@ raiseException = (cond == 0x8) ||
 """)
 opCodeTrapImm = cxx_writer.writer_code.Code("""
 if(raiseException){
-    stall(4);
+    stall(3);
     RaiseException(pcounter, npcounter, TRAP_INSTRUCTION, (rs1 + SignExtend(imm7, 7)) & 0x0000007F);
 }
 #ifndef ACC_MODEL
@@ -2997,7 +3003,7 @@ else{
 """)
 opCodeTrapReg = cxx_writer.writer_code.Code("""
 if(raiseException){
-    stall(4);
+    stall(3);
     RaiseException(pcounter, npcounter, TRAP_INSTRUCTION, (rs1 + rs2) & 0x0000007F);
 }
 #ifndef ACC_MODEL

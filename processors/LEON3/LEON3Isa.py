@@ -2356,7 +2356,7 @@ if(!exception){
         result = (unsigned int)(res64 & 0x00000000FFFFFFFFLL);
     }
 }
-stall(35);
+stall(34);
 """)
 opCodeExecS = cxx_writer.writer_code.Code("""
 exception = rs2_op == 0;
@@ -2379,7 +2379,7 @@ if(!exception){
         result = (unsigned int)(res64 & 0x00000000FFFFFFFFLL);
     }
 }
-stall(2);
+stall(34);
 """)
 opCodeTrap = cxx_writer.writer_code.Code("""
 if(exception){
