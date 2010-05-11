@@ -53,6 +53,8 @@ try:
     import re
     p = re.compile( '([a-z]|[A-Z])*')
     nxVersion = p.sub('', NX.__version__)
+    if nxVersion.count('.') > 1:
+        nxVersion = '.'.join(nxVersion.split('.')[:2])
     nxVersion = float(nxVersion)
 except:
     import traceback
