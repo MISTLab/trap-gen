@@ -12,14 +12,44 @@ VERSION = '0.4.5'
 APPNAME = 'trap'
 import os
 
+# Checks, on 64 bit systems, that a given static library and the objects contained in it can
+# be linked creating a shared library out of them: this because, on 64 bit systems, shared libraries
+# can be created only using objects compiled with the -fPIC -DPIC flags
+def check_dyn_library(conf, libfile, libpaths):
+    # Now I have to check that the object files in the library are compiled with -fPIC option.
+    # actually this only seems to affect 64 bits systems, while compilation on 32 bits only
+    # yields warnings, but perfectly usable libraries. So ... I simply have to check if we are on
+    # 64 bits systems and in case, I issue the objdump -r command: if there are symbols of type
+    # R_X86_64_32S, then the library was compiled without the -fPIC option and it is not possible
+    # to create a shared library out of it.
+
+    # Are we on 64 bit systems?
+    import struct
+    if struct.calcsize("P") > 4:
+        # are we actually processing a static library?
+        if os.path.splitext(libfile)[1] == conf.env['staticlib_PATTERN'].split('%s')[1]:
+            # Now lets check for the presence of symbols of type R_X86_64_32S:
+            # in case we have an error.
+            for libpath in libpaths:
+                if os.path.exists(os.path.join(libpath, libfile)):
+                    libDump = os.popen('objdump -r ' + os.path.join(libpath, libfile)).readlines()
+                    for line in libDump:
+                        if 'R_X86_64_32S' in line:
+                            return False
+                    break
+    return True
+
 def build(bld):
     bld.add_subdirs('trap cxx_writer')
 
 def configure(conf):
+    conf.env['ENABLE_SHARED_64'] = True
+
     # Check for standard tools
     usingMsvc = False
     try:
         conf.check_tool('gcc g++ osx')
+	conf.find_program('objdump', mandatory=1)
     except:
         conf.check_message_2('Error in GCC compiler detection, reverting to Microsoft CL')
         conf.check_tool('msvc')
@@ -243,6 +273,11 @@ def configure(conf):
 
         conf.check_cc(lib=bfd_lib_name, uselib='BFD', uselib_store='BFD', mandatory=1, libpath=searchPaths, errmsg='not found, use --with-bfd option', okmsg='ok ' + bfd_lib_name)
 
+        if not foundShared:
+            if not check_dyn_library(conf, conf.env['staticlib_PATTERN'] % bfd_lib_name, searchPaths):
+                conf.check_message_custom(conf.env['staticlib_PATTERN'] % bfd_lib_name + ' relocabilty', '', 'Found position dependent code: shared libraries disabled', color='YELLOW')
+                conf.env['ENABLE_SHARED_64'] = False
+
         if Options.options.bfddir:
             conf.check_cc(header_name='bfd.h', uselib='BFD', uselib_store='BFD', mandatory=1, includes=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(Options.options.bfddir, 'include'))))])
         else:
@@ -293,6 +328,11 @@ def configure(conf):
                 searchPaths = staticPaths
 
         conf.check_cc(lib=iberty_lib_name, uselib_store='BFD', mandatory=1, libpath=searchPaths, errmsg='not found, use --with-bfd option', okmsg='ok ' + iberty_lib_name)
+
+        if not foundShared:
+            if not check_dyn_library(conf, conf.env['staticlib_PATTERN'] % iberty_lib_name, searchPaths):
+                conf.check_message_custom(conf.env['staticlib_PATTERN'] % iberty_lib_name + ' relocabilty', '', 'Found position dependent code: shared libraries disabled', color='YELLOW')
+                conf.env['ENABLE_SHARED_64'] = False
 
     ###########################################################
     # Check for Binutils version
@@ -377,6 +417,9 @@ def configure(conf):
         else:
             sysclib = glob.glob(os.path.join(os.path.abspath(os.path.join(syscpath[0], '..')), 'lib-*'))
     conf.check_cxx(lib='systemc', uselib_store='SYSTEMC', mandatory=1, libpath=sysclib, errmsg='not found, use --with-systemc option')
+    if not check_dyn_library(conf, conf.env['staticlib_PATTERN'] % 'systemc', sysclib):
+        conf.check_message_custom(conf.env['staticlib_PATTERN'] % 'systemc' + ' relocabilty', '', 'Found position dependent code: shared libraries disabled', color='YELLOW')
+        conf.env['ENABLE_SHARED_64'] = False
     ######################################################
     # Check if systemc is compiled with quick threads or not
     ######################################################

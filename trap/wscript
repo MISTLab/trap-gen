@@ -13,12 +13,13 @@ def build(bld):
     obj.target = 'trap'
     obj.install_path = os.path.join('${PREFIX}', 'lib')
 
-    obj = bld.new_task_gen('cxx', 'cshlib')
-    obj.add_objects = 'loader syscall bfdFrontend tools debugger utils profiler'
-    obj.name = 'trap_dyn'
-    obj.uselib = 'BFD BOOST_THREAD BOOST_REGEX BOOST_SYSTEM BOOST_FILESYSTEM SYSTEMC WINSOCK'
-    obj.target = 'trap'
-    obj.install_path = os.path.join('${PREFIX}', 'lib')
+    if bld.env['ENABLE_SHARED_64']:
+        obj = bld.new_task_gen('cxx', 'cshlib')
+        obj.add_objects = 'loader syscall bfdFrontend tools debugger utils profiler'
+        obj.name = 'trap_dyn'
+        obj.uselib = 'BFD BOOST_THREAD BOOST_REGEX BOOST_SYSTEM BOOST_FILESYSTEM SYSTEMC WINSOCK'
+        obj.target = 'trap'
+        obj.install_path = os.path.join('${PREFIX}', 'lib')
 
     obj = bld.new_task_gen('py')
     obj.find_sources_in_dirs('.', exts=['.py'])
