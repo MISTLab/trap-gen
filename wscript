@@ -8,7 +8,7 @@ import sys, Options
 # these variables are mandatory
 srcdir = '.'
 blddir = '_build_'
-VERSION = '0.4'
+VERSION = '0.4.5'
 APPNAME = 'trap'
 import os
 
