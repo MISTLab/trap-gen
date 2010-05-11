@@ -439,7 +439,7 @@ class Folder:
     # Check for boost libraries
     ########################################
     conf.check_tool('boost')
-    conf.check_boost(lib='thread regex date_time program_options filesystem unit_test_framework system', static='both', min_version='1.35.0', mandatory = 1, errmsg = 'Unable to find boost libraries boost of at least version 1.35, please install them and/or specify their location with the --boost-includes and --boost-libs configuration options')
+    conf.check_boost(lib='thread regex date_time program_options filesystem unit_test_framework system', static='both', min_version='1.35.0', mandatory = 1, errmsg = 'Unable to find boost libraries boost of at least version 1.35, please install them and/or specify their location with the --boost-includes and --boost-libs configuration options. It can also happen that you have more than one boost version installed in a system-wide location: in this case remove the unnecessary versions.')
     if not Options.options.static_build:
         conf.env.append_unique('RPATH', conf.env['LIBPATH_BOOST_THREAD'])
 
@@ -516,7 +516,7 @@ class Folder:
                 #endif
                 return 0;
             };
-        '''
+'''
         conf.check_cxx(fragment=binutilsVerCheck, msg='Check for Binutils Version', uselib='BFD', mandatory=1, errmsg='Not supported version, use at least 2.16')
 
         # bfd_demangle only appears in 2.18
@@ -530,7 +530,7 @@ class Folder:
                 char * tempRet = bfd_demangle(NULL, NULL, 0);
                 return 0;
             };
-        '''
+'''
         if not conf.check_cxx(fragment=binutilsDemangleCheck, msg='Check for bfd_demangle', uselib='BFD', mandatory=0, okmsg='ok >= 2.18', errmsg='fail, reverting to cplus_demangle'):
             conf.env.append_unique('CPPFLAGS', '-DOLD_BFD')
 
@@ -610,7 +610,7 @@ class Folder:
                 return 0;
             };
         }
-    ''', msg='Check for SystemC version', uselib='SYSTEMC', mandatory=1, errmsg=systemCerrmsg)
+''', msg='Check for SystemC version', uselib='SYSTEMC', mandatory=1, errmsg=systemCerrmsg)
 
     ##################################################
     # Check for TLM header
@@ -646,7 +646,7 @@ class Folder:
         extern "C" int sc_main(int argc, char **argv){
             return 0;
         }
-    ''', msg='Check for TLM version', uselib='SYSTEMC TLM', mandatory=1, errmsg='Error, at least version 2.0 required')
+''', msg='Check for TLM version', uselib='SYSTEMC TLM', mandatory=1, errmsg='Error, at least version 2.0 required')
 
     ##################################################
     # Check for TRAP runtime libraries and headers
@@ -677,7 +677,7 @@ class Folder:
             #endif
 
             int main(int argc, char * argv[]){return 0;}
-        ''', msg='Check for TRAP version', uselib='TRAP BFD LIBERTY BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', mandatory=1, includes=trapDirInc, errmsg='Error, at least revision ' + str(trapRevisionNum) + ' required')
+''', msg='Check for TRAP version', uselib='TRAP BFD LIBERTY BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', mandatory=1, includes=trapDirInc, errmsg='Error, at least revision ' + str(trapRevisionNum) + ' required')
     else:
         conf.check_cxx(lib='trap', uselib='BFD LIBERTY BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', uselib_store='TRAP', mandatory=1, errmsg=trapLibErrmsg)
         conf.check_cxx(header_name='trap.hpp', uselib='TRAP BFD LIBERTY BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', uselib_store='TRAP', mandatory=1)
@@ -693,7 +693,7 @@ class Folder:
             #endif
 
             int main(int argc, char * argv[]){return 0;}
-        ''', msg='Check for TRAP version', uselib='TRAP BFD LIBERTY BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', mandatory=1, errmsg='Error, at least revision ' + str(trapRevisionNum) + ' required')
+''', msg='Check for TRAP version', uselib='TRAP BFD LIBERTY BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', mandatory=1, errmsg='Error, at least revision ' + str(trapRevisionNum) + ' required')
 
 """, wscriptFile)
             # Finally now I can add the options

@@ -160,7 +160,7 @@ def configure(conf):
     ########################################
     conf.check_tool('boost')
     boostLibs = 'regex thread program_options filesystem system'
-    conf.check_boost(lib=boostLibs, static='both', min_version='1.35.0', mandatory = 1, errmsg = 'Unable to find ' + boostLibs + ' boost libraries of at least version 1.35, please install them and/or specify their location with the --boost-includes and --boost-libs configuration options')
+    conf.check_boost(lib=boostLibs, static='both', min_version='1.35.0', mandatory = 1, errmsg = 'Unable to find ' + boostLibs + ' boost libraries of at least version 1.35, please install them and/or specify their location with the --boost-includes and --boost-libs configuration options. It can also happen that you have more than one boost version installed in a system-wide location: in this case remove the unnecessary versions.')
 
     #######################################################
     # Determining gcc search dirs
@@ -312,7 +312,7 @@ def configure(conf):
                 #endif
                 return 0;
             };
-        """
+"""
         conf.check_cxx(fragment=binutilsVerCheck, msg='Check for Binutils Version', uselib='BFD', mandatory=1, errmsg='Not supported version, use at least 2.16')
 
         # bfd_demangle only appears in 2.18
@@ -326,7 +326,7 @@ def configure(conf):
                 char * tempRet = bfd_demangle(NULL, NULL, 0);
                 return 0;
             };
-        """
+"""
         if not conf.check_cxx(fragment=binutilsDemangleCheck, msg='Check for bfd_demangle', uselib='BFD', mandatory=0, okmsg='ok >= 2.18', errmsg='fail, reverting to cplus_demangle'):
             conf.env.append_unique('CPPFLAGS', '-DOLD_BFD')            
 
@@ -411,7 +411,7 @@ def configure(conf):
                 return 0;
             };
         }
-    """, msg='Check for SystemC version', uselib='SYSTEMC', mandatory=1, errmsg=systemCerrmsg)
+""", msg='Check for SystemC version', uselib='SYSTEMC', mandatory=1, errmsg=systemCerrmsg)
 
     if Options.options.pyinstalldir:
         conf.env['PYTHON_INSTALL_DIR'] = Options.options.pyinstalldir
