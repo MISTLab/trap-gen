@@ -221,9 +221,9 @@ class Folder:
                         printOnFile('        ' + codeFile.name, wscriptFile)
                 printOnFile('    \"\"\"', wscriptFile)
                 if tests:
-                    printOnFile('    obj.uselib = \'TRAP BFD LIBERTY BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM BOOST_SYSTEM BOOST_THREAD SYSTEMC TLM\'', wscriptFile)
+                    printOnFile('    obj.uselib = \'TRAP BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_PROGRAM_OPTIONS BOOST_THREAD BOOST_FILESYSTEM BOOST_SYSTEM BFD LIBERTY SYSTEMC TLM\'', wscriptFile)
                 else:
-                    printOnFile('    obj.uselib = \'BOOST BOOST_FILESYSTEM BOOST_SYSTEM BOOST_THREAD SYSTEMC TLM TRAP\'', wscriptFile)
+                    printOnFile('    obj.uselib = \'BOOST BOOST_THREAD BOOST_FILESYSTEM BOOST_SYSTEM SYSTEMC TLM TRAP\'', wscriptFile)
 
                 if self.uselib_local:
                     printOnFile('    obj.add_objects = \'' + ' '.join(self.uselib_local) + '\'', wscriptFile)
@@ -240,9 +240,9 @@ class Folder:
                 printOnFile('    obj.source=\'' + self.mainFile + '\'', wscriptFile)
                 printOnFile('    obj.includes = \'.\'', wscriptFile)
                 if tests:
-                    printOnFile('    obj.uselib = \'TRAP BFD LIBERTY BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_THREAD BOOST_SYSTEM SYSTEMC TLM\'', wscriptFile)
+                    printOnFile('    obj.uselib = \'TRAP BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_THREAD BOOST_SYSTEM BFD LIBERTY SYSTEMC TLM\'', wscriptFile)
                 else:
-                    printOnFile('    obj.uselib = \'TRAP BFD LIBERTY BOOST BOOST_PROGRAM_OPTIONS BOOST_THREAD BOOST_FILESYSTEM BOOST_SYSTEM SYSTEMC TLM\'', wscriptFile)
+                    printOnFile('    obj.uselib = \'TRAP BOOST BOOST_PROGRAM_OPTIONS BOOST_THREAD BOOST_FILESYSTEM BOOST_SYSTEM BFD LIBERTY SYSTEMC TLM\'', wscriptFile)
                 printOnFile('    import sys', wscriptFile)
                 printOnFile('    if sys.platform == \'cygwin\':', wscriptFile)
                 printOnFile('        obj.env.append_unique(\'CPPFLAGS\', \'-D__USE_W32_SOCKETS\')', wscriptFile)
@@ -660,11 +660,11 @@ class Folder:
     if Options.options.trapdir:
         trapDirLib = os.path.abspath(os.path.expandvars(os.path.expanduser(os.path.join(Options.options.trapdir, 'lib'))))
         trapDirInc = os.path.abspath(os.path.expandvars(os.path.expanduser(os.path.join(Options.options.trapdir, 'include'))))
-        conf.check_cxx(lib='trap', uselib='BFD LIBERTY BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', uselib_store='TRAP', mandatory=1, libpath=trapDirLib, errmsg=trapLibErrmsg)
+        conf.check_cxx(lib='trap', uselib='BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM BFD LIBERTY SYSTEMC', uselib_store='TRAP', mandatory=1, libpath=trapDirLib, errmsg=trapLibErrmsg)
         foundShared = glob.glob(os.path.join(trapDirLib, conf.env['shlib_PATTERN'].split('%s')[0] + 'trap' + conf.env['shlib_PATTERN'].split('%s')[1]))
         if foundShared:
             conf.env.append_unique('RPATH', conf.env['LIBPATH_TRAP'])
-        conf.check_cxx(header_name='trap.hpp', uselib='TRAP BFD LIBERTY BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', uselib_store='TRAP', mandatory=1, includes=trapDirInc)
+        conf.check_cxx(header_name='trap.hpp', uselib='TRAP BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM BFD LIBERTY SYSTEMC', uselib_store='TRAP', mandatory=1, includes=trapDirInc)
         conf.check_cxx(fragment='''
             #include "trap.hpp"
 
@@ -677,10 +677,10 @@ class Folder:
             #endif
 
             int main(int argc, char * argv[]){return 0;}
-''', msg='Check for TRAP version', uselib='TRAP BFD LIBERTY BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', mandatory=1, includes=trapDirInc, errmsg='Error, at least revision ' + str(trapRevisionNum) + ' required')
+''', msg='Check for TRAP version', uselib='TRAP BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM BFD LIBERTY SYSTEMC', mandatory=1, includes=trapDirInc, errmsg='Error, at least revision ' + str(trapRevisionNum) + ' required')
     else:
-        conf.check_cxx(lib='trap', uselib='BFD LIBERTY BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', uselib_store='TRAP', mandatory=1, errmsg=trapLibErrmsg)
-        conf.check_cxx(header_name='trap.hpp', uselib='TRAP BFD LIBERTY BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', uselib_store='TRAP', mandatory=1)
+        conf.check_cxx(lib='trap', uselib='BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM BFD LIBERTY SYSTEMC', uselib_store='TRAP', mandatory=1, errmsg=trapLibErrmsg)
+        conf.check_cxx(header_name='trap.hpp', uselib='TRAP BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM BFD LIBERTY SYSTEMC', uselib_store='TRAP', mandatory=1)
         conf.check_cxx(fragment='''
             #include "trap.hpp"
 

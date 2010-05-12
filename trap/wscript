@@ -9,7 +9,7 @@ def build(bld):
     obj = bld.new_task_gen('cxx', 'staticlib')
     obj.add_objects = 'loader syscall bfdFrontend tools debugger utils profiler'
     obj.name = 'trap_static'
-    obj.uselib = 'BFD BOOST_THREAD BOOST_REGEX BOOST_SYSTEM BOOST_FILESYSTEM SYSTEMC WINSOCK'
+    obj.uselib = 'BOOST_THREAD BOOST_REGEX BOOST_FILESYSTEM BOOST_SYSTEM BFD SYSTEMC WINSOCK'
     obj.target = 'trap'
     obj.install_path = os.path.join('${PREFIX}', 'lib')
 
@@ -17,7 +17,7 @@ def build(bld):
         obj = bld.new_task_gen('cxx', 'cshlib')
         obj.add_objects = 'loader syscall bfdFrontend tools debugger utils profiler'
         obj.name = 'trap_dyn'
-        obj.uselib = 'BFD BOOST_THREAD BOOST_REGEX BOOST_SYSTEM BOOST_FILESYSTEM SYSTEMC WINSOCK'
+        obj.uselib = 'BOOST_THREAD BOOST_REGEX BOOST_FILESYSTEM BOOST_SYSTEM BFD SYSTEMC WINSOCK'
         obj.target = 'trap'
         obj.install_path = os.path.join('${PREFIX}', 'lib')
 
