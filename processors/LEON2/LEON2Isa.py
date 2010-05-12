@@ -2342,9 +2342,7 @@ if(!exception){
         result = (unsigned int)(res64 & 0x00000000FFFFFFFFLL);
     }
 }
-#ifndef GRSIM_VALIDATION
 stall(34);
-#endif
 """)
 opCodeExecS = cxx_writer.writer_code.Code("""
 exception = rs2_op == 0;
@@ -2367,9 +2365,7 @@ if(!exception){
         result = (unsigned int)(res64 & 0x00000000FFFFFFFFLL);
     }
 }
-#ifndef GRSIM_VALIDATION
 stall(34);
-#endif
 """)
 opCodeTrap = cxx_writer.writer_code.Code("""
 if(exception){
@@ -2828,9 +2824,7 @@ opCodeDecodeRegs = cxx_writer.writer_code.Code(ReadNPCDecode + """
 unsigned int jumpAddr = rs1 + rs2;
 """ + actualJumpCode)
 opCodeExec = cxx_writer.writer_code.Code("""
-#ifndef GRSIM_VALIDATION
 stall(1);
-#endif
 """)
 jump_imm_Instr = trap.Instruction('JUMP_imm', True, frequency = 7)
 jump_imm_Instr.setMachineCode(dpi_format2, {'op3': [1, 1, 1, 0, 0, 0]}, ('jmpl', ' r', '%rs1', '+', '%simm13', ' r', '%rd'))
