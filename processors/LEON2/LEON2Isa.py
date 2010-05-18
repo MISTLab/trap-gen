@@ -2102,16 +2102,32 @@ opCodeExecS = cxx_writer.writer_code.Code("""
 long long resultTemp = (long long)(((long long)((int)rs1_op))*((long long)((int)rs2_op)));
 Y = ((unsigned long long)resultTemp) >> 32;
 result = resultTemp & 0x00000000FFFFFFFF;
-#ifdef MULT_SIZE_16
+#ifdef MULT_SIZE_ITERATIVE
+stall(34);
+#elif defined(MULT_SIZE_16_PIPE)
+stall(4);
+#elif defined(MULT_SIZE_16)
 stall(3);
+#elif defined(MULT_SIZE_32_8)
+stall(3);
+#elif defined(MULT_SIZE_32_16)
+stall(1);
 #endif
 """)
 opCodeExecU = cxx_writer.writer_code.Code("""
 unsigned long long resultTemp = (unsigned long long)(((unsigned long long)((unsigned int)rs1_op))*((unsigned long long)((unsigned int)rs2_op)));
 Y = resultTemp >> 32;
 result = resultTemp & 0x00000000FFFFFFFF;
-#ifdef MULT_SIZE_16
+#ifdef MULT_SIZE_ITERATIVE
+stall(34);
+#elif defined(MULT_SIZE_16_PIPE)
+stall(4);
+#elif defined(MULT_SIZE_16)
 stall(3);
+#elif defined(MULT_SIZE_32_8)
+stall(3);
+#elif defined(MULT_SIZE_32_16)
+stall(1);
 #endif
 """)
 umul_imm_Instr = trap.Instruction('UMUL_imm', True, frequency = 2)

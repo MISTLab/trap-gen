@@ -99,8 +99,18 @@ if pipelinedMult:
     LEON2Isa.isa.addConstant(cxx_writer.writer_code.boolType, 'PIPELINED_MULT', 'true')
 else:
     LEON2Isa.isa.addConstant(cxx_writer.writer_code.boolType, 'PIPELINED_MULT', 'false')
-if multiplier_size == 16:
-    LEON2Isa.isa.addDefines('#define MULT_SIZE_16')
+if multiplier_size == 'i':
+    LEON2Isa.isa.addDefines('#define MULT_SIZE_ITERATIVE\n')
+elif multiplier_size == '16p':
+    LEON2Isa.isa.addDefines('#define MULT_SIZE_16_PIPE\n')
+elif multiplier_size == '16':
+    LEON2Isa.isa.addDefines('#define MULT_SIZE_16\n')
+elif multiplier_size == '32_8':
+    LEON2Isa.isa.addDefines('#define MULT_SIZE_32_8\n')
+elif multiplier_size == '32_16':
+    LEON2Isa.isa.addDefines('#define MULT_SIZE_32_16\n')
+elif multiplier_size == '32_32':
+    LEON2Isa.isa.addDefines('#define MULT_SIZE_32_32\n')
 
 # There are 8 global register, and a variable number of
 # of 16-registers set; this number depends on the number of
