@@ -17,6 +17,7 @@ int main(int argc, char * argv[]){
     //just store: asm("st %g0, [%fp + 0x4c]");
     //sum vars: argc = argc + j; (j is volatile and not register)
     //mult: j *= (i + 1); with j register variable (and making return j at the end, otherwise we optimize out)
+    //mult_const: j *= 11; with j register variable (and making return j at the end, otherwise we optimize out)
     //div: j /= (i + 1); with j register variable (and making return j at the end, otherwise we optimize out)
     //call: j = foo(); with j register variable (and making return j at the end, otherwise we optimize out)
     
