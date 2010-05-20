@@ -2,7 +2,7 @@
 
 echo '' > tsim_results.txt
 
-for bench in `ls io_less`
+for bench in `ls --ignore=*.c io_less`
 do
     echo '*****************************************************' >> tsim_results.txt
     echo $bench >> tsim_results.txt

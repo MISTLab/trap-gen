@@ -1,7 +1,7 @@
 TARGETS = AES bcnt blit crc des engine fib fir2 hanoi heapsort matrix pocsag queens quicksort
 
 # Now some configuration flags specific for the use with the TSIM LEON2/3 simulator
-CFLAGS = -msoft-float -mcpu=v8 -DTSIM_DISABLE_CACHE -fno-inline
+CFLAGS = -msoft-float -mcpu=v8 -DTSIM_DISABLE_CACHE -DLEON3_CACHE -fno-inline
 # Finally remap of the text and data segments to reside into separate memory addresses
 # CFLAGS = $(CFLAGS) -Wl,-Ttext=0x8e000000 -Wl,-Tdata=0x40000000
 

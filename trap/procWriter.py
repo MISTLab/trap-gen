@@ -1439,6 +1439,7 @@ def getMainCode(self, model, namespace):
     # in order to execute simulations
     wordType = self.bitSizes[1]
     code = 'using namespace ' + namespace + ';\nusing namespace trap;\n\n'
+    code += 'std::cerr << banner << std::endl;\n'
     code += """
     boost::program_options::options_description desc("Processor simulator for """ + self.name + """", 120);
     desc.add_options()
@@ -1910,4 +1911,11 @@ def getMainCode(self, model, namespace):
     debuggerType = cxx_writer.writer_code.TemplateType('GDBStub', [wordType])
     debuggerVariable = cxx_writer.writer_code.Variable('gdbStub_ref', debuggerType.makePointer(), initValue = 'NULL')
 
-    return [debuggerVariable, signalFunction, hexToIntFunction, cycleRangeFunction, mainFunction]
+    # and here the variable holding the printable banner
+    bannerInit = 'std::string("\\n\\\n'
+    for bannerLine in self.banner.split('\n'):
+        bannerInit += '\\t' + bannerLine.replace('\\', '\\\\') + '\\n\\\n'
+    bannerInit += '\\n\\n' + '\\t' + self.developer_name + '\t-\t email: ' + self.developer_email + '\\n\\n")'
+    bannerVariable = cxx_writer.writer_code.Variable('banner', cxx_writer.writer_code.stringType, initValue = bannerInit)
+
+    return [bannerVariable, debuggerVariable, signalFunction, hexToIntFunction, cycleRangeFunction, mainFunction]

@@ -5,11 +5,15 @@ int main(int argc, char * argv[]){
     register int i = 0, j = 0;
 
     /*Now I can disable BOTH caches*/
+    #ifdef LEON3_CACHE
+    asm("sta %g0, [%g0] 2");
+    #else
     asm("sethi %hi(0xfd800000), %g1");
     asm("or %g1,%lo(0xfd800000),%g1");
     asm("sethi %hi(0x80000014), %g2");
     asm("or %g2,%lo(0x80000014),%g2");
     asm("st %g1, [%g2]");
+    #endif
 
     //Increment var: argc++
     //Increment reg: j++ with j register variable (and making return j at the end, otherwise we optimize out)

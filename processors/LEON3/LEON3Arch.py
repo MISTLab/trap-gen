@@ -36,11 +36,11 @@
 
 # Nice ascii art banner for the header of the generated files
 banner = r"""
-      _/        _/_/_/_/    _/_/    _/      _/  _/_/_/
-     _/        _/        _/    _/  _/_/    _/        _/
-    _/        _/_/_/    _/    _/  _/  _/  _/    _/_/
-   _/        _/        _/    _/  _/    _/_/        _/
-  _/_/_/_/  _/_/_/_/    _/_/    _/      _/  _/_/_/
+      _/        _/_/_/_/    _/_/    _/      _/   _/_/_/
+     _/        _/        _/    _/  _/_/    _/         _/
+    _/        _/_/_/    _/    _/  _/  _/  _/     _/_/
+   _/        _/        _/    _/  _/    _/_/         _/
+  _/_/_/_/  _/_/_/_/    _/_/    _/      _/   _/_/_/
 """
 
 
@@ -153,7 +153,7 @@ processor.addRegister(npcReg)
 asrRegs = trap.RegisterBank('ASR', 32, 32)
 # here I set the default value for the processor configuration register
 # (see page 24 of LEON3 preliminary datasheed)
-asrRegs.setDefaultValue(('MPROC_ID', 0x00000300 + numRegWindows), 17)
+asrRegs.setDefaultValue(('MPROC_ID', 0x00000300 + (numRegWindows -1)), 17)
 #asrRegs.setGlobalDelay(3)
 processor.addRegBank(asrRegs)
 
@@ -200,7 +200,7 @@ processor.addTLMPort('dataMem')
 # to instantiate a fake memory in the simulator main file, but they do not
 # affect at all the processor core: i.e. once the processor is plugged in a
 # system-level simulator, they have no effect at all
-processor.setTLMMem(10*1024*1024, 0)
+processor.setTLMMem(10*1024*1024, 0, True)
 #processor.setMemory('dataMem', 10*1024*1024)
 #processor.setMemory('dataMem', 10*1024*1024, True, 'PC')
 
@@ -302,11 +302,11 @@ processor.setABI(abi)
 # Finally we can dump the processor on file
 #processor.write(folder = 'processor', models = ['funcLT'], dumpDecoderName = 'decoder.dot')
 #processor.write(folder = 'processor', models = ['funcLT'], trace = True)
-#processor.write(folder = 'processor', models = ['funcLT'], tests = False)
+processor.write(folder = 'processor', models = ['funcLT'], tests = False)
 #processor.write(folder = 'processor', models = ['funcLT'], trace = True, tests = False)
 #processor.write(folder = 'processor', models = ['funcAT'], trace = False)
 #processor.write(folder = 'processor', models = ['funcAT'])
-processor.write(folder = 'processor', models = ['accLT', 'funcLT', 'funcAT'], tests = False)
+#processor.write(folder = 'processor', models = ['accLT', 'funcLT', 'funcAT'], tests = False)
 #processor.write(folder = 'processor', models = ['accLT'], trace = True)
 #processor.write(folder = 'processor', models = ['accLT', 'funcAT', 'accAT', 'funcLT'], trace = False)
 #processor.write(folder = 'processor', models = ['accLT', 'funcLT'], trace = True, combinedTrace = True)
