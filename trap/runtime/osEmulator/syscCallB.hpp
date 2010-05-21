@@ -492,14 +492,11 @@ template<class wordSize> class _exitSysCall : public SyscallCB<wordSize>{
         std::vector< wordSize > callArgs = this->processorInstance.readArgs();
         exitValue = (int)callArgs[0];
         std::cout << std::endl << "Program exited with value " << exitValue << std::endl << std::endl;
+
         if(sc_is_running()){
             sc_stop();
-            wait();
+            wait(SC_ZERO_TIME);
         }
-        this->processorInstance.postCall();
-
-        if(this->latency.to_double() > 0)
-            wait(this->latency);
 
         return true;
     }

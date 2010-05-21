@@ -4,4 +4,4 @@
 import os
 
 def build(bld):
-    bld.install_files('${PREFIX}/include', 'SparseMemoryLT.hpp MemoryLT.hpp MemoryAT.hpp memAccessType.hpp PINTarget.hpp')
+    bld.install_files('${PREFIX}/include', 'SparseMemoryAT.hpp SparseMemoryLT.hpp MemoryLT.hpp MemoryAT.hpp memAccessType.hpp PINTarget.hpp')

@@ -963,8 +963,10 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         HistoryInstrType instrQueueElem;
         if(this->historyEnabled){
         """
-        if self.systemc:
+        if len(self.tlmPorts) > 0 and model.endswith('LT'):
             codeString += 'instrQueueElem.cycle = (unsigned int)(this->quantKeeper.get_current_time()/this->latency);'
+        elif model.startswith('acc') or self.systemc or model.endswith('AT'):
+            codeString += 'instrQueueElem.cycle = (unsigned int)(sc_time_stamp()/this->latency);'
         codeString += """
             instrQueueElem.address = curPC;
         }
@@ -1028,10 +1030,7 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
         for reg in self.regBanks:
             for regNum in reg.delay.keys():
                 codeString += reg.name + '[' + str(regNum) + '].clockCycle();\n'
-        if len(self.tlmPorts) > 0 and model.endswith('LT'):
-            codeString += 'this->quantKeeper.sync();\n'
-        if not self.externalClock:
-            codeString += '}'
+        codeString += '}'
         mainLoopCode = cxx_writer.writer_code.Code(codeString)
         mainLoopCode.addInclude(includes)
         mainLoopCode.addInclude('customExceptions.hpp')
@@ -1531,13 +1530,14 @@ def getMainCode(self, model, namespace):
         code += """//Here we instantiate the memory and connect it
         //wtih the processor
         """
-        if model.endswith('LT'):
-            if self.tlmFakeMemProperties and self.tlmFakeMemProperties[2]:
-                code += 'SparseMemoryLT'
-            else:
-                code += 'MemoryLT'
+        if self.tlmFakeMemProperties and self.tlmFakeMemProperties[2]:
+            code += 'SparseMemory'
         else:
-            code += 'MemoryAT'
+            code += 'Memory'
+        if model.endswith('LT'):
+            code += 'LT'
+        else:
+            code += 'AT'
         code += '<' + str(len(self.tlmPorts)) + """, """ + str(self.wordSize*self.byteSize) + """> mem("procMem", """
         if self.tlmFakeMemProperties:
             code += str(self.tlmFakeMemProperties[0]) + ', sc_time(latency*' + str(self.tlmFakeMemProperties[1]) + ', SC_US));\n'
@@ -1784,7 +1784,10 @@ def getMainCode(self, model, namespace):
         else:
             mainCode.addInclude('MemoryLT.hpp')
     else:
-        mainCode.addInclude('MemoryAT.hpp')
+        if self.tlmFakeMemProperties and self.tlmFakeMemProperties[2]:
+            mainCode.addInclude('SparseMemoryAT.hpp')
+        else:
+            mainCode.addInclude('MemoryAT.hpp')
     mainCode.addInclude('processor.hpp')
     mainCode.addInclude('instructions.hpp')
     mainCode.addInclude('trap_utils.hpp')

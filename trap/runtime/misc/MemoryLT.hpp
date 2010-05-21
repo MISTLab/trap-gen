@@ -114,7 +114,7 @@ template<unsigned int N_INITIATORS, unsigned int sockSize> class MemoryLT: publi
 
     // TLM-2 DMI method
     bool get_direct_mem_ptr(tlm::tlm_generic_payload& trans, tlm::tlm_dmi& dmi_data){
-        // Permit read and write access
+        // Allow read and write access
         dmi_data.allow_read_write();
 
         // Set other details of DMI region

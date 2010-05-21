@@ -41,4 +41,4 @@ numRegWindows = 8
 # pipelined multiplication unit
 pipelinedMult = False
 # multiplier size (valid values 16/32)
-multiplier_size = 32
+multiplier_size = 16
