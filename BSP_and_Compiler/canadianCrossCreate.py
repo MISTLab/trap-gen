@@ -48,22 +48,38 @@ readline.parse_and_bind("tab: complete")
 readline.set_completer_delims('\t\n`!@#$%^&*)=+[{]}\\|;:,<>?')
 
 binutils = (raw_input('Please specify the binutils archive: ')).replace('\n', '').strip()
+while ' ' in binutils:
+    print 'path --> ' + binutils + ' <-- containing a space character: not valid'
+    binutils = (raw_input('Please specify a valid binutils archive: ')).replace('\n', '').strip()
 while not os.path.exists(binutils):
     print 'path --> ' + binutils + ' <-- not existing, please specify an existing one'
     binutils = (raw_input('Please specify the binutils archive: ')).replace('\n', '').strip()
 
 gcc = (raw_input('Please specify the gcc archive: ')).replace('\n', '').strip()
+while ' ' in gcc:
+    print 'path --> ' + gcc + ' <-- containing a space character: not valid'
+    gcc = (raw_input('Please specify a valid gcc archive: ')).replace('\n', '').strip()
 while not os.path.exists(gcc):
     print 'path --> ' + gcc + ' <-- not existing, please specify an existing one'
     gcc = (raw_input('Please specify the gcc archive: ')).replace('\n', '').strip()
 
 newlib = (raw_input('Please specify the newlib archive: ')).replace('\n', '').strip()
+while ' ' in newlib:
+    print 'path --> ' + newlib + ' <-- containing a space character: not valid'
+    newlib = (raw_input('Please specify a valid newlib archive: ')).replace('\n', '').strip()
 while not os.path.exists(newlib):
     print 'path --> ' + newlib + ' <-- not existing, please specify an existing one'
     newlib = (raw_input('Please specify the newlib archive: ')).replace('\n', '').strip()
 
 insight = (raw_input('Please specify the insight archive (ENTER for none): ')).replace('\n', '').strip()
-gdb = (raw_input('Please specify the gdb archive (ENTER for none): ')).replace('\n', '').strip()
+while not os.path.exists(insight) and insight != '':
+    print 'path --> ' + insight + ' <-- not existing, please specify an existing one'
+    insight = (raw_input('Please specify the insight archive (ENTER for none): ')).replace('\n', '').strip()
+if insight == '':
+    gdb = (raw_input('Please specify the gdb archive (ENTER for none): ')).replace('\n', '').strip()
+    while not os.path.exists(gdb) and gdb != '':
+        print 'path --> ' + gdb + ' <-- not existing, please specify an existing one'
+        gdb = (raw_input('Please specify the gdb archive (ENTER for none): ')).replace('\n', '').strip()
 
 prefix = (raw_input('Please specify the toolchain installation folder (must be accessible by the user): ')).replace('\n', '').strip()
 targetArch = (raw_input('Please specify the toolchain target architecture (e.g. arm-elf): ')).replace('\n', '')
@@ -177,7 +193,7 @@ print '\nCompiling gcc step-1\n'
 if os.system('export PATH=' + os.path.abspath(nativeToolchain + '/bin') + ':$PATH && cd ' + os.path.abspath(os.path.basename(gcc) + '_build') + ' && CC=i686-mingw32-gcc CXX=i686-mingw32-g++ ' + os.path.abspath(gccName + '/configure') + ' --host=i686-mingw32 --build=i686-pc-linux-gnu --target=' + targetArch + ' --prefix=' + os.path.abspath(prefix) + ' --enable-multilib --with-newlib --with-tls --with-__thread --enable-languages=\'c,c++\' --with-headers=' + os.path.abspath(newlibName + '/newlib/libc/include') + ' --disable-__cxa_atexit --disable-__dso_handle ' + addFlags + ' && make all-gcc -j' + str(numProc) + ' && make install-gcc') != 0:
     sys.exit()
 if newlibPatch.lower() == 'y':
-    raw_input('Please perform all the necessary modifications to the newlib library in folder ' + os.path.abspath(os.path.basename(newlib) + '_build') + ' and press a key when ready to continue')
+    raw_input('Please perform all the necessary modifications to the newlib library in folder ' + os.path.abspath(newlibName) + ' and press a key when ready to continue')
 print '\nCompiling newlib\n'
 if os.system('export PATH=' + os.path.abspath(nativeToolchain + '/bin') + ':$PATH && cd ' + os.path.abspath(os.path.basename(newlib) + '_build') + ' && CC=i686-mingw32-gcc CXX=i686-mingw32-g++ ' + os.path.abspath(newlibName + '/configure') + ' --host=i686-mingw32 --build=i686-pc-linux-gnu --target=' + targetArch + ' --prefix=' + os.path.abspath(prefix) + ' --enable-multilib ' + addFlags + ' && make -j' + str(numProc) + ' && make install') != 0:
     sys.exit()
