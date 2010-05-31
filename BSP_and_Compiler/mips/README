@@ -1,0 +1,11 @@
+The BSP added to the cross-compiler in order to be used for the OS-emulation mechanisms of TRAP is composed of:
+
+-- osemu.ld: linker script, exactly the same of idt.ld, only modified in order to put the start address at 0 and in order to link the exception
+vectors.  Note that the symbol _stack is put at 5MB, since we suppose that we have 5 MB of RAM; in
+case your system is different, change it.
+
+All these files are copied inside mips-elf/lib. In order to use the BSP, simply specify -Tosemu.ld
+as an additional parameter to gcc when performing the compilation.
+
+It should in theory be possible to use the files in this folder with any recent version of the binutils,
+gcc and newlib. Anyway they have been tested with: binutils-2.20.1.tar.bz2 gcc-4.5.0.tar.bz2 gdb-7.1.tar.bz2 newlib-1.18.0.tar.gz

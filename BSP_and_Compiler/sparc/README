@@ -1,4 +1,4 @@
-The BSP added to the cross-compiler in order to be used for the OS-emulation mechanisms of ReSP is composed of:
+The BSP added to the cross-compiler in order to be used for the OS-emulation mechanisms of TRAP is composed of:
 
 -- osemu-crt0.S: contains the start routine of the program (the entry point); it is a modified version of
 file newlib/libgloss/sparc/crt0.S. The modifications were made in order to eliminate the stack initialization,
@@ -12,6 +12,7 @@ only modified in order to put the start address at 0. Note that the symbol _stac
 suppose that we have 5 MB of RAM; in case your system is different, change it.
 -- osemu.specs: puts everything together, when specifying -specs=osemu.specs on the compiler command line,
 this file is read in order to identify the start file (osemu-crt0.S), the linker script (osemu.ld) ...
+To dump the specs currently in use, invoke gcc with the -dumpspecs option.
 -- asm.h has to be present in the BSP because it is used by osemu-crt0.S and exceptionTrap.S
 
 All these files (well, for libcStub.c, osemu-crt0.S and exceptionTrap.S we consider the object file and not

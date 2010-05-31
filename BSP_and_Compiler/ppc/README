@@ -1,4 +1,4 @@
-The BSP added to the cross-compiler in order to be used for the OS-emulation mechanisms of ReSP is composed of:
+The BSP added to the cross-compiler in order to be used for the OS-emulation mechanisms of TRAP is composed of:
 
 -- libcStub.c: contains the stubs for the missing library routines (just placeholders for compilation purposes,
 the functionality is imlpemented in hardware through OS emulation)
@@ -7,6 +7,7 @@ only modified in order to put the start address at 0.  Note that the symbol _sta
 we suppose that we have 5 MB of RAM; in case your system is different, change it.
 -- osemu.specs: puts everything together, when specifying -specs=osemu.specs on the compiler command line,
 this file is read in order to identify the start file (osemu-crt0.S), the linker script (osemu.ld) ...
+To dump the specs currently in use, invoke gcc with the -dumpspecs option.
 
 All these files (well, for libcStub.c, and osemu-crt0.S we consider the object file and not the source file)
 are copied inside powerpc-elf/lib. In order to use them simple specify -specs=osemu.specs as an additional
