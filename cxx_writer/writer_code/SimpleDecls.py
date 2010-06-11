@@ -536,7 +536,7 @@ class Union(DumpElement):
             raise Exception('There must be elements inside the Union before printing it')
         writer.write('union ' + self.name + ' {\n')
         for i in self.members:
-            i.writeDeclaration(writer)
+            i.writeImplementation(writer)
         writer.write('};\n')
         for namespace in self.namespaces:
             writer.write('};\n')

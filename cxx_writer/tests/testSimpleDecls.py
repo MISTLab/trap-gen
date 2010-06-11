@@ -96,8 +96,7 @@ class TestSimpleDecls(unittest.TestCase):
         testFile = open('prova.cpp', 'r')
         lines = testFile.readlines()
         testFile.close()
-        self.assertEqual(len(lines), 1)
-        self.assertEqual(lines[0], 'std::string pippo;\n')
+        self.assertEqual(len(lines), 0)
 
     def testVariableInit(self):
         type = writer_code.stringType
@@ -107,8 +106,7 @@ class TestSimpleDecls(unittest.TestCase):
         testFile = open('prova.cpp', 'r')
         lines = testFile.readlines()
         testFile.close()
-        self.assertEqual(len(lines), 1)
-        self.assertEqual(lines[0], 'std::string pippo = \"pippa\";\n')
+        self.assertEqual(len(lines), 0)
 
     def testTemplatedVariable(self):
         innerType1 = writer_code.stringType
@@ -122,8 +120,7 @@ class TestSimpleDecls(unittest.TestCase):
         testFile = open('prova.cpp', 'r')
         lines = testFile.readlines()
         testFile.close()
-        self.assertEqual(len(lines), 1)
-        self.assertEqual(lines[0], 'std::map< std::string, std::map< int, double > > pippo;\n')
+        self.assertEqual(len(lines), 0)
 
     def testEnum(self):
         enumInst = writer_code.Enum('myEnum', {'ONE':1, 'TWO':2, 'THREE':3})
