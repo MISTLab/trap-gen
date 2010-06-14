@@ -122,25 +122,14 @@ isa.addDefines("""
 
 opCode = cxx_writer.writer_code.Code("""
 long long opr1 = (rs & 0x80000000);
-//    std::cout << "opr1: " << opr1 << std::endl;
 opr1 = opr1<<1 |rs;
-//    std::cout << "opr1: " << opr1 << std::endl;
 long long opr2 = (rt & 0x80000000);
-//    std::cout << "opr2: " << opr2 << std::endl;
 opr2 = opr2<<1 |rt;
-//    std::cout << "opr2: " << opr2 << std::endl;
 long long temp32 = opr1+opr2;
 long long temp31 = rs + rt;
-//    std::cout << "temp32: " << temp32 << ". temp31: "<< temp31 << "." << std::endl;
-//long long tempo1=(temp32 & 0x100000000)>>32;
-//long long tempo2=(temp31 & 0x80000000)>>31;
-//    std::cout << "bit32: " << tempo1 << ". bit31: "<< tempo2 << "." << std::endl;
-
 if (((temp32 & 0x100000000)>>32) != ((temp31 & 0x80000000)>>31)){
-//    std::cout << "Exception Entered." << std::endl;
 	RaiseException(OV);
 }else{
-//    std::cout << "Exception not Entered."<< std::endl;
 	rd = temp31;
 }
 """)
@@ -303,6 +292,86 @@ isa.addInstruction(break_reg_Instr)
 #
 #COP0
 #
+
+opCode = cxx_writer.writer_code.Code("""
+
+sel = 0; //Check how sel value is determined (0 or 1)
+if (rd == 16){
+	if (sel == 1){
+		CONFIG1 = rt;
+	}
+	else {
+		CONFIG0= rt;
+	}
+}else if (rd == 28){
+	if (sel == 1){
+		TAGLO = rt;
+	}
+	else {
+		DATALO = rt;
+	}
+} else if (rd == 0 || rd == 1 || rd == 2 || rd == 3 || rd == 4 || rd == 5 || rd == 6 || rd == 7 || rd == 10 || rd == 20 || rd == 21 || rd == 22 || rd == 25 || rd == 27 || rd == 29 ){
+	RaiseException(RI);
+}
+
+else {
+	switch (rd){
+		case 8:{
+			BadVAddr = rt;
+		break;}
+		case 9:{
+			COUNT = rt;
+		break;}
+		case 11:{
+			COMPARE = rt;
+		break;}
+		case 12:{
+			STATUS = rt;
+		break;}
+		case 13:{
+			CAUSE = rt;
+		break;}
+		case 14:{
+			EPC = rt;
+		break;}
+		case 15:{
+			PRID = rt;
+		break;}
+		case 17:{
+			LLADDR = rt;
+		break;}
+		case 18:{
+			WATCHLO = rt;
+		break;}
+		case 19:{
+			WATCHHI = rt;
+		break;}
+		case 23:{
+			DEBUG = rt;
+		break;}
+		case 24:{
+			DEPC = rt;
+		break;}
+		case 26:{
+			ERRCTL = rt;
+		break;}
+		case 30:{
+			ERROREPC = rt;
+		break;}
+		case 31:{
+			DESAVE = rt;
+		break;}
+		default:{
+		break;}
+	}
+}
+
+""")
+mtc0_Instr = trap.Instruction ('MTC0',True)
+mtc0_Instr.setMachineCode(cop_format,{'opcode':[0,1,0,0,0,0],'rs1':[0,0],'rs2':[1,0,0]},('mtc0',' r','%rt', ',',' r','%rd'))
+mtc0_Instr.setCode(opCode, 'execution')
+mtc0_Instr.addBehavior(IncrementPC, 'execution') 
+isa.addInstruction(mtc0_Instr)
 
 
 
@@ -1155,25 +1224,15 @@ isa.addInstruction(sltu_reg_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
 long long opr1 = (rs & 0x80000000);
-//    std::cout << "opr1: " << opr1 << std::endl;
 opr1 = opr1<<1 |rs;
-//    std::cout << "opr1: " << opr1 << std::endl;
 long long opr2 = (rt & 0x80000000);
-//    std::cout << "opr2: " << opr2 << std::endl;
 opr2 = opr2<<1 |rt;
-//    std::cout << "opr2: " << opr2 << std::endl;
 long long temp32 = opr1-opr2;
 long long temp31 = rs - rt;
-//    std::cout << "temp32: " << temp32 << ". temp31: "<< temp31 << "." << std::endl;
-//long long tempo1=(temp32 & 0x100000000)>>32;
-//long long tempo2=(temp31 & 0x80000000)>>31;
-//    std::cout << "bit32: " << tempo1 << ". bit31: "<< tempo2 << "." << std::endl;
 
 if (((temp32 & 0x100000000)>>32) != ((temp31 & 0x80000000)>>31)){
-//    std::cout << "Exception Entered." << std::endl;
 	RaiseException(OV);
 }else{
-//    std::cout << "Exception not Entered."<< std::endl;
 	rd = temp31;
 }
 """)
@@ -1426,3 +1485,17 @@ xor_imm_Instr.setCode(opCode, 'execution')
 xor_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(xor_imm_Instr)
 
+
+#
+#WAIT Instruction 
+#
+
+opCode = cxx_writer.writer_code.Code("""
+ExtraRegister=0x80000000;	
+""")
+wait_Instr = trap.Instruction('WAITINST', True)
+wait_Instr.setMachineCode(wait_format,{'opcode': [0, 1, 0, 0, 0, 0],  'inst':[1, 0, 0, 0, 0, 0]},
+('WAIT'))
+wait_Instr.setCode(opCode, 'execution')
+wait_Instr.addBehavior(IncrementPC, 'execution')
+isa.addInstruction(wait_Instr)

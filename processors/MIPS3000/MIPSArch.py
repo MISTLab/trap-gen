@@ -236,6 +236,12 @@ processor.addRegister(hi)
 lo = trap.Register('LO',32)
 processor.addRegister(lo)
 
+#Fake register for debug exception handling
+ExtraRegisterBits = {'waitbit': (31,31),'extrabits':(0,30)}
+ExtraRegister = trap.Register('ExtraRegister',32,ExtraRegisterBits)
+processor.addRegister(ExtraRegister)
+
+
 
 #Register from which the instructions are fetched
 pc = trap.Register('PC',32)
@@ -245,7 +251,7 @@ processor.setFetchRegister('PC', -4)
 
 
 #Internal Memory for the Processor
-processor.setMemory('dataMem', 2048000000)
+processor.setMemory('dataMem', 2147483648)#2048000000)
 
 
 #Interrupts
@@ -296,7 +302,8 @@ processor.setABI(abi)
 #Creating the C++ files implementing the simulator
 #processor.write(folder = 'processor', models = ['funcLT'], tests = True, trace = False)
 #processor.write(folder = 'processor', models = ['funcLT'], tests = False, trace = False)
-processor.write(folder = 'mips', models = ['funcLT'], dumpDecoderName = 'decoder.dot')
+#processor.write(folder = 'mips', models = ['funcLT'], dumpDecoderName = 'decoder.dot')
+processor.write(folder = 'mips', models = ['funcLT'], trace = True, dumpDecoderName = 'decoder.dot')
 
 
 

@@ -92,3 +92,15 @@ trap_format.setVarField('rt', ('GPR', 0), 'inout')
 #Trap Immediate type format
 immediate_trap_format = trap.MachineCode([('opcode', 6), ('rs', 5), ('rt', 5), ('immediate', 16)])
 immediate_trap_format.setVarField('rs', ('GPR', 0), 'in')
+
+#Wait format
+wait_format = trap.MachineCode([('opcode',6), ('CO',1), ('dependent',19), ('inst',6)])
+wait_format.setBitfield('CO', [1])
+wait_format.setBitfield('dependent', [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+
+#COP0 format
+cop_format = trap.MachineCode([('opcode', 6), ('rs1', 2), ('rs2', 3), ('rt', 5), ('rd', 5), ('blank', 8), ('sel',3)])
+cop_format.setBitfield('blank', [0,0,0,0,0,0,0,0])
+cop_format.setVarField('rt', ('GPR', 0), 'in')
+cop_format.setVarField('rd', ('GPR', 0), 'in')
+cop_format.setVarField('sel', ('GPR', 0), 'in')
