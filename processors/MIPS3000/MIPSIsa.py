@@ -155,7 +155,7 @@ if (((temp32 & 0x100000000)>>32) != ((temp31 & 0x80000000)>>31)){
 }
 """)
 addi_imm_Instr = trap.Instruction('ADDI', True)
-addi_imm_Instr.setMachineCode(immediate_format,{'opcode': [0,0,1,0,0,0]},('addi r','%rt', ',',' r','%rs', ',',' r','%immediate'))
+addi_imm_Instr.setMachineCode(immediate_format,{'opcode': [0,0,1,0,0,0]},('addi r','%rt', ',',' r','%rs', ',',' ','%immediate'))
 addi_imm_Instr.setCode(opCode, 'execution')
 addi_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(addi_imm_Instr)
@@ -165,7 +165,7 @@ opCode = cxx_writer.writer_code.Code("""
 rt = rs + SignExtend(immediate,16);
 """)
 addiu_imm_Instr = trap.Instruction('ADDIU', True)
-addiu_imm_Instr.setMachineCode(immediate_format,{'opcode': [0,0,1,0,0,1]},('addiu r','%rt', ',',' r','%rs', ',',' r','%immediate'))
+addiu_imm_Instr.setMachineCode(immediate_format,{'opcode': [0,0,1,0,0,1]},('addiu r','%rt', ',',' r','%rs', ',',' ','%immediate'))
 addiu_imm_Instr.setCode(opCode, 'execution')
 addiu_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(addiu_imm_Instr)
@@ -200,7 +200,7 @@ opCode = cxx_writer.writer_code.Code("""
 rt = rs & (0x0000 | immediate);
 """)
 andi_imm_Instr = trap.Instruction('ANDI', True)
-andi_imm_Instr.setMachineCode(immediate_format,{'opcode': [0,0,1,1,0,0]},('andi r','%rt', ',',' r','%rs', ',',' r','%immediate'))
+andi_imm_Instr.setMachineCode(immediate_format,{'opcode': [0,0,1,1,0,0]},('andi r','%rt', ',',' r','%rs', ',',' ','%immediate'))
 andi_imm_Instr.setCode(opCode, 'execution')
 andi_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(andi_imm_Instr)
@@ -213,56 +213,65 @@ isa.addInstruction(andi_imm_Instr)
 opCode = cxx_writer.writer_code.Code("""
 bool br = ( (rs == rt && op4 == 0) || (rs != rt && op4 == 0x1) );
 	if (op2 == 0){
-		PC = SimpleBranch(br,(int)SignExtend(immediate<<2,18));
+		FPC = SimpleBranch(br,(int)SignExtend(immediate<<2,18));
+		ExtraRegister[key_lbranch] = 0;
 	}else{
-		PC = LikelyBranch(br,(int)SignExtend(immediate<<2,18));
+		FPC = LikelyBranch(br,(int)SignExtend(immediate<<2,18));
+		ExtraRegister[key_lbranch] = 1;
 	}
+	ExtraRegister[key_branch] = br;
 """)	#Specify correctly the jump instruction
 b2r_imm_Instr = trap.Instruction('BRANCH2REGISTERS', True)
 b2r_imm_Instr.setMachineCode(b_format1,{'op3': [0,1,0]}, 
 ('b', ('%op4', {int('1',2):'ne', int('0',2):'eq'}), ('%op2', {int('1',2):'l'}),
- ' r', '%rs', ',', ' r', '%rt', ',', ' r', '%immediate'))
+ ' r', '%rs', ',', ' r', '%rt', ',', ' ', '%immediate'))
 b2r_imm_Instr.setCode(opCode, 'execution')
-b2r_imm_Instr.addBehavior(NoIncrementPC,'execution')	#Check if more behaviors need to be added
+b2r_imm_Instr.addBehavior(IncrementPC,'execution')	#Check if more behaviors need to be added
 isa.addInstruction(b2r_imm_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
 bool br = ( ((int)rs<=0 && op4 == 0) || ((int)rs>0 && op4 == 0x1) );
 	if (op2 == 0){
-		PC = SimpleBranch(br,(int)SignExtend(immediate<<2,18));
+		FPC = SimpleBranch(br,(int)SignExtend(immediate<<2,18));
+		ExtraRegister[key_lbranch] = 0;
 	}else{
-		PC = LikelyBranch(br,(int)SignExtend(immediate<<2,18));
+		FPC = LikelyBranch(br,(int)SignExtend(immediate<<2,18));
+		ExtraRegister[key_lbranch] = 1;
 	}
+	ExtraRegister[key_branch] = br;
 """)
 bz_imm_Instr = trap.Instruction('BRANCHZ', True)
 bz_imm_Instr.setMachineCode(b_format1,{'op3': [0,1,1]},
 ('b', ('%op4', {int('1',2):'gtz', int('0',2):'lez'}), ('%op2', {int('1',2):'l'}),
- ' r', '%rs', ',', ' r', '%immediate'))
+ ' r', '%rs', ',', ' ', '%immediate'))
 bz_imm_Instr.setCode(opCode, 'execution')
-bz_imm_Instr.addBehavior(NoIncrementPC, 'execution')	#Check if more behaviors need to be added
+bz_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(bz_imm_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
 bool br = ( ((int)rs<0 && (rt3 == 0x0 || rt3 == 0x2)) || ((int)rs>=0 && (rt3 == 0x1 || rt3== 0x3)) );
 	if (rt == 0x1){
-		GPR[31] = PC+8;
+		GPR[31] = PC+4;//+8+4;
 	}
 	if (rt3 == 0x0 || rt3 == 0x1){
-		PC = SimpleBranch(br,(int)SignExtend(immediate<<2,18));
+		FPC = SimpleBranch(br,(int)SignExtend(immediate<<2,18));
+		ExtraRegister[key_lbranch] = 0;
 	}else{
-		PC = LikelyBranch(br,(int)SignExtend(immediate<<2,18));
+		FPC = LikelyBranch(br,(int)SignExtend(immediate<<2,18));
+		ExtraRegister[key_lbranch] = 1;
 	}
+	ExtraRegister[key_branch] = br;
 """)
 breg_imm_Instr = trap.Instruction('BRANCHREGIMM', True)
 breg_imm_Instr.setMachineCode(b_format2,{},
 ('b', ('%rt3', {int('00',2):'ltz', int('01',2):'gez', int('10',2):'ltz', int('11',2):'gez'}),
  ('%rt', {int('1',2):'al'}),
  ('%rt3', {int('10', 2):'l', int('11', 2):'l'}),
- ' r', '%rs', ',', ' r', '%immediate'))
+ ' r', '%rs', ',', ' ', '%immediate'))
 breg_imm_Instr.setCode(opCode, 'execution')
-breg_imm_Instr.addBehavior(NoIncrementPC, 'execution')	#Check if more behaviors need to be added
+breg_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(breg_imm_Instr)
 
 
@@ -473,43 +482,46 @@ isa.addInstruction(divu_reg_Instr)
 
 opCode = cxx_writer.writer_code.Code("""
 if (op2 == 1){
-	GPR[31] = PC+8;
+	GPR[31] = PC +4;//PC+8+4;
 }
-PC = (PC&0xF0000000) + (target<<2);
+FPC = (target<<2);
+ExtraRegister[key_jump1] = 1;
 """)
 j_jump_Instr = trap.Instruction('JUMP', True)
-j_jump_Instr.setMachineCode(jump_format,{},('j', ('%op2',{int('1',2):'al'}), ' r', '%target'))
+j_jump_Instr.setMachineCode(jump_format,{},('j', ('%op2',{int('1',2):'al'}), ' ', '%target'))
 j_jump_Instr.setCode(opCode, 'execution')
-j_jump_Instr.addBehavior(NoIncrementPC, 'execution')	#Check if more behaviors need to be added
+j_jump_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(j_jump_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
 if (CONFIG1[key_CA] == 0){
-	PC = rs;
+	FPC = rs;
 } else {
-	PC = rs<<1;
+	FPC = rs<<1;
 }
+ExtraRegister[key_jump2] = 1;
 """)
 jr_jump_Instr = trap.Instruction('JUMPR', True)
 jr_jump_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function': [0, 0, 1, 0, 0, 0]},('jr', ' r', '%rs'))
 jr_jump_Instr.setCode(opCode, 'execution')
-jr_jump_Instr.addBehavior(NoIncrementPC, 'execution')	#Check if more behaviors need to be added
+jr_jump_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(jr_jump_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
-rd = PC+8;
+rd = PC+4;//PC+8+4;
 if (CONFIG1[key_CA] == 0){
-	PC = rs;
+	FPC = rs;
 } else {
-	PC = rs<<1;
+	FPC = rs<<1;
 }
+ExtraRegister[key_jump2] = 1;
 """)
 jlr_jump_Instr = trap.Instruction('JUMPLR', True)
 jlr_jump_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function': [0, 0, 1, 0, 0, 1]},('jalr', ' r', '%rs', ',', ' r', '%rd'))
 jlr_jump_Instr.setCode(opCode, 'execution')
-jlr_jump_Instr.addBehavior(NoIncrementPC, 'execution')	#Check if more behaviors need to be added
+jlr_jump_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(jlr_jump_Instr)
 
 
@@ -566,7 +578,7 @@ rt = result;
 load_imm_Instr = trap.Instruction('LOAD', True)
 load_imm_Instr.setMachineCode(s_format,{'op': [1, 0, 0], 'op2': [0]},
 ('l', ('%op3', {int('00',2):'b', int('01',2):'h', int('10',2):'wl', int('11',2):'w'}),
- ' r', '%rt', ',', ' r', '%immediate', '(', 'r', '%rs', ')'))
+ ' r', '%rt', ',', ' ', '%immediate', '(', 'r', '%rs', ')'))
 load_imm_Instr.setCode(opCode, 'execution')
 load_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 							#Throw exceptions (for LH also bus error.)
@@ -615,7 +627,7 @@ rt = result;
 load2_imm_Instr = trap.Instruction('LOAD_U_R', True)
 load2_imm_Instr.setMachineCode(s_format,{'op': [1, 0, 0], 'op2': [1]},
 ('l', ('%op3', {int('00',2):'bu', int('01',2):'hu', int('10',2):'wr'}),
- ' r', '%rt', ',', ' r', '%immediate', '(', 'r', '%rs', ')'))
+ ' r', '%rt', ',', ' ', '%immediate', '(', 'r', '%rs', ')'))
 load2_imm_Instr.setCode(opCode, 'execution')
 load2_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 							#Throw exceptions (Address error.)
@@ -633,7 +645,7 @@ LLbit = 0b1;
 """)
 loadl_imm_Instr = trap.Instruction('LL', True)
 loadl_imm_Instr.setMachineCode(immediate_format,{'opcode': [1, 1, 0, 0, 0, 0]},
-('ll', ' r', '%rt', ',', ' r', '%immediate', '(', 'r', '%rs', ')'))
+('ll', ' r', '%rt', ',', ' ', '%immediate', '(', 'r', '%rs', ')'))
 loadl_imm_Instr.setCode(opCode, 'execution')
 loadl_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 							#Throw exceptions (Address error, Reserved Instruction.)
@@ -645,7 +657,7 @@ rt = immediate << 16;
 """)
 lui_imm_Instr = trap.Instruction('LUI', True)
 lui_imm_Instr.setMachineCode(immediate_format,{'opcode': [0, 0, 1, 1, 1, 1]},
-('lui', ' r', '%rt', ',', ' r', '%immediate'))
+('lui', ' r', '%rt', ',', ' ', '%immediate'))
 lui_imm_Instr.setCode(opCode, 'execution')
 lui_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 							#Throw exceptions (Address error, Reserved Instruction.)
@@ -657,32 +669,33 @@ isa.addInstruction(lui_imm_Instr)
 #MULTIPLY Instruction Family
 #
 
-opCodeCommon1 = cxx_writer.writer_code.Code("""
+opCodeCommon1 = """
 long long op1 = rs;
 long long op2 = rt;
 if((rs & (1 << 31)) != 0)
-    op1 = ((unsigned long long)0xFFFFFFFF00000000) | rs;
+    op1 = ((unsigned long long)0xFFFFFFFF00000000LL) | rs;
 if((rt & (1 << 31)) != 0)
-    op2 = ((unsigned long long)0xFFFFFFFF00000000) | rt;
+    op2 = ((unsigned long long)0xFFFFFFFF00000000LL) | rt;
 result = (long long)(op1*op2);
-""")
-opCodeCommon2 = cxx_writer.writer_code.Code("""
+"""
+opCodeCommon2 = """
 long long op1 = rs;
 long long op2 = rt;
 result = (unsigned long long)(op1*op2);
-""")
-opCode = cxx_writer.writer_code.Code("""
+"""
+opCode = """
 long long hiAux = HI;
 long long operand = ((hiAux<<32))|(LO);
 long long temp = operand + result;
 LO = temp & 0x0FFFFFFFF;
 HI = temp>>32;
-""")
+"""
 madd_reg_Instr = trap.Instruction('MADD', True)
 madd_reg_Instr.setMachineCode(register_format,{'opcode': [0, 1, 1, 1, 0, 0], 'function':[0, 0, 0, 0, 0, 0]},
 ('madd', ' r', '%rs', ',', ' r', ' %rt'))
-madd_reg_Instr.setCode(opCodeCommon1, 'execution1')
-madd_reg_Instr.setCode(opCode, 'execution')
+madd_reg_Instr.setCode(cxx_writer.writer_code.Code(opCodeCommon1 + opCode),'execution')
+#madd_reg_Instr.setCode(opCodeCommon1, 'execution1')
+#madd_reg_Instr.setCode(opCode, 'execution')
 madd_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 madd_reg_Instr.addVariable(('result', 'BIT<64>'))
 isa.addInstruction(madd_reg_Instr)
@@ -691,25 +704,27 @@ isa.addInstruction(madd_reg_Instr)
 maddu_reg_Instr = trap.Instruction('MADDU', True)
 maddu_reg_Instr.setMachineCode(register_format,{'opcode': [0, 1, 1, 1, 0, 0], 'function':[0, 0, 0, 0, 0, 1]},
 ('maddu', ' r', '%rs', ',', ' r', ' %rt'))
-maddu_reg_Instr.setCode(opCodeCommon2, 'execution1')
-maddu_reg_Instr.setCode(opCode, 'execution')
+maddu_reg_Instr.setCode(cxx_writer.writer_code.Code(opCodeCommon2 + opCode),'execution')
+#maddu_reg_Instr.setCode(opCodeCommon2, 'execution1')
+#maddu_reg_Instr.setCode(opCode, 'execution')
 maddu_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 maddu_reg_Instr.addVariable(('result', 'BIT<64>'))
 isa.addInstruction(maddu_reg_Instr)
 
 
-opCode = cxx_writer.writer_code.Code("""
+opCode = """
 long long hiAux = HI;
 long long operand = (((long long)(hiAux))<<32)|(LO);
 long long temp = operand - result;
 LO = temp & 0x0FFFFFFFF;
 HI = temp>>32;
-""")
+"""
 msub_reg_Instr = trap.Instruction('MSUB', True)
 msub_reg_Instr.setMachineCode(register_format,{'opcode': [0, 1, 1, 1, 0, 0], 'function':[0, 0, 0, 1, 0, 0]},
 ('msub', ' r', '%rs', ',', ' r', ' %rt'))
-msub_reg_Instr.setCode(opCodeCommon1, 'execution1')
-msub_reg_Instr.setCode(opCode, 'execution')
+msub_reg_Instr.setCode(cxx_writer.writer_code.Code(opCodeCommon1 + opCode),'execution')
+#msub_reg_Instr.setCode(opCodeCommon1, 'execution1')
+#msub_reg_Instr.setCode(opCode, 'execution')
 msub_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 msub_reg_Instr.addVariable(('result', 'BIT<64>'))
 isa.addInstruction(msub_reg_Instr)
@@ -718,32 +733,35 @@ isa.addInstruction(msub_reg_Instr)
 msubu_reg_Instr = trap.Instruction('MSUBU', True)
 msubu_reg_Instr.setMachineCode(register_format,{'opcode': [0, 1, 1, 1, 0, 0], 'function':[0, 0, 0, 1, 0, 1]},
 ('msubu', ' r', '%rs', ',', ' r', ' %rt'))
-msubu_reg_Instr.setCode(opCodeCommon2, 'execution1')
-msubu_reg_Instr.setCode(opCode, 'execution')
+msubu_reg_Instr.setCode(cxx_writer.writer_code.Code(opCodeCommon2 + opCode),'execution')
+#msubu_reg_Instr.setCode(opCodeCommon2, 'execution1')
+#msubu_reg_Instr.setCode(opCode, 'execution')
 msubu_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 msubu_reg_Instr.addVariable(('result', 'BIT<64>'))
 isa.addInstruction(msubu_reg_Instr)
 
 
-opCode = cxx_writer.writer_code.Code("""
+opCode = """
 rd = result;
-""")
+"""
 mul_reg_Instr = trap.Instruction('MUL', True)
 mul_reg_Instr.setMachineCode(register_format,{'opcode': [0, 1, 1, 1, 0, 0], 'function':[0, 0, 0, 0, 1, 0]},
 ('mul', ' r', '%rd', ',', ' r', '%rs', ',', ' r', ' %rt'))
-mul_reg_Instr.setCode(opCodeCommon1, 'execution1')
-mul_reg_Instr.setCode(opCode, 'execution')
+mul_reg_Instr.setCode(cxx_writer.writer_code.Code(opCodeCommon1 + opCode),'execution')
+#mul_reg_Instr.setCode(opCodeCommon1, 'execution1')
+#mul_reg_Instr.setCode(opCode, 'execution')
 mul_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 mul_reg_Instr.addVariable(('result', 'BIT<64>'))
-opCode = cxx_writer.writer_code.Code("""
+opCode = """
 LO = result;
 HI = result>>32;
-""")
+"""
 mult_reg_Instr = trap.Instruction('MULT', True)
 mult_reg_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[0, 1, 1, 0, 0, 0]},
 ('mult', ' r', '%rs', ',', ' r', ' %rt'))
-mult_reg_Instr.setCode(opCodeCommon1, 'execution1')
-mult_reg_Instr.setCode(opCode, 'execution')
+mult_reg_Instr.setCode(cxx_writer.writer_code.Code(opCodeCommon1 + opCode),'execution')
+#mult_reg_Instr.setCode(opCodeCommon1, 'execution1')
+#mult_reg_Instr.setCode(opCode, 'execution')
 mult_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 mult_reg_Instr.addVariable(('result', 'BIT<64>'))
 isa.addInstruction(mult_reg_Instr)
@@ -754,8 +772,9 @@ isa.addInstruction(mul_reg_Instr)
 multu_reg_Instr = trap.Instruction('MULTU', True)
 multu_reg_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[0, 1, 1, 0, 0, 1]},
 ('multu', ' r', '%rs', ',', ' r', ' %rt'))
-multu_reg_Instr.setCode(opCodeCommon2, 'execution1')
-multu_reg_Instr.setCode(opCode, 'execution')
+multu_reg_Instr.setCode(cxx_writer.writer_code.Code(opCodeCommon2 + opCode),'execution')
+#multu_reg_Instr.setCode(opCodeCommon2, 'execution1')
+#multu_reg_Instr.setCode(opCode, 'execution')
 multu_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 multu_reg_Instr.addVariable(('result', 'BIT<64>'))
 isa.addInstruction(multu_reg_Instr)
@@ -877,7 +896,7 @@ opCode = cxx_writer.writer_code.Code("""
 """)
 or_imm_Instr = trap.Instruction('ORI', True)
 or_imm_Instr.setMachineCode(immediate_format,{'opcode': [0, 0, 1, 1, 0, 1]},
-('ori', ' r', '%rt', ',', ' r', '%rs', ',', ' r', '%immediate'))
+('ori', ' r', '%rt', ',', ' r', '%rs', ',', ' ', '%immediate'))
 or_imm_Instr.setCode(opCode, 'execution')
 or_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(or_imm_Instr)
@@ -903,7 +922,7 @@ dataMem.write_byte(address, rt);
 """)
 sb_imm_Instr = trap.Instruction('SB', True)
 sb_imm_Instr.setMachineCode(immediate_format,{'opcode': [1, 0, 1, 0, 0, 0]},
-('sb', ' r', '%rt', ',', ' r', '%immediate', '(', 'r', '%rs', ')'))
+('sb', ' r', '%rt', ',', ' ', '%immediate', '(', 'r', '%rs', ')'))
 sb_imm_Instr.setCode(opCode, 'execution')
 sb_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 							#Throw exceptions (Bus error, Address error.)
@@ -923,7 +942,7 @@ LLbit= 0;
 """)
 sc_imm_Instr = trap.Instruction('SC', True)
 sc_imm_Instr.setMachineCode(immediate_format,{'opcode': [1, 1, 1, 0, 0, 0]},
-('sc', ' r', '%rt', ',', ' r', '%immediate', '(', 'r', '%rs', ')'))
+('sc', ' r', '%rt', ',', ' ', '%immediate', '(', 'r', '%rs', ')'))
 sc_imm_Instr.setCode(opCode, 'execution')
 sc_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 							#Throw exceptions (Reserved Instruction.)
@@ -941,7 +960,7 @@ dataMem.write_half(address, rt);
 """)
 sh_imm_Instr = trap.Instruction('SH', True)
 sh_imm_Instr.setMachineCode(immediate_format,{'opcode': [1, 0, 1, 0, 0, 1]},
-('sh', ' r', '%rt', ',', ' r', '%immediate', '(', 'r', '%rs', ')'))
+('sh', ' r', '%rt', ',', ' ', '%immediate', '(', 'r', '%rs', ')'))
 sh_imm_Instr.setCode(opCode, 'execution')
 sh_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(sh_imm_Instr)
@@ -957,7 +976,7 @@ dataMem.write_word(address, rt);
 """)
 sw_imm_Instr = trap.Instruction('SW', True)
 sw_imm_Instr.setMachineCode(immediate_format,{'opcode': [1, 0, 1, 0, 1, 1]},
-('sw', ' r', '%rt', ',', ' r', '%immediate', '(', 'r', '%rs', ')'))
+('sw', ' r', '%rt', ',', ' ', '%immediate', '(', 'r', '%rs', ')'))
 sw_imm_Instr.setCode(opCode, 'execution')
 sw_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(sw_imm_Instr)
@@ -994,7 +1013,7 @@ dataMem.write_word(address, result);
 """)
 swl_imm_Instr = trap.Instruction('SWL', True)
 swl_imm_Instr.setMachineCode(immediate_format,{'opcode': [1, 0, 1, 0, 1, 0]},
-('swl', ' r', '%rt', ',', ' r', '%immediate', '(', 'r', '%rs', ')'))
+('swl', ' r', '%rt', ',', ' ', '%immediate', '(', 'r', '%rs', ')'))
 swl_imm_Instr.setCode(opCode, 'execution')
 swl_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 							#Throw exceptions (Bus Error, Address Error.)
@@ -1034,7 +1053,7 @@ dataMem.write_word(address, result);
 """)
 swr_imm_Instr = trap.Instruction('SWR', True)
 swr_imm_Instr.setMachineCode(immediate_format,{'opcode': [1, 0, 1, 1, 1, 0]},
-('swr', ' r', '%rt', ',', ' r', '%immediate', '(', 'r', '%rs', ')'))
+('swr', ' r', '%rt', ',', ' ', '%immediate', '(', 'r', '%rs', ')'))
 swr_imm_Instr.setCode(opCode, 'execution')
 swr_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 							#Throw exceptions (Bus Error, Address Error.)
@@ -1181,7 +1200,7 @@ if ((int)rs < (int)(SignExtend(immediate,16)) ){
 """)
 slti_imm_Instr = trap.Instruction('SLTI', True)
 slti_imm_Instr.setMachineCode(immediate_format,{'opcode': [0, 0, 1, 0, 1, 0]},
-('slti', ' r', '%rt', ',', ' r', '%rs', ',', ' r', '%immediate'))
+('slti', ' r', '%rt', ',', ' r', '%rs', ',', ' ', '%immediate'))
 slti_imm_Instr.setCode(opCode, 'execution')
 slti_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(slti_imm_Instr)
@@ -1196,7 +1215,7 @@ if ((unsigned) ((int)rs) < (unsigned int)(SignExtend(immediate,16)) ){
 """)
 sltiu_imm_Instr = trap.Instruction('SLTIU', True)
 sltiu_imm_Instr.setMachineCode(immediate_format,{'opcode': [0, 0, 1, 0, 1, 1]},
-('sltiu', ' r', '%rt', ',', ' r', '%rs', ',', ' r', '%immediate'))
+('sltiu', ' r', '%rt', ',', ' r', '%rs', ',', ' ', '%immediate'))
 sltiu_imm_Instr.setCode(opCode, 'execution')
 sltiu_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(sltiu_imm_Instr)
@@ -1283,27 +1302,28 @@ isa.addInstruction(syscall_reg_Instr)
 #TRAP Instruction Family
 #
 
-opCodeOperands = cxx_writer.writer_code.Code("""
+opCodeOperands = """
 opr1 = rs;
 opr2 = rt;
-""")
-opCodeOperandsI = cxx_writer.writer_code.Code("""
+"""
+opCodeOperandsI = """
 opr1 = rs;
 opr2 = SignExtend(immediate,16);
-""")
-opCodeCondition = cxx_writer.writer_code.Code("""
+"""
+opCodeCondition = """
 cond = ((signed int)opr1==(signed int)opr2);
-""")
-opCodeCompare = cxx_writer.writer_code.Code("""
+"""
+opCodeCompare = """
 if (cond)
 	RaiseException(TR);
-""")
+"""
 teq_reg_Instr = trap.Instruction('TEQ', True)
 teq_reg_Instr.setMachineCode(trap_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[1, 1, 0, 1, 0, 0]},
 ('teq', ' r', '%rs', ',', ' r', '%rt'))
-teq_reg_Instr.setCode(opCodeOperands, 'execution1')
-teq_reg_Instr.setCode(opCodeCondition, 'execution2')
-teq_reg_Instr.setCode(opCodeCompare, 'execution')
+teq_reg_Instr.setCode(cxx_writer.writer_code.Code(opCodeOperands + opCodeCondition + opCodeCompare), 'execution')
+#teq_reg_Instr.setCode(opCodeOperands, 'execution1')
+#teq_reg_Instr.setCode(opCodeCondition, 'execution2')
+#teq_reg_Instr.setCode(opCodeCompare, 'execution')
 teq_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 teq_reg_Instr.addVariable(('opr1', 'BIT<32>'))
 teq_reg_Instr.addVariable(('opr2', 'BIT<32>'))
@@ -1313,9 +1333,10 @@ isa.addInstruction(teq_reg_Instr)
 teqi_reg_Instr = trap.Instruction('TEQI', True)
 teqi_reg_Instr.setMachineCode(immediate_trap_format,{'opcode': [0, 0, 0, 0, 0, 1], 'rt': [0, 1, 1, 0, 0]},
 ('teqi', ' r', '%rs', ',', ' r', '%immediate'))
-teqi_reg_Instr.setCode(opCodeOperandsI, 'execution1')
-teqi_reg_Instr.setCode(opCodeCondition, 'execution2')
-teqi_reg_Instr.setCode(opCodeCompare, 'execution')
+teqi_reg_Instr.setCode(cxx_writer.writer_code.Code(opCodeOperandsI + opCodeCondition + opCodeCompare), 'execution')
+#teqi_reg_Instr.setCode(opCodeOperandsI, 'execution1')
+#teqi_reg_Instr.setCode(opCodeCondition, 'execution2')
+#teqi_reg_Instr.setCode(opCodeCompare, 'execution')
 teqi_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 teqi_reg_Instr.addVariable(('opr1', 'BIT<32>'))
 teqi_reg_Instr.addVariable(('opr2', 'BIT<32>'))
@@ -1323,15 +1344,16 @@ teqi_reg_Instr.addVariable(('cond', 'BIT<1>'))
 isa.addInstruction(teqi_reg_Instr)
 
 
-opCodeCondition = cxx_writer.writer_code.Code("""
+opCodeCondition = """
 cond = ((signed int)opr1 >= (signed int)opr2);
-""")
+"""
 tge_reg_Instr = trap.Instruction('TGE', True)
 tge_reg_Instr.setMachineCode(trap_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[1, 1, 0, 0, 0, 0]},
 ('tge', ' r', '%rs', ',', ' r', '%rt'))
-tge_reg_Instr.setCode(opCodeOperands, 'execution1')
-tge_reg_Instr.setCode(opCodeCondition, 'execution2')
-tge_reg_Instr.setCode(opCodeCompare, 'execution')
+tge_reg_Instr.setCode(cxx_writer.writer_code.Code(opCodeOperands + opCodeCondition + opCodeCompare), 'execution')
+#tge_reg_Instr.setCode(opCodeOperands, 'execution1')
+#tge_reg_Instr.setCode(opCodeCondition, 'execution2')
+#tge_reg_Instr.setCode(opCodeCompare, 'execution')
 tge_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 tge_reg_Instr.addVariable(('opr1', 'BIT<32>'))
 tge_reg_Instr.addVariable(('opr2', 'BIT<32>'))
@@ -1340,25 +1362,27 @@ isa.addInstruction(tge_reg_Instr)
 
 tgei_reg_Instr = trap.Instruction('TGEI', True)
 tgei_reg_Instr.setMachineCode(immediate_trap_format,{'opcode': [0, 0, 0, 0, 0, 1], 'rt': [0, 1, 0, 0, 0]},
-('tgei', ' r', '%rs', ',', ' r', '%immediate'))
-tgei_reg_Instr.setCode(opCodeOperandsI, 'execution1')
-tgei_reg_Instr.setCode(opCodeCondition, 'execution2')
-tgei_reg_Instr.setCode(opCodeCompare, 'execution')
+('tgei', ' r', '%rs', ',', ' ', '%immediate'))
+tgei_reg_Instr.setCode(cxx_writer.writer_code.Code(opCodeOperandsI + opCodeCondition + opCodeCompare), 'execution')
+#tgei_reg_Instr.setCode(opCodeOperandsI, 'execution1')
+#tgei_reg_Instr.setCode(opCodeCondition, 'execution2')
+#tgei_reg_Instr.setCode(opCodeCompare, 'execution')
 tgei_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 tgei_reg_Instr.addVariable(('opr1', 'BIT<32>'))
 tgei_reg_Instr.addVariable(('opr2', 'BIT<32>'))
 tgei_reg_Instr.addVariable(('cond', 'BIT<1>'))
 isa.addInstruction(tgei_reg_Instr)
 
-opCodeCondition = cxx_writer.writer_code.Code("""
+opCodeCondition = """
 cond = ((unsigned int)opr1 >= (unsigned int)opr2);
-""")
+"""
 tgeiu_reg_Instr = trap.Instruction('TGEIU', True)
 tgeiu_reg_Instr.setMachineCode(immediate_trap_format,{'opcode': [0, 0, 0, 0, 0, 1], 'rt': [0, 1, 0, 0, 1]},
-('tgeiu', ' r', '%rs', ',', ' r', '%immediate'))
-tgeiu_reg_Instr.setCode(opCodeOperandsI, 'execution1')
-tgeiu_reg_Instr.setCode(opCodeCondition, 'execution2')
-tgeiu_reg_Instr.setCode(opCodeCompare, 'execution')
+('tgeiu', ' r', '%rs', ',', ' ', '%immediate'))
+tgeiu_reg_Instr.setCode(cxx_writer.writer_code.Code(opCodeOperandsI + opCodeCondition + opCodeCompare), 'execution')
+#tgeiu_reg_Instr.setCode(opCodeOperandsI, 'execution1')
+#tgeiu_reg_Instr.setCode(opCodeCondition, 'execution2')
+#tgeiu_reg_Instr.setCode(opCodeCompare, 'execution')
 tgeiu_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 tgeiu_reg_Instr.addVariable(('opr1', 'BIT<32>'))
 tgeiu_reg_Instr.addVariable(('opr2', 'BIT<32>'))
@@ -1368,24 +1392,26 @@ isa.addInstruction(tgeiu_reg_Instr)
 tgeu_reg_Instr = trap.Instruction('TGEU', True)
 tgeu_reg_Instr.setMachineCode(trap_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[1, 1, 0, 0, 0, 1]},
 ('tgeu', ' r', '%rs', ',', ' r', '%rt'))
-tgeu_reg_Instr.setCode(opCodeOperands, 'execution1')
-tgeu_reg_Instr.setCode(opCodeCondition, 'execution2')
-tgeu_reg_Instr.setCode(opCodeCompare, 'execution')
+tgeu_reg_Instr.setCode(cxx_writer.writer_code.Code(opCodeOperands + opCodeCondition + opCodeCompare), 'execution')
+#tgeu_reg_Instr.setCode(opCodeOperands, 'execution1')
+#tgeu_reg_Instr.setCode(opCodeCondition, 'execution2')
+#tgeu_reg_Instr.setCode(opCodeCompare, 'execution')
 tgeu_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 tgeu_reg_Instr.addVariable(('opr1', 'BIT<32>'))
 tgeu_reg_Instr.addVariable(('opr2', 'BIT<32>'))
 tgeu_reg_Instr.addVariable(('cond', 'BIT<1>'))
 isa.addInstruction(tgeu_reg_Instr)
 
-opCodeCondition = cxx_writer.writer_code.Code("""
+opCodeCondition = """
 cond = ((signed int)opr1<(signed int)opr2);
-""")
+"""
 tlt_reg_Instr = trap.Instruction('TLT', True)
 tlt_reg_Instr.setMachineCode(trap_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[1, 1, 0, 0, 1, 0]},
 ('tlt', ' r', '%rs', ',', ' r', '%rt'))
-tlt_reg_Instr.setCode(opCodeOperands, 'execution1')
-tlt_reg_Instr.setCode(opCodeCondition, 'execution2')
-tlt_reg_Instr.setCode(opCodeCompare, 'execution')
+tlt_reg_Instr.setCode(cxx_writer.writer_code.Code(opCodeOperands + opCodeCondition + opCodeCompare), 'execution')
+#tlt_reg_Instr.setCode(opCodeOperands, 'execution1')
+#tlt_reg_Instr.setCode(opCodeCondition, 'execution2')
+#tlt_reg_Instr.setCode(opCodeCompare, 'execution')
 tlt_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 tlt_reg_Instr.addVariable(('opr1', 'BIT<32>'))
 tlt_reg_Instr.addVariable(('opr2', 'BIT<32>'))
@@ -1394,25 +1420,27 @@ isa.addInstruction(tlt_reg_Instr)
 
 tlti_reg_Instr = trap.Instruction('TLTI', True)
 tlti_reg_Instr.setMachineCode(immediate_trap_format,{'opcode': [0, 0, 0, 0, 0, 1], 'rt': [0, 1, 0, 1, 0]},
-('tlti', ' r', '%rs', ',', ' r', '%immediate'))
-tlti_reg_Instr.setCode(opCodeOperandsI, 'execution1')
-tlti_reg_Instr.setCode(opCodeCondition, 'execution2')
-tlti_reg_Instr.setCode(opCodeCompare, 'execution')
+('tlti', ' r', '%rs', ',', ' ', '%immediate'))
+tlti_reg_Instr.setCode(cxx_writer.writer_code.Code(opCodeOperandsI + opCodeCondition + opCodeCompare), 'execution')
+#tlti_reg_Instr.setCode(opCodeOperandsI, 'execution1')
+#tlti_reg_Instr.setCode(opCodeCondition, 'execution2')
+#tlti_reg_Instr.setCode(opCodeCompare, 'execution')
 tlti_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 tlti_reg_Instr.addVariable(('opr1', 'BIT<32>'))
 tlti_reg_Instr.addVariable(('opr2', 'BIT<32>'))
 tlti_reg_Instr.addVariable(('cond', 'BIT<1>'))
 isa.addInstruction(tlti_reg_Instr)
 
-opCodeCondition = cxx_writer.writer_code.Code("""
+opCodeCondition = """
 cond = ((unsigned int)opr1<(unsigned int)opr2);
-""")
+"""
 tltiu_reg_Instr = trap.Instruction('TLTIU', True)
 tltiu_reg_Instr.setMachineCode(immediate_trap_format,{'opcode': [0, 0, 0, 0, 0, 1], 'rt': [0, 1, 0, 1, 1]},
-('tltiu', ' r', '%rs', ',', ' r', '%immediate'))
-tltiu_reg_Instr.setCode(opCodeOperandsI, 'execution1')
-tltiu_reg_Instr.setCode(opCodeCondition, 'execution2')
-tltiu_reg_Instr.setCode(opCodeCompare, 'execution')
+('tltiu', ' r', '%rs', ',', ' ', '%immediate'))
+tltiu_reg_Instr.setCode(cxx_writer.writer_code.Code(opCodeOperandsI + opCodeCondition + opCodeCompare), 'execution')
+#tltiu_reg_Instr.setCode(opCodeOperandsI, 'execution1')
+#tltiu_reg_Instr.setCode(opCodeCondition, 'execution2')
+#tltiu_reg_Instr.setCode(opCodeCompare, 'execution')
 tltiu_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 tltiu_reg_Instr.addVariable(('opr1', 'BIT<32>'))
 tltiu_reg_Instr.addVariable(('opr2', 'BIT<32>'))
@@ -1422,24 +1450,26 @@ isa.addInstruction(tltiu_reg_Instr)
 tltu_reg_Instr = trap.Instruction('TLTU', True)
 tltu_reg_Instr.setMachineCode(trap_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[1, 1, 0, 0, 1, 1]},
 ('tltu', ' r', '%rs', ',', ' r', '%rt'))
-tltu_reg_Instr.setCode(opCodeOperands, 'execution1')
-tltu_reg_Instr.setCode(opCodeCondition, 'execution2')
-tltu_reg_Instr.setCode(opCodeCompare, 'execution')
+tltu_reg_Instr.setCode(cxx_writer.writer_code.Code(opCodeOperands + opCodeCondition + opCodeCompare), 'execution')
+#tltu_reg_Instr.setCode(opCodeOperands, 'execution1')
+#tltu_reg_Instr.setCode(opCodeCondition, 'execution2')
+#tltu_reg_Instr.setCode(opCodeCompare, 'execution')
 tltu_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 tltu_reg_Instr.addVariable(('opr1', 'BIT<32>'))
 tltu_reg_Instr.addVariable(('opr2', 'BIT<32>'))
 tltu_reg_Instr.addVariable(('cond', 'BIT<1>'))
 isa.addInstruction(tltu_reg_Instr)
 
-opCodeCondition = cxx_writer.writer_code.Code("""
+opCodeCondition = """
 cond = (opr1!=opr2);
-""")
+"""
 tne_reg_Instr = trap.Instruction('TNE', True)
 tne_reg_Instr.setMachineCode(trap_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[1, 1, 0, 1, 1, 0]},
 ('tne', ' r', '%rs', ',', ' r', '%rt'))
-tne_reg_Instr.setCode(opCodeOperands, 'execution1')
-tne_reg_Instr.setCode(opCodeCondition, 'execution2')
-tne_reg_Instr.setCode(opCodeCompare, 'execution')
+tne_reg_Instr.setCode(cxx_writer.writer_code.Code(opCodeOperands + opCodeCondition + opCodeCompare), 'execution')
+#tne_reg_Instr.setCode(opCodeOperands, 'execution1')
+#tne_reg_Instr.setCode(opCodeCondition, 'execution2')
+#tne_reg_Instr.setCode(opCodeCompare, 'execution')
 tne_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 tne_reg_Instr.addVariable(('opr1', 'BIT<32>'))
 tne_reg_Instr.addVariable(('opr2', 'BIT<32>'))
@@ -1448,10 +1478,11 @@ isa.addInstruction(tne_reg_Instr)
 
 tnei_reg_Instr = trap.Instruction('TNEI', True)
 tnei_reg_Instr.setMachineCode(immediate_trap_format,{'opcode': [0, 0, 0, 0, 0, 1], 'rt': [0, 1, 1, 1, 0]},
-('tnei', ' r', '%rs', ',', ' r', '%immediate'))
-tnei_reg_Instr.setCode(opCodeOperandsI, 'execution1')
-tnei_reg_Instr.setCode(opCodeCondition, 'execution2')
-tnei_reg_Instr.setCode(opCodeCompare, 'execution')
+('tnei', ' r', '%rs', ',', ' ', '%immediate'))
+tnei_reg_Instr.setCode(cxx_writer.writer_code.Code(opCodeOperandsI + opCodeCondition + opCodeCompare), 'execution')
+#tnei_reg_Instr.setCode(opCodeOperandsI, 'execution1')
+#tnei_reg_Instr.setCode(opCodeCondition, 'execution2')
+#tnei_reg_Instr.setCode(opCodeCompare, 'execution')
 tnei_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 tnei_reg_Instr.addVariable(('opr1', 'BIT<32>'))
 tnei_reg_Instr.addVariable(('opr2', 'BIT<32>'))
@@ -1480,7 +1511,7 @@ opCode = cxx_writer.writer_code.Code("""
 """)
 xor_imm_Instr = trap.Instruction('XORI', True)
 xor_imm_Instr.setMachineCode(immediate_format,{'opcode': [0, 0, 1, 1, 1, 0]},
-('xori', ' r', '%rt', ',', ' r', '%rs', ',', ' r', '%immediate'))
+('xori', ' r', '%rt', ',', ' r', '%rs', ',', ' ', '%immediate'))
 xor_imm_Instr.setCode(opCode, 'execution')
 xor_imm_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(xor_imm_Instr)
@@ -1491,7 +1522,7 @@ isa.addInstruction(xor_imm_Instr)
 #
 
 opCode = cxx_writer.writer_code.Code("""
-ExtraRegister=0x80000000;	
+ExtraRegister[key_waitbit]=1;	
 """)
 wait_Instr = trap.Instruction('WAITINST', True)
 wait_Instr.setMachineCode(wait_format,{'opcode': [0, 1, 0, 0, 0, 0],  'inst':[1, 0, 0, 0, 0, 0]},

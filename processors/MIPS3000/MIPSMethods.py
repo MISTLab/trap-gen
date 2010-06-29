@@ -60,11 +60,11 @@ SignExtend_method.setSignature(('BIT<32>'), [('bitSeq', 'BIT<32>'), cxx_writer.w
 #Simple Branch
 opCode = cxx_writer.writer_code.Code("""
 if (br == 1){
-	PC += offset;
+	FPC = offset;
 }else{
-	PC += 4;
+	FPC = 0;
 }
-return PC;
+return FPC;
 """)
 SimpleBranch_method = trap.HelperMethod('SimpleBranch', opCode, 'execution')
 SimpleBranch_method.setSignature(('BIT<32>'), [('br', 'BIT<1>'),('offset', 'BIT<32>')])
@@ -72,12 +72,12 @@ SimpleBranch_method.setSignature(('BIT<32>'), [('br', 'BIT<1>'),('offset', 'BIT<
 #Likely Branch
 opCode = cxx_writer.writer_code.Code("""
 if (br == 1){	//This should be done while the next instruction is being fetch, but we are not working with pipeline.
-	PC += offset;
+	FPC = offset;
 }else{
-	PC += 4;
-	annull(); //Not to execute the branch slot. As we are not working with pipeline, this makes no difference.
+	FPC = 0;
+	//annull(); //Not to execute the branch slot. As we are not working with pipeline, this makes no difference.
 }
-return PC;
+return FPC;
 """)
 LikelyBranch_method = trap.HelperMethod('LikelyBranch', opCode, 'execution')
 LikelyBranch_method.setSignature(('BIT<32>'), [('br', 'BIT<1>'),('offset', 'BIT<32>')])
@@ -92,14 +92,36 @@ LLbit = 0;
 annull();
 
 """
-RaiseException_method = trap.HelperMethod('RaiseException', cxx_writer.writer_code.Code(raiseExcCode), 'exception')
+#RaiseException_method = trap.HelperMethod('RaiseException', cxx_writer.writer_code.Code(raiseExcCode), 'exception')
+RaiseException_method = trap.HelperMethod('RaiseException', cxx_writer.writer_code.Code(raiseExcCode), 'execution')
 RaiseException_methodParams = [cxx_writer.writer_code.Parameter('exceptionId', cxx_writer.writer_code.uintType)]
 RaiseException_methodParams.append(cxx_writer.writer_code.Parameter('customTrapOffset', cxx_writer.writer_code.uintType, initValue = '0'))
 RaiseException_method.setSignature(cxx_writer.writer_code.voidType, RaiseException_methodParams)
 
 #Increment PC
 opCode = cxx_writer.writer_code.Code("""
-PC += 4;
+
+bool cond1 = ExtraRegister[key_branch];
+bool cond2 = ExtraRegister[key_lbranch];
+bool cond3 = ExtraRegister[key_jump1];
+bool cond4 = ExtraRegister[key_jump2];
+
+if (cond1 == 1){
+	PC += FPC;
+	if (cond2 == 1){
+		annull();
+	}
+	ExtraRegister[key_branch] = 0;
+	ExtraRegister[key_lbranch] = 0;
+} else if (cond3 == 1){
+	PC = (PC&0xF0000000) + FPC + 4; //I need to add 4 because I am fetching the PC-4. In the case of a branch this is not necessary because I anyway added +4 when waiting for the next instruction to add the FPC to the PC.
+	ExtraRegister[key_jump1] = 0;
+} else if (cond4 == 1){
+	PC = FPC + 4; //I need to add 4 because I am fetching the PC-4. In the case of a branch this is not necessary because I anyway added +4 when waiting for the next instruction to add the FPC to the PC.
+	ExtraRegister[key_jump2] = 0;
+}else {
+	PC += 4;
+}
 """)
 IncrementPC = trap.HelperOperation('IncrementPC', opCode, exception = False)
 

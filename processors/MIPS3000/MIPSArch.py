@@ -237,8 +237,9 @@ lo = trap.Register('LO',32)
 processor.addRegister(lo)
 
 #Fake register for debug exception handling
-ExtraRegisterBits = {'waitbit': (31,31),'extrabits':(0,30)}
+ExtraRegisterBits = {'waitbit': (31,31),'branch': (30,30),'lbranch': (29,29),'jump1': (28,28),'jump2': (27,27),'extrabits':(0,26)}
 ExtraRegister = trap.Register('ExtraRegister',32,ExtraRegisterBits)
+ExtraRegister.setDefaultValue(0x00000000)
 processor.addRegister(ExtraRegister)
 
 
@@ -249,9 +250,13 @@ pc.setDefaultValue('ENTRY_POINT')
 processor.addRegister(pc)
 processor.setFetchRegister('PC', -4)
 
+#Auxiliar register for treating branch and jumps
+fpc = trap.Register('FPC',32)
+fpc.setDefaultValue(0x00000000)
+processor.addRegister(fpc)
 
 #Internal Memory for the Processor
-processor.setMemory('dataMem', 2147483648)#2048000000)
+processor.setMemory('dataMem', 16*1024*1024) #16777216 = 0x100 0000
 
 
 #Interrupts
@@ -268,22 +273,22 @@ irq.setOperation("""//Basically, what I have to do when
 
 
 # Now it is time to add the pipeline stages
-executionStage = trap.PipeStage('execution1')
-executionStage.setCheckTools()
-executionStage.setCheckUnknownInstr()
-processor.addPipeStage(executionStage)
-execution2Stage = trap.PipeStage('execution2')
-execution2Stage.setCheckTools()
-execution2Stage.setCheckUnknownInstr()
-processor.addPipeStage(execution2Stage)
+#executionStage = trap.PipeStage('execution1')
+#executionStage.setCheckTools()
+#executionStage.setCheckUnknownInstr()
+#processor.addPipeStage(executionStage)
+#execution2Stage = trap.PipeStage('execution2')
+#execution2Stage.setCheckTools()
+#execution2Stage.setCheckUnknownInstr()
+#processor.addPipeStage(execution2Stage)
 executeStage = trap.PipeStage('execution')
 executeStage.setHazard()
 executeStage.setCheckUnknownInstr()
 executeStage.setCheckTools()
 processor.addPipeStage(executeStage)
 
-exceptionStage = trap.PipeStage('exception')
-processor.addPipeStage(exceptionStage)
+#exceptionStage = trap.PipeStage('exception')
+#processor.addPipeStage(exceptionStage)
 executeStage.setWriteBack()
 executeStage.setEndHazard()
 
