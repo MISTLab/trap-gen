@@ -113,12 +113,15 @@ if (cond1 == 1){
 	}
 	ExtraRegister[key_branch] = 0;
 	ExtraRegister[key_lbranch] = 0;
+	FPC = 0;
 } else if (cond3 == 1){
 	PC = (PC&0xF0000000) + FPC + 4; //I need to add 4 because I am fetching the PC-4. In the case of a branch this is not necessary because I anyway added +4 when waiting for the next instruction to add the FPC to the PC.
 	ExtraRegister[key_jump1] = 0;
+	FPC = 0;
 } else if (cond4 == 1){
 	PC = FPC + 4; //I need to add 4 because I am fetching the PC-4. In the case of a branch this is not necessary because I anyway added +4 when waiting for the next instruction to add the FPC to the PC.
 	ExtraRegister[key_jump2] = 0;
+	FPC = 0;
 }else {
 	PC += 4;
 }

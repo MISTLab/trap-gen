@@ -253,7 +253,7 @@ isa.addInstruction(bz_imm_Instr)
 opCode = cxx_writer.writer_code.Code("""
 bool br = ( ((int)rs<0 && (rt3 == 0x0 || rt3 == 0x2)) || ((int)rs>=0 && (rt3 == 0x1 || rt3== 0x3)) );
 	if (rt == 0x1){
-		GPR[31] = PC+4;//+8+4;
+		GPR[31] = PC;//+8+4;
 	}
 	if (rt3 == 0x0 || rt3 == 0x1){
 		FPC = SimpleBranch(br,(int)SignExtend(immediate<<2,18));
@@ -480,18 +480,40 @@ isa.addInstruction(divu_reg_Instr)
 
 #Revisar estas funciones de la familia jump -- hay que configurar los aliases, entonces la forma de acceder al registro AC puede ser que cambie
 
+#opCode = cxx_writer.writer_code.Code("""
+#if (op2 == 1){
+#	GPR[31] = PC;//PC+8+4;
+#}
+#FPC = (target<<2);
+#ExtraRegister[key_jump1] = 1;
+#""")
+#j_jump_Instr = trap.Instruction('JUMP', True)
+#j_jump_Instr.setMachineCode(jump_format,{},('j', ('%op2',{int('1',2):'al'}), ' ', '%target'))
+#j_jump_Instr.setCode(opCode, 'execution')
+#j_jump_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
+#isa.addInstruction(j_jump_Instr)
+
 opCode = cxx_writer.writer_code.Code("""
-if (op2 == 1){
-	GPR[31] = PC +4;//PC+8+4;
-}
+GPR[31] = PC;//PC+8+4;
+
 FPC = (target<<2);
 ExtraRegister[key_jump1] = 1;
 """)
-j_jump_Instr = trap.Instruction('JUMP', True)
-j_jump_Instr.setMachineCode(jump_format,{},('j', ('%op2',{int('1',2):'al'}), ' ', '%target'))
+j_jump_Instr = trap.Instruction('JUMPAL', True)
+j_jump_Instr.setMachineCode(jump_format,{'op2': [1]},('jal ', '%target'))
 j_jump_Instr.setCode(opCode, 'execution')
 j_jump_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(j_jump_Instr)
+
+opCode = cxx_writer.writer_code.Code("""
+FPC = (target<<2);
+ExtraRegister[key_jump1] = 1;
+""")
+j_jump2_Instr = trap.Instruction('JUMP', True)
+j_jump2_Instr.setMachineCode(jump_format,{'op2': [0]},('j ', '%target'))
+j_jump2_Instr.setCode(opCode, 'execution')
+j_jump2_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
+isa.addInstruction(j_jump2_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
@@ -510,7 +532,7 @@ isa.addInstruction(jr_jump_Instr)
 
 
 opCode = cxx_writer.writer_code.Code("""
-rd = PC+4;//PC+8+4;
+rd = PC;//PC+8+4;
 if (CONFIG1[key_CA] == 0){
 	FPC = rs;
 } else {
@@ -1094,7 +1116,7 @@ opCode = cxx_writer.writer_code.Code("""
 """)
 sll_reg_Instr = trap.Instruction('SLL', True)
 sll_reg_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[0, 0, 0, 0, 0, 0]},
-('sll', ' r', '%rd', ',', ' r', '%rt', ',', ' r', '%sa'))
+('sll', ' r', '%rd', ',', ' r', '%rt', ',', '%sa'))
 sll_reg_Instr.setCode(opCode, 'execution')
 sll_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(sll_reg_Instr)

@@ -63,7 +63,7 @@ register_format = trap.MachineCode([('opcode', 6), ('rs', 5), ('rt', 5), ('rd', 
 register_format.setVarField('rs', ('GPR', 0), 'in')
 register_format.setVarField('rt', ('GPR', 0), 'inout')
 register_format.setVarField('rd', ('GPR', 0), 'out')
-register_format.setVarField('sa', ('GPR', 0), 'in')
+#register_format.setVarField('sa', ('GPR', 0), 'in')
 
 #Branch Instruction format (B-Type)
 b_format1 = trap.MachineCode([('op', 1), ('op2', 1), ('op3', 3), ('op4', 1), ('rs', 5), ('rt', 5), ('immediate', 16)])

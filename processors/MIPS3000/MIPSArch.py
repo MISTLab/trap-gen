@@ -56,6 +56,7 @@ processor.setISA(MIPSIsa.isa) #lets set the instruction set
 
 # GENERAL PURPOSE REGISTERS FOR INTEGER OPERATIONS
 GPR = trap.RegisterBank('GPR', 32, 32)
+GPR.setConst(0, 0)
 processor.addRegBank(GPR)
 
 
@@ -242,6 +243,12 @@ ExtraRegister = trap.Register('ExtraRegister',32,ExtraRegisterBits)
 ExtraRegister.setDefaultValue(0x00000000)
 processor.addRegister(ExtraRegister)
 
+LR = trap.AliasRegister('LR', 'GPR[31]')
+processor.addAliasReg(LR)
+FP = trap.AliasRegister('FP', 'GPR[30]')
+processor.addAliasReg(FP)
+SP = trap.AliasRegister('SP', 'GPR[29]')
+processor.addAliasReg(SP)
 
 
 #Register from which the instructions are fetched
@@ -259,6 +266,7 @@ processor.addRegister(fpc)
 processor.setMemory('dataMem', 16*1024*1024) #16777216 = 0x100 0000
 
 
+
 #Interrupts
 irq = trap.Interrupt('IRQ', 1, priority = 0)
 irq.setOperation("""//Basically, what I have to do when
@@ -273,14 +281,7 @@ irq.setOperation("""//Basically, what I have to do when
 
 
 # Now it is time to add the pipeline stages
-#executionStage = trap.PipeStage('execution1')
-#executionStage.setCheckTools()
-#executionStage.setCheckUnknownInstr()
-#processor.addPipeStage(executionStage)
-#execution2Stage = trap.PipeStage('execution2')
-#execution2Stage.setCheckTools()
-#execution2Stage.setCheckUnknownInstr()
-#processor.addPipeStage(execution2Stage)
+
 executeStage = trap.PipeStage('execution')
 executeStage.setHazard()
 executeStage.setCheckUnknownInstr()
@@ -296,7 +297,7 @@ executeStage.setEndHazard()
 
 # The ABI is necessary to emulate system calls, personalize the GDB stub and,
 # eventually, retarget GCC
-abi = trap.ABI('GPR[0]', 'GPR[0-3]', 'PC')
+abi = trap.ABI('GPR[2]', 'GPR[4-7]', 'PC', 'LR', 'SP', 'FP')
 abi.addVarRegsCorrespondence({'GPR[0-32]': (0, 32)})
 abi.setOffset('PC', -4)
 abi.setOffset('GPR[32]', -4)
