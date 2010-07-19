@@ -1145,7 +1145,7 @@ for (int x=0; x<sa; x++ ){
 """)
 sra_reg_Instr = trap.Instruction('SRA', True)
 sra_reg_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[0, 0, 0, 0, 1, 1]},
-('sra', ' r', '%rd', ',', ' r', '%rt', ',', ' r', '%sa'))
+('sra', ' r', '%rd', ',', ' r', '%rt', ',', '%sa'))
 sra_reg_Instr.setCode(opCode, 'execution')
 sra_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(sra_reg_Instr)
@@ -1174,7 +1174,7 @@ opCode = cxx_writer.writer_code.Code("""
 """)
 srl_reg_Instr = trap.Instruction('SRL', True)
 srl_reg_Instr.setMachineCode(register_format,{'opcode': [0, 0, 0, 0, 0, 0], 'function':[0, 0, 0, 0, 1, 0]},
-('srl', ' r', '%rd', ',', ' r', '%rt', ',', ' r', '%sa'))
+('srl', ' r', '%rd', ',', ' r', '%rt', ',', '%sa'))
 srl_reg_Instr.setCode(opCode, 'execution')
 srl_reg_Instr.addBehavior(IncrementPC, 'execution')	#Check if more behaviors need to be added
 isa.addInstruction(srl_reg_Instr)

@@ -85,13 +85,204 @@ LikelyBranch_method.setSignature(('BIT<32>'), [('br', 'BIT<1>'),('offset', 'BIT<
 # Exceptions
 raiseExcCode =  """
 long vectorOffset = 0;
-    //std::cout << "Exception Entered " << exceptionId << std::endl;
+    
+if (exceptionId == RESET){
+	STATUS[key_RP] = 0;
+	STATUS[key_BEV] = 1;
+	STATUS[key_TS] = 0;
+	STATUS[key_SR] = 0; 
+	STATUS[key_NMI] = 0;
+	STATUS[key_ERL] = 1; 
+	WATCHLO[key_I] = 0;
+	WATCHLO[key_R] = 0; 
+	WATCHLO[key_W] = 0;
+	// Since we are not working with pipelines we don't consider the branch delay slot case, otherwise we'd need a conditional to evaluate the value of ErrorEPC.
+	ERROREPC = PC; 
+	//PC = 0xBFC00000;  
+}
 
+else if (exceptionId == SOFT_RESET){
+	STATUS[key_BEV] = 1;
+	STATUS[key_TS] = 0;
+	STATUS[key_SR] = 1;
+	STATUS[key_NMI] = 0;
+	STATUS[key_ERL] = 1; 
+	ERROREPC = PC; 
+	//PC = 0xBFC00000;
+}
+
+else if (exceptionId == NMI){
+
+	STATUS[key_BEV] = 1;
+	STATUS[key_TS] = 0;
+	STATUS[key_SR] = 0;
+	STATUS[key_NMI] = 1;
+	STATUS[key_ERL] = 1; 
+	ERROREPC = PC; 
+	//PC = 0xBFC00000;
+}
+
+// Debug Exception Processing 
+
+else if(exceptionId == DSS || exceptionId == DINT || exceptionId == DIB  || exceptionId == DBP  || exceptionId == DDBLad  || exceptionId == DDBS  || exceptionId == DDBL ){
+
+	DEPC = PC; // Assuming no branch delay slot
+	DEBUG[key_DBD] = 0; 
+
+	switch (exceptionId){
+		case DSS:				
+			DEBUG[key_DSS] = 1;
+		break;
+
+		case DINT:
+			DEBUG[key_DINT] = 1;
+		break; 
+
+		case DIB:
+			DEBUG[key_DIB] = 1;
+		break; 
+
+		case DBP:
+			DEBUG[key_DBp] = 1;
+		break; 
+
+		case DDBLad:
+			DEBUG[key_DDBL] = 1;
+		break; 
+
+		case DDBS:
+			DEBUG[key_DDBS] = 1;
+		break; 
+
+		case DDBL:
+			DEBUG[key_DDBL] = 1;
+		break; 
+
+		default:
+		break;
+	}
+
+	DEBUG[key_Halt] == 1; //  we assumed the clock is never stopped since we are not modelling the bus
+
+	if (STATUS[key_RP] == 1 || ExtraRegister[key_waitbit] == 1){ 			
+		DEBUG[key_Doze] = 1;  	
+	} else {
+		DEBUG[key_Doze] = 0;
+	}
+ 
+	DEBUG[key_DM] = 1; 
+	if (ECR[key_ProbTrap]==1){
+		PC = 0xFF200200;
+	}else {
+		PC = 0xBFC00480;
+	}
+
+} else { 
+
+	
+//General Exception Processing 
+
+	if(STATUS[key_EXL] == 0){
+		EPC = PC; 
+		CAUSE[key_BD]= 0; // Assuming no branch delay slot 
+		if((exceptionId == INT) && (CAUSE[key_IV]==1)){
+			vectorOffset = 0x200;
+		}else{
+			vectorOffset = 0x180;
+		}
+
+	}else{
+		vectorOffset = 0x180;
+	}
+
+	CAUSE[key_CE]= 0;
+
+	switch (exceptionId){
+		case INT:
+			CAUSE[key_EXCCODE]= 0x00;
+		break;
+	
+		case ADEL_FETCH:
+			CAUSE[key_EXCCODE]= 0x04;
+		break;
+
+		case ADEL:
+			CAUSE[key_EXCCODE]= 0x04;
+		break;
+
+		case ADES:
+			CAUSE[key_EXCCODE]= 0x05;
+		break;
+		
+		case IBE:
+			CAUSE[key_EXCCODE]= 0x06;
+		break;
+
+		case DBE:
+			CAUSE[key_EXCCODE]= 0x07;
+		break;
+
+		case SYS:
+			CAUSE[key_EXCCODE]= 0x08;
+		break;
+
+		case BP:
+			CAUSE[key_EXCCODE]= 0x09;
+		break;
+
+		case RI:
+			CAUSE[key_EXCCODE]= 0x0A;
+		break;
+
+		case CPU:
+			CAUSE[key_EXCCODE]= 0x0B;
+		break;
+
+		case OV:
+			CAUSE[key_EXCCODE]= 0x0C;
+		break;
+
+		case TR:
+			CAUSE[key_EXCCODE]= 0x0D;
+		break;
+
+		case DEFERRED_WATCH:
+			CAUSE[key_EXCCODE]= 0x17;
+		break;
+
+		case WATCH_FETCH:
+			CAUSE[key_EXCCODE]= 0x17;
+		break;
+
+		case WATCH_DATA:
+			CAUSE[key_EXCCODE]= 0x17;
+		break;
+
+		case MACHINE_CHECK:
+			CAUSE[key_EXCCODE]= 0x18;
+		break;
+		
+		default:
+		break;
+	}
+
+	STATUS[key_EXL] = 1; 
+
+	if (STATUS[key_BEV]=1){
+		//PC = 0xBFC00200 + vectorOffset;
+	} else {
+		//PC = 0x80000000 + vectorOffset; 
+	}
+
+}			
+
+	
 LLbit = 0;
 
 annull();
 
 """
+
 #RaiseException_method = trap.HelperMethod('RaiseException', cxx_writer.writer_code.Code(raiseExcCode), 'exception')
 RaiseException_method = trap.HelperMethod('RaiseException', cxx_writer.writer_code.Code(raiseExcCode), 'execution')
 RaiseException_methodParams = [cxx_writer.writer_code.Parameter('exceptionId', cxx_writer.writer_code.uintType)]

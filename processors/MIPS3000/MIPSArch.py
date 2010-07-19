@@ -243,6 +243,21 @@ ExtraRegister = trap.Register('ExtraRegister',32,ExtraRegisterBits)
 ExtraRegister.setDefaultValue(0x00000000)
 processor.addRegister(ExtraRegister)
 
+#memSizeReg = trap.Register('memSizeReg', 32)
+#processor.addRegister(memSizeReg)
+#regMap = trap.MemoryAlias(0xbfc001b8, 'memSizeReg')
+#processor.addMemAlias(regMap)
+#jr32 = trap.Register('jr32', 32)
+#jr32.setDefaultValue(00000011111000000000000000001000)
+#processor.addRegister(jr32)
+#regMap2 = trap.MemoryAlias(0xbfc001b9, 'jr32')
+#processor.addMemAlias(regMap2)
+#nop = trap.Register('nop', 32)
+#nop.setDefaultValue(00000000000000000000000000000000)
+#processor.addRegister(nop)
+#regMap3 = trap.MemoryAlias(0xbfc001bA, 'nop')
+#processor.addMemAlias(regMap3)
+
 LR = trap.AliasRegister('LR', 'GPR[31]')
 processor.addAliasReg(LR)
 FP = trap.AliasRegister('FP', 'GPR[30]')
@@ -308,8 +323,8 @@ processor.setABI(abi)
 #Creating the C++ files implementing the simulator
 #processor.write(folder = 'processor', models = ['funcLT'], tests = True, trace = False)
 #processor.write(folder = 'processor', models = ['funcLT'], tests = False, trace = False)
-#processor.write(folder = 'mips', models = ['funcLT'], dumpDecoderName = 'decoder.dot')
-processor.write(folder = 'mips', models = ['funcLT'], trace = True, dumpDecoderName = 'decoder.dot')
+processor.write(folder = 'mips', models = ['funcLT'], dumpDecoderName = 'decoder.dot')
+#processor.write(folder = 'mips', models = ['funcLT'], trace = True, dumpDecoderName = 'decoder.dot')
 
 
 
