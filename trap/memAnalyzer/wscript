@@ -1,16 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: iso-8859-1 -*-
 
-# Build
-
 def build(bld):
-    obj = bld.new_task_gen('cxx', 'program')
-    obj.source='''
-        analyzer.cpp
-        main.cpp
-    '''
-    obj.uselib = 'BOOST BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM BOOST_SYSTEM'
-    obj.includes     = '. ../runtime/misc ../runtime/utils'
-    obj.add_objects = 'utils'
-    obj.name         = 'memAnalyzer'
-    obj.target       = 'memAnalyzer'
+    bld.program(source='analyzer.cpp main.cpp',
+        target = 'memAnalyzer',
+        use = 'utils BOOST BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM BOOST_SYSTEM',
+        includes = '. ../runtime/misc ../runtime/utils'
+    )

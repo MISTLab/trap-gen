@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: iso-8859-1 -*-
 
-import os, Options
+import os
 
 def build(bld):
-    obj = bld.new_task_gen('py')
-    obj.find_sources_in_dirs('.', exts=['.py'])
-    obj.install_path = os.path.join('${PYTHONDIR}', 'cxx_writer', 'writer_code')
+    bld(features='py', source=bld.path.ant_glob('*.py'), install_path = os.path.join('${PYTHONDIR}', 'cxx_writer', 'writer_code'))

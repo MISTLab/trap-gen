@@ -1,29 +1,26 @@
 #!/usr/bin/env python
 # -*- coding: iso-8859-1 -*-
 
-import os, Options
+import os
+from waflib.Task import Task
 
-def installWafFun(tsk):
-    if Options.commands['install']:
-        if not os.path.exists(tsk.env['wafDestPath']):
-            from distutils import dir_util
-            dir_util.mkpath(tsk.env['wafDestPath'])
+def installWafFun(ctx):
+    if ctx.cmd == 'install':
         import shutil
-        shutil.copy2(os.path.join('..', 'waf'), tsk.env['wafDestPath'])
-    elif Options.commands['uninstall']:
+        shutil.copy2('waf', os.path.join(ctx.env.PYTHONDIR, 'cxx_writer'))
+    elif ctx.cmd == 'uninstall':
         try:
-            os.remove(os.path.join('..', 'waf', tsk.env['wafDestPath'], 'waf'))
+            os.remove(os.path.join(ctx.env.PYTHONDIR, 'cxx_writer', 'waf'))
         except:
             pass
 
 def build(bld):
-    obj = bld.new_task_gen('py')
-    obj.find_sources_in_dirs('.', exts=['.py'])
-    obj.install_path = os.path.join('${PYTHONDIR}', 'cxx_writer')
+    bld(features='py', source=bld.path.ant_glob('*.py'), install_path = os.path.join('${PYTHONDIR}', 'cxx_writer'))
 
-    if Options.is_install:
-        objCopy = bld.new_task_gen('cmd')
-        objCopy.fun = installWafFun
-        objCopy.env['wafDestPath'] = os.path.join(objCopy.env['PYTHONDIR'], 'cxx_writer')
+    bld.recurse('writer_code')
 
-    bld.add_subdirs('writer_code')
+    bld.add_post_fun(post)
+
+def post(ctx):
+    if ctx.cmd in ['install', 'uninstall']:
+        installWafFun(ctx)

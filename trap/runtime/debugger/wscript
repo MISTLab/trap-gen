@@ -1,20 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: iso-8859-1 -*-
 
-import os, Options, sys
+import sys
 
 def build(bld):
-    obj = bld.new_task_gen('cxx')
-    obj.source="""
-        GDBConnectionManager.cpp
-    """
-    obj.includes = '. ../bfdFontend ../utils ..'
-    obj.uselib = 'SYSTEMC BOOST BOOST_REGEX BOOST_THREAD WINSOCK'
+    uselib_custom = ''
+    cppflags_custom = ''
     if sys.platform == 'cygwin':
-        obj.env.append_unique('CPPFLAGS', '-D__USE_W32_SOCKETS')
-        obj.uselib += ' WINSOCK'
-    obj.export_incdirs = '.'
-    obj.name = 'debugger'
-    obj.target = 'debugger'
-    obj.install_path = None
+        cppflags_custom = ' -D__USE_W32_SOCKETS'
+        uselib_custom = ' WINSOCK'
+
+    bld.objects(source='GDBConnectionManager.cpp',
+        includes = '. ../bfdFontend ../utils ..',
+        use = 'SYSTEMC BOOST BOOST_REGEX BOOST_THREAD' + uselib_custom,
+        target = 'debugger',
+        install_path = None,
+        cxxflags = cppflags_custom
+    )
+
     bld.install_files('${PREFIX}/include', 'GDBStub.hpp GDBConnectionManager.hpp BreakpointManager.hpp WatchpointManager.hpp')

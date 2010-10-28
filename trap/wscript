@@ -1,26 +1,22 @@
 #!/usr/bin/env python
 # -*- coding: iso-8859-1 -*-
 
-import os, Options
+import os
 
 def build(bld):
-    bld.add_subdirs('runtime memAnalyzer')
+    bld.recurse('runtime memAnalyzer')
 
-    obj = bld.new_task_gen('cxx', 'staticlib')
-    obj.add_objects = 'loader syscall bfdFrontend tools debugger utils profiler'
-    obj.name = 'trap_static'
-    obj.uselib = 'BOOST_THREAD BOOST_REGEX BOOST_FILESYSTEM BOOST_SYSTEM BFD SYSTEMC WINSOCK'
-    obj.target = 'trap'
-    obj.install_path = os.path.join('${PREFIX}', 'lib')
+    bld(features='cxx cxxstlib',
+            target = 'trap',
+            use = 'loader syscall bfdFrontend tools debugger utils profiler BOOST_THREAD BOOST_REGEX BOOST_FILESYSTEM BOOST_SYSTEM BFD SYSTEMC WINSOCK',
+            install_path = os.path.join('${PREFIX}', 'lib')
+    )
 
     if bld.env['ENABLE_SHARED_64']:
-        obj = bld.new_task_gen('cxx', 'cshlib')
-        obj.add_objects = 'loader syscall bfdFrontend tools debugger utils profiler'
-        obj.name = 'trap_dyn'
-        obj.uselib = 'BOOST_THREAD BOOST_REGEX BOOST_FILESYSTEM BOOST_SYSTEM BFD SYSTEMC WINSOCK'
-        obj.target = 'trap'
-        obj.install_path = os.path.join('${PREFIX}', 'lib')
+        bld(features='cxx cxxshlib',
+                target = 'trap',
+                use = 'loader syscall bfdFrontend tools debugger utils profiler BOOST_THREAD BOOST_REGEX BOOST_FILESYSTEM BOOST_SYSTEM BFD SYSTEMC WINSOCK',
+                install_path = os.path.join('${PREFIX}', 'lib')
+        )
 
-    obj = bld.new_task_gen('py')
-    obj.find_sources_in_dirs('.', exts=['.py'])
-    obj.install_path = os.path.join('${PYTHONDIR}', 'trap')
+    bld(features='py', source=bld.path.ant_glob('*.py'), install_path = os.path.join('${PYTHONDIR}', 'trap'))
