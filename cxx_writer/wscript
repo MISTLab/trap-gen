@@ -5,22 +5,24 @@ import os
 from waflib.Task import Task
 
 def installWafFun(ctx):
+    destPath = os.path.join(ctx.env.PYTHONDIR, 'cxx_writer')
     if ctx.cmd == 'install':
+        if not os.path.exists(destPath):
+            from distutils import dir_util
+            dir_util.mkpath(destPath)
         import shutil
-        shutil.copy2('waf', os.path.join(ctx.env.PYTHONDIR, 'cxx_writer'))
+        shutil.copy2('waf', destPath)
     elif ctx.cmd == 'uninstall':
         try:
-            os.remove(os.path.join(ctx.env.PYTHONDIR, 'cxx_writer', 'waf'))
+            os.remove(os.path.join(destPath, 'waf'))
         except:
             pass
 
 def build(bld):
-    bld(features='py', source=bld.path.ant_glob('*.py'), install_path = os.path.join('${PYTHONDIR}', 'cxx_writer'))
+    bld(features='py', source=bld.path.ant_glob('*.py'), install_path = os.path.join(bld.env.PYTHONDIR, 'cxx_writer'))
 
     bld.recurse('writer_code')
 
-    bld.add_post_fun(post)
+    if bld.cmd in ['install', 'uninstall']:
+        installWafFun(bld)
 
-def post(ctx):
-    if ctx.cmd in ['install', 'uninstall']:
-        installWafFun(ctx)
