@@ -27,7 +27,7 @@ def check_dyn_library(ctx, libfile, libpaths):
     import struct
     if struct.calcsize("P") > 4:
         # are we actually processing a static library?
-        if os.path.splitext(libfile)[1] == conf.env['cxxstlib_PATTERN'].split('%s')[1]:
+        if os.path.splitext(libfile)[1] == ctx.env['cxxstlib_PATTERN'].split('%s')[1]:
             # Now lets check for the presence of symbols of type R_X86_64_32S:
             # in case we have an error.
             for libpath in libpaths:
