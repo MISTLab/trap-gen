@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: iso-8859-1 -*-
 
+import os
+
 def build(bld):
     bld.recurse('loader utils bfdFontend osEmulator debugger misc profiler')
 
@@ -10,4 +12,4 @@ def build(bld):
         install_path = None
     )
 
-    bld.install_files('${PREFIX}/include', 'ABIIf.hpp trap.hpp ToolsIf.hpp instructionBase.hpp')
+    bld.install_files(os.path.join(bld.env.PREFIX, 'include'), 'ABIIf.hpp trap.hpp ToolsIf.hpp instructionBase.hpp')

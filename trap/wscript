@@ -9,14 +9,14 @@ def build(bld):
     bld(features='cxx cxxstlib',
             target = 'trap',
             use = 'loader syscall bfdFrontend tools debugger utils profiler BOOST_THREAD BOOST_REGEX BOOST_FILESYSTEM BOOST_SYSTEM BFD SYSTEMC WINSOCK',
-            install_path = os.path.join('${PREFIX}', 'lib')
+            install_path = os.path.join(bld.env.PREFIX, 'lib')
     )
 
     if bld.env['ENABLE_SHARED_64']:
         bld(features='cxx cxxshlib',
                 target = 'trap',
                 use = 'loader syscall bfdFrontend tools debugger utils profiler BOOST_THREAD BOOST_REGEX BOOST_FILESYSTEM BOOST_SYSTEM BFD SYSTEMC WINSOCK',
-                install_path = os.path.join('${PREFIX}', 'lib')
+                install_path = os.path.join(bld.env.PREFIX, 'lib')
         )
 
-    bld(features='py', source=bld.path.ant_glob('*.py'), install_path = os.path.join('${PYTHONDIR}', 'trap'))
+    bld(features='py', source=bld.path.ant_glob('*.py'), install_path = os.path.join(bld.env.PYTHONDIR, 'trap'))

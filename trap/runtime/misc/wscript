@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: iso-8859-1 -*-
 
+import os
+
 def build(bld):
-    bld.install_files('${PREFIX}/include', 'SparseMemoryAT.hpp SparseMemoryLT.hpp MemoryLT.hpp MemoryAT.hpp memAccessType.hpp PINTarget.hpp')
+    bld.install_files(os.path.join(bld.env.PREFIX, 'include'), 'SparseMemoryAT.hpp SparseMemoryLT.hpp MemoryLT.hpp MemoryAT.hpp memAccessType.hpp PINTarget.hpp')

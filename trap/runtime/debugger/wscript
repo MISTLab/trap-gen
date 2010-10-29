@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: iso-8859-1 -*-
 
-import sys
+import sys, os
 
 def build(bld):
     uselib_custom = ''
@@ -18,4 +18,4 @@ def build(bld):
         cxxflags = cppflags_custom
     )
 
-    bld.install_files('${PREFIX}/include', 'GDBStub.hpp GDBConnectionManager.hpp BreakpointManager.hpp WatchpointManager.hpp')
+    bld.install_files(os.path.join(bld.env.PREFIX, 'include'), 'GDBStub.hpp GDBConnectionManager.hpp BreakpointManager.hpp WatchpointManager.hpp')

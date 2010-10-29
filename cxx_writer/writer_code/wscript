@@ -4,4 +4,4 @@
 import os
 
 def build(bld):
-    bld(features='py', source=bld.path.ant_glob('*.py'), install_path = os.path.join('${PYTHONDIR}', 'cxx_writer', 'writer_code'))
+    bld(features='py', source=bld.path.ant_glob('*.py'), install_path = os.path.join(bld.env.PYTHONDIR, 'cxx_writer', 'writer_code'))
