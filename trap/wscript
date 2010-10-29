@@ -6,16 +6,20 @@ import os
 def build(bld):
     bld.recurse('runtime memAnalyzer')
 
+    uselib_custom = ''
+    if sys.platform == 'cygwin':
+        uselib_custom = ' WINSOCK'
+
     bld(features='cxx cxxstlib',
             target = 'trap',
-            use = 'loader syscall bfdFrontend tools debugger utils profiler BOOST_THREAD BOOST_REGEX BOOST_FILESYSTEM BOOST_SYSTEM BFD SYSTEMC WINSOCK',
+            use = 'loader syscall bfdFrontend tools debugger utils profiler BOOST_THREAD BOOST_REGEX BOOST_FILESYSTEM BOOST_SYSTEM BFD SYSTEMC' + uselib_custom,
             install_path = os.path.join(bld.env.PREFIX, 'lib')
     )
 
     if bld.env['ENABLE_SHARED_64']:
         bld(features='cxx cxxshlib',
                 target = 'trap',
-                use = 'loader syscall bfdFrontend tools debugger utils profiler BOOST_THREAD BOOST_REGEX BOOST_FILESYSTEM BOOST_SYSTEM BFD SYSTEMC WINSOCK',
+                use = 'loader syscall bfdFrontend tools debugger utils profiler BOOST_THREAD BOOST_REGEX BOOST_FILESYSTEM BOOST_SYSTEM BFD SYSTEMC' + uselib_custom,
                 install_path = os.path.join(bld.env.PREFIX, 'lib')
         )
 
