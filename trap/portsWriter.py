@@ -157,7 +157,11 @@ def getCPPExternalPorts(self, model, namespace):
                 memcpy(&datum, this->dmi_data.get_dmi_ptr() - this->dmi_data.get_start_address() + address, sizeof(datum));
             """
         if not model.startswith('acc'):
-            readCode += 'this->quantKeeper.inc(this->dmi_data.get_read_latency());'
+            readCode += """this->quantKeeper.inc(this->dmi_data.get_read_latency());
+            if(this->quantKeeper.need_sync()){
+                this->quantKeeper.sync();
+            }
+            """
         else:
             readCode += 'wait(this->dmi_data.get_read_latency());'
         readCode += """
@@ -190,7 +194,12 @@ def getCPPExternalPorts(self, model, namespace):
                 //Now lets keep track of time
             """
         if not model.startswith('acc'):
-            readCode += 'this->quantKeeper.set(delay);\n}\n'
+            readCode += """this->quantKeeper.set(delay);
+                if(this->quantKeeper.need_sync()){
+                    this->quantKeeper.sync();
+                }
+            }
+            """
         else:
             readCode += 'wait(delay);\n}\n'
     else:
@@ -274,7 +283,10 @@ def getCPPExternalPorts(self, model, namespace):
                 memcpy(this->dmi_data.get_dmi_ptr() - this->dmi_data.get_start_address() + address, &datum, sizeof(datum));
             """
         if not model.startswith('acc'):
-            writeCode += 'this->quantKeeper.inc(this->dmi_data.get_write_latency());'
+            writeCode += """this->quantKeeper.inc(this->dmi_data.get_write_latency());
+            if(this->quantKeeper.need_sync()){
+                this->quantKeeper.sync();
+            }"""
         else:
             writeCode += 'wait(this->dmi_data.get_write_latency());'
         writeCode += """
@@ -307,7 +319,12 @@ def getCPPExternalPorts(self, model, namespace):
                 //Now lets keep track of time
             """
         if not model.startswith('acc'):
-            writeCode += 'this->quantKeeper.set(delay);\n}\n'
+            writeCode += """this->quantKeeper.set(delay);
+                if(this->quantKeeper.need_sync()){
+                    this->quantKeeper.sync();
+                }
+            }
+            """
         else:
             writeCode += 'wait(delay);\n}\n'
     else:
