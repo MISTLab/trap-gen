@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: iso-8859-1 -*-
 
-import sys
+import sys, os
 
 # configuration line for microsoft windows: python waf configure --with-systemc=C:\systemc-2.2.0 --with-bfd=C:\binutilsInstall --prefix=c:\trapInstall --boost-includes=C:\boost\boost_1_36_0 --boost-libs=C:\boost\boost_1_36_0\lib
 
@@ -10,7 +10,6 @@ top = '.'
 out = '_build_'
 VERSION = '0.4.5'
 APPNAME = 'trap'
-import os
 
 # Checks, on 64 bit systems, that a given static library and the objects contained in it can
 # be linked creating a shared library out of them: this because, on 64 bit systems, shared libraries
@@ -44,6 +43,13 @@ def build(ctx):
     ctx.recurse('trap')
 
 def configure(ctx):
+    #############################################################
+    # Small hack to adjust common usage of CPPFLAGS
+    #############################################################
+    for flag in ctx.env['CPPFLAGS']:
+        if flag.startswith('-D'):
+            ctx.env.append_unique('DEFINES', flag[2:])
+
     ctx.check_waf_version(mini='1.6.0')
     
     ctx.env['ENABLE_SHARED_64'] = True
@@ -123,13 +129,13 @@ def configure(ctx):
         if ctx.check_cxx(cxxflags=testFlags, msg='Checking for g++ optimization flags') and ctx.check_cc(cflags=testFlags, msg='Checking for gcc optimization flags'):
             ctx.env.append_unique('CXXFLAGS', testFlags)
             ctx.env.append_unique('CCFLAGS', testFlags)
-            ctx.env.append_unique('CPPFLAGS', '-DNDEBUG')
+            ctx.env.append_unique('DEFINES', 'NDEBUG')
         else:
             testFlags = ['-O2', '-pipe', '-finline-functions', '-fomit-frame-pointer']
             if ctx.check_cxx(cxxflags=testFlags, msg='Checking for g++ optimization flags') and ctx.check_cc(cflags=testFlags, msg='Checking for gcc optimization flags'):
                 ctx.env.append_unique('CXXFLAGS', testFlags)
                 ctx.env.append_unique('CCFLAGS', testFlags)
-                ctx.env.append_unique('CPPFLAGS', '-DNDEBUG')
+                ctx.env.append_unique('DEFINES', 'NDEBUG')
 
     ########################################
     # Check for special gcc flags
@@ -138,26 +144,30 @@ def configure(ctx):
     ctx.env.append_unique('CCFLAGS', '-fstrict-aliasing')
     ctx.env.append_unique('CXXFLAGS', '-fPIC')
     ctx.env.append_unique('CCFLAGS', '-fPIC')
-    ctx.env.append_unique('CPPFLAGS', '-DPIC')
+    ctx.env.append_unique('DEFINES', 'PIC')
     ctx.env.append_unique('LINKFLAGS', '-fPIC')
     if sys.platform != 'darwin':
         ctx.env.append_unique('LINKFLAGS', '-Wl,-E')
     else:
         ctx.env.append_unique('LINKFLAGS', ['-undefined', 'suppress', '-flat_namespace'])
 
-    ctx.check_cc(cflags=ctx.env['CFLAGS'], mandatory=1, msg='Checking for C compilation flags')
-    ctx.check_cc(cflags=ctx.env['CCFLAGS'], mandatory=1, msg='Checking for C compilation flags')
-    ctx.check_cxx(cxxflags=ctx.env['CXXFLAGS'], mandatory=1, msg='Checking for C++ compilation flags')
-    ctx.check_cxx(linkflags=ctx.env['LINKFLAGS'], mandatory=1, msg='Checking for link flags')
+    if ctx.env['CFLAGS']:
+        ctx.check_cc(cflags=ctx.env['CFLAGS'], mandatory=1, msg='Checking for C compilation flags')
+    if ctx.env['CCFLAGS'] and ctx.env['CCFLAGS'] != ctx.env['CFLAGS']:
+        ctx.check_cc(cflags=ctx.env['CCFLAGS'], mandatory=1, msg='Checking for C compilation flags')
+    if ctx.env['CXXFLAGS']:
+        ctx.check_cxx(cxxflags=ctx.env['CXXFLAGS'], mandatory=1, msg='Checking for C++ compilation flags')
+    if ctx.env['LINKFLAGS']:
+        ctx.check_cxx(linkflags=ctx.env['LINKFLAGS'], mandatory=1, msg='Checking for link flags')
 
     ########################################
     # Setting the host endianess
     ########################################
     if sys.byteorder == "little":
-        ctx.env.append_unique('CPPFLAGS','-DLITTLE_ENDIAN_BO')
+        ctx.env.append_unique('DEFINES', 'LITTLE_ENDIAN_BO')
         ctx.msg('Checking for host endianness', 'little')
     else:
-        ctx.env.append_unique('CPPFLAGS','-DBIG_ENDIAN_BO')
+        ctx.env.append_unique('DEFINES', 'BIG_ENDIAN_BO')
         ctx.msg('Checking for host endianness', 'big')
 
     ########################################
@@ -200,61 +210,6 @@ def configure(ctx):
                     searchDirs.append(os.path.abspath(i))
             break
     ctx.msg('Determining gcc search path', 'ok')
-
-    ###########################################################
-    # Check for BFD library and header
-    ###########################################################
-    if ctx.options.bfddir:
-        searchDirs = [os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.bfddir, 'lib'))))]
-
-    import glob
-    foundStatic = []
-    foundShared = []
-    for directory in searchDirs:
-        foundShared += glob.glob(os.path.join(directory, ctx.env['cxxshlib_PATTERN'].split('%s')[0] + 'bfd*' + ctx.env['cxxshlib_PATTERN'].split('%s')[1]))
-        foundStatic += glob.glob(os.path.join(directory, ctx.env['cxxstlib_PATTERN'].split('%s')[0] + 'bfd*' + ctx.env['cxxstlib_PATTERN'].split('%s')[1]))
-    if not foundStatic and not foundShared:
-        ctx.fatal('BFD library not found, install binutils development package for your distribution and/or specify its localtion with the --with-bfd option')
-    staticPaths = []
-    tempLibs = []
-    for bfdlib in foundStatic:
-        tempLibs.append(os.path.splitext(os.path.basename(bfdlib))[0][len(ctx.env['cxxstlib_PATTERN'].split('%s')[0]):])
-        staticPaths.append(os.path.split(bfdlib)[0])
-    foundStatic = tempLibs
-    tempLibs = []
-    sharedPaths = []
-    for bfdlib in foundShared:
-        tempLibs.append(os.path.splitext(os.path.basename(bfdlib))[0][len(ctx.env['cxxshlib_PATTERN'].split('%s')[0]):])
-        sharedPaths.append(os.path.split(bfdlib)[0])
-    foundShared = tempLibs
-    bfd_lib_name = ''
-    for bfdlib in foundStatic:
-        if bfdlib in foundShared:
-            bfd_lib_name = bfdlib
-            searchPaths = sharedPaths + staticPaths
-            break
-    if not bfd_lib_name:
-        if foundShared:
-            bfd_lib_name = foundShared[0]
-            searchPaths = sharedPaths
-        else:
-            for bfdlib in foundStatic:
-                bfd_lib_name = bfdlib
-                if 'pic' in bfdlib:
-                    break
-            searchPaths = staticPaths
-
-    ctx.check_cc(lib=bfd_lib_name, uselib='BFD', uselib_store='BFD', mandatory=1, libpath=searchPaths, errmsg='not found, use --with-bfd option', okmsg='ok ' + bfd_lib_name)
-
-    if not foundShared:
-        if not check_dyn_library(ctx, ctx.env['cxxstlib_PATTERN'] % bfd_lib_name, searchPaths):
-            ctx.msg(ctx.env['cxxstlib_PATTERN'] % bfd_lib_name + ' relocabilty', 'Found position dependent code: shared libraries disabled', color='YELLOW')
-            ctx.env['ENABLE_SHARED_64'] = False
-
-    if ctx.options.bfddir:
-        ctx.check_cc(header_name='bfd.h', uselib='BFD', uselib_store='BFD', mandatory=1, includes=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.bfddir, 'include'))))])
-    else:
-        ctx.check_cc(header_name='bfd.h', uselib='BFD', uselib_store='BFD', mandatory=1)
 
     ###########################################################
     # Check for IBERTY library
@@ -307,6 +262,61 @@ def configure(ctx):
             ctx.env['ENABLE_SHARED_64'] = False
 
     ###########################################################
+    # Check for BFD library and header
+    ###########################################################
+    if ctx.options.bfddir:
+        searchDirs = [os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.bfddir, 'lib'))))]
+
+    import glob
+    foundStatic = []
+    foundShared = []
+    for directory in searchDirs:
+        foundShared += glob.glob(os.path.join(directory, ctx.env['cxxshlib_PATTERN'].split('%s')[0] + 'bfd*' + ctx.env['cxxshlib_PATTERN'].split('%s')[1]))
+        foundStatic += glob.glob(os.path.join(directory, ctx.env['cxxstlib_PATTERN'].split('%s')[0] + 'bfd*' + ctx.env['cxxstlib_PATTERN'].split('%s')[1]))
+    if not foundStatic and not foundShared:
+        ctx.fatal('BFD library not found, install binutils development package for your distribution and/or specify its localtion with the --with-bfd option')
+    staticPaths = []
+    tempLibs = []
+    for bfdlib in foundStatic:
+        tempLibs.append(os.path.splitext(os.path.basename(bfdlib))[0][len(ctx.env['cxxstlib_PATTERN'].split('%s')[0]):])
+        staticPaths.append(os.path.split(bfdlib)[0])
+    foundStatic = tempLibs
+    tempLibs = []
+    sharedPaths = []
+    for bfdlib in foundShared:
+        tempLibs.append(os.path.splitext(os.path.basename(bfdlib))[0][len(ctx.env['cxxshlib_PATTERN'].split('%s')[0]):])
+        sharedPaths.append(os.path.split(bfdlib)[0])
+    foundShared = tempLibs
+    bfd_lib_name = ''
+    for bfdlib in foundStatic:
+        if bfdlib in foundShared:
+            bfd_lib_name = bfdlib
+            searchPaths = sharedPaths + staticPaths
+            break
+    if not bfd_lib_name:
+        if foundShared:
+            bfd_lib_name = foundShared[0]
+            searchPaths = sharedPaths
+        else:
+            for bfdlib in foundStatic:
+                bfd_lib_name = bfdlib
+                if 'pic' in bfdlib:
+                    break
+            searchPaths = staticPaths
+
+    ctx.check_cc(lib=bfd_lib_name, use='BFD', uselib_store='BFD', mandatory=1, libpath=searchPaths, errmsg='not found, use --with-bfd option', okmsg='ok ' + bfd_lib_name)
+
+    if not foundShared:
+        if not check_dyn_library(ctx, ctx.env['cxxstlib_PATTERN'] % bfd_lib_name, searchPaths):
+            ctx.msg(ctx.env['cxxstlib_PATTERN'] % bfd_lib_name + ' relocabilty', 'Found position dependent code: shared libraries disabled', color='YELLOW')
+            ctx.env['ENABLE_SHARED_64'] = False
+
+    if ctx.options.bfddir:
+        ctx.check_cc(header_name='bfd.h', use='BFD', uselib_store='BFD', mandatory=1, includes=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.bfddir, 'include'))))])
+    else:
+        ctx.check_cc(header_name='bfd.h', use='BFD', uselib_store='BFD', mandatory=1)
+
+    ###########################################################
     # Check for Binutils version
     ###########################################################
     # mandatory version checks
@@ -324,7 +334,7 @@ def configure(ctx):
             return 0;
         };
 """
-    ctx.check_cxx(fragment=binutilsVerCheck, msg='Checking for Binutils Version', uselib='BFD', mandatory=1, errmsg='Not supported version, use at least 2.16')
+    ctx.check_cxx(fragment=binutilsVerCheck, msg='Checking for Binutils Version', use='BFD', mandatory=1, errmsg='Not supported version, use at least 2.16')
 
     # bfd_demangle only appears in 2.18
     binutilsDemangleCheck = """
@@ -338,8 +348,8 @@ def configure(ctx):
             return 0;
         };
 """
-    if not ctx.check_cxx(fragment=binutilsDemangleCheck, msg='Checking for bfd_demangle', uselib='BFD', mandatory=0, okmsg='ok >= 2.18', errmsg='fail, reverting to cplus_demangle'):
-        ctx.env.append_unique('CPPFLAGS', '-DOLD_BFD')
+    if not ctx.check_cxx(fragment=binutilsDemangleCheck, msg='Checking for bfd_demangle', use='BFD', mandatory=0, okmsg='ok >= 2.18', errmsg='fail, reverting to cplus_demangle'):
+        ctx.env.append_unique('DEFINES', 'OLD_BFD')
 
     #########################################################
     # Check for zlib and libintl, needed by binutils under
@@ -389,7 +399,7 @@ def configure(ctx):
     # Check if systemc is compiled with quick threads or not
     ######################################################
     if not os.path.exists(os.path.join(syscpath[0] , 'sysc' , 'qt')):
-        ctx.env.append_unique('CPPFLAGS', '-DSC_USE_PTHREADS')
+        ctx.env.append_unique('DEFINES', 'SC_USE_PTHREADS')
     elif sys.platform == 'cygwin':
         ctx.fatal('SystemC under cygwin must be compiled with PThread support: recompile it using the "make pthreads" command')
 
@@ -400,7 +410,7 @@ def configure(ctx):
         systemCerrmsg='Error, at least version 2.2.0 required'
     else:
         systemCerrmsg='Error, at least version 2.2.0 required.\nSystemC also needs patching under cygwin:\nplease controll that lines 175 and 177 of header systemc.h are commented;\nfor more details refer to http://www.ht-lab.com/howto/sccygwin/sccygwin.html\nhttp://www.dti.dk/_root/media/27325_SystemC_Getting_Started_artikel.pdf'
-    ctx.check_cxx(header_name='systemc.h', uselib='SYSTEMC', uselib_store='SYSTEMC', mandatory=1, includes=syscpath)
+    ctx.check_cxx(header_name='systemc.h', use='SYSTEMC', uselib_store='SYSTEMC', mandatory=1, includes=syscpath)
     ctx.check_cxx(fragment="""
         #include <systemc.h>
 
@@ -419,7 +429,7 @@ def configure(ctx):
                 return 0;
             };
         }
-""", msg='Checking for SystemC version', uselib='SYSTEMC', mandatory=1, errmsg=systemCerrmsg)
+""", msg='Checking for SystemC version', use='SYSTEMC', mandatory=1, errmsg=systemCerrmsg)
 
     if ctx.options.pyinstalldir:
        ctx.env['PYTHON_INSTALL_DIR'] = ctx.options.pyinstalldir

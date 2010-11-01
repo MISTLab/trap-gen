@@ -15,7 +15,7 @@ def build(bld):
         use = 'SYSTEMC BOOST BOOST_REGEX BOOST_THREAD' + uselib_custom,
         target = 'debugger',
         install_path = None,
-        cxxflags = cppflags_custom
+        defines = cppflags_custom
     )
 
     bld.install_files(os.path.join(bld.env.PREFIX, 'include'), 'GDBStub.hpp GDBConnectionManager.hpp BreakpointManager.hpp WatchpointManager.hpp')

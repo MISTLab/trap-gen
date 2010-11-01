@@ -69,8 +69,8 @@ from LEON3Methods import updateAliasCode_exception
 from LEON3Methods import updateAliasCode_abi
 
 # Lets now start building the processor
-processor = trap.Processor('LEON3', version = '0.2.5', systemc = True, instructionCache = True, cacheLimit = 256)
-processor.setIpRights('lgpl', 'Luca Fossati', 'fossati@elet.polimi.it', banner)
+processor = trap.Processor('LEON3', version = '0.2.5', systemc = False, instructionCache = True, cacheLimit = 256)
+processor.setIpRights('lgpl', 'Luca Fossati', 'fossati.luca@fastwebnet.it', banner)
 processor.setBigEndian() # big endian
 processor.setWordsize(4, 8) # 4 bytes per word, 8 bits per byte
 processor.setISA(LEON3Isa.isa) # lets set the instruction set
@@ -194,14 +194,14 @@ processor.setFetchRegister('PC')
 
 # Lets now add details about the processor interconnection (i.e. memory ports,
 # interrupt ports, pins, etc.)
-processor.addTLMPort('instrMem', True)
-processor.addTLMPort('dataMem')
+#processor.addTLMPort('instrMem', True)
+#processor.addTLMPort('dataMem')
 # Here I set the properties of the TLM memory: note that they are only used
 # to instantiate a fake memory in the simulator main file, but they do not
 # affect at all the processor core: i.e. once the processor is plugged in a
 # system-level simulator, they have no effect at all
-processor.setTLMMem(10*1024*1024, 0, True)
-#processor.setMemory('dataMem', 10*1024*1024)
+#processor.setTLMMem(10*1024*1024, 0, True)
+processor.setMemory('dataMem', 10*1024*1024)
 #processor.setMemory('dataMem', 10*1024*1024, True, 'PC')
 
 # It PSR[ET] == 0 I do not do anything; else
@@ -302,12 +302,12 @@ processor.setABI(abi)
 # Finally we can dump the processor on file
 #processor.write(folder = 'processor', models = ['funcLT'], dumpDecoderName = 'decoder.dot')
 #processor.write(folder = 'processor', models = ['funcLT'], trace = True)
-#processor.write(folder = 'processor', models = ['funcLT'], tests = False)
-processor.write(folder = 'processor', models = ['funcAT'], tests = False)
+processor.write(folder = 'processor', models = ['funcLT'], tests = True)
+#processor.write(folder = 'processor', models = ['funcAT'], tests = False)
 #processor.write(folder = 'processor', models = ['funcLT'], trace = True, tests = False)
 #processor.write(folder = 'processor', models = ['funcAT'], trace = False)
 #processor.write(folder = 'processor', models = ['funcAT'])
-#processor.write(folder = 'processor', models = ['accLT', 'funcLT', 'funcAT'], tests = False)
+#processor.write(folder = 'processor', models = ['accLT', 'funcLT', 'funcAT'], tests = True)
 #processor.write(folder = 'processor', models = ['accLT'], trace = True)
 #processor.write(folder = 'processor', models = ['accLT', 'funcAT', 'accAT', 'funcLT'], trace = False)
 #processor.write(folder = 'processor', models = ['accLT', 'funcLT'], trace = True, combinedTrace = True)

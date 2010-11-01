@@ -84,13 +84,13 @@ def create_esa_license(sw_name):
     return r"""
 This file is part of """ + sw_name + r""".
 
-""" + sw_name + r""" is owned by the European Space Agency; no part may be
-reproduced in any form without the prior written permission of ESA.
+""" + sw_name + r""" may be freely used, copied, modified, and
+redistributed by the European Space Agency for the Agency's own requirements.
 
-All information is provided "as is", there is no warranty that
-the information is correct or suitable for any purpose,
-neither implicit nor explicit. This information does not
-necessarily reflect the policy of the European Space Agency.
+""" + sw_name + r""" is provided "as is", there is no warranty that
+the program is correct or suitable for any purpose,
+neither implicit nor explicit. The program and the information in it contained do not
+necessarily reflect the policy of the European Space Agency. 
 
 For more information on the licensing please contact the Agency
 (Luca.Fossati@esa.int - Kostas.Marinis@esa.int).

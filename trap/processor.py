@@ -1279,7 +1279,7 @@ class Processor:
 
                 mainTestFile.addMember(self.getTestMainCode())
                 testFolder.addCode(mainTestFile)
-                testFolder.addUseLib(os.path.split(curFolder.path)[-1])
+                testFolder.addUseLib(os.path.split(curFolder.path)[-1] + '_objs')
             curFolder.addHeader(headFileInstr)
             curFolder.addCode(implFileInstr)
             curFolder.addHeader(headFileRegs)
