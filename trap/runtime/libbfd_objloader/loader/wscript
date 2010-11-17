@@ -5,8 +5,8 @@ import os
 
 def build(bld):
     bld.objects(source='execLoader.cpp', 
-        use = 'BFD BOOST BOOST_FILESYSTEM BOOST_SYSTEM',
-        includes = '. ../utils',
+        use = 'ELF_LIB BOOST BOOST_FILESYSTEM BOOST_SYSTEM',
+        includes = '. ../../utils',
         target = 'loader', 
         install_path = None
     )

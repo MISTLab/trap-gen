@@ -44,6 +44,19 @@ def build(ctx):
 
 def configure(ctx):
     #############################################################
+    # Validation of command line options
+    #############################################################
+    trap_license = ctx.options.trap_license.lower()
+    if not trap_license in ['gpl', 'lgpl']:
+        ctx.fatal('Specified ' + trap_license + ' TRAP license not valid: use either gpl or lgpl')
+    ctx.env['LICENSE'] = trap_license
+
+    if ctx.options.bfddir and trap_license == 'lgpl':
+        ctx.fatal('--with-bfd option is not valid when lgpl license is specified')
+    if ctx.options.elfdir and trap_license == 'gpl':
+        ctx.fatal('--with-elf option is not valid when gpl license is specified')
+
+    #############################################################
     # Small hack to adjust common usage of CPPFLAGS
     #############################################################
     for flag in ctx.env['CPPFLAGS']:
@@ -60,7 +73,7 @@ def configure(ctx):
         if int(ctx.env.CC_VERSION[0]) > 3:
             ctx.msg('Checking for compiler version', 'ok - ' + '.'.join(ctx.env.CC_VERSION))
         else:
-            ctx.fatal('Compiler Version' + '.'.join(ctx.env.CC_VERSION) + ' too old: at least version 4.x required')
+            ctx.fatal('Compiler Version ' + '.'.join(ctx.env.CC_VERSION) + ' too old: at least version 4.x required')
     ctx.find_program('objdump', mandatory=1, var='OBJDUMP')
 
     # Check for python
@@ -211,153 +224,156 @@ def configure(ctx):
             break
     ctx.msg('Determining gcc search path', 'ok')
 
-    ###########################################################
-    # Check for IBERTY library
-    ###########################################################
-    if ctx.options.bfddir:
-        searchDirs = [os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.bfddir, 'lib'))))]
+    if trap_license == 'gpl':
+        ###########################################################
+        # Check for IBERTY library
+        ###########################################################
+        if ctx.options.bfddir:
+            searchDirs = [os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.bfddir, 'lib'))))]
 
-    import glob
-    foundStatic = []
-    foundShared = []
-    for directory in searchDirs:
-        foundShared += glob.glob(os.path.join(directory, ctx.env['cxxshlib_PATTERN'].split('%s')[0] + 'iberty*' + ctx.env['cxxshlib_PATTERN'].split('%s')[1]))
-        foundStatic += glob.glob(os.path.join(directory, ctx.env['cxxstlib_PATTERN'].split('%s')[0] + 'iberty*' + ctx.env['cxxstlib_PATTERN'].split('%s')[1]))
-    if not foundStatic and not foundShared:
-        ctx.fatal('IBERTY library not found, install binutils development package for your distribution and/or specify its localtion with the --with-bfd option')
-    tempLibs = []
-    staticPaths = []
-    for ibertylib in foundStatic:
-        tempLibs.append(os.path.splitext(os.path.basename(ibertylib))[0][len(ctx.env['cxxstlib_PATTERN'].split('%s')[0]):])
-        staticPaths.append(os.path.split(ibertylib)[0])
-    foundStatic = tempLibs
-    tempLibs = []
-    sharedPaths = []
-    for ibertylib in foundShared:
-        tempLibs.append(os.path.splitext(os.path.basename(ibertylib))[0][len(ctx.env['cxxshlib_PATTERN'].split('%s')[0]):])
-        sharedPaths.append(os.path.split(ibertylib)[0])
-    foundShared = tempLibs
-    iberty_lib_name = ''
-    for ibertylib in foundStatic:
-        if ibertylib in foundShared:
-            iberty_lib_name = ibertylib
-            searchPaths = sharedPaths + staticPaths
-            break
-    if not iberty_lib_name:
-        if foundShared:
-            iberty_lib_name = foundShared[0]
-            searchPaths = sharedPaths
-        else:
-            for ibertylib in foundStatic:
+        import glob
+        foundStatic = []
+        foundShared = []
+        for directory in searchDirs:
+            foundShared += glob.glob(os.path.join(directory, ctx.env['cxxshlib_PATTERN'].split('%s')[0] + 'iberty*' + ctx.env['cxxshlib_PATTERN'].split('%s')[1]))
+            foundStatic += glob.glob(os.path.join(directory, ctx.env['cxxstlib_PATTERN'].split('%s')[0] + 'iberty*' + ctx.env['cxxstlib_PATTERN'].split('%s')[1]))
+        if not foundStatic and not foundShared:
+            ctx.fatal('IBERTY library not found, install binutils development package for your distribution and/or specify its localtion with the --with-bfd option')
+        tempLibs = []
+        staticPaths = []
+        for ibertylib in foundStatic:
+            tempLibs.append(os.path.splitext(os.path.basename(ibertylib))[0][len(ctx.env['cxxstlib_PATTERN'].split('%s')[0]):])
+            staticPaths.append(os.path.split(ibertylib)[0])
+        foundStatic = tempLibs
+        tempLibs = []
+        sharedPaths = []
+        for ibertylib in foundShared:
+            tempLibs.append(os.path.splitext(os.path.basename(ibertylib))[0][len(ctx.env['cxxshlib_PATTERN'].split('%s')[0]):])
+            sharedPaths.append(os.path.split(ibertylib)[0])
+        foundShared = tempLibs
+        iberty_lib_name = ''
+        for ibertylib in foundStatic:
+            if ibertylib in foundShared:
                 iberty_lib_name = ibertylib
-                if 'pic' in ibertylib:
-                    break
-            searchPaths = staticPaths
+                searchPaths = sharedPaths + staticPaths
+                break
+        if not iberty_lib_name:
+            if foundShared:
+                iberty_lib_name = foundShared[0]
+                searchPaths = sharedPaths
+            else:
+                for ibertylib in foundStatic:
+                    iberty_lib_name = ibertylib
+                    if 'pic' in ibertylib:
+                        break
+                searchPaths = staticPaths
 
-    ctx.check_cc(lib=iberty_lib_name, uselib_store='BFD', mandatory=1, libpath=searchPaths, errmsg='not found, use --with-bfd option', okmsg='ok ' + iberty_lib_name)
+        ctx.check_cc(lib=iberty_lib_name, uselib_store='ELF_LIB', mandatory=1, libpath=searchPaths, errmsg='not found, use --with-bfd option', okmsg='ok ' + iberty_lib_name)
 
-    if not foundShared:
-        if not check_dyn_library(ctx, ctx.env['cxxstlib_PATTERN'] % iberty_lib_name, searchPaths):
-            ctx.msg(conf.env['cxxstlib_PATTERN'] % iberty_lib_name + ' relocabilty', 'Found position dependent code: shared libraries disabled', color='YELLOW')
-            ctx.env['ENABLE_SHARED_64'] = False
+        if not foundShared:
+            if not check_dyn_library(ctx, ctx.env['cxxstlib_PATTERN'] % iberty_lib_name, searchPaths):
+                ctx.msg(conf.env['cxxstlib_PATTERN'] % iberty_lib_name + ' relocabilty', 'Found position dependent code: shared libraries disabled', color='YELLOW')
+                ctx.env['ENABLE_SHARED_64'] = False
 
-    ###########################################################
-    # Check for BFD library and header
-    ###########################################################
-    if ctx.options.bfddir:
-        searchDirs = [os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.bfddir, 'lib'))))]
+        ###########################################################
+        # Check for BFD library and header
+        ###########################################################
+        if ctx.options.bfddir:
+            searchDirs = [os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.bfddir, 'lib'))))]
 
-    import glob
-    foundStatic = []
-    foundShared = []
-    for directory in searchDirs:
-        foundShared += glob.glob(os.path.join(directory, ctx.env['cxxshlib_PATTERN'].split('%s')[0] + 'bfd*' + ctx.env['cxxshlib_PATTERN'].split('%s')[1]))
-        foundStatic += glob.glob(os.path.join(directory, ctx.env['cxxstlib_PATTERN'].split('%s')[0] + 'bfd*' + ctx.env['cxxstlib_PATTERN'].split('%s')[1]))
-    if not foundStatic and not foundShared:
-        ctx.fatal('BFD library not found, install binutils development package for your distribution and/or specify its localtion with the --with-bfd option')
-    staticPaths = []
-    tempLibs = []
-    for bfdlib in foundStatic:
-        tempLibs.append(os.path.splitext(os.path.basename(bfdlib))[0][len(ctx.env['cxxstlib_PATTERN'].split('%s')[0]):])
-        staticPaths.append(os.path.split(bfdlib)[0])
-    foundStatic = tempLibs
-    tempLibs = []
-    sharedPaths = []
-    for bfdlib in foundShared:
-        tempLibs.append(os.path.splitext(os.path.basename(bfdlib))[0][len(ctx.env['cxxshlib_PATTERN'].split('%s')[0]):])
-        sharedPaths.append(os.path.split(bfdlib)[0])
-    foundShared = tempLibs
-    bfd_lib_name = ''
-    for bfdlib in foundStatic:
-        if bfdlib in foundShared:
-            bfd_lib_name = bfdlib
-            searchPaths = sharedPaths + staticPaths
-            break
-    if not bfd_lib_name:
-        if foundShared:
-            bfd_lib_name = foundShared[0]
-            searchPaths = sharedPaths
-        else:
-            for bfdlib in foundStatic:
+        import glob
+        foundStatic = []
+        foundShared = []
+        for directory in searchDirs:
+            foundShared += glob.glob(os.path.join(directory, ctx.env['cxxshlib_PATTERN'].split('%s')[0] + 'bfd*' + ctx.env['cxxshlib_PATTERN'].split('%s')[1]))
+            foundStatic += glob.glob(os.path.join(directory, ctx.env['cxxstlib_PATTERN'].split('%s')[0] + 'bfd*' + ctx.env['cxxstlib_PATTERN'].split('%s')[1]))
+        if not foundStatic and not foundShared:
+            ctx.fatal('BFD library not found, install binutils development package for your distribution and/or specify its localtion with the --with-bfd option')
+        staticPaths = []
+        tempLibs = []
+        for bfdlib in foundStatic:
+            tempLibs.append(os.path.splitext(os.path.basename(bfdlib))[0][len(ctx.env['cxxstlib_PATTERN'].split('%s')[0]):])
+            staticPaths.append(os.path.split(bfdlib)[0])
+        foundStatic = tempLibs
+        tempLibs = []
+        sharedPaths = []
+        for bfdlib in foundShared:
+            tempLibs.append(os.path.splitext(os.path.basename(bfdlib))[0][len(ctx.env['cxxshlib_PATTERN'].split('%s')[0]):])
+            sharedPaths.append(os.path.split(bfdlib)[0])
+        foundShared = tempLibs
+        bfd_lib_name = ''
+        for bfdlib in foundStatic:
+            if bfdlib in foundShared:
                 bfd_lib_name = bfdlib
-                if 'pic' in bfdlib:
-                    break
-            searchPaths = staticPaths
+                searchPaths = sharedPaths + staticPaths
+                break
+        if not bfd_lib_name:
+            if foundShared:
+                bfd_lib_name = foundShared[0]
+                searchPaths = sharedPaths
+            else:
+                for bfdlib in foundStatic:
+                    bfd_lib_name = bfdlib
+                    if 'pic' in bfdlib:
+                        break
+                searchPaths = staticPaths
 
-    ctx.check_cc(lib=bfd_lib_name, use='BFD', uselib_store='BFD', mandatory=1, libpath=searchPaths, errmsg='not found, use --with-bfd option', okmsg='ok ' + bfd_lib_name)
+        ctx.check_cc(lib=bfd_lib_name, use='ELF_LIB', uselib_store='ELF_LIB', mandatory=1, libpath=searchPaths, errmsg='not found, use --with-bfd option', okmsg='ok ' + bfd_lib_name)
 
-    if not foundShared:
-        if not check_dyn_library(ctx, ctx.env['cxxstlib_PATTERN'] % bfd_lib_name, searchPaths):
-            ctx.msg(ctx.env['cxxstlib_PATTERN'] % bfd_lib_name + ' relocabilty', 'Found position dependent code: shared libraries disabled', color='YELLOW')
-            ctx.env['ENABLE_SHARED_64'] = False
+        if not foundShared:
+            if not check_dyn_library(ctx, ctx.env['cxxstlib_PATTERN'] % bfd_lib_name, searchPaths):
+                ctx.msg(ctx.env['cxxstlib_PATTERN'] % bfd_lib_name + ' relocabilty', 'Found position dependent code: shared libraries disabled', color='YELLOW')
+                ctx.env['ENABLE_SHARED_64'] = False
 
-    if ctx.options.bfddir:
-        ctx.check_cc(header_name='bfd.h', use='BFD', uselib_store='BFD', mandatory=1, includes=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.bfddir, 'include'))))])
+        if ctx.options.bfddir:
+            ctx.check_cc(header_name='bfd.h', use='ELF_LIB', uselib_store='ELF_LIB', mandatory=1, includes=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.bfddir, 'include'))))])
+        else:
+            ctx.check_cc(header_name='bfd.h', use='ELF_LIB', uselib_store='ELF_LIB', mandatory=1)
+
+        ###########################################################
+        # Check for Binutils version
+        ###########################################################
+        # mandatory version checks
+        binutilsVerCheck = """
+            #include <cstdlib>
+            extern "C" {
+                #include <bfd.h>
+            }
+
+            int main(int argc, char** argv) {
+                bfd_section *p = NULL;
+                #ifndef bfd_is_target_special_symbol
+                #error "too old BFD library"
+                #endif
+                return 0;
+            };
+    """
+        ctx.check_cxx(fragment=binutilsVerCheck, msg='Checking for Binutils Version', use='ELF_LIB', mandatory=1, errmsg='Not supported version, use at least 2.16')
+
+        # bfd_demangle only appears in 2.18
+        binutilsDemangleCheck = """
+            #include <cstdlib>
+            extern "C" {
+                #include <bfd.h>
+            }
+
+            int main(int argc, char** argv) {
+                char * tempRet = bfd_demangle(NULL, NULL, 0);
+                return 0;
+            };
+    """
+        if not ctx.check_cxx(fragment=binutilsDemangleCheck, msg='Checking for bfd_demangle', use='ELF_LIB', mandatory=0, okmsg='ok >= 2.18', errmsg='fail, reverting to cplus_demangle'):
+            ctx.env.append_unique('DEFINES', 'OLD_BFD')
+
+        #########################################################
+        # Check for zlib and libintl, needed by binutils under
+        # MAC-OSX
+        #########################################################
+        if sys.platform == 'darwin' or sys.platform == 'cygwin':
+            ctx.check_cc(lib='z', uselib_store='ELF_LIB', mandatory=1)
+            ctx.check_cc(lib='intl', uselib_store='ELF_LIB', mandatory=1, libpath=searchDirs)
     else:
-        ctx.check_cc(header_name='bfd.h', use='BFD', uselib_store='BFD', mandatory=1)
-
-    ###########################################################
-    # Check for Binutils version
-    ###########################################################
-    # mandatory version checks
-    binutilsVerCheck = """
-        #include <cstdlib>
-        extern "C" {
-            #include <bfd.h>
-        }
-
-        int main(int argc, char** argv) {
-            bfd_section *p = NULL;
-            #ifndef bfd_is_target_special_symbol
-            #error "too old BFD library"
-            #endif
-            return 0;
-        };
-"""
-    ctx.check_cxx(fragment=binutilsVerCheck, msg='Checking for Binutils Version', use='BFD', mandatory=1, errmsg='Not supported version, use at least 2.16')
-
-    # bfd_demangle only appears in 2.18
-    binutilsDemangleCheck = """
-        #include <cstdlib>
-        extern "C" {
-            #include <bfd.h>
-        }
-
-        int main(int argc, char** argv) {
-            char * tempRet = bfd_demangle(NULL, NULL, 0);
-            return 0;
-        };
-"""
-    if not ctx.check_cxx(fragment=binutilsDemangleCheck, msg='Checking for bfd_demangle', use='BFD', mandatory=0, okmsg='ok >= 2.18', errmsg='fail, reverting to cplus_demangle'):
-        ctx.env.append_unique('DEFINES', 'OLD_BFD')
-
-    #########################################################
-    # Check for zlib and libintl, needed by binutils under
-    # MAC-OSX
-    #########################################################
-    if sys.platform == 'darwin' or sys.platform == 'cygwin':
-        ctx.check_cc(lib='z', uselib_store='BFD', mandatory=1)
-        ctx.check_cc(lib='intl', uselib_store='BFD', mandatory=1, libpath=searchDirs)
+        ctx.fatal('lgpl license not yet supported for building TRAP')
 
     #########################################################
     # Check for the winsock library
@@ -452,6 +468,11 @@ def options(ctx):
     ctx.load('compiler_cxx', option_group=build_options)
     ctx.load('boost', option_group=build_options)
 
+    # Specify which type of license should be applied to TRAP library;
+    # note that if GPL then libbfd shall we used, otherwise libelf, and
+    # TRAP will be licensed LGPL
+    ctx.add_option('--license', type='string', default='gpl', help='Spcifies the License with which TRAP will be built [gpl, lgpl]', dest='trap_license' )
+
     # Python installation folder
     ctx.add_option('--py-install-dir', type='string', help='Folder where the python files will be installed', dest='pyinstalldir')
 
@@ -459,6 +480,8 @@ def options(ctx):
     ctx.add_option('--with-systemc', type='string', help='SystemC installation directory', dest='systemcdir' )
     # Specify BFD library path
     ctx.add_option('--with-bfd', type='string', help='BFD installation directory', dest='bfddir' )
+    # Specify libELF library path
+    ctx.add_option('--with-elf', type='string', help='libELF installation directory', dest='elfdir' )
     # Specify support for profilers
     ctx.add_option('-P', '--gprof', default=False, action='store_true', help='Enables profiling with gprof profiler', dest='enable_gprof')
     ctx.add_option('-V', '--vprof', default=False, action='store_true', help='Enables profiling with vprof profiler', dest='enable_vprof')

@@ -5,7 +5,7 @@ import os
 
 def build(bld):
     bld.objects(source='profInfo.cpp',
-        use = 'BFD SYSTEMC BOOST',
+        use = 'ELF_LIB SYSTEMC BOOST',
         includes = '. ../utils ../bfdFrontend',
         target = 'profiler',
         install_path = None

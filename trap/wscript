@@ -12,14 +12,14 @@ def build(bld):
 
     bld(features='cxx cxxstlib',
             target = 'trap',
-            use = 'loader syscall bfdFrontend tools debugger utils profiler BOOST_THREAD BOOST_REGEX BOOST_FILESYSTEM BOOST_SYSTEM BFD SYSTEMC' + uselib_custom,
+            use = 'syscall tools debugger utils profiler objcodeFrontend BOOST_THREAD BOOST_REGEX BOOST_FILESYSTEM BOOST_SYSTEM ELF_LIB SYSTEMC' + uselib_custom,
             install_path = os.path.join(bld.env.PREFIX, 'lib')
     )
 
     if bld.env['ENABLE_SHARED_64']:
         bld(features='cxx cxxshlib',
                 target = 'trap',
-                use = 'loader syscall bfdFrontend tools debugger utils profiler BOOST_THREAD BOOST_REGEX BOOST_FILESYSTEM BOOST_SYSTEM BFD SYSTEMC' + uselib_custom,
+                use = 'syscall tools debugger utils profiler objcodeFrontend BOOST_THREAD BOOST_REGEX BOOST_FILESYSTEM BOOST_SYSTEM ELF_LIB SYSTEMC' + uselib_custom,
                 install_path = os.path.join(bld.env.PREFIX, 'lib')
         )
 

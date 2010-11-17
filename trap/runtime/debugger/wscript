@@ -4,6 +4,11 @@
 import sys, os
 
 def build(bld):
+    if bld.env['LICENSE'] == 'gpl':
+        elfInclude = '../libbfd_objloader/bfdFrontend'
+    else:
+        elfInclude = '../libelf_objloader/bfdFrontend'
+
     uselib_custom = ''
     cppflags_custom = ''
     if sys.platform == 'cygwin':
@@ -11,7 +16,7 @@ def build(bld):
         uselib_custom = ' WINSOCK'
 
     bld.objects(source='GDBConnectionManager.cpp',
-        includes = '. ../bfdFontend ../utils ..',
+        includes = '. ' + elfInclude + ' ../utils ..',
         use = 'SYSTEMC BOOST BOOST_REGEX BOOST_THREAD' + uselib_custom,
         target = 'debugger',
         install_path = None,

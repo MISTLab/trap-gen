@@ -16,19 +16,19 @@
  *
  *
  *
- *   This file is part of TRAP.
+ *   This file is part of objcodeFrontend.
  *
- *   TRAP is free software; you can redistribute it and/or modify
- *   it under the terms of the GNU Lesser General Public License as published by
- *   the Free Software Foundation; either version 2 of the License, or
+ *   objcodeFrontend is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation; either version 3 of the License, or
  *   (at your option) any later version.
  *
- *   This program is distributed in the hope that it will be useful,
+ *   This library is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU Lesser General Public License for more details.
+ *   GNU General Public License for more details.
  *
- *   You should have received a copy of the GNU Lesser General Public License
+ *   You should have received a copy of the GNU General Public License
  *   along with this program; if not, write to the
  *   Free Software Foundation, Inc.,
  *   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -36,7 +36,7 @@
  *
  *
  *
- *   (c) Luca Fossati, fossati@elet.polimi.it
+ *   (c) Luca Fossati, fossati@elet.polimi.it, fossati.l@gmail.com
  *
 \***************************************************************************/
 
@@ -88,7 +88,7 @@ struct Section{
     int type;
 };
 
-class BFDFrontend{
+class ELFFrontend{
   private:
     //Contains the list of all the symbols in the binary file
     asymbol **sy;
@@ -118,13 +118,13 @@ class BFDFrontend{
     ///In case it is not possible to open the BFD because it is not possible to determine
     ///it target, this function extracts the list of possible targets
     std::string getMatchingFormats (char **p) const;
-    static BFDFrontend *curInstance;
+    static ELFFrontend *curInstance;
     //Private constructor: we want pepole to be only able to use getInstance
     //to get an instance of the frontend
-    BFDFrontend(std::string binaryName);
+    ELFFrontend(std::string binaryName);
   public:
-    ~BFDFrontend();
-    static BFDFrontend & getInstance(std::string fileName = "");
+    ~ELFFrontend();
+    static ELFFrontend & getInstance(std::string fileName = "");
     static void reset();
     ///Given an address, it returns the symbols found there,(more than one
     ///symbol can be mapped to an address). Note

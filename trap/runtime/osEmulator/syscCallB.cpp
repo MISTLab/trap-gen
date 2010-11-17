@@ -20,7 +20,7 @@
  *
  *   TRAP is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU Lesser General Public License as published by
- *   the Free Software Foundation; either version 2 of the License, or
+ *   the Free Software Foundation; either version 3 of the License, or
  *   (at your option) any later version.
  *
  *   This program is distributed in the hope that it will be useful,
@@ -36,11 +36,11 @@
  *
  *
  *
- *   (c) Luca Fossati, fossati@elet.polimi.it
+ *   (c) Luca Fossati, fossati@elet.polimi.it, fossati.l@gmail.com
  *
 \***************************************************************************/
 
-#include "bfdFrontend.hpp"
+#include "elfFrontend.hpp"
 #include "syscCallB.hpp"
 
 #include <map>
@@ -111,7 +111,7 @@ void trap::OSEmulatorBase::reset(){
     OSEmulatorBase::sysconfmap.clear();    
     OSEmulatorBase::programArgs.clear();    
     OSEmulatorBase::heapPointer.clear();    
-    BFDFrontend::reset();
+    ELFFrontend::reset();
 }
 
 

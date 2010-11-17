@@ -4,9 +4,14 @@
 import os
 
 def build(bld):
+    if bld.env['LICENSE'] == 'gpl':
+        elfInclude = '../libbfd_objloader/bfdFrontend'
+    else:
+        elfInclude = '../libelf_objloader/bfdFrontend'
+    
     bld.objects(source='syscCallB.cpp',
-        includes = '. ../bfdFontend ../utils ..',
-        use = 'SYSTEMC BOOST BOOST_REGEX BFD',
+        includes = '. ' + elfInclude + ' ../utils ..',
+        use = 'SYSTEMC BOOST BOOST_REGEX ELF_LIB',
         target = 'syscall',
         install_path = None
     )

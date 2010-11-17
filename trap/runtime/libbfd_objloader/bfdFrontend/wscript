@@ -5,10 +5,10 @@ import os
 
 def build(bld):
     bld.objects(source='bfdFrontend.cpp',
-        use = 'BFD BOOST BOOST_REGEX',
-        includes = '. ../utils',
+        use = 'ELF_LIB BOOST BOOST_REGEX',
+        includes = '. ../../utils',
         target = 'bfdFrontend',
         install_path = None
     )
     
-    bld.install_files(os.path.join(bld.env.PREFIX, 'include'), 'bfdFrontend.hpp')
+    bld.install_files(os.path.join(bld.env.PREFIX, 'include'), 'elfFrontend.hpp')

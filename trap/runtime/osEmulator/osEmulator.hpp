@@ -20,7 +20,7 @@
  *
  *   TRAP is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU Lesser General Public License as published by
- *   the Free Software Foundation; either version 2 of the License, or
+ *   the Free Software Foundation; either version 3 of the License, or
  *   (at your option) any later version.
  *
  *   This program is distributed in the hope that it will be useful,
@@ -36,7 +36,7 @@
  *
  *
  *
- *   (c) Luca Fossati, fossati@elet.polimi.it
+ *   (c) Luca Fossati, fossati@elet.polimi.it, fossati.l@gmail.com
  *
 \***************************************************************************/
 
@@ -75,7 +75,7 @@
 #include "ToolsIf.hpp"
 
 #ifndef EXTERNAL_BFD
-#include "bfdFrontend.hpp"
+#include "elfFrontend.hpp"
 #else
 #include "bfdWrapper.hpp"
 #define BFDFrontend BFDWrapper
@@ -102,9 +102,9 @@ template<class issueWidth> class OSEmulator : public ToolsIf<issueWidth>, OSEmul
     }
 
     bool register_syscall(std::string funName, SyscallCB<issueWidth> &callBack){
-        BFDFrontend &bfdFE = BFDFrontend::getInstance();
+        ELFFrontend &elfFE = ELFFrontend::getInstance();
         bool valid = false;
-        unsigned int symAddr = bfdFE.getSymAddr(funName, valid);
+        unsigned int symAddr = elfFE.getSymAddr(funName, valid);
         if(!valid){
             return false;
         }
@@ -153,11 +153,11 @@ template<class issueWidth> class OSEmulator : public ToolsIf<issueWidth>, OSEmul
         this->syscCallbacksEnd = this->syscCallbacks.end();
     }
     std::set<std::string> getRegisteredFunctions(){
-        BFDFrontend &bfdFE = BFDFrontend::getInstance();
+        ELFFrontend &elfFE = ELFFrontend::getInstance();
         std::set<std::string> registeredFunctions;
         typename template_map<issueWidth, SyscallCB<issueWidth>* >::iterator emuIter, emuEnd;
         for(emuIter = this->syscCallbacks.begin(), emuEnd = this->syscCallbacks.end(); emuIter != emuEnd; emuIter++){
-            registeredFunctions.insert(bfdFE.symbolAt(emuIter->first));
+            registeredFunctions.insert(elfFE.symbolAt(emuIter->first));
         }
         return registeredFunctions;
     }
@@ -170,7 +170,7 @@ template<class issueWidth> class OSEmulator : public ToolsIf<issueWidth>, OSEmul
         if(OSEmulatorBase::heapPointer.find(group) == OSEmulatorBase::heapPointer.end())
             OSEmulatorBase::heapPointer[group] = (unsigned int)this->processorInstance.getCodeLimit() + sizeof(issueWidth);
 
-        BFDFrontend::getInstance(execName);
+        ELFFrontend::getInstance(execName);
         //Now I perform the registration of the basic System Calls
         bool registered = false;
 

@@ -1,3 +1,45 @@
+/***************************************************************************\
+ *
+ *
+ *            ___        ___           ___           ___
+ *           /  /\      /  /\         /  /\         /  /\
+ *          /  /:/     /  /::\       /  /::\       /  /::\
+ *         /  /:/     /  /:/\:\     /  /:/\:\     /  /:/\:\
+ *        /  /:/     /  /:/~/:/    /  /:/~/::\   /  /:/~/:/
+ *       /  /::\    /__/:/ /:/___ /__/:/ /:/\:\ /__/:/ /:/
+ *      /__/:/\:\   \  \:\/:::::/ \  \:\/:/__\/ \  \:\/:/
+ *      \__\/  \:\   \  \::/~~~~   \  \::/       \  \::/
+ *           \  \:\   \  \:\        \  \:\        \  \:\
+ *            \  \ \   \  \:\        \  \:\        \  \:\
+ *             \__\/    \__\/         \__\/         \__\/
+ *
+ *
+ *
+ *
+ *   This file is part of TRAP.
+ *
+ *   TRAP is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU Lesser General Public License as published by
+ *   the Free Software Foundation; either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU Lesser General Public License for more details.
+ *
+ *   You should have received a copy of the GNU Lesser General Public License
+ *   along with this program; if not, write to the
+ *   Free Software Foundation, Inc.,
+ *   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ *   or see <http://www.gnu.org/licenses/>.
+ *
+ *
+ *
+ *   (c) Luca Fossati, fossati@elet.polimi.it, fossati.l@gmail.com
+ *
+\***************************************************************************/
+
 #ifndef PROFILER_HPP
 #define PROFILER_HPP
 
@@ -35,7 +77,7 @@
 #include "ToolsIf.hpp"
 #include "ABIIf.hpp"
 #include "instructionBase.hpp"
-#include "bfdFrontend.hpp"
+#include "elfFrontend.hpp"
 #include "profInfo.hpp"
 
 namespace trap{
@@ -48,9 +90,9 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
   private:
     //Interface with the processor
     ABIIf<issueWidth> &processorInstance;
-    //instance of the BFD frontend containing information on the software
+    //instance of the ELF parser containing information on the software
     //running on the processor
-    BFDFrontend & bfdInstance;
+    ELFFrontend & elfInstance;
     //Statistic on the instructions
     template_map<unsigned int, ProfInstruction> instructions;
     ProfInstruction *oldInstruction;
@@ -101,7 +143,7 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
         std::vector<ProfFunction *>::iterator stackIterator, stackEnd;
 
         if(this->exited){
-            std::string curFunName = this->bfdInstance.symbolAt(curPC);
+            std::string curFunName = this->elfInstance.symbolAt(curPC);
             if(this->currentStack.size() > 1 && this->currentStack.back()->name != curFunName){
 //                 std::cerr << "Problem, exiting into " << curFunName << " while I should have gone into " << this->currentStack.back()->name << std::endl;
                 // There have been a problem ... we haven't come back to where we came from
@@ -130,7 +172,7 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
         //to check whether we are exiting from the current function;
         //if no of the two sitations happen, I do not perform anything
         if(this->processorInstance.isRoutineEntry(curInstr)){
-            std::string funName = this->bfdInstance.symbolAt(curPC);
+            std::string funName = this->elfInstance.symbolAt(curPC);
             if(this->ignored.find(funName) != this->ignored.end()){
                 this->oldFunInstructions++;
                 return;
@@ -179,7 +221,7 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
             }
         }
         else if(this->processorInstance.isRoutineExit(curInstr)){
-            std::string funName = this->bfdInstance.symbolAt(curPC);
+            std::string funName = this->elfInstance.symbolAt(curPC);
             if(this->ignored.find(funName) != this->ignored.end()){
                 this->oldFunInstructions++;
                 return;
@@ -225,7 +267,7 @@ template<class issueWidth> class Profiler : public ToolsIf<issueWidth>{
   public:
     Profiler(ABIIf<issueWidth> &processorInstance, std::string execName, bool disableFunctionProfiling) :
                 processorInstance(processorInstance), disableFunctionProfiling(disableFunctionProfiling),
-                                                            bfdInstance(BFDFrontend::getInstance(execName)){
+                                                            elfInstance(ELFFrontend::getInstance(execName)){
         this->oldInstruction = NULL;
         this->oldInstrTime = SC_ZERO_TIME;
         this->instructionsEnd = this->instructions.end();

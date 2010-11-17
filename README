@@ -11,25 +11,8 @@
 #         \__\/    \  \:\        \  \:\        \  \:\
 #                   \__\/         \__\/         \__\/
 #
-#   This file is part of TRAP.
 #
-#   TRAP is free software; you can redistribute it and/or modify
-#   it under the terms of the GNU Lesser General Public License as published by
-#   the Free Software Foundation; either version 2 of the License, or
-#   (at your option) any later version.
-#
-#   This program is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#   GNU Lesser General Public License for more details.
-#
-#   You should have received a copy of the GNU Lesser General Public License
-#   along with this TRAP; if not, write to the
-#   Free Software Foundation, Inc.,
-#   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
-#   or see <http://www.gnu.org/licenses/>.
-#
-#   (c) Luca Fossati, fossati@elet.polimi.it
+#   (c) Luca Fossati, fossati@elet.polimi.it, fossati.l@gmail.com
 #
 ####################################################################################
 
@@ -61,3 +44,16 @@ COMPILATION
 run ./waf configure --with-systemc=YOUR_SYSTEMC_LOCATION and ./waf from the command line
 
 For more details see http://code.google.com/p/trap-gen/wiki/Setup
+
+--------------------------- LICENSING ---------------------------
+
+TRAP tool itself is licensed under the LGPL license; the C++ code composing TRAP
+library (to be linked with the generated Instruction Set Simulators) is
+composed of both GPL and LGPL code. At configuration time it is possible to
+choose to not use GPL code, thus creating an LGPL only library.
+
+The GPL code is the one depending on libbfd, while LGPL code replaces such functionality
+by using libelf (with reduced capabilities, though).
+
+For more details on the GPL and LGPL licenses, refer to the COPYING.GPL and COPYING.LGPL
+files in TRAP's root folder.
