@@ -42,6 +42,7 @@ class FileDumper:
     """Dumps a file; a file is composed of members which are the ones described
     in SimpleDecls and ClassDecls"""
     license = ''
+    license_text = ''
     developer_name = ''
     developer_email = ''
     banner = ''
@@ -80,7 +81,7 @@ class FileDumper:
             printOnFile(' *   ' + line, fileHnd)
         printOnFile(' *', fileHnd)
         printOnFile(' *', fileHnd)
-        for line in FileDumper.license.split('\n'):
+        for line in FileDumper.license_text.split('\n'):
             printOnFile(' *   ' + line, fileHnd)
         printOnFile(' *', fileHnd)
         printOnFile(' *', fileHnd)
@@ -219,7 +220,7 @@ class Folder:
                         printOnFile('        ' + codeFile.name, wscriptFile)
                 printOnFile('    \"\"\"', wscriptFile)
                 if tests:
-                    printOnFile('    uselib = \'TRAP BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_PROGRAM_OPTIONS BOOST_THREAD BOOST_FILESYSTEM BOOST_SYSTEM BFD LIBERTY SYSTEMC TLM\'', wscriptFile)
+                    printOnFile('    uselib = \'TRAP BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_PROGRAM_OPTIONS BOOST_THREAD BOOST_FILESYSTEM BOOST_SYSTEM ELF_LIB SYSTEMC TLM\'', wscriptFile)
                 else:
                     printOnFile('    uselib = \'BOOST BOOST_THREAD BOOST_FILESYSTEM BOOST_SYSTEM SYSTEMC TLM TRAP\'', wscriptFile)
                 if self.uselib_local:
@@ -243,9 +244,9 @@ class Folder:
                 printOnFile('    sources = \'' + self.mainFile + '\'', wscriptFile)
                 printOnFile('    includes = \'.\'', wscriptFile)
                 if tests:
-                    printOnFile('    uselib = \'TRAP BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_THREAD BOOST_SYSTEM BFD LIBERTY SYSTEMC TLM\'', wscriptFile)
+                    printOnFile('    uselib = \'TRAP BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_THREAD BOOST_SYSTEM ELF_LIB SYSTEMC TLM\'', wscriptFile)
                 else:
-                    printOnFile('    uselib = \'TRAP BOOST BOOST_PROGRAM_OPTIONS BOOST_THREAD BOOST_FILESYSTEM BOOST_SYSTEM BFD LIBERTY SYSTEMC TLM\'', wscriptFile)
+                    printOnFile('    uselib = \'TRAP BOOST BOOST_PROGRAM_OPTIONS BOOST_THREAD BOOST_FILESYSTEM BOOST_SYSTEM ELF_LIB SYSTEMC TLM\'', wscriptFile)
                 printOnFile('    import sys', wscriptFile)
                 printOnFile('    cppflags_custom = \'\'', wscriptFile)
                 printOnFile('    if sys.platform == \'cygwin\':', wscriptFile)
@@ -257,8 +258,30 @@ class Folder:
                 printOnFile('    bld.program(source = sources, target = target, use = uselib + \' \' + objects, includes = includes, defines = cppflags_custom)', wscriptFile)
         # Ok, here I need to insert the configure script if needed
         if configure:
+            printOnFile('def check_trap_linking(ctx, libName, libPaths, symbol):', wscriptFile)
+            printOnFile("""
+    for libpath in libPaths:
+        libFile = os.path.join(libpath, ctx.env['cxxshlib_PATTERN'].split('%s')[0] + 'libName' + ctx.env['cxxshlib_PATTERN'].split('%s')[1])
+        if os.path.exists(libFile):
+            libDump = os.popen(ctx.env.NM + ' -r ' + libFile).readlines()
+            for line in libDump:
+                if 'symbol' in line:
+                    return True
+            break
+        libFile = os.path.join(libpath, ctx.env['cxxstlib_PATTERN'].split('%s')[0] + 'libName' + ctx.env['cxxstlib_PATTERN'].split('%s')[1])
+        if os.path.exists(libFile):
+            libDump = os.popen(ctx.env.NM + ' -r ' + libFile).readlines()
+            for line in libDump:
+                if 'symbol' in line:
+                    return True
+            break
+    return False
+""", wscriptFile)
+
             printOnFile('def configure(ctx):', wscriptFile)
             printOnFile("""
+    ctx.find_program('nm', mandatory=1, var='NM')
+
     #############################################################
     # Small hack to adjust common usage of CPPFLAGS
     #############################################################
@@ -431,8 +454,8 @@ class Folder:
             for option in customOptions:
                 printOnFile("    if ctx.options.define_" + option[1].lower() + ":", wscriptFile)
                 printOnFile("        ctx.env.append_unique('DEFINES', '" + option[1] + "')", wscriptFile)
-
-            printOnFile("""
+            if FileDumper.license == 'gpl':
+                printOnFile("""
 
     ###########################################################
     # Check for IBERTY library
@@ -477,7 +500,7 @@ class Folder:
                     break
             searchPaths = staticPaths
 
-    ctx.check_cc(lib=iberty_lib_name, uselib_store='BFD', mandatory=1, libpath=searchPaths, errmsg='not found, use --with-bfd option', okmsg='ok ' + iberty_lib_name)
+    ctx.check_cc(lib=iberty_lib_name, uselib_store='ELF_LIB', mandatory=1, libpath=searchPaths, errmsg='not found, use --with-bfd option', okmsg='ok ' + iberty_lib_name)
 
     ###########################################################
     # Check for BFD library and header
@@ -522,12 +545,12 @@ class Folder:
                     break
             searchPaths = staticPaths
 
-    ctx.check_cc(lib=bfd_lib_name, use='BFD', uselib_store='BFD', mandatory=1, libpath=searchPaths, errmsg='not found, use --with-bfd option', okmsg='ok ' + bfd_lib_name)
+    ctx.check_cc(lib=bfd_lib_name, use='ELF_LIB', uselib_store='ELF_LIB', mandatory=1, libpath=searchPaths, errmsg='not found, use --with-bfd option', okmsg='ok ' + bfd_lib_name)
 
     if ctx.options.bfddir:
-        ctx.check_cc(header_name='bfd.h', use='BFD', uselib_store='BFD', mandatory=1, includes=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.bfddir, 'include'))))])
+        ctx.check_cc(header_name='bfd.h', use='ELF_LIB', uselib_store='ELF_LIB', mandatory=1, includes=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.bfddir, 'include'))))])
     else:
-        ctx.check_cc(header_name='bfd.h', use='BFD', uselib_store='BFD', mandatory=1)
+        ctx.check_cc(header_name='bfd.h', use='ELF_LIB', uselib_store='ELF_LIB', mandatory=1)
 
     ###########################################################
     # Check for Binutils version
@@ -547,7 +570,7 @@ class Folder:
             return 0;
         };
 '''
-    ctx.check_cxx(fragment=binutilsVerCheck, msg='Checking for Binutils Version', uselib='BFD', mandatory=1, errmsg='Not supported version, use at least 2.16')
+    ctx.check_cxx(fragment=binutilsVerCheck, msg='Checking for Binutils Version', uselib='ELF_LIB', mandatory=1, errmsg='Not supported version, use at least 2.16')
 
     # bfd_demangle only appears in 2.18
     binutilsDemangleCheck = '''
@@ -561,7 +584,7 @@ class Folder:
             return 0;
         };
 '''
-    if not ctx.check_cxx(fragment=binutilsDemangleCheck, msg='Checking for bfd_demangle', use='BFD', mandatory=0, okmsg='ok >= 2.18', errmsg='fail, reverting to cplus_demangle'):
+    if not ctx.check_cxx(fragment=binutilsDemangleCheck, msg='Checking for bfd_demangle', use='ELF_LIB', mandatory=0, okmsg='ok >= 2.18', errmsg='fail, reverting to cplus_demangle'):
         ctx.env.append_unique('DEFINES', 'OLD_BFD')
 
     #########################################################
@@ -569,8 +592,15 @@ class Folder:
     # MAC-OSX
     #########################################################
     if sys.platform == 'darwin' or sys.platform == 'cygwin':
-        ctx.check_cc(lib='z', uselib_store='BFD', mandatory=1)
-        ctx.check_cc(lib='intl', uselib_store='BFD', mandatory=1, libpath=searchDirs)
+        ctx.check_cc(lib='z', uselib_store='ELF_LIB', mandatory=1)
+        ctx.check_cc(lib='intl', uselib_store='ELF_LIB', mandatory=1, libpath=searchDirs)
+""", wscriptFile)
+            else:
+                printOnFile("""
+    ctx.fatal('Only GPL license currently supported for building TRAP: re-create the simulator with such license')
+""", wscriptFile)
+
+            printOnFile("""
 
     #########################################################
     # Check for the winsock library
@@ -683,20 +713,33 @@ class Folder:
     ##################################################
     # Check for TRAP runtime libraries and headers
     ##################################################
-    trapRevisionNum = 770
+    trapRevisionNum = 772
     trapDirLib = ''
     trapDirInc = ''
     trapLibErrmsg = 'not found, use --with-trap option. It might also be that the trap library is compiled '
-    trapLibErrmsg += 'against libraries (bfd, boost, etc.) different from the ones being used now; in case '
+    trapLibErrmsg += 'against libraries (bfd/libelf, boost, etc.) different from the ones being used now; in case '
     trapLibErrmsg += 'try recompiling trap library.'
     if ctx.options.trapdir:
         trapDirLib = os.path.abspath(os.path.expandvars(os.path.expanduser(os.path.join(ctx.options.trapdir, 'lib'))))
         trapDirInc = os.path.abspath(os.path.expandvars(os.path.expanduser(os.path.join(ctx.options.trapdir, 'include'))))
-        ctx.check_cxx(lib='trap', use='BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM BFD LIBERTY SYSTEMC', uselib_store='TRAP', mandatory=1, libpath=trapDirLib, errmsg=trapLibErrmsg)
+        ctx.check_cxx(lib='trap', use='BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM ELF_LIB SYSTEMC', uselib_store='TRAP', mandatory=1, libpath=trapDirLib, errmsg=trapLibErrmsg)
         foundShared = glob.glob(os.path.join(trapDirLib, ctx.env['cxxshlib_PATTERN'].split('%s')[0] + 'trap' + ctx.env['cxxshlib_PATTERN'].split('%s')[1]))
         if foundShared:
             ctx.env.append_unique('RPATH', ctx.env['LIBPATH_TRAP'])
-        ctx.check_cxx(header_name='trap.hpp', use='TRAP BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM BFD LIBERTY SYSTEMC', uselib_store='TRAP', mandatory=1, includes=trapDirInc)
+""", wscriptFile)
+            if FileDumper.license == 'gpl':
+                printOnFile("""
+        if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'bfd_init'):
+            ctx.fatal('TRAP library not linked with BFD library, probably not using the TRAP GPL version: properly recompile TRAP library')
+""", wscriptFile)
+            if not FileDumper.license == 'gpl':
+                printOnFile("""
+        if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'elf_begin'):
+            ctx.fatal('TRAP library not linked with libelf library, probably not using the TRAP LGPL version: properly recompile TRAP library')
+""", wscriptFile)
+            printOnFile("""
+
+        ctx.check_cxx(header_name='trap.hpp', use='TRAP BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM ELF_LIB SYSTEMC', uselib_store='TRAP', mandatory=1, includes=trapDirInc)
         ctx.check_cxx(fragment='''
             #include "trap.hpp"
 
@@ -709,10 +752,22 @@ class Folder:
             #endif
 
             int main(int argc, char * argv[]){return 0;}
-''', msg='Check for TRAP version', use='TRAP BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM BFD LIBERTY SYSTEMC', mandatory=1, includes=trapDirInc, errmsg='Error, at least revision ' + str(trapRevisionNum) + ' required')
+''', msg='Check for TRAP version', use='TRAP BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM ELF_LIB SYSTEMC', mandatory=1, includes=trapDirInc, errmsg='Error, at least revision ' + str(trapRevisionNum) + ' required')
     else:
-        ctx.check_cxx(lib='trap', use='BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM BFD LIBERTY SYSTEMC', uselib_store='TRAP', mandatory=1, errmsg=trapLibErrmsg)
-        ctx.check_cxx(header_name='trap.hpp', use='TRAP BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM BFD LIBERTY SYSTEMC', uselib_store='TRAP', mandatory=1)
+        ctx.check_cxx(lib='trap', use='BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM ELF_LIB SYSTEMC', uselib_store='TRAP', mandatory=1, errmsg=trapLibErrmsg)
+""", wscriptFile)
+            if FileDumper.license == 'gpl':
+                printOnFile("""
+        if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'bfd_init'):
+            ctx.fatal('TRAP library not linked with BFD library, probably not using the TRAP GPL version: properly recompile TRAP library')
+""", wscriptFile)
+            if not FileDumper.license == 'gpl':
+                printOnFile("""
+        if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'elf_begin'):
+            ctx.fatal('TRAP library not linked with libelf library, probably not using the TRAP LGPL version: properly recompile TRAP library')
+""", wscriptFile)
+            printOnFile("""
+        ctx.check_cxx(header_name='trap.hpp', use='TRAP BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM ELF_LIB SYSTEMC', uselib_store='TRAP', mandatory=1)
         ctx.check_cxx(fragment='''
             #include "trap.hpp"
 
@@ -725,7 +780,7 @@ class Folder:
             #endif
 
             int main(int argc, char * argv[]){return 0;}
-''', msg='Check for TRAP version', use='TRAP BFD LIBERTY BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', mandatory=1, errmsg='Error, at least revision ' + str(trapRevisionNum) + ' required')
+''', msg='Check for TRAP version', use='TRAP ELF_LIB BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', mandatory=1, errmsg='Error, at least revision ' + str(trapRevisionNum) + ' required')
 
 """, wscriptFile)
             # Finally now I can add the options

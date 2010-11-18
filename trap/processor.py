@@ -374,7 +374,8 @@ class Processor:
         self.externalClock = externalClock
         self.preProcMacros = []
         self.tlmFakeMemProperties = ()
-        self.license_text = ''
+        self.license_text = licenses.create_gpl_license(self.name)
+        self.license = 'gpl'
         self.developer_name = ''
         self.developer_email = ''
         self.banner = ''
@@ -393,6 +394,7 @@ class Processor:
         self.developer_name = developer_name
         self.developer_email = developer_email
         self.banner = banner
+        self.license = license.lower()
 
     def setTLMMem(self, memSize, memLatency, sparse = False):
         # the memory latency is exrepssed in us
@@ -1027,7 +1029,8 @@ class Processor:
                         resolveBitType('BIT<' + str(self.wordSize*self.byteSize/2) + '>'),
                         resolveBitType('BIT<' + str(self.byteSize) + '>')]
 
-        cxx_writer.writer_code.FileDumper.license = self.license_text
+        cxx_writer.writer_code.FileDumper.license = self.license
+        cxx_writer.writer_code.FileDumper.license_text = self.license_text
         cxx_writer.writer_code.FileDumper.developer_name = self.developer_name
         cxx_writer.writer_code.FileDumper.developer_email = self.developer_email
         cxx_writer.writer_code.FileDumper.banner = self.banner
