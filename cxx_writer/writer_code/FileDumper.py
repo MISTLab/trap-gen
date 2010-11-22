@@ -595,8 +595,7 @@ class Folder:
         ctx.check_cxx(lib='z', uselib_store='ELF_LIB', mandatory=1)
         ctx.check_cxx(lib='intl', uselib_store='ELF_LIB', mandatory=1, libpath=searchDirs)
 """, wscriptFile)
-            else:
-                printOnFile("""
+            printOnFile("""
     ###########################################################
     # Check for ELF library and headers
     ###########################################################
@@ -605,24 +604,22 @@ class Folder:
     if ctx.options.elfdir:
         elfIncPath=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.elfdir, 'include'))))]
         elfLibPath=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.elfdir, 'lib'))))]
-        ctx.check_cxx(lib='elf', uselib_store='ELF_LIB', mandatory=1, libpath = elfLibPath)
-        ctx.check(header_name='libelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1, includes = elfIncPath)
-        ctx.check(header_name='gelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1, includes = elfIncPath)
+        if ctx.check_cxx(lib='elf', uselib_store='ELF_LIB', mandatory=0, libpath = elfLibPath):
+            ctx.check(header_name='libelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1, includes = elfIncPath)
+            ctx.check(header_name='gelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1, includes = elfIncPath)
     else:
-        ctx.check_cxx(lib='elf', uselib_store='ELF_LIB', mandatory=1)
-        ctx.check(header_name='libelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1)
-        ctx.check(header_name='gelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1)
-    ctx.check_cxx(fragment='''
-        #include <libelf.h>
+        if ctx.check_cxx(lib='elf', uselib_store='ELF_LIB', mandatory = 0):
+            ctx.check(header_name='libelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1)
+            ctx.check(header_name='gelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1)
+    if 'elf' in ctx.env.['LIB_ELF_LIB']:
+        ctx.check_cxx(fragment='''
+            #include <libelf.h>
 
-        int main(int argc, char *argv[]){
-            void * funPtr = (void *)elf_getphdrnum;
-            return 0;
-        }
-    ''', msg='Checking for elf_getphdrnum function', use='ELF_LIB', mandatory=1, errmsg='Error, elf_getphdrnum not present in libelf; try to update to a newest version')
-""", wscriptFile)
-
-            printOnFile("""
+            int main(int argc, char *argv[]){
+                void * funPtr = (void *)elf_getphdrnum;
+                return 0;
+            }
+        ''', msg='Checking for elf_getphdrnum function', use='ELF_LIB', mandatory=1, errmsg='Error, elf_getphdrnum not present in libelf; try to update to a newest version')
 
     #########################################################
     # Check for the winsock library
@@ -751,15 +748,12 @@ class Folder:
 """, wscriptFile)
             if FileDumper.license == 'gpl':
                 printOnFile("""
-        if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'bfd_init'):
-            ctx.fatal('TRAP library not linked with BFD library, probably not using the TRAP GPL version: properly recompile TRAP library')
-""", wscriptFile)
-            if not FileDumper.license == 'gpl':
-                printOnFile("""
-        if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'elf_begin'):
-            ctx.fatal('TRAP library not linked with libelf library, probably not using the TRAP LGPL version: properly recompile TRAP library')
+        if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'bfd_init') and 'elf' not in ctx.env.['LIB_ELF_LIB']:
+            ctx.fatal('TRAP library not linked with BFD library: libElf library needed or recompile TRAP using its GPL flavour (--license=gpl)')
 """, wscriptFile)
             printOnFile("""
+        if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'elf_begin') and 'bfd' not in ctx.env.['LIB_ELF_LIB']::
+            ctx.fatal('TRAP library not linked with libelf library: BFD library needed (you might need to re-create the processor specifying a GPL license) or compile TRAP using its LGPL flavour ')
 
         ctx.check_cxx(header_name='trap.hpp', use='TRAP BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM ELF_LIB SYSTEMC', uselib_store='TRAP', mandatory=1, includes=trapDirInc)
         ctx.check_cxx(fragment='''
@@ -780,15 +774,13 @@ class Folder:
 """, wscriptFile)
             if FileDumper.license == 'gpl':
                 printOnFile("""
-        if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'bfd_init'):
-            ctx.fatal('TRAP library not linked with BFD library, probably not using the TRAP GPL version: properly recompile TRAP library')
-""", wscriptFile)
-            if not FileDumper.license == 'gpl':
-                printOnFile("""
-        if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'elf_begin'):
-            ctx.fatal('TRAP library not linked with libelf library, probably not using the TRAP LGPL version: properly recompile TRAP library')
+        if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'bfd_init') and 'elf' not in ctx.env.['LIB_ELF_LIB']:
+            ctx.fatal('TRAP library not linked with BFD library: libElf library needed or recompile TRAP using its GPL flavour (--license=gpl)')
 """, wscriptFile)
             printOnFile("""
+        if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'elf_begin') and 'bfd' not in ctx.env.['LIB_ELF_LIB']::
+            ctx.fatal('TRAP library not linked with libelf library: BFD library needed (you might need to re-create the processor specifying a GPL license) or compile TRAP using its LGPL flavour ')
+
         ctx.check_cxx(header_name='trap.hpp', use='TRAP BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM ELF_LIB SYSTEMC', uselib_store='TRAP', mandatory=1)
         ctx.check_cxx(fragment='''
             #include "trap.hpp"
@@ -824,12 +816,9 @@ class Folder:
     # Specify BFD and IBERTY libraries path
     ctx.add_option('--with-bfd', type='string', help='BFD installation directory', dest='bfddir' )
 """, wscriptFile)
-            else:
-                printOnFile("""
+            printOnFile("""
     # Specify libELF library path
     ctx.add_option('--with-elf', type='string', help='libELF installation directory', dest='elfdir' )
-""", wscriptFile)
-            printOnFile("""
     ctx.add_option('--static', default=False, action="store_true", help='Triggers a static build, with no dependences from any dynamic library', dest='static_build')
     # Specify if OS emulation support should be compiled inside processor models
     ctx.add_option('-T', '--disable-tools', default=True, action="store_false", help='Disables support for support tools (debuger, os-emulator, etc.) (switch)', dest='enable_tools')
