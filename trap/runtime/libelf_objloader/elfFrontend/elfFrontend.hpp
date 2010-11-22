@@ -82,13 +82,20 @@ class ELFFrontend{
   private:
     ///Size of each assembly instruction in bytes
     unsigned int wordsize;
+    ///Name of the executable file
     std::string execName;
+    ///runtime representation of the ELF file
+    Elf *elf_pointer;
+    ///file descriptor representing the open elf file
+    int elfFd;
 
     ///Variables holding what read from the file
     template_map<unsigned int, std::list<std::string> > addrToSym;
     template_map<unsigned int, std::string> addrToFunction;
     std::map<std::string, unsigned int> symToAddr;
     template_map<unsigned int, std::pair<std::string, unsigned int> > addrToSrc;
+    unsigned int entryPoint;
+    unsigned char * programData;
 
     //end address and start address (not necessarily the entry point) of the loadable part of the binary file
     std::pair<unsigned int, unsigned int> codeSize;
@@ -97,6 +104,11 @@ class ELFFrontend{
     //Private constructor: we want pepole to be only able to use getInstance
     //to get an instance of the frontend
     ELFFrontend(std::string binaryName);
+
+    //Methods for reading the binary instructions from the executable file and
+    //for interpreting the symbol table
+    void readProgramData();
+    void readSymbols();
   public:
     ~ELFFrontend();
     static ELFFrontend & getInstance(std::string fileName = "");
@@ -126,10 +138,14 @@ class ELFFrontend{
     unsigned int getBinaryEnd() const;
     ///Returns the start address of the loadable code
     unsigned int getBinaryStart() const;
+    ///Returns the entry point of the executable code
+    unsigned int getEntryPoint() const;
     ///Given an address, it sets fileName to the name of the source file
     ///which contains the code and line to the line in that file. Returns
     ///false if the address is not valid
     bool getSrcFile(unsigned int address, std::string &fileName, unsigned int &line) const;
+    ///Returns a pointer to the array contianing the program data
+    unsigned char * getProgData();
 };
 
 };

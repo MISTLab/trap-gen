@@ -45,11 +45,15 @@
 
 #include <string>
 
+#include <iostream>
+#include <fstream>
+
 extern "C" {
 #include <gelf.h>
 }
 
 #include "elfFrontend.hpp"
+
 
 namespace trap{
 
@@ -58,11 +62,12 @@ class ExecLoader{
     ///Specifies whether a normal binary file (ELF; COFF, etc.) or a plain file (just the
     ///opcodes of the instructions) was used.
     bool plainFile;
-    ///Variables holding info on the program being loaded
+    ///Keeps reference to the main elf parser
+    ELFFrontend *elfFrontend;
+    ///Holds the data of the program to be executed in case it is a simply
+    ///sequence of instructions (i.e. not an ELF structured file)
     unsigned char * programData;
-    unsigned int progDim;
-    unsigned int dataStart;
-
+    std::ifstream plainExecFile;
   public:
     ///Initializes the loader of executable files by creating
     ///the corresponding bfd image of the executable file

@@ -7,7 +7,7 @@ def build(bld):
     if bld.env['LICENSE'] == 'gpl':
         elfInclude = '../libbfd_objloader/bfdFrontend'
     else:
-        elfInclude = '../libelf_objloader/bfdFrontend'
+        elfInclude = '../libelf_objloader/elfFrontend'
     
     bld.objects(source='syscCallB.cpp',
         includes = '. ' + elfInclude + ' ../utils ..',

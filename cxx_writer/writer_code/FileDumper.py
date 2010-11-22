@@ -500,7 +500,7 @@ class Folder:
                     break
             searchPaths = staticPaths
 
-    ctx.check_cc(lib=iberty_lib_name, uselib_store='ELF_LIB', mandatory=1, libpath=searchPaths, errmsg='not found, use --with-bfd option', okmsg='ok ' + iberty_lib_name)
+    ctx.check_cxx(lib=iberty_lib_name, uselib_store='ELF_LIB', mandatory=1, libpath=searchPaths, errmsg='not found, use --with-bfd option', okmsg='ok ' + iberty_lib_name)
 
     ###########################################################
     # Check for BFD library and header
@@ -545,12 +545,12 @@ class Folder:
                     break
             searchPaths = staticPaths
 
-    ctx.check_cc(lib=bfd_lib_name, use='ELF_LIB', uselib_store='ELF_LIB', mandatory=1, libpath=searchPaths, errmsg='not found, use --with-bfd option', okmsg='ok ' + bfd_lib_name)
+    ctx.check_cxx(lib=bfd_lib_name, use='ELF_LIB', uselib_store='ELF_LIB', mandatory=1, libpath=searchPaths, errmsg='not found, use --with-bfd option', okmsg='ok ' + bfd_lib_name)
 
     if ctx.options.bfddir:
-        ctx.check_cc(header_name='bfd.h', use='ELF_LIB', uselib_store='ELF_LIB', mandatory=1, includes=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.bfddir, 'include'))))])
+        ctx.check_cxx(header_name='bfd.h', use='ELF_LIB', uselib_store='ELF_LIB', mandatory=1, includes=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.bfddir, 'include'))))])
     else:
-        ctx.check_cc(header_name='bfd.h', use='ELF_LIB', uselib_store='ELF_LIB', mandatory=1)
+        ctx.check_cxx(header_name='bfd.h', use='ELF_LIB', uselib_store='ELF_LIB', mandatory=1)
 
     ###########################################################
     # Check for Binutils version
@@ -592,12 +592,34 @@ class Folder:
     # MAC-OSX
     #########################################################
     if sys.platform == 'darwin' or sys.platform == 'cygwin':
-        ctx.check_cc(lib='z', uselib_store='ELF_LIB', mandatory=1)
-        ctx.check_cc(lib='intl', uselib_store='ELF_LIB', mandatory=1, libpath=searchDirs)
+        ctx.check_cxx(lib='z', uselib_store='ELF_LIB', mandatory=1)
+        ctx.check_cxx(lib='intl', uselib_store='ELF_LIB', mandatory=1, libpath=searchDirs)
 """, wscriptFile)
             else:
                 printOnFile("""
-    ctx.fatal('Only GPL license currently supported for building TRAP: re-create the simulator with such license')
+    ###########################################################
+    # Check for ELF library and headers
+    ###########################################################
+    ctx.check(header_name='cxxabi.h', features='cxx cprogram', mandatory=0)
+    ctx.check_cxx(function_name='abi::__cxa_demangle', header_name="cxxabi.h", mandatory=0)
+    if ctx.options.elfdir:
+        elfIncPath=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.elfdir, 'include'))))]
+        elfLibPath=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.elfdir, 'lib'))))]
+        ctx.check_cxx(lib='elf', uselib_store='ELF_LIB', mandatory=1, libpath = elfLibPath)
+        ctx.check(header_name='libelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1, includes = elfIncPath)
+        ctx.check(header_name='gelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1, includes = elfIncPath)
+    else:
+        ctx.check_cxx(lib='elf', uselib_store='ELF_LIB', mandatory=1)
+        ctx.check(header_name='libelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1)
+        ctx.check(header_name='gelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1)
+    ctx.check_cxx(fragment='''
+        #include <libelf.h>
+
+        int main(int argc, char *argv[]){
+            void * funPtr = (void *)elf_getphdrnum;
+            return 0;
+        }
+    ''', msg='Checking for elf_getphdrnum function', use='ELF_LIB', mandatory=1, errmsg='Error, elf_getphdrnum not present in libelf; try to update to a newest version')
 """, wscriptFile)
 
             printOnFile("""
@@ -606,7 +628,7 @@ class Folder:
     # Check for the winsock library
     #########################################################
     if sys.platform == 'cygwin':
-        ctx.check_cc(lib='ws2_32', uselib_store='WINSOCK', mandatory=1)
+        ctx.check_cxx(lib='ws2_32', uselib_store='WINSOCK', mandatory=1)
 
     ##################################################
     # Check for pthread library/flag
@@ -796,8 +818,18 @@ class Folder:
     ctx.add_option('--with-systemc', type='string', help='SystemC installation directory', dest='systemcdir' )
     ctx.add_option('--with-tlm', type='string', help='TLM installation directory', dest='tlmdir')
     ctx.add_option('--with-trap', type='string', help='TRAP libraries and headers installation directory', dest='trapdir')
+""", wscriptFile)
+            if FileDumper.license == 'gpl':
+                printOnFile("""
     # Specify BFD and IBERTY libraries path
     ctx.add_option('--with-bfd', type='string', help='BFD installation directory', dest='bfddir' )
+""", wscriptFile)
+            else:
+                printOnFile("""
+    # Specify libELF library path
+    ctx.add_option('--with-elf', type='string', help='libELF installation directory', dest='elfdir' )
+""", wscriptFile)
+            printOnFile("""
     ctx.add_option('--static', default=False, action="store_true", help='Triggers a static build, with no dependences from any dynamic library', dest='static_build')
     # Specify if OS emulation support should be compiled inside processor models
     ctx.add_option('-T', '--disable-tools', default=True, action="store_false", help='Disables support for support tools (debuger, os-emulator, etc.) (switch)', dest='enable_tools')

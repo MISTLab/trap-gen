@@ -52,6 +52,7 @@ extern "C" {
 
 #include <cstdlib>
 #include <cstdio>
+#include <cstring>
 #include <cstdarg>
 
 #include <sys/types.h>
@@ -92,6 +93,8 @@ extern "C" {
 
 #include "elfFrontend.hpp"
 
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/fstream.hpp>
 
 trap::ELFFrontend * trap::ELFFrontend::curInstance = NULL;
 
@@ -110,16 +113,165 @@ void trap::ELFFrontend::reset(){
     ELFFrontend::curInstance = NULL;
 }
 
-trap::ELFFrontend::ELFFrontend(std::string binaryName){
+trap::ELFFrontend::ELFFrontend(std::string binaryName) : execName(binaryName){
+    //Let's open the elf parser and check that everything is all right
+    if(elf_version(EV_CURRENT) == EV_NONE){
+        THROW_ERROR("Error, wrong version of the ELF library");
+    }
+    boost::filesystem::path fileNamePath = boost::filesystem::system_complete(boost::filesystem::path(binaryName, boost::filesystem::native));
+    if ( !boost::filesystem::exists( fileNamePath ) ){
+        THROW_EXCEPTION("Path " << binaryName << " does not exists");
+    }
+    this->elfFd = open(binaryName.c_str(), O_RDONLY, 0);
+    if(this->elfFd < 0)
+        THROW_EXCEPTION("Error in opening file " << binaryName);
+    if((this->elf_pointer = elf_begin(this->elfFd, ELF_C_READ, NULL)) == NULL){
+        THROW_ERROR("Error in initializing the ELF descriptor related to file " << binaryName);
+    }
+    if(elf_kind (this->elf_pointer) != ELF_K_ELF){
+        THROW_ERROR(" File " << binaryName << " is not a valid ELF type: only executable files are allowed");
+    }
+
+    //Now it's time to start reading the content: the program headers for the actual code and
+    //the symbols sections for the correspondence routines - addresses (I do not need any other
+    //symbol)
+    GElf_Ehdr elfExecHeader;
+    if(gelf_getehdr(this->elf_pointer, &elfExecHeader) == NULL){
+        THROW_ERROR("Error in reading the executable header " << elf_errmsg ( -1));
+    }
+    switch(gelf_getclass(this->elf_pointer)){
+        case ELFCLASS32:
+            this->wordsize = 4;
+        break;
+        case ELFCLASS64:
+            this->wordsize = 8;
+        break;
+        default:
+            THROW_ERROR(" File " << binaryName << " is not a valid ELF type: only executable files are allowed");
+        break;
+    }
+    this->entryPoint = elfExecHeader.e_entry;
+    if(elfExecHeader.e_type != ET_EXEC){
+        THROW_ERROR(" File " << binaryName << " is not a valid ELF type: only executable files are allowed");
+    }
+    readProgramData();
+    readSymbols();
+
+    if(this->elf_pointer != NULL){
+        if(elf_end(this->elf_pointer) != 0){
+            if(this->elfFd > 0){
+                close(this->elfFd);
+            }
+            //An Error has occurred; lets see what it is
+            THROW_ERROR("Error in closing the elf parser --> " << elf_errmsg(-1));
+        }
+        this->elf_pointer = NULL;
+    }
+    if(this->elfFd > 0){
+        close(this->elfFd);
+    }
 }
 
 trap::ELFFrontend::~ELFFrontend(){
-    if(this->execImage != NULL){
-        if(!bfd_close_all_done(this->execImage)){
-            //An Error has occurred; lets see what it is
-            THROW_ERROR("Error in closing the binary parser --> " << bfd_errmsg(bfd_get_error()));
+}
+
+///Reads the program instructions contained in the file
+void trap::ELFFrontend::readProgramData(){
+    size_t numProgSegments = 0;
+    GElf_Phdr elfProgHeader;
+    if(elf_getphdrnum(this->elf_pointer, &numProgSegments) != 0){
+        THROW_ERROR("Error in retrieving the number of program headers: " << elf_errmsg ( -1));
+    }
+
+    std::map<unsigned int, unsigned char> memMap;
+    for(int i = 0; i < numProgSegments; i++){
+        if(gelf_getphdr(this->elf_pointer, i, &elfProgHeader) == NULL){
+            THROW_ERROR("Error in retireving program header " << i);
         }
-        this->execImage = NULL;
+        if(elfProgHeader.p_type == PT_LOAD){
+            //Found a standard loadable segment: I can put its content into the executable
+            //image
+            std::map<unsigned int, unsigned char>::iterator curMapPos = memMap.end();
+            if(elfProgHeader.p_filesz > 0){
+                unsigned char * fileContent = new unsigned char[elfProgHeader.p_filesz];
+                //Now I have to actually read the strean if bytes from the executable file
+                lseek(this->elfFd, elfProgHeader.p_offset, SEEK_SET);
+                if(read(this->elfFd, (void *)&fileContent, elfProgHeader.p_filesz) != elfProgHeader.p_filesz){
+                    THROW_ERROR("Error in reading the content of program section at virtual address " << elfProgHeader.p_vaddr);
+                }
+                for(int curPos = 0; curPos < elfProgHeader.p_filesz; curPos++){
+                    curMapPos = memMap.insert(curMapPos, std::pair<unsigned int, unsigned char>(elfProgHeader.p_vaddr + curPos, fileContent[curPos]));
+                }
+                delete [] fileContent;
+            }
+            for(int curPos = elfProgHeader.p_filesz; curPos < elfProgHeader.p_memsz; curPos++){
+                curMapPos = memMap.insert(curMapPos, std::pair<unsigned int, unsigned char>(elfProgHeader.p_vaddr + curPos, 0));
+            }
+        }
+    }
+    //Ok: now finally, I can take the map and convert it into the unsigned char * array representing the various
+    //bytes in memory
+    this->codeSize.second = memMap.begin()->first;
+    this->codeSize.first = memMap.rbegin()->first;
+    this->programData = new unsigned char[this->codeSize.first - this->codeSize.second];
+    std::memset(this->programData, 0, this->codeSize.first - this->codeSize.second);
+    std::map<unsigned int, unsigned char>::iterator memBeg,  memEnd;
+    for(memBeg = memMap.begin(),  memEnd = memMap.end(); memBeg != memEnd; memBeg++){
+        this->programData[memBeg->first - this->codeSize.second] = memBeg->second;
+    }
+}
+
+///Now I have to read the symbols contained into the file, mapping them
+///to thei address
+void trap::ELFFrontend::readSymbols(){
+    size_t secNameIndex = 0;
+    Elf_Scn *elfSection = NULL;
+    GElf_Shdr elfSecHeader;
+    if(elf_getshdrstrndx(this->elf_pointer, &secNameIndex) != 0){
+        THROW_ERROR("Error while reading the section string index: " << elf_errmsg ( -1));
+    }
+    while((elfSection = elf_nextscn(this->elf_pointer, elfSection)) != NULL){
+        if(gelf_getshdr(elfSection, &elfSecHeader) == NULL){
+            THROW_ERROR("Error in retrieving the section header: " << elf_errmsg ( -1));
+        }
+        if(elfSecHeader.sh_type == SHT_SYMTAB){
+            Elf_Data *secData = NULL;
+            if((secData = elf_getdata(elfSection, secData)) == NULL){
+                THROW_ERROR("Error in retrieving the section data: " << elf_errmsg ( -1));
+            }
+            // how many symbols are there? this number comes from the size of
+            // the section divided by the entry size
+            unsigned int symbol_count = elfSecHeader.sh_size / elfSecHeader.sh_entsize;
+
+            // loop through to grab all symbols
+            for(unsigned int i = 0; i < symbol_count; i++){
+                GElf_Sym sym;
+                // libelf grabs the symbol data using gelf_getsym()
+                gelf_getsym(secData, i, &sym);
+                //now I get the symbol; I am only interested in
+                // the functions
+                if(ELF32_ST_TYPE(sym.st_info) == STT_FUNC){
+                    // the name of the symbol is somewhere in a string table
+                    // we know which one using the shdr.sh_link member
+                    // libelf grabs the string using elf_strptr()
+                    char * originalName = elf_strptr(this->elf_pointer, elfSecHeader.sh_link, sym.st_name);
+                    char * demangledName = NULL;
+#if defined(HAVE_ABI____CXA_DEMANGLE) && defined(HAVE_CXXABI_H)
+                    int demangleStatus = 0;
+                    demangledName = abi::__cxa_demangle(originalName, NULL, NULL, &demangleStatus);
+#endif
+                    if(demangledName != NULL){
+                        this->addrToSym[sym.st_value].push_back(demangledName);
+                        this->symToAddr[demangledName] = sym.st_value;
+                        free(demangledName);
+                    }
+                    else{
+                        this->addrToSym[sym.st_value].push_back(originalName);
+                        this->symToAddr[originalName] = sym.st_value;
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -233,4 +385,14 @@ bool trap::ELFFrontend::getSrcFile(unsigned int address, std::string &fileName, 
 ///Returns the start address of the loadable code
 unsigned int trap::ELFFrontend::getBinaryStart() const{
     return this->codeSize.second;
+}
+
+///Returns the entry point of the executable code
+unsigned int trap::ELFFrontend::getEntryPoint() const{
+    return this->entryPoint;
+}
+
+///Returns a pointer to the array contianing the program data
+unsigned char * trap::ELFFrontend::getProgData(){
+    return this->programData;
 }
