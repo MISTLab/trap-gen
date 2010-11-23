@@ -59,6 +59,7 @@ extern "C" {
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <limits.h>
 
 #ifdef __GNUC__
 #ifdef __GNUC_MINOR__
@@ -195,9 +196,8 @@ void trap::ELFFrontend::readProgramData(){
             if(elfProgHeader.p_filesz > 0){
                 unsigned char * fileContent = new unsigned char[elfProgHeader.p_filesz];
                 //Now I have to actually read the strean if bytes from the executable file
-                lseek(this->elfFd, elfProgHeader.p_offset, SEEK_SET);
-                if(read(this->elfFd, (void *)&fileContent, elfProgHeader.p_filesz) != elfProgHeader.p_filesz){
-                    THROW_ERROR("Error in reading the content of program section at virtual address " << elfProgHeader.p_vaddr);
+                if(read(this->elfFd, (void *)fileContent, elfProgHeader.p_filesz) != elfProgHeader.p_filesz){
+                    THROW_ERROR("Error in reading the content of program section at virtual address " << std::hex << std::showbase << elfProgHeader.p_vaddr << std::dec);
                 }
                 for(int curPos = 0; curPos < elfProgHeader.p_filesz; curPos++){
                     curMapPos = memMap.insert(curMapPos, std::pair<unsigned int, unsigned char>(elfProgHeader.p_vaddr + curPos, fileContent[curPos]));

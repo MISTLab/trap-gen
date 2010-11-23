@@ -4,7 +4,7 @@
 import os
 
 def build(bld):
-    bld.recurse('loader elfFrontend')
+    bld.recurse('elfloader elfFrontend')
 
     bld(features='cxx',
             target = 'objcodeFrontend',
