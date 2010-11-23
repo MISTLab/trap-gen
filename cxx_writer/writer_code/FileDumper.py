@@ -105,12 +105,21 @@ class FileDumper:
                 pass
         if self.includes:
             writer.write('\n')
+        # Not that I have to add a dirty hack to put always SystemC in the
+        # last position among the includes, otherwise it might create problems
+        # compiling
+        foundSysC = False
         for include in self.includes:
             include = include.lstrip()
-            if include.startswith('#'):
-                writer.write(include + '\n')
-            elif include != self.name:
-                writer.write('#include <' + include + '>\n')
+            if 'systemc.h' in include:
+                foundSysC = True
+            else:
+                if include.startswith('#'):
+                    writer.write(include + '\n')
+                elif include != self.name:
+                    writer.write('#include <' + include + '>\n')
+        if foundSysC:
+            writer.write('#include <systemc.h>\n')
         writer.write('\n')
         # Now I simply have to print in order all the members
         for member in self.members:
@@ -261,18 +270,18 @@ class Folder:
             printOnFile('def check_trap_linking(ctx, libName, libPaths, symbol):', wscriptFile)
             printOnFile("""
     for libpath in libPaths:
-        libFile = os.path.join(libpath, ctx.env['cxxshlib_PATTERN'].split('%s')[0] + 'libName' + ctx.env['cxxshlib_PATTERN'].split('%s')[1])
+        libFile = os.path.join(libpath, ctx.env['cxxshlib_PATTERN'].split('%s')[0] + libName + ctx.env['cxxshlib_PATTERN'].split('%s')[1])
         if os.path.exists(libFile):
             libDump = os.popen(ctx.env.NM + ' -r ' + libFile).readlines()
             for line in libDump:
-                if 'symbol' in line:
+                if symbol in line:
                     return True
             break
-        libFile = os.path.join(libpath, ctx.env['cxxstlib_PATTERN'].split('%s')[0] + 'libName' + ctx.env['cxxstlib_PATTERN'].split('%s')[1])
+        libFile = os.path.join(libpath, ctx.env['cxxstlib_PATTERN'].split('%s')[0] + libName + ctx.env['cxxstlib_PATTERN'].split('%s')[1])
         if os.path.exists(libFile):
             libDump = os.popen(ctx.env.NM + ' -r ' + libFile).readlines()
             for line in libDump:
-                if 'symbol' in line:
+                if symbol in line:
                     return True
             break
     return False
@@ -611,7 +620,7 @@ class Folder:
         if ctx.check_cxx(lib='elf', uselib_store='ELF_LIB', mandatory = 0):
             ctx.check(header_name='libelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1)
             ctx.check(header_name='gelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1)
-    if 'elf' in ctx.env.['LIB_ELF_LIB']:
+    if 'elf' in ctx.env['LIB_ELF_LIB']:
         ctx.check_cxx(fragment='''
             #include <libelf.h>
 
@@ -748,11 +757,11 @@ class Folder:
 """, wscriptFile)
             if FileDumper.license == 'gpl':
                 printOnFile("""
-        if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'bfd_init') and 'elf' not in ctx.env.['LIB_ELF_LIB']:
+        if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'bfd_init') and 'elf' not in ctx.env['LIB_ELF_LIB']:
             ctx.fatal('TRAP library not linked with BFD library: libElf library needed or recompile TRAP using its GPL flavour (--license=gpl)')
 """, wscriptFile)
             printOnFile("""
-        if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'elf_begin') and 'bfd' not in ctx.env.['LIB_ELF_LIB']::
+        if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'elf_begin') and 'bfd' not in ctx.env['LIB_ELF_LIB']:
             ctx.fatal('TRAP library not linked with libelf library: BFD library needed (you might need to re-create the processor specifying a GPL license) or compile TRAP using its LGPL flavour ')
 
         ctx.check_cxx(header_name='trap.hpp', use='TRAP BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM ELF_LIB SYSTEMC', uselib_store='TRAP', mandatory=1, includes=trapDirInc)
@@ -774,11 +783,11 @@ class Folder:
 """, wscriptFile)
             if FileDumper.license == 'gpl':
                 printOnFile("""
-        if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'bfd_init') and 'elf' not in ctx.env.['LIB_ELF_LIB']:
+        if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'bfd_init') and 'elf' not in ctx.env['LIB_ELF_LIB']:
             ctx.fatal('TRAP library not linked with BFD library: libElf library needed or recompile TRAP using its GPL flavour (--license=gpl)')
 """, wscriptFile)
             printOnFile("""
-        if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'elf_begin') and 'bfd' not in ctx.env.['LIB_ELF_LIB']::
+        if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'elf_begin') and 'bfd' not in ctx.env['LIB_ELF_LIB']:
             ctx.fatal('TRAP library not linked with libelf library: BFD library needed (you might need to re-create the processor specifying a GPL license) or compile TRAP using its LGPL flavour ')
 
         ctx.check_cxx(header_name='trap.hpp', use='TRAP BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM ELF_LIB SYSTEMC', uselib_store='TRAP', mandatory=1)

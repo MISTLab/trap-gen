@@ -1792,7 +1792,7 @@ def getMainCode(self, model, namespace):
     mainCode.addInclude('instructions.hpp')
     mainCode.addInclude('trap_utils.hpp')
     mainCode.addInclude('systemc.h')
-    mainCode.addInclude('bfdFrontend.hpp')
+    mainCode.addInclude('elfFrontend.hpp')
     mainCode.addInclude('execLoader.hpp')
     mainCode.addInclude('stdexcept')
     if self.abi:
@@ -1878,9 +1878,9 @@ def getMainCode(self, model, namespace):
                 decodedRange.first = toIntNum(start);
             }
             catch(...){
-                trap::BFDFrontend &bfdFE = trap::BFDFrontend::getInstance(application);
+                trap::ELFFrontend &elfFE = trap::ELFFrontend::getInstance(application);
                 bool valid = true;
-                decodedRange.first = bfdFE.getSymAddr(start, valid);
+                decodedRange.first = elfFE.getSymAddr(start, valid);
                 if(!valid){
                     THROW_EXCEPTION("ERROR: start address range " << start << " does not specify a valid address or a valid symbol");
                 }
@@ -1894,9 +1894,9 @@ def getMainCode(self, model, namespace):
                 decodedRange.second = toIntNum(end);
             }
             catch(...){
-                trap::BFDFrontend &bfdFE = trap::BFDFrontend::getInstance(application);
+                trap::ELFFrontend &elfFE = trap::ELFFrontend::getInstance(application);
                 bool valid = true;
-                decodedRange.second = bfdFE.getSymAddr(end, valid);
+                decodedRange.second = elfFE.getSymAddr(end, valid);
                 if(!valid){
                     THROW_EXCEPTION("ERROR: end address range " << end << " does not specify a valid address or a valid symbol");
                 }
