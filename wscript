@@ -381,11 +381,11 @@ def configure(ctx):
         if ctx.options.elfdir:
             elfIncPath=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.elfdir, 'include'))))]
             elfLibPath=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.elfdir, 'lib'))))]
-            ctx.check_cxx(lib='elf', uselib_store='ELF_LIB', mandatory=1, libpath = elfLibPath)
+            ctx.check_cxx(lib='elf', uselib_store='ELF_LIB', mandatory=1, libpath = elfLibPath, errmsg='no libelf found: either install it or use libfd, reverting to the GPL version of TRAP (--license=gpl configuration option)')
             ctx.check(header_name='libelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1, includes = elfIncPath)
             ctx.check(header_name='gelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1, includes = elfIncPath)
         else:
-            ctx.check_cxx(lib='elf', uselib_store='ELF_LIB', mandatory=1)
+            ctx.check_cxx(lib='elf', uselib_store='ELF_LIB', mandatory=1, errmsg='no libelf found: either install it or use libfd, reverting to the GPL version of TRAP (--license=gpl configuration option)')
             ctx.check(header_name='libelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1)
             ctx.check(header_name='gelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1)
         ctx.check_cxx(fragment="""
@@ -494,7 +494,7 @@ def options(ctx):
     # Specify which type of license should be applied to TRAP library;
     # note that if GPL then libbfd shall we used, otherwise libelf, and
     # TRAP will be licensed LGPL
-    ctx.add_option('--license', type='string', default='gpl', help='Spcifies the License with which TRAP will be built [gpl, lgpl]', dest='trap_license' )
+    ctx.add_option('--license', type='string', default='lgpl', help='Spcifies the License with which TRAP will be built [gpl, lgpl]', dest='trap_license' )
 
     # Python installation folder
     ctx.add_option('--py-install-dir', type='string', help='Folder where the python files will be installed', dest='pyinstalldir')
