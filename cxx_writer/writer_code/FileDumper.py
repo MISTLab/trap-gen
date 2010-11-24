@@ -229,7 +229,7 @@ class Folder:
                         printOnFile('        ' + codeFile.name, wscriptFile)
                 printOnFile('    \"\"\"', wscriptFile)
                 if tests:
-                    printOnFile('    uselib = \'TRAP BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_PROGRAM_OPTIONS BOOST_THREAD BOOST_FILESYSTEM BOOST_SYSTEM ELF_LIB SYSTEMC TLM\'', wscriptFile)
+                    printOnFile('    uselib = \'TRAP ELF_LIB BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_PROGRAM_OPTIONS BOOST_THREAD BOOST_FILESYSTEM BOOST_SYSTEM SYSTEMC TLM\'', wscriptFile)
                 else:
                     printOnFile('    uselib = \'BOOST BOOST_THREAD BOOST_FILESYSTEM BOOST_SYSTEM SYSTEMC TLM TRAP\'', wscriptFile)
                 if self.uselib_local:
@@ -253,9 +253,9 @@ class Folder:
                 printOnFile('    sources = \'' + self.mainFile + '\'', wscriptFile)
                 printOnFile('    includes = \'.\'', wscriptFile)
                 if tests:
-                    printOnFile('    uselib = \'TRAP BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_THREAD BOOST_SYSTEM ELF_LIB SYSTEMC TLM\'', wscriptFile)
+                    printOnFile('    uselib = \'TRAP ELF_LIB BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_THREAD BOOST_SYSTEM SYSTEMC TLM\'', wscriptFile)
                 else:
-                    printOnFile('    uselib = \'TRAP BOOST BOOST_PROGRAM_OPTIONS BOOST_THREAD BOOST_FILESYSTEM BOOST_SYSTEM ELF_LIB SYSTEMC TLM\'', wscriptFile)
+                    printOnFile('    uselib = \'TRAP ELF_LIB BOOST BOOST_PROGRAM_OPTIONS BOOST_THREAD BOOST_FILESYSTEM BOOST_SYSTEM SYSTEMC TLM\'', wscriptFile)
                 printOnFile('    import sys', wscriptFile)
                 printOnFile('    cppflags_custom = \'\'', wscriptFile)
                 printOnFile('    if sys.platform == \'cygwin\':', wscriptFile)
@@ -289,6 +289,8 @@ class Folder:
 
             printOnFile('def configure(ctx):', wscriptFile)
             printOnFile("""
+    import glob
+
     ctx.find_program('nm', mandatory=1, var='NM')
 
     #############################################################
@@ -467,12 +469,49 @@ class Folder:
                 printOnFile("""
 
     ###########################################################
+    # Check for ELF library and headers
+    ###########################################################
+    ctx.check(header_name='cxxabi.h', features='cxx cprogram', mandatory=0)
+    ctx.check_cxx(function_name='abi::__cxa_demangle', header_name="cxxabi.h", mandatory=0)
+    if ctx.options.elfdir:
+        elfIncPath=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.elfdir, 'include')))),
+                    os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.elfdir, 'include', 'libelf'))))]
+        elfLibPath=os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.elfdir, 'lib'))))
+        if not os.path.exists(os.path.join(elfLibPath, ctx.env['cxxstlib_PATTERN'] % 'elf')) and  not os.path.exists(os.path.join(elfLibPath, ctx.env['cxxshlib_PATTERN'] % 'elf')):
+            ctx.fatal('Unable to find libelf in specified path ' + elfLibPath)
+        elfHeaderFound = False
+        for path in elfIncPath:
+            if os.path.exists(os.path.join(path, 'libelf.h')) and os.path.exists(os.path.join(path, 'gelf.h')):
+                elfHeaderFound = True
+                break
+        if not elfHeaderFound:
+            ctx.fatal('Unable to find libelf.h and/or gelf.h headers in specified path ' + str(elfIncPath))
+        if ctx.check_cxx(lib='elf', uselib_store='ELF_LIB', mandatory=0, libpath = elfLibPath):
+            ctx.check(header_name='libelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1, includes = elfIncPath)
+            ctx.check(header_name='gelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1, includes = elfIncPath)
+        foundShared = glob.glob(os.path.join(elfLibPath, ctx.env['cxxshlib_PATTERN'] % 'elf'))
+        if foundShared:
+            ctx.env.append_unique('RPATH', elfLibPath)
+    else:
+        if ctx.check_cxx(lib='elf', uselib_store='ELF_LIB', mandatory = 0):
+            ctx.check(header_name='libelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1)
+            ctx.check(header_name='gelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1)
+    if 'elf' in ctx.env['LIB_ELF_LIB']:
+        ctx.check_cxx(fragment='''
+            #include <libelf.h>
+
+            int main(int argc, char *argv[]){
+                void * funPtr = (void *)elf_getphdrnum;
+                return 0;
+            }
+        ''', msg='Checking for function elf_getphdrnum', use='ELF_LIB', mandatory=1, errmsg='Error, elf_getphdrnum not present in libelf; try to update to a newest version')
+
+    ###########################################################
     # Check for IBERTY library
     ###########################################################
     if ctx.options.bfddir:
         searchDirs = [os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.bfddir, 'lib'))))]
 
-    import glob
     foundStatic = []
     foundShared = []
     for directory in searchDirs:
@@ -603,32 +642,6 @@ class Folder:
     if sys.platform == 'darwin' or sys.platform == 'cygwin':
         ctx.check_cxx(lib='z', uselib_store='ELF_LIB', mandatory=1)
         ctx.check_cxx(lib='intl', uselib_store='ELF_LIB', mandatory=1, libpath=searchDirs)
-""", wscriptFile)
-            printOnFile("""
-    ###########################################################
-    # Check for ELF library and headers
-    ###########################################################
-    ctx.check(header_name='cxxabi.h', features='cxx cprogram', mandatory=0)
-    ctx.check_cxx(function_name='abi::__cxa_demangle', header_name="cxxabi.h", mandatory=0)
-    if ctx.options.elfdir:
-        elfIncPath=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.elfdir, 'include'))))]
-        elfLibPath=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.elfdir, 'lib'))))]
-        if ctx.check_cxx(lib='elf', uselib_store='ELF_LIB', mandatory=0, libpath = elfLibPath):
-            ctx.check(header_name='libelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1, includes = elfIncPath)
-            ctx.check(header_name='gelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1, includes = elfIncPath)
-    else:
-        if ctx.check_cxx(lib='elf', uselib_store='ELF_LIB', mandatory = 0):
-            ctx.check(header_name='libelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1)
-            ctx.check(header_name='gelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1)
-    if 'elf' in ctx.env['LIB_ELF_LIB']:
-        ctx.check_cxx(fragment='''
-            #include <libelf.h>
-
-            int main(int argc, char *argv[]){
-                void * funPtr = (void *)elf_getphdrnum;
-                return 0;
-            }
-        ''', msg='Checking for elf_getphdrnum function', use='ELF_LIB', mandatory=1, errmsg='Error, elf_getphdrnum not present in libelf; try to update to a newest version')
 
     #########################################################
     # Check for the winsock library
@@ -750,8 +763,8 @@ class Folder:
     if ctx.options.trapdir:
         trapDirLib = os.path.abspath(os.path.expandvars(os.path.expanduser(os.path.join(ctx.options.trapdir, 'lib'))))
         trapDirInc = os.path.abspath(os.path.expandvars(os.path.expanduser(os.path.join(ctx.options.trapdir, 'include'))))
-        ctx.check_cxx(lib='trap', use='BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM ELF_LIB SYSTEMC', uselib_store='TRAP', mandatory=1, libpath=trapDirLib, errmsg=trapLibErrmsg)
-        foundShared = glob.glob(os.path.join(trapDirLib, ctx.env['cxxshlib_PATTERN'].split('%s')[0] + 'trap' + ctx.env['cxxshlib_PATTERN'].split('%s')[1]))
+        ctx.check_cxx(lib='trap', use='ELF_LIB BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', uselib_store='TRAP', mandatory=1, libpath=trapDirLib, errmsg=trapLibErrmsg)
+        foundShared = glob.glob(os.path.join(trapDirLib, ctx.env['cxxshlib_PATTERN'] % 'trap'))
         if foundShared:
             ctx.env.append_unique('RPATH', ctx.env['LIBPATH_TRAP'])
 """, wscriptFile)
@@ -764,7 +777,7 @@ class Folder:
         if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'elf_begin') and 'bfd' not in ctx.env['LIB_ELF_LIB']:
             ctx.fatal('TRAP library not linked with libelf library: BFD library needed (you might need to re-create the processor specifying a GPL license) or compile TRAP using its LGPL flavour ')
 
-        ctx.check_cxx(header_name='trap.hpp', use='TRAP BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM ELF_LIB SYSTEMC', uselib_store='TRAP', mandatory=1, includes=trapDirInc)
+        ctx.check_cxx(header_name='trap.hpp', use='TRAP ELF_LIB BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', uselib_store='TRAP', mandatory=1, includes=trapDirInc)
         ctx.check_cxx(fragment='''
             #include "trap.hpp"
 
@@ -777,9 +790,9 @@ class Folder:
             #endif
 
             int main(int argc, char * argv[]){return 0;}
-''', msg='Check for TRAP version', use='TRAP BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM ELF_LIB SYSTEMC', mandatory=1, includes=trapDirInc, errmsg='Error, at least revision ' + str(trapRevisionNum) + ' required')
+''', msg='Check for TRAP version', use='TRAP ELF_LIB BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', mandatory=1, includes=trapDirInc, errmsg='Error, at least revision ' + str(trapRevisionNum) + ' required')
     else:
-        ctx.check_cxx(lib='trap', use='BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM ELF_LIB SYSTEMC', uselib_store='TRAP', mandatory=1, errmsg=trapLibErrmsg)
+        ctx.check_cxx(lib='trap', use='ELF_LIB BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', uselib_store='TRAP', mandatory=1, errmsg=trapLibErrmsg)
 """, wscriptFile)
             if FileDumper.license == 'gpl':
                 printOnFile("""
@@ -790,7 +803,7 @@ class Folder:
         if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'elf_begin') and 'bfd' not in ctx.env['LIB_ELF_LIB']:
             ctx.fatal('TRAP library not linked with libelf library: BFD library needed (you might need to re-create the processor specifying a GPL license) or compile TRAP using its LGPL flavour ')
 
-        ctx.check_cxx(header_name='trap.hpp', use='TRAP BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM ELF_LIB SYSTEMC', uselib_store='TRAP', mandatory=1)
+        ctx.check_cxx(header_name='trap.hpp', use='TRAP ELF_LIB BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', uselib_store='TRAP', mandatory=1)
         ctx.check_cxx(fragment='''
             #include "trap.hpp"
 

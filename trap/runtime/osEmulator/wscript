@@ -11,7 +11,7 @@ def build(bld):
     
     bld.objects(source='syscCallB.cpp',
         includes = '. ' + elfInclude + ' ../utils ..',
-        use = 'SYSTEMC BOOST BOOST_REGEX ELF_LIB',
+        use = 'ELF_LIB SYSTEMC BOOST BOOST_REGEX',
         target = 'syscall',
         install_path = None
     )
