@@ -53,8 +53,6 @@ def configure(ctx):
 
     if ctx.options.bfddir and trap_license == 'lgpl':
         ctx.fatal('--with-bfd option is not valid when lgpl license is specified')
-    if ctx.options.elfdir and trap_license == 'gpl':
-        ctx.fatal('--with-elf option is not valid when gpl license is specified')
 
     #############################################################
     # Small hack to adjust common usage of CPPFLAGS
