@@ -4,12 +4,12 @@
 import os
 
 def build(bld):
-    subfolders = 'utils osEmulator debugger misc profiler'
     if bld.env['LICENSE'] == 'gpl':
-        subfolders += ' libbfd_objloader'
+        bld.recurse('libbfd_objloader')
     else:
-        subfolders += ' libelf_objloader'
-    bld.recurse(subfolders)
+        bld.recurse('libelf_objloader')
+
+    bld.recurse('misc utils osEmulator debugger profiler')
 
     bld.objects(source='ToolsIf.cpp', 
         includes = '. utils',
