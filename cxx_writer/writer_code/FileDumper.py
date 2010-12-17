@@ -314,6 +314,10 @@ class Folder:
     # Check for python
     ctx.load('python')
 
+    if ctx.options.static_build:
+        ctx.env['SHLIB_MARKER'] = ''
+        ctx.env['STLIB_MARKER'] = '-static'
+
     #############################################################
     # Check support for profilers
     #############################################################
@@ -465,9 +469,49 @@ class Folder:
             for option in customOptions:
                 printOnFile("    if ctx.options.define_" + option[1].lower() + ":", wscriptFile)
                 printOnFile("        ctx.env.append_unique('DEFINES', '" + option[1] + "')", wscriptFile)
-            if FileDumper.license == 'gpl':
+            if not FileDumper.license == 'gpl':
                 printOnFile("""
+    ###########################################################
+    # Check for ELF library and headers
+    ###########################################################
+    ctx.check(header_name='cxxabi.h', features='cxx cprogram', mandatory=1)
+    ctx.check_cxx(function_name='abi::__cxa_demangle', header_name="cxxabi.h", mandatory=1)
+    if ctx.options.elfdir:
+        elfIncPath=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.elfdir, 'include')))),
+                    os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.elfdir, 'include', 'libelf'))))]
+        elfLibPath=os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.elfdir, 'lib'))))
+        if not os.path.exists(os.path.join(elfLibPath, ctx.env['cxxstlib_PATTERN'] % 'elf')) and  not os.path.exists(os.path.join(elfLibPath, ctx.env['cxxshlib_PATTERN'] % 'elf')):
+            ctx.fatal('Unable to find libelf in specified path ' + elfLibPath)
+        elfHeaderFound = False
+        for path in elfIncPath:
+            if os.path.exists(os.path.join(path, 'libelf.h')) and os.path.exists(os.path.join(path, 'gelf.h')):
+                elfHeaderFound = True
+                break
+        if not elfHeaderFound:
+            ctx.fatal('Unable to find libelf.h and/or gelf.h headers in specified path ' + str(elfIncPath))
+        if ctx.check_cxx(lib='elf', uselib_store='ELF_LIB', mandatory=0, libpath = elfLibPath):
+            ctx.check(header_name='libelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1, includes = elfIncPath)
+            ctx.check(header_name='gelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1, includes = elfIncPath)
+        foundShared = glob.glob(os.path.join(elfLibPath, ctx.env['cxxshlib_PATTERN'] % 'elf'))
+        if foundShared:
+            ctx.env.append_unique('RPATH', elfLibPath)
+    else:
+        if ctx.check_cxx(lib='elf', uselib_store='ELF_LIB', mandatory = 1):
+            ctx.check(header_name='libelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1)
+            ctx.check(header_name='gelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1)
+    if 'elf' in ctx.env['LIB_ELF_LIB']:
+        ctx.check_cxx(fragment='''
+            #include <libelf.h>
 
+            int main(int argc, char *argv[]){
+                void * funPtr = (void *)elf_getphdrnum;
+                return 0;
+            }
+        ''', msg='Checking for function elf_getphdrnum', use='ELF_LIB', mandatory=1, errmsg='Error, elf_getphdrnum not present in libelf; try to update to a newest version')
+""", wscriptFile)
+
+            else:
+                printOnFile("""
     ###########################################################
     # Check for ELF library and headers
     ###########################################################
@@ -642,7 +686,8 @@ class Folder:
     if sys.platform == 'darwin' or sys.platform == 'cygwin':
         ctx.check_cxx(lib='z', uselib_store='ELF_LIB', mandatory=1)
         ctx.check_cxx(lib='intl', uselib_store='ELF_LIB', mandatory=1, libpath=searchDirs)
-
+    """, wscriptFile)
+            printOnFile("""
     #########################################################
     # Check for the winsock library
     #########################################################
