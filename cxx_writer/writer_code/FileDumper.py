@@ -540,6 +540,7 @@ class Folder:
         if ctx.check_cxx(lib='elf', uselib_store='ELF_LIB', mandatory = 0):
             ctx.check(header_name='libelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1)
             ctx.check(header_name='gelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1)
+    foundElfLib = False
     if 'elf' in ctx.env['LIB_ELF_LIB']:
         ctx.check_cxx(fragment='''
             #include <libelf.h>
@@ -549,6 +550,12 @@ class Folder:
                 return 0;
             }
         ''', msg='Checking for function elf_getphdrnum', use='ELF_LIB', mandatory=1, errmsg='Error, elf_getphdrnum not present in libelf; try to update to a newest version')
+        foundElfLib = True
+
+    #########################################################
+    # Check for zlib needed by binutils
+    #########################################################
+    ctx.check_cxx(lib='z', uselib_store='ELF_LIB', mandatory=foundElfLib)
 
     ###########################################################
     # Check for IBERTY library
@@ -592,7 +599,7 @@ class Folder:
                     break
             searchPaths = staticPaths
 
-    ctx.check_cxx(lib=iberty_lib_name, uselib_store='ELF_LIB', mandatory=1, libpath=searchPaths, errmsg='not found, use --with-bfd option', okmsg='ok ' + iberty_lib_name)
+    ctx.check_cxx(lib=iberty_lib_name, uselib_store='ELF_LIB', mandatory=foundElfLib, libpath=searchPaths, errmsg='not found, use --with-bfd option', okmsg='ok ' + iberty_lib_name)
 
     ###########################################################
     # Check for BFD library and header
@@ -637,12 +644,21 @@ class Folder:
                     break
             searchPaths = staticPaths
 
-    ctx.check_cxx(lib=bfd_lib_name, use='ELF_LIB', uselib_store='ELF_LIB', mandatory=1, libpath=searchPaths, errmsg='not found, use --with-bfd option', okmsg='ok ' + bfd_lib_name)
+    ctx.check_cxx(lib=bfd_lib_name, use='ELF_LIB', uselib_store='ELF_LIB', mandatory=foundElfLib, libpath=searchPaths, errmsg='not found, use --with-bfd option', okmsg='ok ' + bfd_lib_name)
 
     if ctx.options.bfddir:
-        ctx.check_cxx(header_name='bfd.h', use='ELF_LIB', uselib_store='ELF_LIB', mandatory=1, includes=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.bfddir, 'include'))))])
+        ctx.check_cxx(header_name='bfd.h', use='ELF_LIB', uselib_store='ELF_LIB', mandatory=foundElfLib, includes=[os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.bfddir, 'include'))))])
     else:
-        ctx.check_cxx(header_name='bfd.h', use='ELF_LIB', uselib_store='ELF_LIB', mandatory=1)
+        ctx.check_cxx(header_name='bfd.h', use='ELF_LIB', uselib_store='ELF_LIB', mandatory=foundElfLib)
+
+    ###########################################################
+    # Due to peculiarities during static linking, the order
+    # of libraries has to be reversed when statically linking
+    ###########################################################
+    if ctx.options.static_build:
+        ctx.env.LIB_ELF_LIB.reverse()
+        ctx.check_cxx(lib='dl', uselib_store='ELF_LIB', mandatory=foundElfLib)
+
 
     ###########################################################
     # Check for Binutils version
@@ -662,7 +678,7 @@ class Folder:
             return 0;
         };
 '''
-    ctx.check_cxx(fragment=binutilsVerCheck, msg='Checking for Binutils Version', uselib='ELF_LIB', mandatory=1, errmsg='Not supported version, use at least 2.16')
+    ctx.check_cxx(fragment=binutilsVerCheck, msg='Checking for Binutils Version', uselib='ELF_LIB', mandatory=foundElfLib, errmsg='Not supported version, use at least 2.16')
 
     # bfd_demangle only appears in 2.18
     binutilsDemangleCheck = '''
@@ -684,8 +700,7 @@ class Folder:
     # MAC-OSX
     #########################################################
     if sys.platform == 'darwin' or sys.platform == 'cygwin':
-        ctx.check_cxx(lib='z', uselib_store='ELF_LIB', mandatory=1)
-        ctx.check_cxx(lib='intl', uselib_store='ELF_LIB', mandatory=1, libpath=searchDirs)
+        ctx.check_cxx(lib='intl', uselib_store='ELF_LIB', mandatory=foundElfLib, libpath=searchDirs)
     """, wscriptFile)
             printOnFile("""
     #########################################################

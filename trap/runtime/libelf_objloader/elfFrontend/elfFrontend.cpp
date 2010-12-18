@@ -333,7 +333,7 @@ std::string trap::ELFFrontend::getExecName() const{
 
 ///Returns the end address of the loadable code
 unsigned int trap::ELFFrontend::getBinaryEnd() const{
-    return (this->codeSize.first + this->wordsize);
+    return (this->codeSize.first + this->wordsize + (this->wordsize - (this->codeSize.first % this->wordsize)));
 }
 
 ///Specifies whether the address is the first one of a rountine

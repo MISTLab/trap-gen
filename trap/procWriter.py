@@ -1566,14 +1566,16 @@ def getMainCode(self, model, namespace):
     ExecLoader loader(vm["application"].as<std::string>());
     //Lets copy the binary code into memory
     unsigned char * programData = loader.getProgData();
-    for(unsigned int i = 0; i < loader.getProgDim(); i++){
-        """ + instrMemName + """.write_byte_dbg(loader.getDataStart() + i, programData[i]);
+    unsigned int programDim = loader.getProgDim();
+    unsigned int progDataStart = loader.getDataStart();
+    for(unsigned int i = 0; i < programDim; i++){
+        """ + instrMemName + """.write_byte_dbg(progDataStart + i, programData[i]);
     }
     if(vm.count("disassembler") != 0){
         std:cout << "Entry Point: " << std::hex << std::showbase << loader.getProgStart() << std::endl << std::endl;
-        for(unsigned int i = 0; i < loader.getProgDim(); i+= """ + str(self.wordSize) + """){
+        for(unsigned int i = 0; i < programDim; i+= """ + str(self.wordSize) + """){
             Instruction * curInstr = procInst.decode(""" + instrDissassName + """.read_word_dbg(loader.getDataStart() + i));
-            std::cout << std::hex << std::showbase << loader.getDataStart() + i << ":    " << """ + instrDissassName + """.read_word_dbg(loader.getDataStart() + i);
+            std::cout << std::hex << std::showbase << progDataStart + i << ":    " << """ + instrDissassName + """.read_word_dbg(progDataStart + i);
             if(curInstr != NULL){
                  std::cout << "    " << curInstr->getMnemonic();
             }
@@ -1583,8 +1585,8 @@ def getMainCode(self, model, namespace):
     }
     //Finally I can set the processor variables
     procInst.ENTRY_POINT = loader.getProgStart();
-    procInst.PROGRAM_LIMIT = loader.getProgDim() + loader.getDataStart();
-    procInst.PROGRAM_START = loader.getDataStart();
+    procInst.PROGRAM_LIMIT = programDim + progDataStart;
+    procInst.PROGRAM_START = progDataStart;
     """
     if self.systemc or model.startswith('acc') or model.endswith('AT'):
         code += """// Now I check if the count of the cycles among two locations (addresses or symbols) is required
