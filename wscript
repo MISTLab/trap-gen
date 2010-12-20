@@ -134,9 +134,12 @@ def configure(ctx):
     ##############################################################
     # Since I want to build fast simulators, if the user didn't
     # specify any flags I set optimized flags
+    # NOTE: -march=native is available only for GCC > 4.2
     #############################################################
     if not ctx.env['CXXFLAGS'] and not ctx.env['CCFLAGS']:
-        testFlags = ['-O2', '-march=native', '-pipe', '-finline-functions', '-ftracer', '-fomit-frame-pointer']
+        testFlags = ['-O2', '-pipe', '-finline-functions', '-ftracer', '-fomit-frame-pointer']
+        if ctx.env['CC_VERSION'][0] >= 4 and ctx.env['CC_VERSION'][1] >= 2:
+            testFlags.append('-march=native')
         if ctx.check_cxx(cxxflags=testFlags, msg='Checking for g++ optimization flags') and ctx.check_cc(cflags=testFlags, msg='Checking for gcc optimization flags'):
             ctx.env.append_unique('CXXFLAGS', testFlags)
             ctx.env.append_unique('CCFLAGS', testFlags)
