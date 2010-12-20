@@ -138,7 +138,7 @@ def configure(ctx):
     #############################################################
     if not ctx.env['CXXFLAGS'] and not ctx.env['CCFLAGS']:
         testFlags = ['-O2', '-pipe', '-finline-functions', '-ftracer', '-fomit-frame-pointer']
-        if ctx.env['CC_VERSION'][0] >= 4 and ctx.env['CC_VERSION'][1] >= 2:
+        if int(ctx.env['CC_VERSION'][0]) >= 4 and int(ctx.env['CC_VERSION'][1]) >= 2:
             testFlags.append('-march=native')
         if ctx.check_cxx(cxxflags=testFlags, msg='Checking for g++ optimization flags') and ctx.check_cc(cflags=testFlags, msg='Checking for gcc optimization flags'):
             ctx.env.append_unique('CXXFLAGS', testFlags)
