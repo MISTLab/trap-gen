@@ -1466,11 +1466,11 @@ def getMainCode(self, model, namespace):
             """
     if self.abi:
         code += """("arguments,r", boost::program_options::value<std::string>(),
-                    "command line arguments (if any) of the application being simulated")
+                    "command line arguments (if any) of the application being simulated - comma separated")
             ("environment,e", boost::program_options::value<std::string>(),
-                "environmental variables (if any) visible to the application being simulated")
+                "environmental variables (if any) visible to the application being simulated - comma separated")
             ("sysconf,s", boost::program_options::value<std::string>(),
-                    "configuration information (if any) visible to the application being simulated")
+                    "configuration information (if any) visible to the application being simulated - comma separated")
         """
     code += """;
 
