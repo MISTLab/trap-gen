@@ -175,9 +175,9 @@ class Folder:
             self.subfolders.append(subfolder)
 
     def create(self, configure = False, tests = False, projectName = '', version = '', customOptions = []):
-        # Creates the folder and populates it with files.
-        # it also creates the appropriate wscript for the
-        # compilation
+        """Creates the folder and populates it with files.
+        it also creates the appropriate wscript for the
+        compilation"""
         curDir = os.getcwd()
         curpath = os.path.split(self.path)
         for i in curpath:

@@ -49,7 +49,7 @@ class TestCoding(unittest.TestCase):
         pass
 
     def testComputeCoding1(self):
-        # Checks that everything is ok if no ambiguity exists in the instruction encoding
+        """Checks that everything is ok if no ambiguity exists in the instruction encoding"""
         isaVar = isa.ISA()
         dataProc_imm_shift = isa.MachineCode([('cond', 4), ('zero', 3), ('opcode', 4), ('s', 1), ('rn', 4), ('rd', 4), ('shift_amm', 5), ('shift_op', 2), ('zero', 1), ('rm', 4)])
         dataProc_reg_shift = isa.MachineCode([('cond', 4), ('zero', 3), ('opcode', 4), ('s', 1), ('rn', 4), ('rd', 4), ('rs', 4), ('zero', 1), ('shift_op', 2), ('one', 1), ('rm', 4)])
@@ -66,7 +66,7 @@ class TestCoding(unittest.TestCase):
         self.assertEqual([None for i in range(0, 4)] + [0, 0, 0, 0, 1, 0, 1] + [None for i in range(0, 13)] + [0] + [None,  None] + [1] + [None for i in range(0, 4)], adc_shift_reg_Instr.bitstring)
 
     def testComputeCoding2(self):
-        # Checks that everything is ok if no ambiguity exists in the instruction encoding
+        """Checks that everything is ok if no ambiguity exists in the instruction encoding"""
         isaVar = isa.ISA()
         dataProc_imm_shift = isa.MachineCode([('cond', 4), ('one', 3), ('opcode', 4), ('s', 1), ('rn', 4), ('rd', 4), ('shift_amm', 5), ('shift_op', 2), ('one', 1), ('rm', 4)])
         adc_shift_imm_Instr = isa.Instruction('ADC_si', True)
@@ -78,7 +78,7 @@ class TestCoding(unittest.TestCase):
         self.assertEqual([None for i in range(0, 4)] + [1, 1, 1, 0, 1, 0, 1] + [None for i in range(0, 16)] + [1] + [None for i in range(0, 4)], adc_shift_imm_Instr.bitstring)
 
     def testOk(self):
-        # Checks that everything is ok if no ambiguity exists in the instruction encoding
+        """Checks that everything is ok if no ambiguity exists in the instruction encoding"""
         isaVar = isa.ISA()
         dataProc_imm_shift = isa.MachineCode([('cond', 4), ('zero', 3), ('opcode', 4), ('s', 1), ('rn', 4), ('rd', 4), ('shift_amm', 5), ('shift_op', 2), ('zero', 1), ('rm', 4)])
         ls_immOff = isa.MachineCode([('cond', 4), ('opcode', 3), ('p', 1), ('u', 1), ('b', 1), ('w', 1), ('l', 1), ('rn', 4), ('rd', 4), ('immediate', 12)])
@@ -100,7 +100,7 @@ class TestCoding(unittest.TestCase):
         isaVar.checkCoding()
 
     def testAmbiguityTwo(self):
-        # Checks that an error is raised if an ambiguity exists between two instructions
+        """Checks that an error is raised if an ambiguity exists between two instructions"""
         isaVar = isa.ISA()
         dataProc_imm_shift = isa.MachineCode([('cond', 4), ('zero', 3), ('opcode', 4), ('s', 1), ('rn', 4), ('rd', 4), ('shift_amm', 5), ('shift_op', 2), ('zero', 1), ('rm', 4)])
         ls_immOff = isa.MachineCode([('cond', 4), ('opcode', 2), ('p', 2), ('u', 1), ('b', 1), ('w', 1), ('l', 1), ('rn', 4), ('rd', 4), ('immediate', 12)])
@@ -127,7 +127,7 @@ class TestCoding(unittest.TestCase):
         self.assert_(error)
 
     def testAmbiguitySet(self):
-        # Checks that an error is raised if an ambiguity exists between a set of instructions
+        """Checks that an error is raised if an ambiguity exists between a set of instructions"""
         isaVar = isa.ISA()
         dataProc_imm_shift = isa.MachineCode([('cond', 4), ('opc', 3), ('opcode', 4), ('s', 1), ('rn', 4), ('rd', 4), ('shift_amm', 5), ('shift_op', 2), ('zero', 1), ('rm', 4)])
         dataProc_imm_shift.setBitfield('opc', [1, 0, None])

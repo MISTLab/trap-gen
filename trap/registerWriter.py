@@ -59,8 +59,8 @@ def getRegistersBitfields(self):
     return cxx_writer.writer_code.Code(defineCode + '\n\n')
 
 def getCPPRegClass(self, model, regType, namespace):
-    # returns the class implementing the current register; I have to
-    # define all the operators;
+    """returns the class implementing the current register; I have to
+    define all the operators;"""
     emptyBody = cxx_writer.writer_code.Code('')
     regWidthType = regMaxType
 
@@ -404,20 +404,20 @@ def getCPPRegClass(self, model, regType, namespace):
     return registerDecl
 
 def getCPPRegBankClass(self, model, regType, namespace):
-    # returns the class implementing the single register of
-    # the register bank
+    """returns the class implementing the single register of
+    the register bank"""
     return getCPPRegClass(self, model, regType, namespace)
 
 def getCPPPipelineReg(self, trace, combinedTrace, namespace):
-    # This method returns the pipeline registers, which is a special registers
-    # containing both the value of the registres itself and all the pipeline
-    # latches.
-    # I also contains special methods to propagate registers values in the
-    # pipeline.
-    # Note that there are different kinds of such registers, one for the
-    # normal latched registers and one for the registers which are immediately
-    # visible to all the other stages (e.g. for LEON they are the PC and NPC
-    # registers).
+    """This method returns the pipeline registers, which is a special registers
+    containing both the value of the registres itself and all the pipeline
+    latches.
+    I also contains special methods to propagate registers values in the
+    pipeline.
+    Note that there are different kinds of such registers, one for the
+    normal latched registers and one for the registers which are immediately
+    visible to all the other stages (e.g. for LEON they are the PC and NPC
+    registers)."""
 
     # Lets start with the creation of the latched registers: they have exactly
     # the same methods of the base registers
@@ -674,10 +674,10 @@ def getCPPPipelineReg(self, trace, combinedTrace, namespace):
     return pipelineRegClasses
 
 def getCPPRegisters(self, trace, combinedTrace, model, namespace):
-    # This method creates all the classes necessary for declaring
-    # the registers: in particular the register base class
-    # and all the classes for the different bitwidths; in order to
-    # do this I simply iterate over the registers
+    """This method creates all the classes necessary for declaring
+    the registers: in particular the register base class
+    and all the classes for the different bitwidths; in order to
+    do this I simply iterate over the registers"""
     regLen = 0
     for reg in self.regs + self.regBanks:
         # I have to determine the register with the longest width and
@@ -955,11 +955,11 @@ def getCPPRegisters(self, trace, combinedTrace, model, namespace):
     return classes
 
 def getCPPAlias(self, namespace):
-    # This method creates the class describing a register
-    # alias: note that an alias simply holds a pointer to a register; the
-    # operators are then redefined in order to call the corresponding operators
-    # of the register. In addition there is the updateAlias operation which updates
-    # the register this alias points to (and eventually the offset).
+    """This method creates the class describing a register
+    alias: note that an alias simply holds a pointer to a register; the
+    operators are then redefined in order to call the corresponding operators
+    of the register. In addition there is the updateAlias operation which updates
+    the register this alias points to (and eventually the offset)."""
     regWidthType = regMaxType
     registerType = cxx_writer.writer_code.Type('Register', 'registers.hpp')
     aliasType = cxx_writer.writer_code.Type('Alias', 'alias.hpp')
@@ -1232,11 +1232,11 @@ def getCPPAlias(self, namespace):
     return classes
 
 def getCPPPipelineAlias(self, namespace):
-    # This method creates the class describing a register
-    # alias: note that an alias simply holds a pointer to a register; the
-    # operators are then redefined in order to call the corresponding operators
-    # of the register. In addition there is the updateAlias operation which updates
-    # the register this alias points to (and eventually the offset).
+    """This method creates the class describing a register
+    alias: note that an alias simply holds a pointer to a register; the
+    operators are then redefined in order to call the corresponding operators
+    of the register. In addition there is the updateAlias operation which updates
+    the register this alias points to (and eventually the offset)."""
     regWidthType = regMaxType
     # If the cycle accurate processor is used, then each alias contains also the pipeline
     # register, i.e. the registers with the copies (latches) for each pipeline stage

@@ -37,8 +37,8 @@
 import cxx_writer
 
 def getCPPIf(self, model, namespace):
-    # creates the interface which is used by the tools
-    # to access the processor core
+    """creates the interface which is used by the tools
+    to access the processor core"""
     if not self.abi:
         return
 

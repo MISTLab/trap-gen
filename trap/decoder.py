@@ -54,8 +54,8 @@ except:
     raise Exception('Error while determining the version of module networkx, try changing version, at least 0.36 required (newest non-development versions are usually ok)')
 
 def expandPatterns(curPattern, genericPattern, tablePattern):
-    # taken in input the current pattern and the generic one,
-    # it computes all the possible combinations of the pattern
+    """taken in input the current pattern and the generic one,
+    it computes all the possible combinations of the pattern"""
     if len(curPattern) < len(genericPattern):
         if tablePattern[len(curPattern)] == 1:
             if genericPattern[len(curPattern)] == None:
@@ -168,8 +168,8 @@ class DecodingNode:
         self.instrId = None
 
     def __cmp__(self, other):
-        # returns the outcome of the comparison between an
-        # instance of the current object and of another one
+        """returns the outcome of the comparison between an
+        instance of the current object and of another one"""
         if list(self.patterns) == list(other.patterns) and self.splitFunction == other.splitFunction and self.instrId == other.instrId:
             return 0
         if len(self.patterns) < len(other.patterns):
@@ -177,22 +177,22 @@ class DecodingNode:
         return 1
 
     def __eq__(self, other):
-        # returns the outcome of the comparison between an
-        # instance of the current object and of another one
+        """returns the outcome of the comparison between an
+        instance of the current object and of another one"""
         if not isinstance(other, type(self)):
             return False
         return list(self.patterns) == list(other.patterns) and self.splitFunction == other.splitFunction and self.instrId == other.instrId
 
     def __ne__(self, other):
-        # returns the outcome of the comparison between an
-        # instance of the current object and of another one
+        """returns the outcome of the comparison between an
+        instance of the current object and of another one"""
         if not isinstance(other, type(self)):
             return True
         return not self == other
 
     def __hash__(self):
-        # returns a hash of the object, necessary for the
-        # utilization as a graph node
+        """returns a hash of the object, necessary for the
+        utilization as a graph node"""
         return hash(str(self.patterns))
 
     def __repr__(self):
@@ -213,8 +213,8 @@ class DecodingNode:
         return retVal + ''
 
     def __str__(self):
-        # Returns a representation of the current node
-        # in the dot language
+        """Returns a representation of the current node
+        in the dot language"""
         return repr(self)
 
 class HuffmanNode:
@@ -236,9 +236,9 @@ class decoderCreator:
     """
 
     def __init__(self, instructions, subInstructions, memPenaltyFactor = 2):
-        # memPenaltyFactor represent how much the heuristic has to take
-        # into account memory consumption: the lower the more memory is
-        # consumed by the created decoder.
+        """memPenaltyFactor represent how much the heuristic has to take
+        into account memory consumption: the lower the more memory is
+        consumed by the created decoder."""
         self.memPenaltyFactor = memPenaltyFactor
         self.instrId = {}
         self.instrName = {}
@@ -414,7 +414,7 @@ class decoderCreator:
         return code
 
     def getCPPClass(self, fetchSizeType, instructionCache, namespace = ''):
-        # Creates the representation of the decoder as a C++ class
+        """Creates the representation of the decoder as a C++ class"""
         import cxx_writer
         from isa import resolveBitType
         # OK: now I simply have to go over the decoding tree
@@ -448,12 +448,12 @@ class decoderCreator:
             return [decodeClass]
 
     def getCPPTests(self, namespace = ''):
-        # Creates the tests for the decoder; I normally create the
-        # tests with boost_test_framework.
-        # What I have to do is feeding all the instruction patterns
-        # (including all the non valid ones) to the decoder and check
-        # that they are correctly decoded. I choose random values
-        # for the non-care bits
+        """Creates the tests for the decoder; I normally create the
+        tests with boost_test_framework.
+        What I have to do is feeding all the instruction patterns
+        (including all the non valid ones) to the decoder and check
+        that they are correctly decoded. I choose random values
+        for the non-care bits"""
         import cxx_writer
         import random, math
         ranGen = random.SystemRandom()
@@ -515,11 +515,11 @@ class decoderCreator:
     # Here are some helper methods used in the creation of the decoder; they
     # are called by the constructor
     def computationalCost(self, subtree):
-        # Computes the metric for estimating the computational cost of the decoding subtree.
-        # In this version the height of the huffman tree is used as an
-        # estimation of this cost
-        # First of all I have to create the huffman nodes and order them
-        # in a list
+        """Computes the metric for estimating the computational cost of the decoding subtree.
+        In this version the height of the huffman tree is used as an
+        estimation of this cost
+        First of all I have to create the huffman nodes and order them
+        in a list"""
         if not subtree.patterns:
             return 0
         huffmanList = []
@@ -534,14 +534,14 @@ class decoderCreator:
         return huffmanList[0].count
 
     def computePatternCost(self, subtree, curMask, newBit, newBitVal):
-        # Given the current leaf node, it computes the cost
-        # that would derive from using the pattern given
-        # by curMask + [newBit] for the split of the
-        # current node.
-        # it also phisically performs the split, returning
-        # curCost, curLeaves, where the leaves are formed by
-        # the subtrees and the respective splitting criteria (pattern
-        # equal or not)
+        """Given the current leaf node, it computes the cost
+        that would derive from using the pattern given
+        by curMask + [newBit] for the split of the
+        current node.
+        it also phisically performs the split, returning
+        curCost, curLeaves, where the leaves are formed by
+        the subtrees and the respective splitting criteria (pattern
+        equal or not)"""
         if newBit in curMask[0]:
             raise Exception('Bit ' + newBit + ' is specified both by the current mask and as new bit')
         eqPattern = []
@@ -584,13 +584,13 @@ class decoderCreator:
         return (cost, ((eqSubtree, (1, eqProb)), (neqSubtree, (0, neqProb))))
 
     def computeTableCost(self, subtree, startTable, curTableLen):
-        # Given the current leaf node, it computes the cost
-        # that would derive from using the current table function
-        # for the split
-        # it also phisically performs the split, returning
-        # curCost, curLeaves where the lieaves are formed by the
-        # subtrees and by the value of the table; I also associate
-        # the sum of the frequencies in each leaf subtree
+        """Given the current leaf node, it computes the cost
+        that would derive from using the current table function
+        for the split
+        it also phisically performs the split, returning
+        curCost, curLeaves where the lieaves are formed by the
+        subtrees and by the value of the table; I also associate
+        the sum of the frequencies in each leaf subtree"""
         import math
         maxPatternLen = patternLen([i[0] for i in subtree.patterns])
         tablePattern = []
@@ -641,15 +641,15 @@ class decoderCreator:
         return (cost, retTuple)
 
     def findBestPattern(self, subtree):
-        # Given the subtree, it finds the best pattern for
-        # the split of the top node of the subtree
-        # It returns (bestPattern, leavesPattern, costPattern), the best
-        # pattern for the split, the splitted nodes and the cost of
-        # the split
-        # First of all I have to compute the union of the pattern
-        # then I take, one by one, the bits and build the pattern
-        # with them: I have to evaluate candidate pattern one
-        # by one
+        """Given the subtree, it finds the best pattern for
+        the split of the top node of the subtree
+        It returns (bestPattern, leavesPattern, costPattern), the best
+        pattern for the split, the splitted nodes and the cost of
+        the split
+        First of all I have to compute the union of the pattern
+        then I take, one by one, the bits and build the pattern
+        with them: I have to evaluate candidate pattern one
+        by one"""
         bestCost = None
         tabuBits = []
         chosenBits = []
@@ -699,15 +699,15 @@ class decoderCreator:
         return (SplitFunction(pattern = matchPattern), bestLeaves, bestCost)
 
     def findBestTable(self, subtree):
-        # Given the subtree, it finds the best table for
-        # the split of the top node of the subtree
-        # It returns (bestTable, leavesTable, costTable), the best
-        # table for the split, the splitted nodes and the cost of
-        # the split
-        # We evaluate all the 2-bit tables, then the 3-bit tables,
-        # etc.
-        # I have to determine the best m-bits candidate,
-        # where 2 < m < len(importantBits == 1)
+        """Given the subtree, it finds the best table for
+        the split of the top node of the subtree
+        It returns (bestTable, leavesTable, costTable), the best
+        table for the split, the splitted nodes and the cost of
+        the split
+        We evaluate all the 2-bit tables, then the 3-bit tables,
+        etc.
+        I have to determine the best m-bits candidate,
+        where 2 < m < len(importantBits == 1)"""
         maxPatternLen = patternLen([i[0] for i in subtree.patterns])
         bestCost = None
         bestLeaves = None
@@ -743,18 +743,18 @@ class decoderCreator:
         return (SplitFunction(table = tablePattern), bestLeaves, bestCost)
 
     def computeIllegalBistreams(self):
-        # From all the instructions it computes the illegal patterns as
-        # the complement of the union of all the valid patterns; logic
-        # minimization follows. In order to implement this I can simply
-        # perform the union among the patters of the instructions (two
-        # different bits yeld don't care) and the complement it
+        """From all the instructions it computes the illegal patterns as
+        the complement of the union of all the valid patterns; logic
+        minimization follows. In order to implement this I can simply
+        perform the union among the patters of the instructions (two
+        different bits yeld don't care) and the complement it"""
         validPattern = bitStringUnion([i[0] for i in self.instrPattern])
         self.complementPattern(validPattern, 0)
 
     def complementPattern(self, pattern, bit):
-        # Given a pattern it computes the negation starting from bit bit
-        # this function is recursive. When each computed negated pattern is
-        # added to self.instrId and self.instrPattern
+        """Given a pattern it computes the negation starting from bit bit
+        this function is recursive. When each computed negated pattern is
+        added to self.instrId and self.instrPattern"""
         if bit == len(pattern):
             return
         import copy
@@ -778,32 +778,32 @@ class decoderCreator:
             self.instrPattern.append((copy.deepcopy(pattern), (float(self.minFreq)/float(100))/float(self.totalCount)))
 
     def computeDecoder(self):
-        # Actually computes the decoder; the algorithm is:
-        # -- Add fake instructions corresponding to the illegal bitstreams (done by computeIllegalBistreams)
-        # -- Start with the decoding tree composed of all the instructions
-        # -- For each leaf of the tree:
-        # --     call findBestPattern (use memoryCost and huffmanHeight to compute the cost)
-        # --     call findBestTable (use memoryCost and huffmanHeight to compute the cost)
-        # --     pick up the best one (use memoryCost and huffmanHeight to compute the cost)
-        # --     split the tree creating new leafs
-        # --     iterate on the new leafs
-        # --     go on until each leaf is composed of only one instruction
-        # Note how the algorithm is implemented in a recursive way
-        # Now I have to compute the starting node of the decoding tree;
-        # it will contain all the instructions
+        """Actually computes the decoder; the algorithm is:
+        -- Add fake instructions corresponding to the illegal bitstreams (done by computeIllegalBistreams)
+        -- Start with the decoding tree composed of all the instructions
+        -- For each leaf of the tree:
+        --     call findBestPattern (use memoryCost and huffmanHeight to compute the cost)
+        --     call findBestTable (use memoryCost and huffmanHeight to compute the cost)
+        --     pick up the best one (use memoryCost and huffmanHeight to compute the cost)
+        --     split the tree creating new leafs
+        --     iterate on the new leafs
+        --     go on until each leaf is composed of only one instruction
+        Note how the algorithm is implemented in a recursive way
+        Now I have to compute the starting node of the decoding tree;
+        it will contain all the instructions"""
         self.rootNote = DecodingNode(self.instrPattern)
         self.decodingTree.add_node(self.rootNote)
         self.computeDecoderRec(self.rootNote)
 
     def computeDecoderRec(self, subtree):
-        # Given the subtree recursively computes the decodes for
-        # the given subtree part
-        # If there is only an instruction in the current subtree node
-        # I simply tag the node to be a leaf and I associate to it the
-        # id of the instruction. If more than one instruction is
-        # present in the current subtree node, but all of them are tagged
-        # with the same ID, then I tag the node as a leaf and I associate
-        # to it the ID
+        """Given the subtree recursively computes the decodes for
+        the given subtree part
+        If there is only an instruction in the current subtree node
+        I simply tag the node to be a leaf and I associate to it the
+        id of the instruction. If more than one instruction is
+        present in the current subtree node, but all of them are tagged
+        with the same ID, then I tag the node as a leaf and I associate
+        to it the ID"""
 
         # First of all I check if the instructions in the current
         # node refer to more than one class

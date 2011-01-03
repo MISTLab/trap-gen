@@ -49,8 +49,8 @@ class TestRegs(unittest.TestCase):
         pass
 
     def testOk(self):
-        # Tests that no problems are signaled in case all the registers
-        # are valid and there are no references to unknown registers
+        """Tests that no problems are signaled in case all the registers
+        are valid and there are no references to unknown registers"""
 
         # First of all I build a fake processor description
         proc = processor.Processor('test', '0')
@@ -83,9 +83,9 @@ class TestRegs(unittest.TestCase):
         proc.isa.checkRegisters(processor.extractRegInterval, proc.isRegExisting)
 
     def testAliasReg(self):
-        # Tests that an exception is raised in case the alias refers to
-        # a non existing register
-        # First of all I build a fake processor description
+        """Tests that an exception is raised in case the alias refers to
+        a non existing register
+        First of all I build a fake processor description"""
 
         proc = processor.Processor('test', '0')
         regBank = processor.RegisterBank('RB', 30, 32)
@@ -124,8 +124,8 @@ class TestRegs(unittest.TestCase):
         self.assert_(foundError)
 
     def testAliasRegBank(self):
-        # Tests that an exception is raised in case the alias refers to
-        # a non existing register bank
+        """Tests that an exception is raised in case the alias refers to
+        a non existing register bank"""
         proc = processor.Processor('test', '0')
         regBank = processor.RegisterBank('RB', 30, 32)
         proc.addRegBank(regBank)
@@ -163,8 +163,8 @@ class TestRegs(unittest.TestCase):
         self.assert_(foundError)
 
     def testAliasBankRegBank(self):
-        # Tests that an exception is raised in case the alias bank refers to
-        # a non existing register bank
+        """Tests that an exception is raised in case the alias bank refers to
+        a non existing register bank"""
         proc = processor.Processor('test', '0')
         regBank = processor.RegisterBank('RB', 30, 32)
         proc.addRegBank(regBank)
@@ -202,8 +202,8 @@ class TestRegs(unittest.TestCase):
         self.assert_(foundError)
 
     def testAliasBankMixed(self):
-        # Tests that an exception is raised in case the alias bank refers to
-        # a mixture of non existing registers and register banks
+        """Tests that an exception is raised in case the alias bank refers to
+        a mixture of non existing registers and register banks"""
         proc = processor.Processor('test', '0')
         regBank = processor.RegisterBank('RB', 30, 32)
         proc.addRegBank(regBank)
@@ -241,8 +241,8 @@ class TestRegs(unittest.TestCase):
         self.assert_(foundError)
 
     def testABIReg(self):
-        # Tests that an exception is raised in case the ABI refers to
-        # a non existing register
+        """Tests that an exception is raised in case the ABI refers to
+        a non existing register"""
         proc = processor.Processor('test', '0')
         regBank = processor.RegisterBank('RB', 30, 32)
         proc.addRegBank(regBank)
@@ -280,8 +280,8 @@ class TestRegs(unittest.TestCase):
         self.assert_(foundError)
 
     def testABIArgsReg(self):
-        # Tests that an exception is raised in case the ABI arguments refers to
-        # a non existing register
+        """Tests that an exception is raised in case the ABI arguments refers to
+        a non existing register"""
         proc = processor.Processor('test', '0')
         regBank = processor.RegisterBank('RB', 30, 32)
         proc.addRegBank(regBank)
@@ -319,8 +319,8 @@ class TestRegs(unittest.TestCase):
         self.assert_(foundError)
 
     def testABIArgsRegBank(self):
-        # Tests that an exception is raised in case the ABI arguments refers to
-        # a non existing register bank
+        """Tests that an exception is raised in case the ABI arguments refers to
+        a non existing register bank"""
         proc = processor.Processor('test', '0')
         regBank = processor.RegisterBank('RB', 30, 32)
         proc.addRegBank(regBank)
@@ -358,8 +358,8 @@ class TestRegs(unittest.TestCase):
         self.assert_(foundError)
 
     def testABIArgsMixed(self):
-        # Tests that an exception is raised in case the ABI arguemnts refers to
-        # a mixture of non existing registers and register banks
+        """Tests that an exception is raised in case the ABI arguemnts refers to
+        a mixture of non existing registers and register banks"""
         proc = processor.Processor('test', '0')
         regBank = processor.RegisterBank('RB', 30, 32)
         proc.addRegBank(regBank)
@@ -397,8 +397,8 @@ class TestRegs(unittest.TestCase):
         self.assert_(foundError)
 
     def testRegsVariables(self):
-        # Tests that an exception is raised in case the variables of
-        # the instructions have the same name of registers
+        """Tests that an exception is raised in case the variables of
+        the instructions have the same name of registers"""
         proc = processor.Processor('test', '0')
         regBank = processor.RegisterBank('RB', 30, 32)
         proc.addRegBank(regBank)

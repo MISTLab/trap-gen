@@ -218,8 +218,8 @@ def getToUnlockRegs(self, processor, pipeStage, getAll, delayedUnlock):
     return code
 
 def toBinStr(intNum, maxLen = -1):
-    # Given an integer number it converts it to a bitstring; maxLen is used only
-    # in case a negative number have to be converted
+    """Given an integer number it converts it to a bitstring; maxLen is used only
+    in case a negative number have to be converted"""
     bitStr = []
     negative = (intNum < 0)
     intNum = abs(intNum)
@@ -244,7 +244,7 @@ def toBinStr(intNum, maxLen = -1):
     return bitStr
 
 def getCppMethod(self, model, processor):
-    # Returns the code implementing a helper method
+    """Returns the code implementing a helper method"""
     for var in self.localvars:
         self.code.addVariable(var)
     self.code.addInclude('trap_utils.hpp')
@@ -280,7 +280,7 @@ def getCppMethod(self, model, processor):
     return methodDecl
 
 def getCppOperation(self, parameters = False):
-    # Returns the code implementing a helper operation
+    """Returns the code implementing a helper operation"""
     aliasType = cxx_writer.writer_code.Type('Alias', 'alias.hpp')
     for var in self.localvars:
         self.code.addVariable(var)
@@ -298,8 +298,8 @@ def getCppOperation(self, parameters = False):
     return methodDecl
 
 def getCppOpClass(self, namespace):
-    # Returns a class (directly deriving from instruction) implementing the
-    # method corresponding to the current operation
+    """Returns a class (directly deriving from instruction) implementing the
+    method corresponding to the current operation"""
     global baseInstrConstrParams
     from procWriter import baseInstrInitElement
     aliasType = cxx_writer.writer_code.Type('Alias', 'alias.hpp')
@@ -328,9 +328,9 @@ def getCppOpClass(self, namespace):
     return opDecl
 
 def getCPPInstr(self, model, processor, trace, combinedTrace, namespace):
-    # Returns the code implementing the current instruction: we have to provide the
-    # implementation of all the abstract methods and call from the behavior method
-    # all the different behaviors contained in the type hierarchy of this class
+    """Returns the code implementing the current instruction: we have to provide the
+    implementation of all the abstract methods and call from the behavior method
+    all the different behaviors contained in the type hierarchy of this class"""
     pipeline = processor.pipes
     externalClock = processor.externalClock
     aliasType = cxx_writer.writer_code.Type('Alias', 'alias.hpp')
@@ -792,9 +792,9 @@ def getCPPInstr(self, model, processor, trace, combinedTrace, namespace):
     return [instructionDecl]
 
 def getCPPInstrTest(self, processor, model, trace, combinedTrace, namespace = ''):
-    # Returns the code testing the current instruction: note that a test
-    # consists in setting the instruction variables, performing the instruction
-    # behavior and then comparing the registers with what we expect.
+    """Returns the code testing the current instruction: note that a test
+    consists in setting the instruction variables, performing the instruction
+    behavior and then comparing the registers with what we expect."""
     archElemsDeclStr = ''
     baseInitElement = '('
     destrDecls = ''
@@ -965,7 +965,7 @@ def getCPPInstrTest(self, processor, model, trace, combinedTrace, namespace = ''
     return tests
 
 def getCPPClasses(self, processor, model, trace, combinedTrace, namespace):
-    # I go over each instruction and print the class representing it
+    """I go over each instruction and print the class representing it"""
     memoryType = cxx_writer.writer_code.Type('MemoryInterface', 'memory.hpp')
     registerType = cxx_writer.writer_code.Type('Register')
     unlockQueueType = cxx_writer.writer_code.TemplateType('std::map', ['unsigned int', cxx_writer.writer_code.TemplateType('std::vector', [registerType.makePointer()], 'vector')], 'map')

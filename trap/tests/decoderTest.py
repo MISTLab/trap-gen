@@ -47,8 +47,8 @@ class TestDecoder(unittest.TestCase):
         pass
 
     def testComplement1(self):
-        # Test the correct operation of the complementPattern function
-        # in a normal case
+        """Test the correct operation of the complementPattern function
+        in a normal case"""
         dec = decoder.decoderCreator({}, {})
         dec.complementPattern([0, 1], 0)
         self.assertEqual(2, len(dec.instrPattern))
@@ -56,23 +56,23 @@ class TestDecoder(unittest.TestCase):
         self.assert_([0, 0] in [i[0] for i in dec.instrPattern])
 
     def testComplement2(self):
-        # Test the correct operation of the complementPattern function
-        # in a normal case
+        """Test the correct operation of the complementPattern function
+        in a normal case"""
         dec = decoder.decoderCreator({}, {})
         dec.complementPattern([0, None], 0)
         self.assertEqual(1, len(dec.instrPattern))
         self.assert_([1, None] in [i[0] for i in dec.instrPattern])
 
     def testComplementDegen(self):
-        # Test the correct operation of the complementPattern function
-        # in a degenrated case where the complement set is null
+        """Test the correct operation of the complementPattern function
+        in a degenrated case where the complement set is null"""
         dec = decoder.decoderCreator({}, {})
         dec.complementPattern([None, None], 0)
         self.assertEqual(0, len(dec.instrPattern))
 
     def testIllegalBitsream1(self):
-        # Tests the computation of the negation of the union of the valid
-        # bitstrings
+        """Tests the computation of the negation of the union of the valid
+        bitstrings"""
         dec = decoder.decoderCreator({}, {})
         dec.instrPattern += [([1, 1], 0)]
         dec.computeIllegalBistreams()
@@ -82,8 +82,8 @@ class TestDecoder(unittest.TestCase):
         self.assert_([1, 0] in [i[0] for i in dec.instrPattern])
 
     def testIllegalBitsream2(self):
-        # Tests the computation of the negation of the union of the valid
-        # bitstrings
+        """Tests the computation of the negation of the union of the valid
+        bitstrings"""
         dec = decoder.decoderCreator({}, {})
         dec.instrPattern += [([1, 1], 0), ([1, 0], 0)]
         dec.computeIllegalBistreams()
@@ -93,8 +93,8 @@ class TestDecoder(unittest.TestCase):
         self.assert_([1, 0] in [i[0] for i in dec.instrPattern])
 
     def testIllegalBitsream3(self):
-        # Tests the computation of the negation of the union of the valid
-        # bitstrings
+        """Tests the computation of the negation of the union of the valid
+        bitstrings"""
         dec = decoder.decoderCreator({}, {})
         dec.instrPattern += [([1, None], 0)]
         dec.computeIllegalBistreams()
@@ -103,70 +103,70 @@ class TestDecoder(unittest.TestCase):
         self.assert_([0, None] in [i[0] for i in dec.instrPattern])
 
     def testbitStringValid(self):
-        # Tests that the function that returns the valid bits in a set
-        # of bitStrings behaves correctly
+        """Tests that the function that returns the valid bits in a set
+        of bitStrings behaves correctly"""
         result = decoder.bitStringValid(((1, 1), (0, 0)))
         self.assertEqual([1, 1], result)
 
     def testbitStringValid0(self):
-        # Tests that the function that returns the valid bits in a set
-        # of bitStrings behaves correctly
+        """Tests that the function that returns the valid bits in a set
+        of bitStrings behaves correctly"""
         result = decoder.bitStringValid(((1, 1), (0, None)))
         self.assertEqual([1, None], result)
 
     def testbitStringValid1(self):
-        # Tests that the function that returns the valid bits in a set
-        # of bitStrings behaves correctly when there are no valid bits
+        """Tests that the function that returns the valid bits in a set
+        of bitStrings behaves correctly when there are no valid bits"""
         result = decoder.bitStringValid(((None, 1), (0, None)))
         self.assertEqual([None, None], result)
 
     def testbitStringUnion(self):
-        # Tests that the function that returns the union of a set
-        # of bitStrings behaves correctly
+        """Tests that the function that returns the union of a set
+        of bitStrings behaves correctly"""
         result = decoder.bitStringUnion(((1, 1), (1, 0)))
         self.assertEqual([1, None], result)
 
     def testbitStringUnion0(self):
-        # Tests that the function that returns the union of a set
-        # of bitStrings behaves correctly
+        """Tests that the function that returns the union of a set
+        of bitStrings behaves correctly"""
         result = decoder.bitStringUnion(((0, 1), (1, 0)))
         self.assertEqual([None, None], result)
 
     def testbitStringUnion1(self):
-        # Tests that the function that returns the union of a set
-        # of bitStrings behaves correctly
+        """Tests that the function that returns the union of a set
+        of bitStrings behaves correctly"""
         result = decoder.bitStringUnion(((None, None), (None, None)))
         self.assertEqual([None, None], result)
 
     def testbitStringUnion2(self):
-        # Tests that the function that returns the union of a set
-        # of bitStrings behaves correctly
+        """Tests that the function that returns the union of a set
+        of bitStrings behaves correctly"""
         result = decoder.bitStringUnion(((1, None), (None, 1)))
         self.assertEqual([None, None], result)
 
     def testComputeCost1(self):
-        # Tests that, given a subtree, the computational cost is correctly computed
-        # this means that the corresponding huffman tree is comrrectly computed
+        """Tests that, given a subtree, the computational cost is correctly computed
+        this means that the corresponding huffman tree is comrrectly computed"""
         dec = decoder.decoderCreator({}, {})
         surSubtree = decoder.DecodingNode((((1, 1), 0.1), ((1, 1), 0.1)))
         self.assertEqual(2, dec.computationalCost(surSubtree))
 
     def testComputeCost2(self):
-        # Tests that, given a subtree, the computational cost is correctly computed
-        # this means that the corresponding huffman tree is comrrectly computed
+        """Tests that, given a subtree, the computational cost is correctly computed
+        this means that the corresponding huffman tree is comrrectly computed"""
         dec = decoder.decoderCreator({}, {})
         surSubtree = decoder.DecodingNode((((1, 1), 0.1), ((1, 1), 0.1), ((1, 1), 0.8), ((1, 1), 0.05)))
         self.assertEqual(4, dec.computationalCost(surSubtree))
 
     def testComputeCost3(self):
-        # Tests that, given a subtree, the computational cost is correctly computed
-        # this means that the corresponding huffman tree is comrrectly computed
+        """Tests that, given a subtree, the computational cost is correctly computed
+        this means that the corresponding huffman tree is comrrectly computed"""
         dec = decoder.decoderCreator({}, {})
         surSubtree = decoder.DecodingNode((((1, 1), 0.1), ((1, 1), 0.1), ((1, 1), 0.1), ((1, 1), 0.1)))
         self.assertEqual(3, dec.computationalCost(surSubtree))
 
     def testTableCost1(self):
-        # Tests that, given a subtree, the computational cost is correctly computed
+        """Tests that, given a subtree, the computational cost is correctly computed"""
         dec = decoder.decoderCreator({}, {})
         surSubtree = decoder.DecodingNode((((1, 1), 0.1), ((0, 0), 0.1), ((0, 1), 0.1), ((1, 0), 0.1)))
         cost, subTree = dec.computeTableCost(surSubtree, 0, 2)
@@ -180,7 +180,7 @@ class TestDecoder(unittest.TestCase):
         self.assertEqual(decoder.DecodingNode((((1, 1), 0.1), )), subTree[3][0])
 
     def testTableCost2(self):
-        # Tests that, given a subtree, the computational cost is correctly computed
+        """Tests that, given a subtree, the computational cost is correctly computed"""
         dec = decoder.decoderCreator({}, {})
         surSubtree = decoder.DecodingNode((((1, 0, 1), 0.1), ((0, 0), 0.1), ((0, 1), 0.1), ((1, 0), 0.1)))
         cost, subTree = dec.computeTableCost(surSubtree, 0, 2)
@@ -192,7 +192,7 @@ class TestDecoder(unittest.TestCase):
         self.assertEqual(decoder.DecodingNode((((0, 1), 0.1), )), subTree[2][0])
 
     def testTableCost3(self):
-        # Tests that, given a subtree, the computational cost is correctly computed
+        """Tests that, given a subtree, the computational cost is correctly computed"""
         dec = decoder.decoderCreator({}, {})
         surSubtree = decoder.DecodingNode((((1, 0, None), 0.1), ((0, 0), 0.1), ((0, 1), 0.1), ((1, 0), 0.1)))
         cost, subTree = dec.computeTableCost(surSubtree, 0, 2)
@@ -204,7 +204,7 @@ class TestDecoder(unittest.TestCase):
         self.assertEqual(decoder.DecodingNode((((0, 1), 0.1), )), subTree[2][0])
 
     def testPatternCost1(self):
-        # Tests that, given a subtree, the computational cost is correctly computed
+        """Tests that, given a subtree, the computational cost is correctly computed"""
         dec = decoder.decoderCreator({}, {})
         surSubtree = decoder.DecodingNode((((1, 1), 0.1), ((0, 0), 0.1), ((0, 1), 0.1), ((1, 0), 0.1)))
         cost, (subTreeEq, subTreeNe) = dec.computePatternCost(surSubtree, ([0], [0]), 1, 0)
@@ -214,7 +214,7 @@ class TestDecoder(unittest.TestCase):
         self.assertEqual(decoder.DecodingNode((((1, 1), 0.1), ((0, 1), 0.1), ((1, 0), 0.1))), subTreeNe[0])
 
     def testPatternCost2(self):
-        # Tests that, given a subtree, the computational cost is correctly computed
+        """Tests that, given a subtree, the computational cost is correctly computed"""
         dec = decoder.decoderCreator({}, {})
         surSubtree = decoder.DecodingNode((((1, 1), 0.1), ((0, 0), 0.1), ((0, 1), 0.1), ((1, 0), 0.1)))
         cost, (subTreeEq, subTreeNe) = dec.computePatternCost(surSubtree, ([], []), 1, 0)
@@ -224,7 +224,7 @@ class TestDecoder(unittest.TestCase):
         self.assertEqual(decoder.DecodingNode((((1, 1), 0.1), ((0, 1), 0.1))), subTreeNe[0])
 
     def testPatternCost3(self):
-        # Tests that, given a subtree, the computational cost is correctly computed
+        """Tests that, given a subtree, the computational cost is correctly computed"""
         dec = decoder.decoderCreator({}, {})
         surSubtree = decoder.DecodingNode((((1, 1, 0), 0.1), ((0, 0), 0.1), ((0, 1), 0.1), ((1, 0), 0.1)))
         cost, (subTreeEq, subTreeNe) = dec.computePatternCost(surSubtree, ([0], [0]), 1, 0)
@@ -234,7 +234,7 @@ class TestDecoder(unittest.TestCase):
         self.assertEqual(decoder.DecodingNode((((1, 1, 0), 0.1), ((0, 1), 0.1), ((1, 0), 0.1))), subTreeNe[0])
 
     def testPatternCost4(self):
-        # Tests that, given a subtree, the computational cost is correctly computed
+        """Tests that, given a subtree, the computational cost is correctly computed"""
         dec = decoder.decoderCreator({}, {})
         surSubtree = decoder.DecodingNode((((1, None, 0), 0.1), ((0, 0), 0.1), ((0, 1), 0.1), ((1, 0), 0.1)))
         cost, (subTreeEq, subTreeNe) = dec.computePatternCost(surSubtree, ([0], [0]), 1, 0)
@@ -244,8 +244,8 @@ class TestDecoder(unittest.TestCase):
         self.assertEqual(decoder.DecodingNode((((1, None, 0), 0.1), ((0, 1), 0.1), ((1, 0), 0.1))), subTreeNe[0])
 
     def testBestPattern(self):
-        # Tests that, given a subtree, the correct best pattern matching
-        # function is computed
+        """Tests that, given a subtree, the correct best pattern matching
+        function is computed"""
         dec = decoder.decoderCreator({}, {})
         surSubtree = decoder.DecodingNode((((1, 1, 0), 0.1), ((1, 0, 0), 0.1), ((1, 0, 1), 0.1), ((0, 0, 0), 0.1)))
         splitFunc, bestLeaves, bestCost = dec.findBestPattern(surSubtree)
@@ -254,8 +254,8 @@ class TestDecoder(unittest.TestCase):
         self.assertEqual(decoder.DecodingNode((((1, 1, 0), 0.1), ((1, 0, 0), 0.1), ((1, 0, 1), 0.1))), bestLeaves[1][0])
 
     def testBestTable(self):
-        # Tests that, given a subtree, the correct best pattern matching
-        # function is computed
+        """Tests that, given a subtree, the correct best pattern matching
+        function is computed"""
         dec = decoder.decoderCreator({}, {})
         surSubtree = decoder.DecodingNode((((1, 1, 0), 0.1), ((1, 0, 0), 0.1), ((1, 0, 1), 0.1), ((0, 0, 0), 0.1)))
         splitFunc, bestLeaves, bestCost = dec.findBestTable(surSubtree)
@@ -265,8 +265,8 @@ class TestDecoder(unittest.TestCase):
         self.assertEqual(decoder.DecodingNode((((1, 1, 0), 0.1), )), bestLeaves[2][0])
 
     def testBestPattern1(self):
-        # Tests that, given a subtree, the correct best pattern matching
-        # function is computed
+        """Tests that, given a subtree, the correct best pattern matching
+        function is computed"""
         bitString1 = [None for i in range(0, 4)] + [0, 0, 0, 0, 1, 0, 1] + [None for i in range(0, 16)] + [0] + [None for i in range(0, 4)]
         bitString2 = [None for i in range(0, 4)] + [0, 0, 0, 0, 1, 0, 1] + [None for i in range(0, 13)] + [0] + [None,  None] + [1] + [None for i in range(0, 4)]
         bitString3 = [None for i in range(0, 4)] + [0, 0, 1, 0, 1, 0, 1] + [None for i in range(0, 21)]
@@ -278,8 +278,8 @@ class TestDecoder(unittest.TestCase):
         self.assertEqual(decoder.DecodingNode(((bitString3, 1), )), bestLeaves[0][0])
 
     def testBestTable1(self):
-        # Tests that, given a subtree, the correct best pattern matching
-        # function is computed
+        """Tests that, given a subtree, the correct best pattern matching
+        function is computed"""
         bitString1 = [None for i in range(0, 4)] + [0, 0, 0, 0, 1, 0, 1] + [None for i in range(0, 16)] + [0] + [None for i in range(0, 4)]
         bitString2 = [None for i in range(0, 4)] + [0, 0, 0, 0, 1, 0, 1] + [None for i in range(0, 13)] + [0] + [None,  None] + [1] + [None for i in range(0, 4)]
         bitString3 = [None for i in range(0, 4)] + [0, 0, 1, 0, 1, 0, 1] + [None for i in range(0, 21)]

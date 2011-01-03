@@ -367,7 +367,7 @@ def fetchWithCacheCode(self, fetchCode, trace, combinedTrace, issueCodeGenerator
     return codeString
 
 def createPipeStage(self, processorElements, initElements):
-    # Creates the pipeleine stages and the code necessary to initialize them
+    """Creates the pipeleine stages and the code necessary to initialize them"""
     regsNames = [i.name for i in self.regBanks + self.regs]
     for pipeStage in reversed(self.pipes):
         pipelineType = cxx_writer.writer_code.Type(pipeStage.name.upper() + '_PipeStage', 'pipeline.hpp')
@@ -424,8 +424,8 @@ def createPipeStage(self, processorElements, initElements):
     processorElements.append(NOPinstructionsAttribute)
 
 def procInitCode(self, model):
-    # Creates the processor initialization code, initializing the default value of
-    # registers, aliases, etc.
+    """Creates the processor initialization code, initializing the default value of
+    registers, aliases, etc."""
     initString = ''
     for elem in self.regBanks + self.aliasRegBanks:
         # First of all I check that the initialization is the default one: in case it is,
@@ -552,8 +552,8 @@ def procInitCode(self, model):
     return initString
 
 def createRegsAttributes(self, model, processorElements, initElements, bodyAliasInit, aliasInit, bodyInits):
-    # Creates the code for the processor attributes (registers, aliases, etc) and the code to initialize them in the
-    # processor constructor
+    """Creates the code for the processor attributes (registers, aliases, etc) and the code to initialize them in the
+    processor constructor"""
     bodyDestructor = ''
     abiIfInit = ''
 
@@ -912,7 +912,7 @@ def createInstrInitCode(self, model, trace):
     return baseInstrInitElement[:-2]
 
 def getCPPProc(self, model, trace, combinedTrace, namespace):
-    # creates the class describing the processor
+    """creates the class describing the processor"""
     fetchWordType = self.bitSizes[1]
     includes = fetchWordType.getIncludes()
     if self.abi:
@@ -1413,8 +1413,8 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
 #########################################################################################
 
 def getTestMainCode(self):
-    # Returns the code for the file which contains the main
-    # routine for the execution of the tests.
+    """Returns the code for the file which contains the main
+    routine for the execution of the tests."""
     global testNames
     code = ''
     for test in testNames:
@@ -1434,8 +1434,8 @@ def getTestMainCode(self):
     return [initFunction, mainFunction]
 
 def getMainCode(self, model, namespace):
-    # Returns the code which instantiate the processor
-    # in order to execute simulations
+    """Returns the code which instantiate the processor
+    in order to execute simulations"""
     wordType = self.bitSizes[1]
     code = 'using namespace ' + namespace + ';\nusing namespace trap;\n\n'
     code += 'std::cerr << banner << std::endl;\n'

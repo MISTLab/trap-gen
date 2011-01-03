@@ -35,9 +35,9 @@
 ####################################################################################
 
 def printOnFile(line, destFile):
-    # Function for printing on file; printing on file has been enclosed
-    # in this function so that this is the only function that needs to be
-    # replaced for the transition of python 3.0
+    """Function for printing on file; printing on file has been enclosed
+    in this function so that this is the only function that needs to be
+    replaced for the transition of python 3.0"""
     print >> destFile, line
 
 class StringWriter:
@@ -74,10 +74,10 @@ class CodeWriter:
             self.file.close()
 
     def write(self, code):
-        # (After/Before) each delimiter start ({) I have to increment
-        # the size of the current indent. Before each delimiter
-        # end (}) I have to decrement it
-        # Note that after each newline I have to print the current indenting
+        """(After/Before) each delimiter start ({) I have to increment
+        the size of the current indent. Before each delimiter
+        end (}) I have to decrement it
+        Note that after each newline I have to print the current indenting"""
         self.codeBuffer += code.expandtabs(self.indentSize)
         if not '\n' in code:
             return

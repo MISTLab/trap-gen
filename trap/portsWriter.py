@@ -536,8 +536,8 @@ def getCPPExternalPorts(self, model, namespace):
     return extPortDecl
 
 def getGetIRQPorts(self, namespace):
-    # Returns the classes implementing the interrupt ports; there can
-    # be two different kind of ports: systemc based or TLM based
+    """Returns the classes implementing the interrupt ports; there can
+    be two different kind of ports: systemc based or TLM based"""
     TLMWidth = []
     SyscWidth = []
     for i in self.irqs:
@@ -641,11 +641,11 @@ def getGetIRQPorts(self, namespace):
     return classes
 
 def getGetPINPorts(self, namespace):
-    # Returns the code implementing pins for communication with external world.
-    # there are both incoming and outgoing external ports. For the outgoing
-    # I simply have to declare the port class (like memory ports), for the
-    # incoming I also have to specify the operation which has to be performed
-    # when the port is triggered (they are like interrupt ports)
+    """Returns the code implementing pins for communication with external world.
+    there are both incoming and outgoing external ports. For the outgoing
+    I simply have to declare the port class (like memory ports), for the
+    incoming I also have to specify the operation which has to be performed
+    when the port is triggered (they are like interrupt ports)"""
     if len(self.pins) == 0:
         return None
 
@@ -737,7 +737,7 @@ def getGetPINPorts(self, namespace):
     return pinClasses
 
 def getIRQTests(self, trace, combinedTrace, namespace):
-    # Returns the code implementing the tests for the interrupts
+    """Returns the code implementing the tests for the interrupts"""
     from processor import extractRegInterval
     testFuns = []
     global testNames

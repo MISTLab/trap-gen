@@ -68,9 +68,9 @@ def addMemoryMethods(self, memoryElements, methodsCode, methodsAttrs):
             memoryElements.append(lockDecl)
 
 def getCPPMemoryIf(self, model, namespace):
-    # Creates the necessary structures for communicating with the memory; an
-    # array in case of an internal memory, the TLM port for the use with TLM
-    # etc.
+    """Creates the necessary structures for communicating with the memory; an
+    array in case of an internal memory, the TLM port for the use with TLM
+    etc."""
     from procWriter import resourceType
 
     archDWordType = self.bitSizes[0]

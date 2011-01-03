@@ -108,7 +108,7 @@ class Register:
         self.delay = value
 
     def setOffset(self, value):
-        # TODO: eliminate this restriction
+        """TODO: eliminate this restriction"""
         if self.bitMask:
             raise Exception('For register ' + self.name + ' unable to set an offset since a bit mask is used')
         self.offset = value
@@ -397,7 +397,7 @@ class Processor:
         self.license = license.lower()
 
     def setTLMMem(self, memSize, memLatency, sparse = False):
-        # the memory latency is exrepssed in us
+        """the memory latency is exrepssed in us"""
         self.tlmFakeMemProperties = (memSize, memLatency, sparse)
 
     def setPreProcMacro(self, wafOption, macro):
@@ -413,10 +413,10 @@ class Processor:
         self.memory = (name, memSize, debug, programCounter)
 
     def addTLMPort(self, portName, fetch = False):
-        # Note that for the TLM port, if only one is specified and the it is the
-        # port for the fetch, another port called portName + '_fetch' will be automatically
-        # instantiated. the port called portName can be, instead, used for accessing normal
-        # data
+        """Note that for the TLM port, if only one is specified and the it is the
+        port for the fetch, another port called portName + '_fetch' will be automatically
+        instantiated. the port called portName can be, instead, used for accessing normal
+        data"""
         if not self.systemc:
             raise Exception('The processor must be created with SystemC enabled in order to be able to use TLM ports')
         if fetch and self.memory:
@@ -510,24 +510,24 @@ class Processor:
         self.pipes.append(pipe)
 
     def setBeginOperation(self, code):
-        # if is an instance of cxx_writer.CustomCode,
-        # containing the code for the behavior
-        # If no begin operation is specified, the default
-        # values for the registers are used
+        """if is an instance of cxx_writer.CustomCode,
+        containing the code for the behavior
+        If no begin operation is specified, the default
+        values for the registers are used"""
         self.beginOp = code
 
     def setEndOperation(self, code):
-        # if is an instance of cxx_writer.CustomCode,
-        # containing the code for the behavior
-        # If no end operation is specified, nothing
-        # is done
+        """if is an instance of cxx_writer.CustomCode,
+        containing the code for the behavior
+        If no end operation is specified, nothing
+        is done"""
         self.endOp = code
 
     def setResetOperation(self, code):
-        # if is an instance of cxx_writer.CustomCode,
-        # containing the code for the behavior
-        # if no reset operation is specified, the
-        # begin operation is called
+        """if is an instance of cxx_writer.CustomCode,
+        containing the code for the behavior
+        if no reset operation is specified, the
+        begin operation is called"""
         self.resetOp = code
 
     def addIrq(self, irq):
@@ -543,8 +543,8 @@ class Processor:
         self.pins.append(pin)
 
     def setFetchRegister(self, fetchReg,  offset = 0):
-        # Sets the correspondence between the fetch address
-        # and a register inside the processor
+        """Sets the correspondence between the fetch address
+        and a register inside the processor"""
         found = False
         for i in self.aliasRegs + self.regs:
             if i.name == fetchReg:
@@ -668,7 +668,7 @@ class Processor:
                     raise Exception('Register ' + self.memory[3] + ' indicated for program counter of local memory does not exists')
 
     def checkTestRegs(self):
-        # We check that the registers specifies in the tests are existing
+        """We check that the registers specifies in the tests are existing"""
         outPinPorts = []
         for pinPort in self.pins:
             if not pinPort.inbound:
@@ -710,8 +710,8 @@ class Processor:
                             if self.isRegExisting(resource) is None:
                                 raise Exception('Resource ' + resource + ' not found in test for instruction ' + instr.name)
     def checkAliases(self):
-        # checks that the declared aliases actually refer to
-        # existing registers
+        """checks that the declared aliases actually refer to
+        existing registers"""
         for alias in self.aliasRegBanks:
             # I have to check that the registers alised by
             # this register bank actually exists and that
@@ -810,7 +810,7 @@ class Processor:
                     pass
 
     def checkISARegs(self):
-        # Checks that registers declared in the instruction encoding and the ISA really exists
+        """Checks that registers declared in the instruction encoding and the ISA really exists"""
         architecturalNames = [archElem.name for archElem in self.regs + self.regBanks + self.aliasRegs + self.aliasRegBanks]
         for name, instruction in self.isa.instructions.items():
             # inside each instruction I have to check for registers defined in the machine code (bitCorrespondence),
@@ -868,8 +868,8 @@ class Processor:
             instruction.specialInRegs = newInRegs
 
     def checkABI(self):
-        # checks that the registers specified for the ABI interface
-        # refer to existing registers
+        """checks that the registers specified for the ABI interface
+        refer to existing registers"""
         index = extractRegInterval(self.abi.retVal)
         if index:
             regBound = self.abi.retVal[self.abi.retVal.find('['):self.abi.retVal.find(']')]
@@ -915,7 +915,7 @@ class Processor:
         ################# TODO: check also the memories #######################
 
     def checkIRQPorts(self):
-        # So far I only have to check that the stages of the IRQ operations are existing
+        """So far I only have to check that the stages of the IRQ operations are existing"""
         stageNames = [i.name for i in self.pipes]
         for irq in self.irqs:
             for stage in irq.operation.keys():
@@ -923,9 +923,9 @@ class Processor:
                     raise Exception('Pipeline stage ' + stage + ' declared for interrupt ' + irq.name + ' does not exist')
 
     def getCPPRegisters(self, trace, combinedTrace, model, namespace):
-        # This method creates all the classes necessary for declaring
-        # the registers: in particular the register base class
-        # and all the classes for the different bitwidths
+        """This method creates all the classes necessary for declaring
+        the registers: in particular the register base class
+        and all the classes for the different bitwidths"""
         return registerWriter.getCPPRegisters(self, trace, combinedTrace, model, namespace)
 
     def getCPPPipelineReg(self, trace, combinedTrace, namespace):
@@ -935,72 +935,72 @@ class Processor:
         return registerWriter.getRegistersBitfields(self)
 
     def getCPPAlias(self, model, namespace):
-        # This method creates the class describing a register
-        # alias
+        """This method creates the class describing a register
+        alias"""
         if model.startswith('acc'):
             return registerWriter.getCPPPipelineAlias(self, namespace)
         else:
             return registerWriter.getCPPAlias(self, namespace)
 
     def getCPPProc(self, model, trace, combinedTrace, namespace):
-        # creates the class describing the processor
+        """creates the class describing the processor"""
         return procWriter.getCPPProc(self, model, trace, combinedTrace, namespace)
 
     def getCPPMemoryIf(self, model, namespace):
-        # creates the class describing the processor
+        """creates the class describing the processor"""
         return memWriter.getCPPMemoryIf(self, model, namespace)
 
     def getCPPIf(self, model, namespace):
-        # creates the interface which is used by the tools
-        # to access the processor core
+        """creates the interface which is used by the tools
+        to access the processor core"""
         return interfaceWriter.getCPPIf(self, model, namespace)
 
     def getCPPExternalPorts(self, model, namespace):
-        # creates the processor external ports used for the
-        # communication with the external world (the memory port
-        # is not among this ports, it is treated separately)
+        """creates the processor external ports used for the
+        communication with the external world (the memory port
+        is not among this ports, it is treated separately)"""
         return portsWriter.getCPPExternalPorts(self, model, namespace)
 
     def getTestMainCode(self):
-        # Returns the code for the file which contains the main
-        # routine for the execution of the tests.
-        # actually it is nothing but a file which includes
-        # boost/test/auto_unit_test.hpp and defines
-        # BOOST_AUTO_TEST_MAIN and BOOST_TEST_DYN_LINK
+        """Returns the code for the file which contains the main
+        routine for the execution of the tests.
+        actually it is nothing but a file which includes
+        boost/test/auto_unit_test.hpp and defines
+        BOOST_AUTO_TEST_MAIN and BOOST_TEST_DYN_LINK"""
         return procWriter.getTestMainCode(self)
 
     def getMainCode(self, model, namespace):
-        # Returns the code which instantiate the processor
-        # in order to execute simulations
+        """Returns the code which instantiate the processor
+        in order to execute simulations"""
         return procWriter.getMainCode(self, model, namespace)
 
     def getGetIRQPorts(self, namespace):
-        # Returns the code implementing the interrupt ports
+        """Returns the code implementing the interrupt ports"""
         return portsWriter.getGetIRQPorts(self, namespace)
 
     def getGetIRQInstr(self, model, trace, combinedTrace, namespace):
-        # Returns the code implementing the fake interrupt instruction
+        """Returns the code implementing the fake interrupt instruction"""
         return irqWriter.getGetIRQInstr(self, model, trace, namespace)
 
     def getGetPINPorts(self, namespace):
-        # Returns the code implementing the PIN ports
+        """Returns the code implementing the PIN ports"""
         return portsWriter.getGetPINPorts(self, namespace)
 
     def getIRQTests(self, trace, combinedTrace, namespace):
-        # Returns the code implementing the tests for the
-        # interrupt lines
+        """Returns the code implementing the tests for the
+        interrupt lines"""
         return portsWriter.getIRQTests(self, trace, combinedTrace, namespace)
 
     def getGetPipelineStages(self, trace, combinedTrace, model, namespace):
-        # Returns the code implementing the pipeline stages
+        """Returns the code implementing the pipeline stages"""
         return pipelineWriter.getGetPipelineStages(self, trace, combinedTrace, model, namespace)
 
     def write(self, folder = '', models = validModels, namespace = '', dumpDecoderName = '', trace = False, combinedTrace = False, forceDecoderCreation = False, tests = True, memPenaltyFactor = 4):
-        # Ok: this method does two things: first of all it performs all
-        # the possible checks to ensure that the processor description is
-        # coherent. Second it actually calls the write method of the
-        # processor components (registers, instructions, etc.) to create
-        # the code of the simulator
+        """Ok: this method does two things: first of all it performs all
+        the possible checks to ensure that the processor description is
+        coherent. Second it actually calls the write method of the
+        processor components (registers, instructions, etc.) to create
+        the code of the simulator"""
         print ('\tCREATING IMPLEMENTATION FOR PROCESSOR MODEL --> ' + self.name)
         print ('\t\tChecking the consistency of the specification')
         if ('funcAT' in models or 'accAT' in models or 'accLT' in models) and not self.tlmPorts:
@@ -1379,30 +1379,30 @@ class Coprocessor:
     # we need to define control signals and pins for the communication
     # between the processor and the coprocessor
     def __init__(self, name, type):
-        # Specifies the name of the coprocessor variable in the
-        # processor. It also specifies its type
+        """Specifies the name of the coprocessor variable in the
+        processor. It also specifies its type"""
         self.name = name
         self.type = type
         self.isa = {}
 
     def addIsaCustom(self, name, code, idBits):
-        # Specifies that ISA instruction with name name
-        # is a co-processor instruction and that
-        # custom code is provided if the instruction is for
-        # this coprocessor. idBits specifies what it the
-        # value of the bits which specify if the instruction
-        # is for this co-processor or not
+        """Specifies that ISA instruction with name name
+        is a co-processor instruction and that
+        custom code is provided if the instruction is for
+        this coprocessor. idBits specifies what it the
+        value of the bits which specify if the instruction
+        is for this co-processor or not"""
         if self.isa.has_key(name):
             raise Exception('Instruction ' + name + ' has already been specified for coprocessor ' + self.name)
         self.isa[name] = (idBits, code)
 
     def addIsaCall(self, name, functionName, idBits):
-        # Specifies that ISA instruction with name name
-        # is a co-processor instruction and that
-        # a function call is provided if the instruction is for
-        # this coprocessor. idBits specifies what it the
-        # value of the bits which specify if the instruction
-        # is for this co-processor or not
+        """Specifies that ISA instruction with name name
+        is a co-processor instruction and that
+        a function call is provided if the instruction is for
+        this coprocessor. idBits specifies what it the
+        value of the bits which specify if the instruction
+        is for this co-processor or not"""
         if self.isa.has_key(name):
             raise Exception('Instruction ' + name + ' has already been specified for coprocessor ' + self.name)
         self.isa[name] = (idBits, functionName)
@@ -1425,8 +1425,8 @@ class Interrupt:
         self.variables = []
 
     def addVariable(self, variable):
-        # adds a variable global to the instruction; note that
-        # variable has to be an instance of cxx_writer.Variable
+        """adds a variable global to the instruction; note that
+        variable has to be an instance of cxx_writer.Variable"""
         if isinstance(variable, type(())):
             from isa import resolveBitType
             variable = cxx_writer.writer_code.Variable(variable[0], resolveBitType(variable[1]))
@@ -1445,10 +1445,10 @@ class Interrupt:
         self.condition = condition
 
     def addTest(self, inputState, expOut):
-        # The test is composed of 2 parts: the status before the
-        # execution of the interrupt and the status after; note that
-        # in the status before execution of the interrupt we also have
-        # to specify the value of the interrupt line
+        """The test is composed of 2 parts: the status before the
+        execution of the interrupt and the status after; note that
+        in the status before execution of the interrupt we also have
+        to specify the value of the interrupt line"""
         self.tests.append((inputState, expOut))
 
 class Pins:
@@ -1459,8 +1459,8 @@ class Pins:
     type and the content of the payload are insignificant and only the
     address is important"""
     def __init__(self, name, portWidth, inbound = False, systemc = False):
-        # Note how the type of the must be of class cxx_writer.Type; a
-        # systemc port using this type as a template will be created
+        """Note how the type of the must be of class cxx_writer.Type; a
+        systemc port using this type as a template will be created"""
         self.name = name
         self.portWidth = portWidth
         self.systemc = systemc
@@ -1491,8 +1491,8 @@ class ABI:
     an offset (in the sense that PC can be r15 + 8 for ex).
     """
     def __init__(self, retVal, args, PC, LR = None, SP = None, FP = None):
-        # Regsiter for the return value (either a register or a tuple
-        # regback, index)
+        """Regsiter for the return value (either a register or a tuple
+        regback, index)"""
         self.retVal = retVal
         # Register cprrespondence (offsets should also be specified)
         self.LR = LR
