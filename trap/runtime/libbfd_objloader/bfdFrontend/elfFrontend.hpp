@@ -118,7 +118,7 @@ class ELFFrontend{
     ///In case it is not possible to open the BFD because it is not possible to determine
     ///it target, this function extracts the list of possible targets
     std::string getMatchingFormats (char **p) const;
-    static ELFFrontend *curInstance;
+    static std::map<std::string, ELFFrontend *> curInstance;
     //Private constructor: we want pepole to be only able to use getInstance
     //to get an instance of the frontend
     ELFFrontend(std::string binaryName);

@@ -100,7 +100,7 @@ class ELFFrontend{
     //end address and start address (not necessarily the entry point) of the loadable part of the binary file
     std::pair<unsigned int, unsigned int> codeSize;
 
-    static ELFFrontend *curInstance;
+    static std::map<std::string, ELFFrontend *> curInstance;
     //Private constructor: we want pepole to be only able to use getInstance
     //to get an instance of the frontend
     ELFFrontend(std::string binaryName);

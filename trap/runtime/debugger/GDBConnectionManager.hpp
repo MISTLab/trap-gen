@@ -114,6 +114,7 @@ class GDBConnectionManager{
   private:
     ///Represents the currently open connection
     boost::asio::ip::tcp::socket * socket;
+    boost::asio::io_service io_service;
     ///Specifies the endianess of the current processor; true means
     ///that it is the same endianess of the host, false, otherwise
     bool endianess;

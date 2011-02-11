@@ -106,10 +106,9 @@ trap::GDBConnectionManager::~GDBConnectionManager(){
 ///this will be later used to communicate with GDB
 void trap::GDBConnectionManager::initialize(unsigned int port){
     try{
-        boost::asio::io_service io_service;
-        boost::asio::ip::tcp::acceptor acceptor(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port));
+        boost::asio::ip::tcp::acceptor acceptor(this->io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port));
 
-        this->socket = new boost::asio::ip::tcp::socket(io_service);
+        this->socket = new boost::asio::ip::tcp::socket(this->io_service);
         std::cerr << "GDB: waiting for connections on port " << port << std::endl;
         acceptor.accept(*this->socket);
         std::cerr << "GDB: connection accepted on port " << port << std::endl << std::endl;

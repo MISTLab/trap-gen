@@ -97,21 +97,24 @@ extern "C" {
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 
-trap::ELFFrontend * trap::ELFFrontend::curInstance = NULL;
+std::map<std::string, trap::ELFFrontend *> trap::ELFFrontend::curInstance;
 
 trap::ELFFrontend & trap::ELFFrontend::getInstance(std::string fileName){
-    if(ELFFrontend::curInstance == NULL){
+    if(ELFFrontend::curInstance.find(fileName) == ELFFrontend::curInstance.end()){
         if(fileName != "")
-            ELFFrontend::curInstance = new ELFFrontend(fileName);
+            ELFFrontend::curInstance[fileName] = new ELFFrontend(fileName);
         else
-            THROW_ERROR("An instance of BFDFrontend does not exists yet, so the file name of the binary image must be specified");
+            THROW_ERROR("An instance of ELFFrontend does not exists yet, so the file name of the binary image must be specified");
     }
-    return *ELFFrontend::curInstance;
+    return *ELFFrontend::curInstance[fileName];
 }
 
 void trap::ELFFrontend::reset(){
-    delete ELFFrontend::curInstance;
-    ELFFrontend::curInstance = NULL;
+    std::map<std::string, trap::ELFFrontend *>::iterator beg, end;
+    for(beg = ELFFrontend::curInstance.begin(), end = ELFFrontend::curInstance.end(); beg != end; beg++){
+        delete beg->second;
+    }
+    ELFFrontend::curInstance.clear();
 }
 
 trap::ELFFrontend::ELFFrontend(std::string binaryName) : execName(binaryName){
