@@ -286,7 +286,7 @@ class Instruction:
         self.frequency = frequency
         # Instruction id; note that the ID is automatically assigned to
         # the instruction by the ISA class
-        self.id = 0;
+        self.id = 0
         # Note how the code and the behavior is specified
         # for each pipeline stage
         self.prebehaviors = {}

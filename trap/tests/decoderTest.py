@@ -39,6 +39,13 @@ import unittest
 import decoder
 import os
 
+class dummyInstruction:
+    def __init__(self, id, bitstring):
+        self.frequency = 1
+        self.subInstructions = []
+        self.bitstring = bitstring
+        self.id = id
+    
 class TestDecoder(unittest.TestCase):
     def setUp(self):
         pass
@@ -289,3 +296,31 @@ class TestDecoder(unittest.TestCase):
         self.assertEqual([0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], splitFunc.table)
         self.assertEqual(decoder.DecodingNode(((bitString1, 1), (bitString2, 1))), bestLeaves[0][0])
         self.assertEqual(decoder.DecodingNode(((bitString3, 1), )), bestLeaves[1][0])
+
+    #def testComplexPattern(self):
+        #instructions = {}
+        #bitString1 = [1, 0, 0, 1, 1, 1, 0] + [None for i in range(0, 25)]
+        #instructions['one'] = dummyInstruction(1, bitString1)
+        #bitString2 = [1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0] + [None for i in range(0, 21)]
+        #instructions['two'] = dummyInstruction(2, bitString2)
+        #bitString3 = [1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0] + [None for i in range(0, 21)]
+        #instructions['three'] = dummyInstruction(3, bitString3)
+        #bitString4 = [1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1] + [None for i in range(0, 21)]
+        #instructions['four'] = dummyInstruction(4, bitString4)
+        #bitString5 = [1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1] + [None for i in range(0, 21)]
+        #instructions['five'] = dummyInstruction(5, bitString5)
+        #bitString6 = [1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0] + [None for i in range(0, 21)]
+        #instructions['six'] = dummyInstruction(6, bitString6)
+        #bitString7 = [1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0] + [None for i in range(0, 21)]
+        #instructions['seven'] = dummyInstruction(7, bitString7)
+        #bitString8 = [1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0] + [None for i in range(0, 21)]
+        #instructions['eight'] = dummyInstruction(8, bitString8)
+        #bitString9 = [1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1] + [None for i in range(0, 21)]
+        #instructions['nine'] = dummyInstruction(9, bitString9)
+        #bitString10 = [1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0] + [None for i in range(0, 21)]
+        #instructions['ten'] = dummyInstruction(10, bitString10)
+        #bitString11 = [1, 0, 0, 1, 1, 1, 1, 1, 1] + [None for i in range(0, 23)]
+        #instructions['eleven'] = dummyInstruction(11, bitString11)
+
+        #dec = decoder.decoderCreator(instructions, {})
+        #dec.printDecoder('dec.dot')
