@@ -101,10 +101,7 @@ std::map<std::string, trap::ELFFrontend *> trap::ELFFrontend::curInstance;
 
 trap::ELFFrontend & trap::ELFFrontend::getInstance(std::string fileName){
     if(ELFFrontend::curInstance.find(fileName) == ELFFrontend::curInstance.end()){
-        if(fileName != "")
-            ELFFrontend::curInstance[fileName] = new ELFFrontend(fileName);
-        else
-            THROW_ERROR("An instance of ELFFrontend does not exists yet, so the file name of the binary image must be specified");
+        ELFFrontend::curInstance[fileName] = new ELFFrontend(fileName);
     }
     return *ELFFrontend::curInstance[fileName];
 }

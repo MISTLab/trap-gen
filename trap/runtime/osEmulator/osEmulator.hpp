@@ -91,6 +91,7 @@ template<class issueWidth> class OSEmulator : public ToolsIf<issueWidth>, OSEmul
     template_map<issueWidth, SyscallCB<issueWidth>* > syscCallbacks;
     ABIIf<issueWidth> &processorInstance;
     typename template_map<issueWidth, SyscallCB<issueWidth>* >::const_iterator syscCallbacksEnd;
+    ELFFrontend *elfFrontend;
 
     unsigned int countBits(issueWidth bits){
         unsigned int numBits = 0;
@@ -102,9 +103,8 @@ template<class issueWidth> class OSEmulator : public ToolsIf<issueWidth>, OSEmul
     }
 
     bool register_syscall(std::string funName, SyscallCB<issueWidth> &callBack){
-        ELFFrontend &elfFE = ELFFrontend::getInstance();
         bool valid = false;
-        unsigned int symAddr = elfFE.getSymAddr(funName, valid);
+        unsigned int symAddr = this->elfFrontend->getSymAddr(funName, valid);
         if(!valid){
             return false;
         }
@@ -153,11 +153,10 @@ template<class issueWidth> class OSEmulator : public ToolsIf<issueWidth>, OSEmul
         this->syscCallbacksEnd = this->syscCallbacks.end();
     }
     std::set<std::string> getRegisteredFunctions(){
-        ELFFrontend &elfFE = ELFFrontend::getInstance();
         std::set<std::string> registeredFunctions;
         typename template_map<issueWidth, SyscallCB<issueWidth>* >::iterator emuIter, emuEnd;
         for(emuIter = this->syscCallbacks.begin(), emuEnd = this->syscCallbacks.end(); emuIter != emuEnd; emuIter++){
-            registeredFunctions.insert(elfFE.symbolAt(emuIter->first));
+            registeredFunctions.insert(this->elfFrontend->symbolAt(emuIter->first));
         }
         return registeredFunctions;
     }
@@ -170,7 +169,7 @@ template<class issueWidth> class OSEmulator : public ToolsIf<issueWidth>, OSEmul
         if(OSEmulatorBase::heapPointer.find(group) == OSEmulatorBase::heapPointer.end())
             OSEmulatorBase::heapPointer[group] = (unsigned int)this->processorInstance.getCodeLimit() + sizeof(issueWidth);
 
-        ELFFrontend::getInstance(execName);
+        this->elfFrontend = &ELFFrontend::getInstance(execName);
         //Now I perform the registration of the basic System Calls
         bool registered = false;
 

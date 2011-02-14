@@ -93,5 +93,5 @@ neither implicit nor explicit. The program and the information in it contained d
 necessarily reflect the policy of the European Space Agency. 
 
 For more information on the licensing please contact the Agency
-(Luca.Fossati@esa.int - Kostas.Marinis@esa.int).
+(Luca.Fossati@esa.int).
 """

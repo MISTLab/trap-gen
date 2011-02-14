@@ -111,7 +111,7 @@ class ELFFrontend{
     void readSymbols();
   public:
     ~ELFFrontend();
-    static ELFFrontend & getInstance(std::string fileName = "");
+    static ELFFrontend & getInstance(std::string fileName);
     static void reset();
     ///Given an address, it returns the symbols found there,(more than one
     ///symbol can be mapped to an address). Note
