@@ -9,6 +9,17 @@ banner = r"""
   _/_/_/_/  _/_/_/_/    _/_/    _/      _/   _/_/_/_/   
 """
 
+import sys
+
+# For easy of use, I add the possibility of specifying command line parameters to tune
+# the processor creation steps without having to modify this script
+destFolderName = 'processor'
+standalone = False
+if len(sys.argv) > 1:
+    destFolderName = sys.argv[1]
+if len(sys.argv) > 2 and sys.argv[2].lower() == 'standalone':
+    standalone = True
+
 # Lets first of all import the necessary files for the
 # creation of the processor; note that if the trap modules are
 # not in the default search path I have to manually specify the path
@@ -34,7 +45,7 @@ from LEON2Methods import updateAliasCode_exception
 from LEON2Methods import updateAliasCode_abi
 
 # Lets now start building the processor
-processor = trap.Processor('LEON2', version = '0.3', systemc = False, instructionCache = True, cacheLimit = 256)
+processor = trap.Processor('LEON2', version = '0.3', systemc = not standalone, instructionCache = True, cacheLimit = 256)
 processor.setIpRights('esa', 'Luca Fossati', 'fossati.l@gmail.com', banner)
 processor.setBigEndian() # big endian
 processor.setWordsize(4, 8) # 4 bytes per word, 8 bits per byte
@@ -170,10 +181,12 @@ processor.setFetchRegister('PC')
 
 # Lets now add details about the processor interconnection (i.e. memory ports,
 # interrupt ports, pins, etc.)
-#processor.addTLMPort('instrMem', True)
-#processor.addTLMPort('dataMem')
-#processor.setTLMMem(10*1024*1024, 0, True)
-processor.setMemory('dataMem', 10*1024*1024)
+if standalone:
+    processor.setMemory('dataMem', 10*1024*1024)
+else:
+    processor.addTLMPort('instrMem', True)
+    processor.addTLMPort('dataMem')
+    processor.setTLMMem(10*1024*1024, 0, True)
 #processor.setMemory('dataMem', 10*1024*1024, True, 'PC')
 
 # It PSR[ET] == 0 I do not do anything; else
@@ -268,7 +281,10 @@ processor.setABI(abi)
 # Finally we can dump the processor on file
 #processor.write(folder = 'processor', models = ['funcLT'], dumpDecoderName = 'decoder.dot')
 #processor.write(folder = 'processor', models = ['funcLT'], trace = True)
-processor.write(folder = 'processor', models = ['funcLT'], tests = False)
+if standalone:
+    processor.write(folder = destFolderName, models = ['funcLT'], tests = False)
+else:
+    processor.write(folder = destFolderName, models = ['funcLT', 'funcAT'], tests = False)
 #processor.write(folder = 'processor', models = ['funcAT'], tests = False)
 #processor.write(folder = 'processor', models = ['funcLT'], trace = True, tests = False)
 #processor.write(folder = 'processor', models = ['funcAT'], trace = False)
