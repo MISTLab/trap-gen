@@ -113,7 +113,7 @@ def getCPPMemoryIf(self, model, namespace):
 
     for curType in [archWordType, archHWordType]:
         swapEndianessCode = str(archByteType) + """ helperByte = 0;
-        for(int i = 0; i < sizeof(""" + str(curType) + """)/2; i++){
+        for(unsigned int i = 0; i < sizeof(""" + str(curType) + """)/2; i++){
             helperByte = ((""" + str(archByteType) + """ *)&datum)[i];
             ((""" + str(archByteType) + """ *)&datum)[i] = ((""" + str(archByteType) + """ *)&datum)[sizeof(""" + str(curType) + """) -1 -i];
             ((""" + str(archByteType) + """ *)&datum)[sizeof(""" + str(curType) + """) -1 -i] = helperByte;
@@ -286,7 +286,7 @@ def getCPPMemoryIf(self, model, namespace):
             dumpCode1 += 'dumpInfo.programCounter = this->' + self.memory[3] + ';\n'
         else:
             dumpCode1 += 'dumpInfo.programCounter = 0;\n'
-        dumpCode1 += 'for(int i = 0; i < '
+        dumpCode1 += 'for(unsigned int i = 0; i < '
         dumpCode2 = """; i++){
     dumpInfo.address = address + i;
     dumpInfo.val = (char)((datum & (0xFF << i*8)) >> i*8);
