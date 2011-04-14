@@ -651,14 +651,16 @@ class Folder:
     else:
         ctx.check_cxx(header_name='bfd.h', use='ELF_LIB', uselib_store='ELF_LIB', mandatory=foundElfLib)
 
+    # Little hack now: I have to revert the ELF_LIB library order, so that libbfd comes
+    # before libiberty
+    ctx.env['LIB_ELF_LIB'].reverse()
+
     ###########################################################
     # Due to peculiarities during static linking, the order
     # of libraries has to be reversed when statically linking
     ###########################################################
     if ctx.options.static_build:
-        ctx.env.LIB_ELF_LIB.reverse()
         ctx.check_cxx(lib='dl', uselib_store='ELF_LIB', mandatory=foundElfLib)
-
 
     ###########################################################
     # Check for Binutils version

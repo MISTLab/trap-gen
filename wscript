@@ -331,6 +331,10 @@ def configure(ctx):
         else:
             ctx.check_cxx(header_name='bfd.h', use='ELF_LIB', uselib_store='ELF_LIB', mandatory=1)
 
+        # Little hack now: I have to revert the ELF_LIB library order, so that libbfd comes
+        # before libiberty
+        ctx.env['LIB_ELF_LIB'].reverse()
+
         ###########################################################
         # Check for Binutils version
         ###########################################################
