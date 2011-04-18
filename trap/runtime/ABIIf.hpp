@@ -76,6 +76,7 @@ template<class regWidth> class ABIIf{
     virtual bool isLittleEndian() const throw() = 0;
     virtual regWidth readLR() const throw(){
         THROW_ERROR("The LR register is not defined in the processor ABI");
+        return 0;
     }
     virtual void setLR( const regWidth & newValue ) throw(){
         THROW_ERROR("The LR register is not defined in the processor ABI");
@@ -84,12 +85,14 @@ template<class regWidth> class ABIIf{
     virtual void setPC( const regWidth & newValue ) throw() = 0;
     virtual regWidth readSP() const throw(){
         THROW_ERROR("The SP register is not defined in the processor ABI");
+        return 0;
     }
     virtual void setSP( const regWidth & newValue ) throw(){
         THROW_ERROR("The SP register is not defined in the processor ABI");
     }
     virtual regWidth readFP() const throw(){
         THROW_ERROR("The FP register is not defined in the processor ABI");
+        return 0;
     }
     virtual void setFP( const regWidth & newValue ) throw(){
         THROW_ERROR("The FP register is not defined in the processor ABI");
