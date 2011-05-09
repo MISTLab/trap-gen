@@ -189,7 +189,10 @@ def configure(ctx):
     ########################################
     ctx.load('boost')
     boostLibs = 'regex thread program_options filesystem system'
-    ctx.check_boost(lib=boostLibs, static='both', mandatory=True, min_version='1.35.0', errmsg = 'Unable to find ' + boostLibs + ' boost libraries of at least version 1.35, please install them and/or specify their location with the --boost-includes and --boost-libs configuration options. It can also happen that you have more than one boost version installed in a system-wide location: in this case remove the unnecessary versions.')
+    boostErrorMessage = 'Unable to find ' + boostLibs + ' boost libraries of at least version 1.35, please install them and/or specify their location with the --boost-includes and --boost-libs configuration options. It can also happen that you have more than one boost version installed in a system-wide location: in this case remove the unnecessary versions.'
+    ctx.check_boost(lib=boostLibs, mandatory=True, errmsg = boostErrorMessage)
+    if int(ctx.env.BOOST_VERSION.split('_')[1]) < 35:
+        ctx.fatal(boostErrorMessage)
 
     #######################################################
     # Determining gcc search dirs

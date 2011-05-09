@@ -1319,7 +1319,7 @@ class Processor:
             namespace = ''
         # We create and print the main folder and also add a configuration
         # part to the wscript
-        mainFolder.create(configure = True, projectName = self.name, version = self.version, customOptions = self.preProcMacros)
+        mainFolder.create(configure = True, tests = (not self.systemc) and tests, projectName = self.name, version = self.version, customOptions = self.preProcMacros)
         if forceDecoderCreation:
             try:
                 import pickle
