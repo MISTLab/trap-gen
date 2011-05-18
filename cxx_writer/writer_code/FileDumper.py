@@ -376,8 +376,10 @@ class Folder:
     # specify any flags I set optimized flags
     #############################################################
     if not ctx.env['CXXFLAGS'] and not ctx.env['CCFLAGS']:
-        testFlags = ['-O2', '-march=native', '-pipe', '-finline-functions', '-ftracer', '-fomit-frame-pointer']
-        if ctx.check_cxx(cxxflags=testFlags, msg='Checking for g++ optimization flags') and ctx.check_cc(cflags=testFlags, msg='Checking for gcc optimization flags'):
+        testFlags = ['-O2', '-pipe', '-finline-functions', '-ftracer', '-fomit-frame-pointer']
+        if int(ctx.env['CC_VERSION'][0]) >= 4 and int(ctx.env['CC_VERSION'][1]) >= 2:
+            testFlags.append('-march=native')
+        if ctx.check_cxx(cxxflags=testFlags, msg='Checking for g++ optimization flags', mandatory=False) and ctx.check_cc(cflags=testFlags, msg='Checking for gcc optimization flags', mandatory=False):
             ctx.env.append_unique('CXXFLAGS', testFlags)
             ctx.env.append_unique('CCFLAGS', testFlags)
             ctx.env.append_unique('DEFINES', 'NDEBUG')
@@ -516,7 +518,7 @@ class Folder:
                 void * funPtr = (void *)elf_getphdrnum;
                 return 0;
             }
-        ''', msg='Checking for function elf_getphdrnum', use='ELF_LIB', mandatory=1, errmsg='Error, elf_getphdrnum not present in libelf; try to update to a newest version')
+        ''', msg='Checking for function elf_getphdrnum', use='ELF_LIB', mandatory=1, errmsg='Error, elf_getphdrnum not present in libelf; try to update to a newest version (e.g. at least version 0.144 of the libelf package distributed with Ubuntu)')
 """, wscriptFile)
 
             else:
@@ -842,11 +844,11 @@ class Folder:
             if FileDumper.license == 'gpl':
                 printOnFile("""
         if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'bfd_init') and 'elf' not in ctx.env['LIB_ELF_LIB']:
-            ctx.fatal('TRAP library not linked with BFD library: libElf library needed or recompile TRAP using its GPL flavour (--license=gpl)')
+            ctx.fatal('TRAP library not linked with BFD library: libElf library needed or recompile TRAP using its GPL flavour (--license=gpl) if present in your distribution')
 """, wscriptFile)
             printOnFile("""
         if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'elf_begin') and 'bfd' not in ctx.env['LIB_ELF_LIB']:
-            ctx.fatal('TRAP library not linked with libelf library: BFD library needed (you might need to re-create the processor specifying a GPL license) or compile TRAP using its LGPL flavour ')
+            ctx.fatal('TRAP library not linked with libelf library: BFD library needed (you might need to re-create the processor specifying a GPL license, if present in your distribution) or compile TRAP using its LGPL flavour')
 
         ctx.check_cxx(header_name='trap.hpp', use='TRAP ELF_LIB BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', uselib_store='TRAP', mandatory=1, includes=trapDirInc)
         ctx.check_cxx(fragment='''
@@ -868,11 +870,11 @@ class Folder:
             if FileDumper.license == 'gpl':
                 printOnFile("""
         if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'bfd_init') and 'elf' not in ctx.env['LIB_ELF_LIB']:
-            ctx.fatal('TRAP library not linked with BFD library: libElf library needed or recompile TRAP using its GPL flavour (--license=gpl)')
+            ctx.fatal('TRAP library not linked with BFD library: libElf library needed or recompile TRAP using its GPL flavour (--license=gpl)  if present in your distribution')
 """, wscriptFile)
             printOnFile("""
         if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'elf_begin') and 'bfd' not in ctx.env['LIB_ELF_LIB']:
-            ctx.fatal('TRAP library not linked with libelf library: BFD library needed (you might need to re-create the processor specifying a GPL license) or compile TRAP using its LGPL flavour ')
+            ctx.fatal('TRAP library not linked with libelf library: BFD library needed (you might need to re-create the processor specifying a GPL license, if present in your distribution) or compile TRAP using its LGPL flavour ')
 
         ctx.check_cxx(header_name='trap.hpp', use='TRAP ELF_LIB BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', uselib_store='TRAP', mandatory=1)
         ctx.check_cxx(fragment='''

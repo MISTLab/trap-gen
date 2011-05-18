@@ -140,7 +140,7 @@ def configure(ctx):
         testFlags = ['-O2', '-pipe', '-finline-functions', '-ftracer', '-fomit-frame-pointer']
         if int(ctx.env['CC_VERSION'][0]) >= 4 and int(ctx.env['CC_VERSION'][1]) >= 2:
             testFlags.append('-march=native')
-        if ctx.check_cxx(cxxflags=testFlags, msg='Checking for g++ optimization flags') and ctx.check_cc(cflags=testFlags, msg='Checking for gcc optimization flags'):
+        if ctx.check_cxx(cxxflags=testFlags, msg='Checking for g++ optimization flags', mandatory=False) and ctx.check_cc(cflags=testFlags, msg='Checking for gcc optimization flags', mandatory=False):
             ctx.env.append_unique('CXXFLAGS', testFlags)
             ctx.env.append_unique('CCFLAGS', testFlags)
             ctx.env.append_unique('DEFINES', 'NDEBUG')
@@ -399,11 +399,11 @@ def configure(ctx):
                     break
             if not elfHeaderFound:
                 ctx.fatal('Unable to find libelf.h and/or gelf.h headers in specified path ' + str(elfIncPath))
-            ctx.check_cxx(lib='elf', uselib_store='ELF_LIB', mandatory=1, libpath = elfLibPath, errmsg='no libelf found: either install it or use libfd, reverting to the GPL version of TRAP (--license=gpl configuration option)')
+            ctx.check_cxx(lib='elf', uselib_store='ELF_LIB', mandatory=1, libpath = elfLibPath, errmsg='no libelf found: either install it or use libfd, reverting to the GPL version of TRAP (--license=gpl configuration option), if allowed by your distribution')
             ctx.check(header_name='libelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1, includes = elfIncPath)
             ctx.check(header_name='gelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1, includes = elfIncPath)
         else:
-            ctx.check_cxx(lib='elf', uselib_store='ELF_LIB', mandatory=1, errmsg='no libelf found: either install it or use libfd, reverting to the GPL version of TRAP (--license=gpl configuration option)')
+            ctx.check_cxx(lib='elf', uselib_store='ELF_LIB', mandatory=1, errmsg='no libelf found: either install it or use libfd, reverting to the GPL version of TRAP (--license=gpl configuration option), if allowed by your distribution')
             ctx.check(header_name='libelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1)
             ctx.check(header_name='gelf.h', uselib='ELF_LIB', uselib_store='ELF_LIB', features='cxx cprogram', mandatory=1)
         ctx.check_cxx(fragment="""
@@ -413,7 +413,7 @@ def configure(ctx):
                 void * funPtr = (void *)elf_getphdrnum;
                 return 0;
             }
-        """, msg='Checking for function elf_getphdrnum', use='ELF_LIB', mandatory=1, errmsg='Error, elf_getphdrnum not present in libelf; try to update to a newest version')
+        """, msg='Checking for function elf_getphdrnum', use='ELF_LIB', mandatory=1, errmsg='Error, elf_getphdrnum not present in libelf; try to update to a newest version (e.g. at least version 0.144 of the libelf package distributed with Ubuntu)')
         
 
     #########################################################
