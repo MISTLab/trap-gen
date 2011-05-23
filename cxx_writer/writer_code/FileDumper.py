@@ -229,9 +229,9 @@ class Folder:
                         printOnFile('        ' + codeFile.name, wscriptFile)
                 printOnFile('    \"\"\"', wscriptFile)
                 if tests:
-                    printOnFile('    uselib = \'TRAP ELF_LIB BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_PROGRAM_OPTIONS BOOST_THREAD BOOST_FILESYSTEM BOOST_SYSTEM SYSTEMC TLM\'', wscriptFile)
+                    printOnFile('    uselib = \'TRAP ELF_LIB BOOST BOOST SYSTEMC TLM\'', wscriptFile)
                 else:
-                    printOnFile('    uselib = \'BOOST BOOST_THREAD BOOST_FILESYSTEM BOOST_SYSTEM SYSTEMC TLM TRAP\'', wscriptFile)
+                    printOnFile('    uselib = \'BOOST SYSTEMC TLM TRAP\'', wscriptFile)
                 if self.uselib_local:
                     printOnFile('    objects = \'' + ' '.join(self.uselib_local) + '\'', wscriptFile)
                     printOnFile('    includes = \'. ..\'', wscriptFile)
@@ -253,9 +253,9 @@ class Folder:
                 printOnFile('    sources = \'' + self.mainFile + '\'', wscriptFile)
                 printOnFile('    includes = \'.\'', wscriptFile)
                 if tests:
-                    printOnFile('    uselib = \'TRAP ELF_LIB BOOST BOOST_UNIT_TEST_FRAMEWORK BOOST_THREAD BOOST_SYSTEM SYSTEMC TLM\'', wscriptFile)
+                    printOnFile('    uselib = \'TRAP ELF_LIB BOOST BOOST SYSTEMC TLM\'', wscriptFile)
                 else:
-                    printOnFile('    uselib = \'TRAP ELF_LIB BOOST BOOST_PROGRAM_OPTIONS BOOST_THREAD BOOST_FILESYSTEM BOOST_SYSTEM SYSTEMC TLM\'', wscriptFile)
+                    printOnFile('    uselib = \'TRAP ELF_LIB BOOST BOOST SYSTEMC TLM\'', wscriptFile)
                 printOnFile('    import sys', wscriptFile)
                 printOnFile('    cppflags_custom = \'\'', wscriptFile)
                 printOnFile('    if sys.platform == \'cygwin\':', wscriptFile)
@@ -424,7 +424,7 @@ class Folder:
     if int(ctx.env.BOOST_VERSION.split('_')[1]) < 35:
         ctx.fatal(boostErrorMessage)
     if not ctx.options.static_build:
-        ctx.env.append_unique('RPATH', ctx.env['LIBPATH_BOOST_THREAD'])
+        ctx.env.append_unique('RPATH', ctx.env['LIBPATH_BOOST'])
 
     #######################################################
     # Determining gcc search dirs
@@ -835,7 +835,7 @@ class Folder:
     if ctx.options.trapdir:
         trapDirLib = os.path.abspath(os.path.expandvars(os.path.expanduser(os.path.join(ctx.options.trapdir, 'lib'))))
         trapDirInc = os.path.abspath(os.path.expandvars(os.path.expanduser(os.path.join(ctx.options.trapdir, 'include'))))
-        ctx.check_cxx(lib='trap', use='ELF_LIB BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', uselib_store='TRAP', mandatory=1, libpath=trapDirLib, errmsg=trapLibErrmsg)
+        ctx.check_cxx(lib='trap', use='ELF_LIB BOOST SYSTEMC', uselib_store='TRAP', mandatory=1, libpath=trapDirLib, errmsg=trapLibErrmsg)
         foundShared = glob.glob(os.path.join(trapDirLib, ctx.env['cxxshlib_PATTERN'] % 'trap'))
         if foundShared:
             ctx.env.append_unique('RPATH', ctx.env['LIBPATH_TRAP'])
@@ -849,7 +849,7 @@ class Folder:
         if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'elf_begin') and 'bfd' not in ctx.env['LIB_ELF_LIB']:
             ctx.fatal('TRAP library not linked with libelf library: BFD library needed (you might need to re-create the processor specifying a GPL license, if present in your distribution) or compile TRAP using its LGPL flavour')
 
-        ctx.check_cxx(header_name='trap.hpp', use='TRAP ELF_LIB BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', uselib_store='TRAP', mandatory=1, includes=trapDirInc)
+        ctx.check_cxx(header_name='trap.hpp', use='TRAP ELF_LIB BOOST SYSTEMC', uselib_store='TRAP', mandatory=1, includes=trapDirInc)
         ctx.check_cxx(fragment='''
             #include "trap.hpp"
 
@@ -862,9 +862,9 @@ class Folder:
             #endif
 
             int main(int argc, char * argv[]){return 0;}
-''', msg='Check for TRAP version', use='TRAP ELF_LIB BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', mandatory=1, includes=trapDirInc, errmsg='Error, at least revision ' + str(trapRevisionNum) + ' required')
+''', msg='Check for TRAP version', use='TRAP ELF_LIB BOOST SYSTEMC', mandatory=1, includes=trapDirInc, errmsg='Error, at least revision ' + str(trapRevisionNum) + ' required')
     else:
-        ctx.check_cxx(lib='trap', use='ELF_LIB BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', uselib_store='TRAP', mandatory=1, errmsg=trapLibErrmsg)
+        ctx.check_cxx(lib='trap', use='ELF_LIB BOOST SYSTEMC', uselib_store='TRAP', mandatory=1, errmsg=trapLibErrmsg)
 """, wscriptFile)
             if FileDumper.license == 'gpl':
                 printOnFile("""
@@ -875,7 +875,7 @@ class Folder:
         if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'elf_begin') and 'bfd' not in ctx.env['LIB_ELF_LIB']:
             ctx.fatal('TRAP library not linked with libelf library: BFD library needed (you might need to re-create the processor specifying a GPL license, if present in your distribution) or compile TRAP using its LGPL flavour ')
 
-        ctx.check_cxx(header_name='trap.hpp', use='TRAP ELF_LIB BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', uselib_store='TRAP', mandatory=1)
+        ctx.check_cxx(header_name='trap.hpp', use='TRAP ELF_LIB BOOST SYSTEMC', uselib_store='TRAP', mandatory=1)
         ctx.check_cxx(fragment='''
             #include "trap.hpp"
 
@@ -888,7 +888,7 @@ class Folder:
             #endif
 
             int main(int argc, char * argv[]){return 0;}
-''', msg='Check for TRAP version', use='TRAP ELF_LIB BOOST_FILESYSTEM BOOST_THREAD BOOST_SYSTEM SYSTEMC', mandatory=1, errmsg='Error, at least revision ' + str(trapRevisionNum) + ' required')
+''', msg='Check for TRAP version', use='TRAP ELF_LIB BOOST SYSTEMC', mandatory=1, errmsg='Error, at least revision ' + str(trapRevisionNum) + ' required')
 
 """, wscriptFile)
             # Finally now I can add the options
