@@ -517,7 +517,7 @@ class Folder:
                 void * funPtr = (void *)elf_getphdrnum;
                 return 0;
             }
-        ''', msg='Checking for function elf_getphdrnum', use='ELF_LIB', mandatory=1, errmsg='Error, elf_getphdrnum not present in libelf; try to update to a newest version (e.g. at least version 0.144 of the libelf package distributed with Ubuntu)')
+        ''', msg='Checking for function elf_getphdrnum', use='ELF_LIB', mandatory=1, errmsg='Error, elf_getphdrnum not present in libelf; try to update to a newer version (e.g. at least version 0.144 of the libelf package distributed with Ubuntu)')
 """, wscriptFile)
 
             else:
