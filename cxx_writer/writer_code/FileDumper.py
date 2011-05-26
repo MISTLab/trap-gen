@@ -301,7 +301,7 @@ class Folder:
             ctx.env.append_unique('DEFINES', flag[2:])
 
     # Check for standard tools
-    ctx.check_waf_version(mini='1.6.0')
+    ctx.check_waf_version(mini='1.6.4')
 
     # Check for standard tools
     ctx.load('compiler_cxx')
