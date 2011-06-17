@@ -93,17 +93,22 @@ namespace trap{
 
 class OSEmulatorBase{
     public:
-    virtual std::set<std::string> getRegisteredFunctions() = 0;
-    static void correct_flags(int &val);
-    static void set_environ(std::string name,  std::string value);
-    static void set_sysconf(std::string name,  int value);
-    static void set_program_args(std::vector<std::string> args);
-    static void reset();
 
-    static std::map<std::string,  std::string> env;
-    static std::map<std::string, int> sysconfmap;
-    static std::vector<std::string> programArgs;
-    static std::map<int, unsigned int> heapPointer;
+    virtual std::set<std::string> getRegisteredFunctions() = 0;
+	void set_program_args(const std::vector<std::string> args);
+    void correct_flags(int &val);
+    void set_environ(const std::string name,  const std::string value);
+    void set_sysconf(const std::string name,  int value);
+    void reset();
+
+    std::map<std::string,  std::string> env;
+    std::map<std::string, int> sysconfmap;
+    std::vector<std::string> programArgs;
+    unsigned int heapPointer;    
+    
+    static std::vector<unsigned int> groupIDs;
+    static unsigned int programsCount;
+
 };
 
 ///Base class for each emulated system call;
@@ -120,8 +125,10 @@ template<class wordSize> class SyscallCB{
 };
 
 template<class wordSize> class openSysCall : public SyscallCB<wordSize>{
+    private:
+        OSEmulatorBase& osEmu;
     public:
-    openSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
+    openSysCall(ABIIf<wordSize> &processorInstance, OSEmulatorBase &osEmu, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency), osEmu(osEmu){}
     bool operator()(){
         this->processorInstance.preCall();
         //Lets get the system call arguments
@@ -134,7 +141,7 @@ template<class wordSize> class openSysCall : public SyscallCB<wordSize>{
                 break;
         }
         int flags = callArgs[1];
-        OSEmulatorBase::correct_flags(flags);
+        osEmu.correct_flags(flags);
         int mode = callArgs[2];
         #ifdef __GNUC__
         int ret = ::open(pathname, flags, mode);
@@ -494,7 +501,12 @@ template<class wordSize> class _exitSysCall : public SyscallCB<wordSize>{
         std::cout << std::endl << "Program exited with value " << exitValue << std::endl << std::endl;
 
         if(sc_is_running()){
-            sc_stop();
+            OSEmulatorBase::programsCount--;
+            if(OSEmulatorBase::programsCount>0){ //in case there are other programs still running, block the current processor
+                sc_event endEv;
+                wait(endEv);
+            }else //ok, this is the last running program, it is possible to call sc_stop()
+                sc_stop();
             wait(SC_ZERO_TIME);
         }
 
@@ -788,9 +800,10 @@ template<class wordSize> class dup2SysCall : public SyscallCB<wordSize>{
 template<class wordSize> class getenvSysCall : public SyscallCB<wordSize>{
     private:
         unsigned int &heapPointer;
+        std::map<std::string, std::string>& env;
     public:
-    getenvSysCall(ABIIf<wordSize> &processorInstance, unsigned int &heapPointer, sc_time latency = SC_ZERO_TIME) :
-                                SyscallCB<wordSize>(processorInstance, latency), heapPointer(heapPointer){}
+    getenvSysCall(ABIIf<wordSize> &processorInstance, unsigned int &heapPointer, std::map<std::string,  std::string>& env, sc_time latency = SC_ZERO_TIME) :
+                                SyscallCB<wordSize>(processorInstance, latency), heapPointer(heapPointer), env(env){}
     bool operator()(){
         this->processorInstance.preCall();
         //Lets get the system call arguments
@@ -804,8 +817,8 @@ template<class wordSize> class getenvSysCall : public SyscallCB<wordSize>{
                 if(envname[i] == '\x0')
                     break;
             }
-            std::map<std::string,  std::string>::iterator curEnv = OSEmulatorBase::env.find((std::string(envname)));
-            if(curEnv == OSEmulatorBase::env.end()){
+            std::map<std::string,  std::string>::iterator curEnv = this->env.find((std::string(envname)));
+            if(curEnv == this->env.end()){
                 this->processorInstance.setRetVal(0);
                 this->processorInstance.returnFromCall();
             }
@@ -988,9 +1001,10 @@ template<class wordSize> class usleepSysCall : public SyscallCB<wordSize>{
 template<class wordSize> class mainSysCall : public SyscallCB<wordSize>{
     private:
         unsigned int &heapPointer;
+        std::vector<std::string>& programArgs;
     public:
-    mainSysCall(ABIIf<wordSize> &processorInstance, unsigned int &heapPointer) :
-                SyscallCB<wordSize>(processorInstance, SC_ZERO_TIME), heapPointer(heapPointer){}
+    mainSysCall(ABIIf<wordSize> &processorInstance, unsigned int &heapPointer, std::vector<std::string>& programArgs) :
+                SyscallCB<wordSize>(processorInstance, SC_ZERO_TIME), heapPointer(heapPointer), programArgs(programArgs){}
     bool operator()(){
         this->processorInstance.preCall();
 
@@ -1002,7 +1016,7 @@ template<class wordSize> class mainSysCall : public SyscallCB<wordSize>{
 
         std::vector< wordSize > mainArgs;
 
-        if(OSEmulatorBase::programArgs.size() == 0){
+        if(this->programArgs.size() == 0){
             mainArgs.push_back(0);
             mainArgs.push_back(0);
             this->processorInstance.setArgs(mainArgs);
@@ -1010,10 +1024,10 @@ template<class wordSize> class mainSysCall : public SyscallCB<wordSize>{
             return false;
         }
 
-        unsigned int argAddr = ((unsigned int)this->heapPointer) + (OSEmulatorBase::programArgs.size() + 1)*4;
+        unsigned int argAddr = ((unsigned int)this->heapPointer) + (this->programArgs.size() + 1)*4;
         unsigned int argNumAddr = this->heapPointer;
         std::vector<std::string>::iterator argsIter, argsEnd;
-        for(argsIter = OSEmulatorBase::programArgs.begin(), argsEnd = OSEmulatorBase::programArgs.end(); argsIter != argsEnd; argsIter++){
+        for(argsIter = this->programArgs.begin(), argsEnd = this->programArgs.end(); argsIter != argsEnd; argsIter++){
             this->processorInstance.writeMem(argNumAddr, argAddr);
             argNumAddr += 4;
             for(unsigned int i = 0; i < argsIter->size(); i++){
@@ -1024,7 +1038,7 @@ template<class wordSize> class mainSysCall : public SyscallCB<wordSize>{
         }
         this->processorInstance.writeMem(argNumAddr, 0);
 
-        mainArgs.push_back(OSEmulatorBase::programArgs.size());
+        mainArgs.push_back(this->programArgs.size());
         mainArgs.push_back(this->heapPointer);
         this->processorInstance.setArgs(mainArgs);
         this->heapPointer = argAddr;
@@ -1171,8 +1185,10 @@ template<class wordSize> class mainSysCall : public SyscallCB<wordSize>{
 #define NEWLIB_SC_2_VERSION                   121
 
 template<class wordSize> class sysconfSysCall : public SyscallCB<wordSize>{
+    private:
+        std::map<std::string, int>& sysconfmap;
     public:
-    sysconfSysCall(ABIIf<wordSize> &processorInstance, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency){}
+    sysconfSysCall(ABIIf<wordSize> &processorInstance, std::map<std::string, int>& sysconfmap, sc_time latency = SC_ZERO_TIME) : SyscallCB<wordSize>(processorInstance, latency), sysconfmap(sysconfmap){}
     bool operator()(){
         this->processorInstance.preCall();
         //Lets get the system call arguments
@@ -1182,16 +1198,16 @@ template<class wordSize> class sysconfSysCall : public SyscallCB<wordSize>{
         int ret = -1;
         switch(argId){
             case NEWLIB_SC_NPROCESSORS_ONLN:
-                if(OSEmulatorBase::sysconfmap.find("_SC_NPROCESSORS_ONLN") == OSEmulatorBase::sysconfmap.end())
+                if(this->sysconfmap.find("_SC_NPROCESSORS_ONLN") == this->sysconfmap.end())
                     ret = 1;
                 else
-                    ret = OSEmulatorBase::sysconfmap["_SC_NPROCESSORS_ONLN"];
+                    ret = this->sysconfmap["_SC_NPROCESSORS_ONLN"];
             break;
             case NEWLIB_SC_CLK_TCK:
-                if(OSEmulatorBase::sysconfmap.find("_SC_CLK_TCK") == OSEmulatorBase::sysconfmap.end())
+                if(this->sysconfmap.find("_SC_CLK_TCK") == this->sysconfmap.end())
                     ret = 1000000;
                 else
-                    ret = OSEmulatorBase::sysconfmap["_SC_CLK_TCK"];
+                    ret = this->sysconfmap["_SC_CLK_TCK"];
             break;
             default:
                 ret = -1;

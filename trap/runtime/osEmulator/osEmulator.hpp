@@ -86,7 +86,7 @@
 
 namespace trap{
 
-template<class issueWidth> class OSEmulator : public ToolsIf<issueWidth>, OSEmulatorBase{
+template<class issueWidth> class OSEmulator : public ToolsIf<issueWidth>, public OSEmulatorBase{
   private:
     template_map<issueWidth, SyscallCB<issueWidth>* > syscCallbacks;
     ABIIf<issueWidth> &processorInstance;
@@ -165,9 +165,13 @@ template<class issueWidth> class OSEmulator : public ToolsIf<issueWidth>, OSEmul
         this->initSysCalls(execName, emptyLatMap, group);
     }
     void initSysCalls(std::string execName, std::map<std::string, sc_time> latencies, int group = 0){
+        if(find (groupIDs.begin(), groupIDs.end(), group) == groupIDs.end()){
+            groupIDs.push_back(group);
+            programsCount++;
+        }
+
         //First of all I initialize the heap pointer according to the group it belongs to
-        if(OSEmulatorBase::heapPointer.find(group) == OSEmulatorBase::heapPointer.end())
-            OSEmulatorBase::heapPointer[group] = (unsigned int)this->processorInstance.getCodeLimit() + sizeof(issueWidth);
+        this->heapPointer = (unsigned int)this->processorInstance.getCodeLimit() + sizeof(issueWidth);
 
         this->elfFrontend = &ELFFrontend::getInstance(execName);
         //Now I perform the registration of the basic System Calls
@@ -175,11 +179,11 @@ template<class issueWidth> class OSEmulator : public ToolsIf<issueWidth>, OSEmul
 
         openSysCall<issueWidth> *a = NULL;
         if(latencies.find("open") != latencies.end())
-            a = new openSysCall<issueWidth>(this->processorInstance, latencies["open"]);
+            a = new openSysCall<issueWidth>(this->processorInstance, *this, latencies["open"]);
         else if(latencies.find("_open") != latencies.end())
-            a = new openSysCall<issueWidth>(this->processorInstance, latencies["_open"]);
+            a = new openSysCall<issueWidth>(this->processorInstance, *this, latencies["_open"]);
         else
-            a = new openSysCall<issueWidth>(this->processorInstance);
+            a = new openSysCall<issueWidth>(this->processorInstance, *this);
         registered = this->register_syscall("open", *a);
         registered |= this->register_syscall("_open", *a);
         if(!registered)
@@ -241,11 +245,11 @@ template<class issueWidth> class OSEmulator : public ToolsIf<issueWidth>, OSEmul
             delete f;
         sbrkSysCall<issueWidth> *g = NULL;
         if(latencies.find("sbrk") != latencies.end())
-            g = new sbrkSysCall<issueWidth>(this->processorInstance, OSEmulatorBase::heapPointer[group], latencies["sbrk"]);
+            g = new sbrkSysCall<issueWidth>(this->processorInstance, this->heapPointer, latencies["sbrk"]);
         else if(latencies.find("_sbrk") != latencies.end())
-            g = new sbrkSysCall<issueWidth>(this->processorInstance, OSEmulatorBase::heapPointer[group], latencies["_sbrk"]);
+            g = new sbrkSysCall<issueWidth>(this->processorInstance, this->heapPointer, latencies["_sbrk"]);
         else
-            g = new sbrkSysCall<issueWidth>(this->processorInstance, OSEmulatorBase::heapPointer[group]);
+            g = new sbrkSysCall<issueWidth>(this->processorInstance, this->heapPointer);
         registered = this->register_syscall("sbrk", *g);
         registered |= this->register_syscall("_sbrk", *g);
         if(!registered)
@@ -358,20 +362,20 @@ template<class issueWidth> class OSEmulator : public ToolsIf<issueWidth>, OSEmul
             delete q;
         getenvSysCall<issueWidth> *r = NULL;
         if(latencies.find("getenv") != latencies.end())
-            r = new getenvSysCall<issueWidth>(this->processorInstance, OSEmulatorBase::heapPointer[group], latencies["getenv"]);
+            r = new getenvSysCall<issueWidth>(this->processorInstance, this->heapPointer, this->env, latencies["getenv"]);
         else if(latencies.find("_getenv") != latencies.end())
-            r = new getenvSysCall<issueWidth>(this->processorInstance, OSEmulatorBase::heapPointer[group], latencies["_getenv"]);
+            r = new getenvSysCall<issueWidth>(this->processorInstance, this->heapPointer, this->env, latencies["_getenv"]);
         else
-            r = new getenvSysCall<issueWidth>(this->processorInstance, OSEmulatorBase::heapPointer[group]);
+            r = new getenvSysCall<issueWidth>(this->processorInstance, this->heapPointer, this->env);
         registered = this->register_syscall("getenv", *r);
         registered |= this->register_syscall("_getenv", *r);
         if(!registered)
             delete r;
         sysconfSysCall<issueWidth> *s = NULL;
         if(latencies.find("sysconf") != latencies.end())
-            s = new sysconfSysCall<issueWidth>(this->processorInstance, latencies["sysconf"]);
+            s = new sysconfSysCall<issueWidth>(this->processorInstance, this->sysconfmap, latencies["sysconf"]);
         else
-            s = new sysconfSysCall<issueWidth>(this->processorInstance);
+            s = new sysconfSysCall<issueWidth>(this->processorInstance, this->sysconfmap);
         if(!this->register_syscall("sysconf", *s))
             delete s;
         gettimeofdaySysCall<issueWidth> *t = NULL;
@@ -474,7 +478,7 @@ template<class issueWidth> class OSEmulator : public ToolsIf<issueWidth>, OSEmul
         if(!registered)
             delete B;
 
-        mainSysCall<issueWidth> * mainCallBack = new mainSysCall<issueWidth>(this->processorInstance, OSEmulatorBase::heapPointer[group]);
+        mainSysCall<issueWidth> * mainCallBack = new mainSysCall<issueWidth>(this->processorInstance, this->heapPointer, this->programArgs);
         if(!this->register_syscall("main", *mainCallBack))
             THROW_EXCEPTION("Fatal Error, unable to find main function in current application");
     }
@@ -503,10 +507,10 @@ template<class issueWidth> class OSEmulator : public ToolsIf<issueWidth>, OSEmul
     void reset(){
         this->syscCallbacks.clear();
         this->syscCallbacksEnd = this->syscCallbacks.end();
-        OSEmulatorBase::env.clear();
-        OSEmulatorBase::sysconfmap.clear();
-        OSEmulatorBase::programArgs.clear();
-        OSEmulatorBase::heapPointer.clear();
+        this->env.clear();
+        this->sysconfmap.clear();
+        this->programArgs.clear();
+        this->heapPointer = 0;
     }
     virtual ~OSEmulator(){
     }

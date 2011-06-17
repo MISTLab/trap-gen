@@ -37,7 +37,7 @@
 # in order to test interrupts
 
 # Here define your own location of the cross-compiler
-CC_CROSS=/home/luke/cross/sparc/bin/sparc-elf-gcc
+CC_CROSS=sparc-elf-gcc
 
 irqTester: osemu-irq-crt0.o exceptionTrap-irq.o irqTester.c
 	$(CC_CROSS) -o irqTester -specs=osemu-irq.specs irqTester.c

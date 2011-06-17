@@ -94,31 +94,28 @@ void trap::OSEmulatorBase::correct_flags(int &val){
     val = flags;
 } 
 
-void trap::OSEmulatorBase::set_environ(std::string name, std::string value){
-    OSEmulatorBase::env[name] = value;
+void trap::OSEmulatorBase::set_environ(const std::string name, const std::string value){
+    env[name] = value;
 }
 
-void trap::OSEmulatorBase::set_sysconf(std::string name, int value){
-    OSEmulatorBase::sysconfmap[name] = value;
+void trap::OSEmulatorBase::set_sysconf(const std::string name, int value){
+    sysconfmap[name] = value;
 }
 
-void trap::OSEmulatorBase::set_program_args(std::vector<std::string> args){
-    OSEmulatorBase::programArgs = args;
+void trap::OSEmulatorBase::set_program_args(const std::vector<std::string> args){
+    programArgs = args;
 }
 
 void trap::OSEmulatorBase::reset(){
-    OSEmulatorBase::programArgs.clear();    
-    OSEmulatorBase::sysconfmap.clear();    
-    OSEmulatorBase::programArgs.clear();    
-    OSEmulatorBase::heapPointer.clear();    
+    this->programArgs.clear();    
+    this->sysconfmap.clear();    
+    this->programArgs.clear();    
+    this->heapPointer = 0;
     ELFFrontend::reset();
 }
 
-
-std::map<std::string,  std::string> trap::OSEmulatorBase::env;
-std::map<std::string, int> trap::OSEmulatorBase::sysconfmap;
-std::vector<std::string> trap::OSEmulatorBase::programArgs;
-std::map<int, unsigned int> trap::OSEmulatorBase::heapPointer;
+std::vector<unsigned int> trap::OSEmulatorBase::groupIDs;
+unsigned int trap::OSEmulatorBase::programsCount = 0;
 
 namespace trap{
 int exitValue = 0;
