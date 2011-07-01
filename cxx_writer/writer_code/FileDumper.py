@@ -413,13 +413,13 @@ class Folder:
     # Check for boost libraries
     ########################################
     ctx.load('boost')
-    boostErrorMessage = 'Unable to find ' + boostLibs + ' boost libraries of at least version 1.35, please install them and/or specify their location with the --boost-includes and --boost-libs configuration options. It can also happen that you have more than one boost version installed in a system-wide location: in this case remove the unnecessary versions.'
     """, wscriptFile)
             if tests:
                 printOnFile("""    boostLibs = 'thread regex date_time program_options filesystem unit_test_framework system'""", wscriptFile)
             else:
                 printOnFile("""    boostLibs = 'thread regex date_time program_options filesystem system'""", wscriptFile)
             printOnFile("""
+    boostErrorMessage = 'Unable to find ' + boostLibs + ' boost libraries of at least version 1.35, please install them and/or specify their location with the --boost-includes and --boost-libs configuration options. It can also happen that you have more than one boost version installed in a system-wide location: in this case remove the unnecessary versions.'
     ctx.check_boost(lib=boostLibs, static=ctx.options.static_build, mandatory=True, errmsg = boostErrorMessage)
     if int(ctx.env.BOOST_VERSION.split('_')[1]) < 35:
         ctx.fatal(boostErrorMessage)

@@ -8,7 +8,7 @@ import sys, os
 # these variables are mandatory
 top = '.'
 out = '_build_'
-VERSION = '0.56'
+VERSION = '0.57'
 APPNAME = 'trap'
 
 # Checks, on 64 bit systems, that a given static library and the objects contained in it can
