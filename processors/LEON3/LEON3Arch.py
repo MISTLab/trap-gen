@@ -46,7 +46,7 @@ from LEON3Methods import updateAliasCode_abi
 
 # Lets now start building the processor
 processor = trap.Processor('LEON3', version = '0.3', systemc = True, instructionCache = True, cacheLimit = 256)
-processor.setIpRights('gpl', 'Luca Fossati', 'fossati.l@gmail.com', banner)
+processor.setIpRights('esa', 'Luca Fossati', 'fossati.l@gmail.com', banner)
 processor.setBigEndian() # big endian
 processor.setWordsize(4, 8) # 4 bytes per word, 8 bits per byte
 processor.setISA(LEON3Isa.isa) # lets set the instruction set
