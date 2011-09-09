@@ -415,7 +415,7 @@ class Folder:
     ctx.load('boost')
     boostLibs = 'thread regex date_time program_options filesystem system'
     boostErrorMessage = 'Unable to find ' + boostLibs + ' boost libraries of at least version 1.35, please install them and/or specify their location with the --boost-includes and --boost-libs configuration options. It can also happen that you have more than one boost version installed in a system-wide location: in this case remove the unnecessary versions.'
-    ctx.check_boost(lib=boostLibs, static=ctx.options.static_build, mandatory=True, errmsg = boostErrorMessage)
+    ctx.check_boost(lib=boostLibs, mandatory=True, errmsg = boostErrorMessage)
     if int(ctx.env.BOOST_VERSION.split('_')[1]) < 35:
         ctx.fatal(boostErrorMessage)
     if not ctx.options.static_build:
@@ -423,7 +423,7 @@ class Folder:
 
     """, wscriptFile)
             if tests:
-                printOnFile("""    ctx.check_boost(lib='unit_test_framework', static=ctx.options.static_build, mandatory=True, errmsg = boostErrorMessage, uselib_store='BOOST_TEST')""", wscriptFile)
+                printOnFile("""    ctx.check_boost(lib='unit_test_framework', mandatory=True, errmsg = boostErrorMessage, uselib_store='BOOST_TEST')""", wscriptFile)
             printOnFile("""    
     #######################################################
     # Determining gcc search dirs
