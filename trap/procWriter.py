@@ -1338,10 +1338,10 @@ def getCPPProc(self, model, trace, combinedTrace, namespace):
             constrCode += pipeStage.name + '_stage.NOPInstrInstance = ' + processor_name + '::NOPInstrInstance;\n'
         constrCode += '}\n'
     for irq in self.irqs:
-        constrCode += 'this->' + irq.name + '_irqInstr = new IRQ_' + irq.name + '_Instruction(' + baseInstrInitElement + ', this->' + irq.name + ');\n'
+        constrCode += 'this->' + irqPort.name + '_irqInstr = new IRQ_' + irq.name + '_Instruction(' + baseInstrInitElement + ', this->' + irqPort.name + ');\n'
         if model.startswith('acc'):
             for pipeStage in self.pipes:
-                constrCode += 'this->' + pipeStage.name + '_stage.' + irq.name + '_irqInstr = this->' + irq.name + '_irqInstr;\n'
+                constrCode += 'this->' + pipeStage.name + '_stage.' + irqPort.name + '_irqInstr = this->' + irqPort.name + '_irqInstr;\n'
     constrCode += bodyInits
     if not model.startswith('acc'):
         constrCode += 'SC_THREAD(mainLoop);\n'
@@ -1558,7 +1558,7 @@ def getMainCode(self, model, namespace):
     code += """
     std::cout << std::endl << "Loading the application and initializing the tools ..." << std::endl;
     //And with the loading of the executable code
-    boost::filesystem::path applicationPath = boost::filesystem::system_complete(boost::filesystem::path(vm["application"].as<std::string>(), boost::filesystem::native));
+    boost::filesystem::path applicationPath = boost::filesystem::system_complete(boost::filesystem::path(vm["application"].as<std::string>()));
     if ( !boost::filesystem::exists( applicationPath ) ){
         std::cerr << "ERROR: specified application " << vm["application"].as<std::string>() << " does not exist" << std::endl;
         return -1;

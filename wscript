@@ -61,7 +61,7 @@ def configure(ctx):
         if flag.startswith('-D'):
             ctx.env.append_unique('DEFINES', flag[2:])
 
-    ctx.check_waf_version(mini='1.6.4')
+    ctx.check_waf_version(mini='1.6.6')
     
     ctx.env['ENABLE_SHARED_64'] = True
 

@@ -119,7 +119,7 @@ trap::ELFFrontend::ELFFrontend(std::string binaryName) : execName(binaryName){
     if(elf_version(EV_CURRENT) == EV_NONE){
         THROW_ERROR("Error, wrong version of the ELF library");
     }
-    boost::filesystem::path fileNamePath = boost::filesystem::system_complete(boost::filesystem::path(binaryName, boost::filesystem::native));
+    boost::filesystem::path fileNamePath = boost::filesystem::system_complete(boost::filesystem::path(binaryName));
     if ( !boost::filesystem::exists( fileNamePath ) ){
         THROW_EXCEPTION("Path " << binaryName << " does not exists");
     }

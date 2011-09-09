@@ -229,7 +229,7 @@ class Folder:
                         printOnFile('        ' + codeFile.name, wscriptFile)
                 printOnFile('    \"\"\"', wscriptFile)
                 if tests:
-                    printOnFile('    uselib = \'TRAP ELF_LIB BOOST BOOST SYSTEMC TLM\'', wscriptFile)
+                    printOnFile('    uselib = \'TRAP BOOST BOOST_TEST ELF_LIB SYSTEMC TLM\'', wscriptFile)
                 else:
                     printOnFile('    uselib = \'BOOST SYSTEMC TLM TRAP\'', wscriptFile)
                 if self.uselib_local:
@@ -253,9 +253,9 @@ class Folder:
                 printOnFile('    sources = \'' + self.mainFile + '\'', wscriptFile)
                 printOnFile('    includes = \'.\'', wscriptFile)
                 if tests:
-                    printOnFile('    uselib = \'TRAP ELF_LIB BOOST BOOST SYSTEMC TLM\'', wscriptFile)
+                    printOnFile('    uselib = \'TRAP BOOST BOOST_TEST ELF_LIB SYSTEMC TLM\'', wscriptFile)
                 else:
-                    printOnFile('    uselib = \'TRAP ELF_LIB BOOST BOOST SYSTEMC TLM\'', wscriptFile)
+                    printOnFile('    uselib = \'TRAP BOOST ELF_LIB SYSTEMC TLM\'', wscriptFile)
                 printOnFile('    import sys', wscriptFile)
                 printOnFile('    cppflags_custom = \'\'', wscriptFile)
                 printOnFile('    if sys.platform == \'cygwin\':', wscriptFile)
@@ -301,7 +301,7 @@ class Folder:
             ctx.env.append_unique('DEFINES', flag[2:])
 
     # Check for standard tools
-    ctx.check_waf_version(mini='1.6.4')
+    ctx.check_waf_version(mini='1.6.6')
 
     # Check for standard tools
     ctx.load('compiler_cxx')
@@ -413,12 +413,7 @@ class Folder:
     # Check for boost libraries
     ########################################
     ctx.load('boost')
-    """, wscriptFile)
-            if tests:
-                printOnFile("""    boostLibs = 'thread regex date_time program_options filesystem unit_test_framework system'""", wscriptFile)
-            else:
-                printOnFile("""    boostLibs = 'thread regex date_time program_options filesystem system'""", wscriptFile)
-            printOnFile("""
+    boostLibs = 'thread regex date_time program_options filesystem system'
     boostErrorMessage = 'Unable to find ' + boostLibs + ' boost libraries of at least version 1.35, please install them and/or specify their location with the --boost-includes and --boost-libs configuration options. It can also happen that you have more than one boost version installed in a system-wide location: in this case remove the unnecessary versions.'
     ctx.check_boost(lib=boostLibs, static=ctx.options.static_build, mandatory=True, errmsg = boostErrorMessage)
     if int(ctx.env.BOOST_VERSION.split('_')[1]) < 35:
@@ -426,6 +421,10 @@ class Folder:
     if not ctx.options.static_build:
         ctx.env.append_unique('RPATH', ctx.env['LIBPATH_BOOST'])
 
+    """, wscriptFile)
+            if tests:
+                printOnFile("""    ctx.check_boost(lib='unit_test_framework', static=ctx.options.static_build, mandatory=True, errmsg = boostErrorMessage, uselib_store='BOOST_TEST')""", wscriptFile)
+            printOnFile("""    
     #######################################################
     # Determining gcc search dirs
     #######################################################

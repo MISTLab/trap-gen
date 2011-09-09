@@ -61,7 +61,7 @@ trap::ExecLoader::ExecLoader(std::string fileName, bool plainFile) : plainFile(p
     if(plainFile){
         ///Here I simply have to read the input file, putting all the bytes
         ///of its content in the programData array
-        boost::filesystem::path fileNamePath = boost::filesystem::system_complete(boost::filesystem::path(fileName, boost::filesystem::native));
+        boost::filesystem::path fileNamePath = boost::filesystem::system_complete(boost::filesystem::path(fileName));
         if ( !boost::filesystem::exists( fileNamePath ) ){
             THROW_EXCEPTION("Path " << fileName << " specified in the executable loader does not exists");
         }
