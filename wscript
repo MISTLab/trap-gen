@@ -151,6 +151,11 @@ def configure(ctx):
                 ctx.env.append_unique('CCFLAGS', testFlags)
                 ctx.env.append_unique('DEFINES', 'NDEBUG')
 
+        permissiveFlags = ['-fpermissive']
+        if ctx.check_cxx(cxxflags=permissiveFlags, msg='Checking for g++ -fpermissive flag') and ctx.check_cc(cflags=permissiveFlags, msg='Checking for gcc -fpermissive flag'):
+            ctx.env.append_unique('CXXFLAGS', permissiveFlags)
+            ctx.env.append_unique('CCFLAGS', permissiveFlags)
+
     ########################################
     # Check for special gcc flags
     ########################################
