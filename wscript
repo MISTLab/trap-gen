@@ -3,8 +3,6 @@
 
 import sys, os
 
-# configuration line for microsoft windows: python waf configure --with-systemc=C:\systemc-2.2.0 --with-bfd=C:\binutilsInstall --prefix=c:\trapInstall --boost-includes=C:\boost\boost_1_36_0 --boost-libs=C:\boost\boost_1_36_0\lib
-
 # these variables are mandatory
 top = '.'
 out = '_build_'
@@ -472,7 +470,12 @@ def configure(ctx):
         systemCerrmsg='Error, at least version 2.2.0 required'
     else:
         systemCerrmsg='Error, at least version 2.2.0 required.\nSystemC also needs patching under cygwin:\nplease controll that lines 175 and 177 of header systemc.h are commented;\nfor more details refer to http://www.ht-lab.com/howto/sccygwin/sccygwin.html\nhttp://www.dti.dk/_root/media/27325_SystemC_Getting_Started_artikel.pdf'
-    ctx.check_cxx(header_name='systemc.h', use='SYSTEMC', uselib_store='SYSTEMC', mandatory=1, includes=syscpath)
+    ctx.check_cxx(fragment="""
+        #include <systemc.h>
+        int sc_main(int argc, char** argv){
+            return 0;
+        }
+""", header_name='systemc.h', use='SYSTEMC', uselib_store='SYSTEMC', mandatory=1, includes=syscpath)
     ctx.check_cxx(fragment="""
         #include <systemc.h>
 

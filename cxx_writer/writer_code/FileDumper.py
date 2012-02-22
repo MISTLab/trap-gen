@@ -765,7 +765,12 @@ class Folder:
         systemCerrmsg='Error, at least version 2.2.0 required'
     else:
         systemCerrmsg='Error, at least version 2.2.0 required.\\nSystemC also needs patching under cygwin:\\nplease controll that lines 175 and 177 of header systemc.h are commented;\\nfor more details refer to http://www.ht-lab.com/howto/sccygwin/sccygwin.html\\nhttp://www.dti.dk/_root/media/27325_SystemC_Getting_Started_artikel.pdf'
-    ctx.check_cxx(header_name='systemc.h', use='SYSTEMC', uselib_store='SYSTEMC', mandatory=1, includes=syscpath)
+    ctx.check_cxx(fragment='''
+        #include <systemc.h>
+        int sc_main(int argc, char** argv){
+            return 0;
+        }
+''', header_name='systemc.h', use='SYSTEMC', uselib_store='SYSTEMC', mandatory=1, includes=syscpath)
     ctx.check_cxx(fragment='''
         #include <systemc.h>
 
@@ -798,7 +803,14 @@ class Folder:
         tlmPath = os.path.join(tlmPath, 'include')
     tlmPath = [os.path.join(tlmPath, 'tlm')]
 
-    ctx.check_cxx(header_name='tlm.h', use='SYSTEMC', uselib_store='TLM', mandatory=1, includes=tlmPath, errmsg='not found, use --with-tlm option')
+    ctx.check_cxx(fragment='''
+        #include <systemc.h>
+        #include <tlm.h>
+
+        extern "C" int sc_main(int argc, char **argv){
+            return 0;
+        }        
+''', header_name='tlm.h', use='SYSTEMC', uselib_store='TLM', mandatory=1, includes=tlmPath, errmsg='not found, use --with-tlm option')
     ctx.check_cxx(fragment='''
         #include <systemc.h>
         #include <tlm.h>
@@ -848,8 +860,16 @@ class Folder:
         if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'elf_begin') and 'bfd' not in ctx.env['LIB_ELF_LIB']:
             ctx.fatal('TRAP library not linked with libelf library: BFD library needed (you might need to re-create the processor specifying a GPL license, if present in your distribution) or compile TRAP using its LGPL flavour')
 
-        ctx.check_cxx(header_name='trap.hpp', use='TRAP ELF_LIB BOOST SYSTEMC', uselib_store='TRAP', mandatory=1, includes=trapDirInc)
         ctx.check_cxx(fragment='''
+        #include <systemc.h>
+        #include "trap.hpp"
+
+        extern "C" int sc_main(int argc, char **argv){
+            return 0;
+        }        
+''', header_name='trap.hpp', use='TRAP ELF_LIB BOOST SYSTEMC', uselib_store='TRAP', mandatory=1, includes=trapDirInc)
+        ctx.check_cxx(fragment='''
+            #include <systemc.h>
             #include "trap.hpp"
 
             #ifndef TRAP_REVISION
@@ -860,7 +880,7 @@ class Folder:
             #error Wrong version of the TRAP runtime: too old
             #endif
 
-            int main(int argc, char * argv[]){return 0;}
+            int sc_main(int argc, char ** argv){return 0;}
 ''', msg='Check for TRAP version', use='TRAP ELF_LIB BOOST SYSTEMC', mandatory=1, includes=trapDirInc, errmsg='Error, at least revision ' + str(trapRevisionNum) + ' required')
     else:
         ctx.check_cxx(lib='trap', use='ELF_LIB BOOST SYSTEMC', uselib_store='TRAP', mandatory=1, errmsg=trapLibErrmsg)
@@ -874,8 +894,16 @@ class Folder:
         if not check_trap_linking(ctx, 'trap', ctx.env['LIBPATH_TRAP'], 'elf_begin') and 'bfd' not in ctx.env['LIB_ELF_LIB']:
             ctx.fatal('TRAP library not linked with libelf library: BFD library needed (you might need to re-create the processor specifying a GPL license, if present in your distribution) or compile TRAP using its LGPL flavour ')
 
-        ctx.check_cxx(header_name='trap.hpp', use='TRAP ELF_LIB BOOST SYSTEMC', uselib_store='TRAP', mandatory=1)
         ctx.check_cxx(fragment='''
+        #include <systemc.h>
+        #include "trap.hpp"
+
+        extern "C" int sc_main(int argc, char **argv){
+            return 0;
+        }        
+''', header_name='trap.hpp', use='TRAP ELF_LIB BOOST SYSTEMC', uselib_store='TRAP', mandatory=1)
+        ctx.check_cxx(fragment='''
+            #include <systemc.h>
             #include "trap.hpp"
 
             #ifndef TRAP_REVISION
@@ -886,7 +914,7 @@ class Folder:
             #error Wrong version of the TRAP runtime: too old
             #endif
 
-            int main(int argc, char * argv[]){return 0;}
+            int sc_main(int argc, char ** argv){return 0;}
 ''', msg='Check for TRAP version', use='TRAP ELF_LIB BOOST SYSTEMC', mandatory=1, errmsg='Error, at least revision ' + str(trapRevisionNum) + ' required')
 
 """, wscriptFile)
