@@ -390,6 +390,11 @@ class Folder:
                 ctx.env.append_unique('CCFLAGS', testFlags)
                 ctx.env.append_unique('DEFINES', 'NDEBUG')
 
+        permissiveFlags = ['-fpermissive']
+        if ctx.check_cxx(cxxflags=permissiveFlags, msg='Checking for g++ -fpermissive flag') and ctx.check_cc(cflags=permissiveFlags, msg='Checking for gcc -fpermissive flag'):
+            ctx.env.append_unique('CXXFLAGS', permissiveFlags)
+            ctx.env.append_unique('CCFLAGS', permissiveFlags)
+
     if ctx.env['CFLAGS']:
         ctx.check_cc(cflags=ctx.env['CFLAGS'], mandatory=1, msg='Checking for C compilation flags')
     if ctx.env['CCFLAGS'] and ctx.env['CCFLAGS'] != ctx.env['CFLAGS']:
@@ -408,6 +413,17 @@ class Folder:
     else:
         ctx.env.append_unique('DEFINES', 'BIG_ENDIAN_BO')
         ctx.msg('Checking for host endianness', 'big')
+
+    ##################################################
+    # Check for pthread library/flag
+    ##################################################
+    if not ctx.check_cxx(linkflags='-pthread') or not ctx.check_cc(cxxflags='-pthread') or sys.platform == 'cygwin':
+        ctx.env.append_unique('LIB', 'pthread')
+    else:
+        ctx.env.append_unique('LINKFLAGS', '-pthread')
+        ctx.env.append_unique('CXXFLAGS', '-pthread')
+        ctx.env.append_unique('CFLAGS', '-pthread')
+        ctx.env.append_unique('CCFLAGS', '-pthread')
 
     ########################################
     # Check for boost libraries
@@ -719,17 +735,6 @@ class Folder:
     #########################################################
     if sys.platform == 'cygwin':
         ctx.check_cxx(lib='ws2_32', uselib_store='WINSOCK', mandatory=1)
-
-    ##################################################
-    # Check for pthread library/flag
-    ##################################################
-    if not ctx.check_cxx(linkflags='-pthread') or not ctx.check_cc(cxxflags='-pthread') or sys.platform == 'cygwin':
-        ctx.env.append_unique('LIB', 'pthread')
-    else:
-        ctx.env.append_unique('LINKFLAGS', '-pthread')
-        ctx.env.append_unique('CXXFLAGS', '-pthread')
-        ctx.env.append_unique('CFLAGS', '-pthread')
-        ctx.env.append_unique('CCFLAGS', '-pthread')
 
     ##################################################
     # Is SystemC compiled? Check for SystemC library
