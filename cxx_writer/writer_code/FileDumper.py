@@ -735,7 +735,7 @@ class Folder:
     # Is SystemC compiled? Check for SystemC library
     # Notice that we can't rely on lib-linux, therefore I have to find the actual platform...
     ##################################################
-    # First I set the clafgs needed by TLM 2.0 for including systemc dynamic process
+    # First I set the cflags needed by TLM 2.0 for including systemc dynamic process
     # creation
     ctx.env.append_unique('DEFINES','SC_INCLUDE_DYNAMIC_PROCESSES')
     syscpath = None
@@ -749,6 +749,8 @@ class Folder:
     if syscpath:
         sysclib = glob.glob(os.path.join(os.path.abspath(os.path.join(syscpath[0], '..')), 'lib-*'))
     ctx.check_cxx(lib='systemc', uselib_store='SYSTEMC', mandatory=1, libpath=sysclib, errmsg='not found, use --with-systemc option')
+    if not ctx.options.static_build:
+        ctx.env.append_unique('RPATH', ctx.env['LIBPATH_SYSTEMC'])
 
     ######################################################
     # Check if systemc is compiled with quick threads or not

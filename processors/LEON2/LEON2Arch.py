@@ -50,6 +50,7 @@ processor.setIpRights('esa', 'Luca Fossati', 'fossati.l@gmail.com', banner)
 processor.setBigEndian() # big endian
 processor.setWordsize(4, 8) # 4 bytes per word, 8 bits per byte
 processor.setISA(LEON2Isa.isa) # lets set the instruction set
+processor.invalid_instr = LEON2Isa.isa.instructions['UNIMP'] # I set the instruction to be used when there is a decoding error
 
 # Lets customize the compilation options: actually it is possible only to define pre-processor macros;
 # For example the following directive means that if the tsim-comp compilation option is activated,

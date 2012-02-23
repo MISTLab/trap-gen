@@ -379,6 +379,7 @@ class Processor:
         self.developer_name = ''
         self.developer_email = ''
         self.banner = ''
+        self.invalid_instr = None
 
     def setIpRights(self, license, developer_name = '', developer_email = '', banner = '', license_text = ''):
         validLicense = ['gpl', 'lgpl', 'esa', 'custom']
@@ -1059,6 +1060,7 @@ class Processor:
         if forceDecoderCreation:
             print ('\t\tCreating the decoder')
             dec = decoder.decoderCreator(self.isa.instructions, self.isa.subInstructions, memPenaltyFactor)
+            dec.invalid_instr = self.invalid_instr
             import copy
             decCopy = copy.deepcopy(dec)
         else:
@@ -1072,6 +1074,7 @@ class Processor:
                 print ('\t\tError in loading the decoder')
                 print ('\t\tRe-Creating the decoder')
                 dec = decoder.decoderCreator(self.isa.instructions, self.isa.subInstructions, memPenaltyFactor)
+                dec.invalid_instr = self.invalid_instr
                 import copy
                 decCopy = copy.deepcopy(dec)
                 forceDecoderCreation = True
