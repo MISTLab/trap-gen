@@ -95,7 +95,7 @@ class OSEmulatorBase{
     public:
 
     virtual std::set<std::string> getRegisteredFunctions() = 0;
-	void set_program_args(const std::vector<std::string> args);
+    void set_program_args(const std::vector<std::string> args);
     void correct_flags(int &val);
     void set_environ(const std::string name,  const std::string value);
     void set_sysconf(const std::string name,  int value);

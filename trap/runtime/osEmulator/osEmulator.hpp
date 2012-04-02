@@ -511,8 +511,12 @@ template<class issueWidth> class OSEmulator : public ToolsIf<issueWidth>, public
         this->sysconfmap.clear();
         this->programArgs.clear();
         this->heapPointer = 0;
+        this->groupIDs.clear();
+        this->programsCount = 0;
     }
-    virtual ~OSEmulator(){
+    //The destructor calls the reset method
+    ~OSEmulator(){
+      reset();
     }
 };
 
