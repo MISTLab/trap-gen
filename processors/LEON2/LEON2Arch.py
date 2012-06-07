@@ -45,7 +45,7 @@ from LEON2Methods import updateAliasCode_exception
 from LEON2Methods import updateAliasCode_abi
 
 # Lets now start building the processor
-processor = trap.Processor('LEON2', version = '0.3', systemc = not standalone, instructionCache = True, cacheLimit = 256)
+processor = trap.Processor('LEON2', version = '0.31', systemc = not standalone, instructionCache = True, cacheLimit = 256)
 processor.setIpRights('esa', 'Luca Fossati', 'fossati.l@gmail.com', banner)
 processor.setBigEndian() # big endian
 processor.setWordsize(4, 8) # 4 bytes per word, 8 bits per byte
