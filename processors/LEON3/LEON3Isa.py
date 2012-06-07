@@ -3212,6 +3212,9 @@ illegalCWP = (result & 0x0000001f) >= NUM_REG_WIN;
 opCodeExec = cxx_writer.writer_code.Code("""
 if(!(supervisorException || illegalCWP)){
     PSR = result;
+""" +
+updateAliasCode_decode()
++ """
 }
 """)
 opCodeTrap = cxx_writer.writer_code.Code("""
