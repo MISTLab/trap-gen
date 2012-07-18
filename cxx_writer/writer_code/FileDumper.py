@@ -801,23 +801,27 @@ class Folder:
     ##################################################
     # Check for TLM header
     ##################################################
-    tlmPath = ''
-    if ctx.options.tlmdir:
-        tlmPath = os.path.normpath(os.path.abspath(os.path.expanduser(os.path.expandvars(ctx.options.tlmdir))))
-    elif 'TLM' in os.environ:
-        tlmPath = os.path.normpath(os.path.abspath(os.path.expanduser(os.path.expandvars(os.environ['TLM']))))
-    if not tlmPath.endswith('include'):
-        tlmPath = os.path.join(tlmPath, 'include')
-    tlmPath = [os.path.join(tlmPath, 'tlm')]
-
-    ctx.check_cxx(fragment='''
+    tlm_existance_frag = '''
         #include <systemc.h>
         #include <tlm.h>
 
         extern "C" int sc_main(int argc, char **argv){
             return 0;
         }        
-''', header_name='tlm.h', use='SYSTEMC', uselib_store='TLM', mandatory=1, includes=tlmPath, errmsg='not found, use --with-tlm option')
+'''
+
+    if not ctx.check_cxx(fragment=tlm_existance_frag, header_name='tlm.h', use='SYSTEMC', mandatory=0):
+        tlmPath = ''
+        if ctx.options.tlmdir:
+            tlmPath = os.path.normpath(os.path.abspath(os.path.expanduser(os.path.expandvars(ctx.options.tlmdir))))
+        elif 'TLM' in os.environ:
+            tlmPath = os.path.normpath(os.path.abspath(os.path.expanduser(os.path.expandvars(os.environ['TLM']))))
+        if not tlmPath.endswith('include'):
+            tlmPath = os.path.join(tlmPath, 'include')
+        tlmPath = [os.path.join(tlmPath, 'tlm')]
+
+        ctx.check_cxx(fragment=tlm_existance_frag, header_name='tlm.h', use='SYSTEMC', uselib_store='TLM', mandatory=1, includes=tlmPath, errmsg='not found, use --with-tlm option or use SystemC version 2.3 or greater')
+        
     ctx.check_cxx(fragment='''
         #include <systemc.h>
         #include <tlm.h>
@@ -839,12 +843,12 @@ class Folder:
         extern "C" int sc_main(int argc, char **argv){
             return 0;
         }
-''', msg='Check for TLM version', use='SYSTEMC TLM', mandatory=1, errmsg='Error, at least version 2.0 required')
+''', msg='Check for TLM version', use='SYSTEMC TLM', mandatory=1, errmsg='Error, at least version 2.0 required or SystemC version 2.3 or greater')
 
     ##################################################
     # Check for TRAP runtime libraries and headers
     ##################################################
-    trapRevisionNum = 772
+    trapRevisionNum = 824
     trapDirLib = ''
     trapDirInc = ''
     trapLibErrmsg = 'not found, use --with-trap option. It might also be that the trap library is compiled '
