@@ -948,7 +948,7 @@ template<class issueWidth> class GDBStub : public ToolsIf<issueWidth>, public Me
   public:
     SC_HAS_PROCESS(GDBStub);
     GDBStub(ABIIf<issueWidth> &processorInstance) :
-                    sc_module("debugger"), connManager(processorInstance.matchEndian()), processorInstance(processorInstance),
+                    sc_module(sc_module_name("debugger")), connManager(processorInstance.matchEndian()), processorInstance(processorInstance),
                 step(0), breakReached(NULL), breakEnabled(true), watchEnabled(true), isKilled(false), timeout(false), isConnected(false),
                 timeToGo(0), timeToJump(0), simStartTime(0), firstRun(true), simulationPaused(false){
         SC_METHOD(pauseMethod);

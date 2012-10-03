@@ -2,7 +2,7 @@ In order to compile the benchmarks run the command:
 CC_CROSS=your_compiler CFLAGS=your_cflags make
 remember to specify -DBIG_TARGET among the cflags in case you want to test
 a big endian processor. For example, for the LEON3 processor:
-CC_CROSS=/home/luke/cross/sparc/bin/sparc-elf-gcc CFLAGS="-DBIG_TARGET -specs=osemu.specs" make
+CC_CROSS=/home/luke/cross/sparc/bin/sparc-elf-gcc CFLAGS="-DBIG_TARGET -specs=osemu.specs -mcpu=v8" make
 
 Once compiled, to run the benchmarks execute:
 SIMULATOR=your_simulator make run
