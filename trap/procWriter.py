@@ -856,7 +856,7 @@ def createRegsAttributes(self, model, processorElements, initElements, bodyAlias
             if nxVersion < 0.99:
                 edgeType = aliasGraphRev.edges(alias)[0][0]
             else:
-                edgeType = aliasGraphRev.edges(alias, data = True)[0][0]
+                edgeType = aliasGraphRev.edges([alias], data = True)[0][0]
             if edgeType == 'stop':
                 break
             if aliasInit.has_key(alias.name):
