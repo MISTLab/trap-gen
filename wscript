@@ -441,6 +441,14 @@ def configure(ctx):
     # Notice that we can't rely on lib-linux, therefore I have to find the actual platform...
     ##################################################
     syscpath = None
+    sysc_fragment_check = """
+    extern "C" {
+        int sc_main(int argc, char** argv){
+            (void)argc; (void)argv;
+            return 0;
+        }
+    }
+"""
     if ctx.options.systemcdir:
         syscpath = ([os.path.abspath(os.path.expanduser(os.path.expandvars(os.path.join(ctx.options.systemcdir, 'include'))))])
     elif 'SYSTEMC' in os.environ:
@@ -450,7 +458,7 @@ def configure(ctx):
     sysclib = ''
     if syscpath:
         sysclib = glob.glob(os.path.join(os.path.abspath(os.path.join(syscpath[0], '..')), 'lib-*'))
-    ctx.check_cxx(lib='systemc', uselib_store='SYSTEMC', mandatory=1, libpath=sysclib, errmsg='not found, use --with-systemc option')
+    ctx.check_cxx(fragment=sysc_fragment_check, lib='systemc', uselib_store='SYSTEMC', mandatory=1, libpath=sysclib, errmsg='not found, use --with-systemc option')
     if not check_dyn_library(ctx, ctx.env['cxxstlib_PATTERN'] % 'systemc', sysclib):
         ctx.msg(ctx.env['cxxstlib_PATTERN'] % 'systemc' + ' relocabilty', 'Found position dependent code: shared libraries disabled', color='YELLOW')
         ctx.env['ENABLE_SHARED_64'] = False
@@ -470,12 +478,7 @@ def configure(ctx):
         systemCerrmsg='Error, at least version 2.2.0 required'
     else:
         systemCerrmsg='Error, at least version 2.2.0 required.\nSystemC also needs patching under cygwin:\nplease controll that lines 175 and 177 of header systemc.h are commented;\nfor more details refer to http://www.ht-lab.com/howto/sccygwin/sccygwin.html\nhttp://www.dti.dk/_root/media/27325_SystemC_Getting_Started_artikel.pdf'
-    ctx.check_cxx(fragment="""
-        #include <systemc.h>
-        int sc_main(int argc, char** argv){
-            return 0;
-        }
-""", header_name='systemc.h', use='SYSTEMC', uselib_store='SYSTEMC', mandatory=1, includes=syscpath)
+    ctx.check_cxx(fragment="#include <systemc.h>\n" + sysc_fragment_check, header_name='systemc.h', use='SYSTEMC', uselib_store='SYSTEMC', mandatory=1, includes=syscpath)
     ctx.check_cxx(fragment="""
         #include <systemc.h>
 
